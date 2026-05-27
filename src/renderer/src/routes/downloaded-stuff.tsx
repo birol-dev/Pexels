@@ -4,7 +4,15 @@ import { api } from '../lib/api-client'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { FolderOpen, Trash2, Download, ExternalLink, Info, AlertCircle, Loader2 } from 'lucide-react'
+import {
+  FolderOpen,
+  Trash2,
+  Download,
+  ExternalLink,
+  Info,
+  AlertCircle,
+  Loader2
+} from 'lucide-react'
 
 interface FlatAsset {
   id: string
@@ -61,7 +69,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
         <AlertCircle className="h-12 w-12 text-muted-foreground" />
         <div>
           <h2 className="text-xl font-bold">No Workspace Active</h2>
-          <p className="text-sm text-muted-foreground">Select a running or completed project from history to inspect downloaded files.</p>
+          <p className="text-sm text-muted-foreground">
+            Select a running or completed project from history to inspect downloaded files.
+          </p>
         </div>
         <Button onClick={() => navigate('input')}>Back to Dashboard</Button>
       </div>
@@ -114,8 +124,12 @@ export default function DownloadedStuffView(): React.JSX.Element {
           <h1 className="text-2xl font-bold tracking-tight">Downloaded Stock Assets</h1>
           <p className="text-sm text-muted-foreground">Project: {activeJob?.title}</p>
         </div>
-        
-        <Button size="sm" onClick={handleExportManifest} className="bg-white/10 hover:bg-white/20 border border-white/5 text-white">
+
+        <Button
+          size="sm"
+          onClick={handleExportManifest}
+          className="bg-white/10 hover:bg-white/20 border border-white/5 text-white"
+        >
           <Download className="h-4 w-4 mr-1.5" />
           Export Project Manifest
         </Button>
@@ -128,10 +142,18 @@ export default function DownloadedStuffView(): React.JSX.Element {
             <Tabs value={filter} onValueChange={(val: any) => setFilter(val)} className="w-auto">
               <TabsList className="bg-black/40 border border-white/5">
                 <TabsTrigger value="all">All ({assets.length})</TabsTrigger>
-                <TabsTrigger value="video">Videos ({assets.filter((a) => a.type === 'video').length})</TabsTrigger>
-                <TabsTrigger value="photo">Photos ({assets.filter((a) => a.type === 'photo').length})</TabsTrigger>
-                <TabsTrigger value="completed">Downloaded ({assets.filter((a) => a.status === 'completed').length})</TabsTrigger>
-                <TabsTrigger value="failed">Failed ({assets.filter((a) => a.status === 'failed').length})</TabsTrigger>
+                <TabsTrigger value="video">
+                  Videos ({assets.filter((a) => a.type === 'video').length})
+                </TabsTrigger>
+                <TabsTrigger value="photo">
+                  Photos ({assets.filter((a) => a.type === 'photo').length})
+                </TabsTrigger>
+                <TabsTrigger value="completed">
+                  Downloaded ({assets.filter((a) => a.status === 'completed').length})
+                </TabsTrigger>
+                <TabsTrigger value="failed">
+                  Failed ({assets.filter((a) => a.status === 'failed').length})
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -152,21 +174,45 @@ export default function DownloadedStuffView(): React.JSX.Element {
                   onClick={() => setSelectedAsset(asset)}
                   className={`glass-card rounded-xl overflow-hidden border transition-all cursor-pointer aspect-video relative group ${selectedAsset?.id === asset.id ? 'border-primary ring-2 ring-primary/20' : 'border-white/5'}`}
                 >
-                  <img src={asset.imageUrl} className="w-full h-full object-cover" alt="Stock Thumbnail" />
+                  <img
+                    src={asset.imageUrl}
+                    className="w-full h-full object-cover"
+                    alt="Stock Thumbnail"
+                  />
                   <div className="absolute inset-0 bg-black/40 flex flex-col justify-between p-2.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[10px] uppercase font-bold text-white tracking-wider">{asset.type}</span>
+                    <span className="text-[10px] uppercase font-bold text-white tracking-wider">
+                      {asset.type}
+                    </span>
                     <div className="flex justify-between items-center text-[10px] font-mono text-neutral-200">
                       <span className="truncate max-w-[100px]">By {asset.photographer}</span>
-                      {asset.status === 'completed' && <Badge className="bg-emerald-600 text-white text-[8px] h-4 py-0">Ready</Badge>}
-                      {asset.status === 'failed' && <Badge variant="destructive" className="text-[8px] h-4 py-0">Failed</Badge>}
-                      {asset.status === 'downloading' && <Badge className="bg-blue-600 text-white text-[8px] h-4 py-0">Downloading</Badge>}
+                      {asset.status === 'completed' && (
+                        <Badge className="bg-emerald-600 text-white text-[8px] h-4 py-0">
+                          Ready
+                        </Badge>
+                      )}
+                      {asset.status === 'failed' && (
+                        <Badge variant="destructive" className="text-[8px] h-4 py-0">
+                          Failed
+                        </Badge>
+                      )}
+                      {asset.status === 'downloading' && (
+                        <Badge className="bg-blue-600 text-white text-[8px] h-4 py-0">
+                          Downloading
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   {/* Status indicator on thumbnail when not hovered */}
                   <div className="absolute bottom-2 right-2 group-hover:hidden">
-                    {asset.status === 'completed' && <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-md shadow-emerald-500/50" />}
-                    {asset.status === 'failed' && <div className="h-2 w-2 rounded-full bg-red-500 shadow-md shadow-red-500/50" />}
-                    {asset.status === 'downloading' && <div className="h-2 w-2 rounded-full bg-blue-500 shadow-md shadow-blue-500/50 animate-pulse" />}
+                    {asset.status === 'completed' && (
+                      <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-md shadow-emerald-500/50" />
+                    )}
+                    {asset.status === 'failed' && (
+                      <div className="h-2 w-2 rounded-full bg-red-500 shadow-md shadow-red-500/50" />
+                    )}
+                    {asset.status === 'downloading' && (
+                      <div className="h-2 w-2 rounded-full bg-blue-500 shadow-md shadow-blue-500/50 animate-pulse" />
+                    )}
                   </div>
                 </div>
               ))}
@@ -213,7 +259,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
                 )}
                 {selectedAsset.status !== 'completed' && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-xs font-mono">
-                    {selectedAsset.status === 'downloading' ? 'Asset is downloading...' : 'Download failed or user deleted'}
+                    {selectedAsset.status === 'downloading'
+                      ? 'Asset is downloading...'
+                      : 'Download failed or user deleted'}
                   </div>
                 )}
               </div>
@@ -221,7 +269,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
               {/* Asset Metadata */}
               <div className="space-y-3.5 text-xs">
                 <div>
-                  <span className="text-muted-foreground uppercase text-[9px] font-mono block">Original Source</span>
+                  <span className="text-muted-foreground uppercase text-[9px] font-mono block">
+                    Original Source
+                  </span>
                   <a
                     href={selectedAsset.url}
                     target="_blank"
@@ -234,30 +284,44 @@ export default function DownloadedStuffView(): React.JSX.Element {
                 </div>
 
                 <div>
-                  <span className="text-muted-foreground uppercase text-[9px] font-mono block">Photographer / Creator</span>
-                  <div className="font-semibold text-white mt-0.5">{selectedAsset.photographer}</div>
+                  <span className="text-muted-foreground uppercase text-[9px] font-mono block">
+                    Photographer / Creator
+                  </span>
+                  <div className="font-semibold text-white mt-0.5">
+                    {selectedAsset.photographer}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-muted-foreground uppercase text-[9px] font-mono block">Dimensions</span>
-                    <div className="text-white mt-0.5">{selectedAsset.width} × {selectedAsset.height} px</div>
+                    <span className="text-muted-foreground uppercase text-[9px] font-mono block">
+                      Dimensions
+                    </span>
+                    <div className="text-white mt-0.5">
+                      {selectedAsset.width} × {selectedAsset.height} px
+                    </div>
                   </div>
                   {selectedAsset.type === 'video' && selectedAsset.duration !== undefined && (
                     <div>
-                      <span className="text-muted-foreground uppercase text-[9px] font-mono block">Duration</span>
+                      <span className="text-muted-foreground uppercase text-[9px] font-mono block">
+                        Duration
+                      </span>
                       <div className="text-white mt-0.5">{selectedAsset.duration} seconds</div>
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <span className="text-muted-foreground uppercase text-[9px] font-mono block">Stock Query Used</span>
+                  <span className="text-muted-foreground uppercase text-[9px] font-mono block">
+                    Stock Query Used
+                  </span>
                   <div className="text-white font-mono mt-0.5">"{selectedAsset.query}"</div>
                 </div>
 
                 <div>
-                  <span className="text-muted-foreground uppercase text-[9px] font-mono block">Script Beat Context</span>
+                  <span className="text-muted-foreground uppercase text-[9px] font-mono block">
+                    Script Beat Context
+                  </span>
                   <div className="text-neutral-300 italic leading-relaxed mt-1 bg-black/10 border border-white/5 rounded p-2 text-[11px]">
                     "{selectedAsset.beatText}"
                   </div>
@@ -265,7 +329,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
 
                 {selectedAsset.filePath && (
                   <div>
-                    <span className="text-muted-foreground uppercase text-[9px] font-mono block">Local Disk Path</span>
+                    <span className="text-muted-foreground uppercase text-[9px] font-mono block">
+                      Local Disk Path
+                    </span>
                     <div className="text-neutral-400 font-mono select-all break-all leading-normal mt-0.5 text-[10px] bg-black/25 p-2 rounded border border-white/5">
                       {selectedAsset.filePath}
                     </div>
@@ -280,8 +346,12 @@ export default function DownloadedStuffView(): React.JSX.Element {
                 )}
 
                 <div>
-                  <span className="text-muted-foreground uppercase text-[9px] font-mono block">Licensing Note</span>
-                  <div className="text-emerald-400 font-medium mt-0.5">Free to use under the Pexels License.</div>
+                  <span className="text-muted-foreground uppercase text-[9px] font-mono block">
+                    Licensing Note
+                  </span>
+                  <div className="text-emerald-400 font-medium mt-0.5">
+                    Free to use under the Pexels License.
+                  </div>
                 </div>
               </div>
 
@@ -295,7 +365,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
                     <FolderOpen className="h-4 w-4 mr-1.5" />
                     Open Location
                   </Button>
-                  
+
                   <Button
                     variant="destructive"
                     onClick={() => handleDelete(selectedAsset.id)}

@@ -4,20 +4,42 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '../components/ui/select'
 import { Card } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
-import { Film, Image as ImageIcon, Video, Sparkles, History, Play, RotateCcw, AlertTriangle } from 'lucide-react'
+import {
+  Film,
+  Image as ImageIcon,
+  Video,
+  Sparkles,
+  History,
+  Play,
+  RotateCcw,
+  AlertTriangle
+} from 'lucide-react'
 
 export default function ScriptInputView(): React.JSX.Element {
-  const { startJob, jobs, loadJobs, setActiveJobId, navigate, rerunJob, settings, loadSettings } = useAppStore()
+  const { startJob, jobs, loadJobs, setActiveJobId, navigate, rerunJob, settings, loadSettings } =
+    useAppStore()
 
   // Form State
   const [title, setTitle] = useState('')
   const [script, setScript] = useState('')
-  const [platform, setPlatform] = useState<'YouTube' | 'Shorts' | 'TikTok' | 'Instagram Reels'>('YouTube')
-  const [style, setStyle] = useState<'cinematic' | 'documentary' | 'business' | 'tech' | 'nature' | 'lifestyle' | 'abstract'>('cinematic')
-  const [mix, setMix] = useState<'videos only' | 'photos only' | 'videos + photos'>('videos + photos')
+  const [platform, setPlatform] = useState<'YouTube' | 'Shorts' | 'TikTok' | 'Instagram Reels'>(
+    'YouTube'
+  )
+  const [style, setStyle] = useState<
+    'cinematic' | 'documentary' | 'business' | 'tech' | 'nature' | 'lifestyle' | 'abstract'
+  >('cinematic')
+  const [mix, setMix] = useState<'videos only' | 'photos only' | 'videos + photos'>(
+    'videos + photos'
+  )
   const [maxAssetsPerBeat, setMaxAssetsPerBeat] = useState(3)
   const [maxTotalDownloads, setMaxTotalDownloads] = useState(15)
 
@@ -58,15 +80,31 @@ export default function ScriptInputView(): React.JSX.Element {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'running':
-        return <Badge className="bg-blue-600/20 text-blue-400 border border-blue-500/20 animate-pulse">Running</Badge>
+        return (
+          <Badge className="bg-blue-600/20 text-blue-400 border border-blue-500/20 animate-pulse">
+            Running
+          </Badge>
+        )
       case 'paused':
-        return <Badge className="bg-yellow-600/20 text-yellow-400 border border-yellow-500/20">Paused</Badge>
+        return (
+          <Badge className="bg-yellow-600/20 text-yellow-400 border border-yellow-500/20">
+            Paused
+          </Badge>
+        )
       case 'completed':
-        return <Badge className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/20">Completed</Badge>
+        return (
+          <Badge className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/20">
+            Completed
+          </Badge>
+        )
       case 'failed':
         return <Badge className="bg-red-600/20 text-red-400 border border-red-500/20">Failed</Badge>
       default:
-        return <Badge className="bg-neutral-600/20 text-neutral-400 border border-neutral-500/20">Cancelled</Badge>
+        return (
+          <Badge className="bg-neutral-600/20 text-neutral-400 border border-neutral-500/20">
+            Cancelled
+          </Badge>
+        )
     }
   }
 
@@ -78,7 +116,10 @@ export default function ScriptInputView(): React.JSX.Element {
           <Sparkles className="h-8 w-8 text-primary animate-pulse" />
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Create Asset Pack</h1>
-            <p className="text-sm text-muted-foreground">Paste your script, customize matching criteria, and let the AI find visual stock b-roll.</p>
+            <p className="text-sm text-muted-foreground">
+              Paste your script, customize matching criteria, and let the AI find visual stock
+              b-roll.
+            </p>
           </div>
         </div>
 
@@ -86,9 +127,15 @@ export default function ScriptInputView(): React.JSX.Element {
           <div className="p-4 rounded-xl flex items-center space-x-3 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm">
             <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0" />
             <div className="flex-1">
-              You need to configure your <strong>Pexels API Key</strong> in the Settings panel before generating b-roll asset packages.
+              You need to configure your <strong>Pexels API Key</strong> in the Settings panel
+              before generating b-roll asset packages.
             </div>
-            <Button size="sm" variant="secondary" onClick={() => navigate('settings')} className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-none shrink-0">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => navigate('settings')}
+              className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-none shrink-0"
+            >
               Configure Now
             </Button>
           </div>
@@ -205,7 +252,10 @@ export default function ScriptInputView(): React.JSX.Element {
             </div>
           </div>
 
-          <Button type="submit" className="w-full py-6 mt-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-base font-semibold shadow-lg shadow-violet-500/25">
+          <Button
+            type="submit"
+            className="w-full py-6 mt-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-base font-semibold shadow-lg shadow-violet-500/25"
+          >
             <Play className="mr-2 h-5 w-5 fill-current" />
             Analyze & Fetch Visual Assets
           </Button>
@@ -226,9 +276,15 @@ export default function ScriptInputView(): React.JSX.Element {
             </div>
           ) : (
             jobs.map((job) => (
-              <Card key={job.jobId} className="glass-card hover:bg-neutral-900/40 p-4 border border-white/5 transition-all cursor-pointer relative group" onClick={() => handleSelectJob(job.jobId)}>
+              <Card
+                key={job.jobId}
+                className="glass-card hover:bg-neutral-900/40 p-4 border border-white/5 transition-all cursor-pointer relative group"
+                onClick={() => handleSelectJob(job.jobId)}
+              >
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-sm group-hover:text-primary transition-colors pr-2 line-clamp-1">{job.title}</h3>
+                  <h3 className="font-semibold text-sm group-hover:text-primary transition-colors pr-2 line-clamp-1">
+                    {job.title}
+                  </h3>
                   {getStatusBadge(job.status)}
                 </div>
 

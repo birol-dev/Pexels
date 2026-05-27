@@ -49,28 +49,28 @@ Expose only this shape:
 ```ts
 type AppApi = {
   settings: {
-    getPublicSettings(): Promise<PublicSettings>;
-    updateSettings(input: SettingsUpdate): Promise<void>;
-    testProvider(input: ProviderTestRequest): Promise<ProviderTestResult>;
-    chooseDownloadFolder(): Promise<string | null>;
-  };
+    getPublicSettings(): Promise<PublicSettings>
+    updateSettings(input: SettingsUpdate): Promise<void>
+    testProvider(input: ProviderTestRequest): Promise<ProviderTestResult>
+    chooseDownloadFolder(): Promise<string | null>
+  }
   jobs: {
-    start(input: StartJobInput): Promise<JobId>;
-    pause(jobId: JobId): Promise<void>;
-    resume(jobId: JobId): Promise<void>;
-    cancel(jobId: JobId): Promise<void>;
-    rerun(jobId: JobId): Promise<JobId>;
-    get(jobId: JobId): Promise<JobSnapshot>;
-    list(): Promise<JobSummary[]>;
-    onEvent(callback: (event: JobEvent) => void): Unsubscribe;
-  };
+    start(input: StartJobInput): Promise<JobId>
+    pause(jobId: JobId): Promise<void>
+    resume(jobId: JobId): Promise<void>
+    cancel(jobId: JobId): Promise<void>
+    rerun(jobId: JobId): Promise<JobId>
+    get(jobId: JobId): Promise<JobSnapshot>
+    list(): Promise<JobSummary[]>
+    onEvent(callback: (event: JobEvent) => void): Unsubscribe
+  }
   assets: {
-    list(projectId: string): Promise<AssetRecord[]>;
-    openInFolder(assetId: string): Promise<void>;
-    deleteLocal(assetId: string): Promise<void>;
-    exportManifest(projectId: string): Promise<string>;
-  };
-};
+    list(projectId: string): Promise<AssetRecord[]>
+    openInFolder(assetId: string): Promise<void>
+    deleteLocal(assetId: string): Promise<void>
+    exportManifest(projectId: string): Promise<string>
+  }
+}
 ```
 
 ### Renderer
@@ -167,9 +167,9 @@ All LLM providers must implement the same internal interface:
 
 ```ts
 export interface LlmProvider {
-  id: "openai" | "openrouter" | "gemini";
-  createToolTurn(input: LlmToolTurnInput): Promise<LlmToolTurnResult>;
-  testConnection(input: ProviderCredentials): Promise<ProviderTestResult>;
+  id: 'openai' | 'openrouter' | 'gemini'
+  createToolTurn(input: LlmToolTurnInput): Promise<LlmToolTurnResult>
+  testConnection(input: ProviderCredentials): Promise<ProviderTestResult>
 }
 ```
 
@@ -177,31 +177,31 @@ Internal normalized request:
 
 ```ts
 type LlmToolTurnInput = {
-  model: string;
-  systemPrompt: string;
-  messages: AgentMessage[];
-  tools: NormalizedToolDefinition[];
-  toolChoice: "auto" | "none" | { name: string };
-  temperature: number;
-  maxOutputTokens: number;
-  abortSignal?: AbortSignal;
-};
+  model: string
+  systemPrompt: string
+  messages: AgentMessage[]
+  tools: NormalizedToolDefinition[]
+  toolChoice: 'auto' | 'none' | { name: string }
+  temperature: number
+  maxOutputTokens: number
+  abortSignal?: AbortSignal
+}
 ```
 
 Internal normalized result:
 
 ```ts
 type LlmToolTurnResult = {
-  assistantMessage: AgentMessage;
-  toolCalls: NormalizedToolCall[];
-  stopReason: "tool_calls" | "final" | "length" | "error";
+  assistantMessage: AgentMessage
+  toolCalls: NormalizedToolCall[]
+  stopReason: 'tool_calls' | 'final' | 'length' | 'error'
   usage?: {
-    inputTokens?: number;
-    outputTokens?: number;
-    totalTokens?: number;
-  };
-  raw: unknown;
-};
+    inputTokens?: number
+    outputTokens?: number
+    totalTokens?: number
+  }
+  raw: unknown
+}
 ```
 
 ## Provider-Specific Notes
@@ -247,10 +247,10 @@ Required methods:
 
 ```ts
 class PexelsClient {
-  searchPhotos(input: PexelsPhotoSearchInput): Promise<PexelsPhotoSearchResult>;
-  searchVideos(input: PexelsVideoSearchInput): Promise<PexelsVideoSearchResult>;
-  getPhoto(id: number): Promise<PexelsPhoto>;
-  getVideo(id: number): Promise<PexelsVideo>;
+  searchPhotos(input: PexelsPhotoSearchInput): Promise<PexelsPhotoSearchResult>
+  searchVideos(input: PexelsVideoSearchInput): Promise<PexelsVideoSearchResult>
+  getPhoto(id: number): Promise<PexelsPhoto>
+  getVideo(id: number): Promise<PexelsVideo>
 }
 ```
 

@@ -52,17 +52,17 @@ $ npm run build:linux
 
 ### v1.1.0 - Hardening & Alignment Release (2026-05-27)
 
-* **Tool-Loop Security Hardening**:
-  * Exchanged the basic tool operations for a secure four-tool contract: `search_pexels_photos`, `search_pexels_videos`, `select_assets_for_download`, and `download_selected_assets`.
-  * Implemented search candidate results caching (`pexelsCandidates` map) to verify download candidates strictly belong to the active job.
-  * Added `validateDownloadUrl` checking download protocols (forcing `http` or `https`) and banning private subnet ranges, `localhost`, or `.local` lookup hosts.
-* **Human Approval Flow**:
-  * Integrated a review lock when `requireApprovalBeforeDownload` is enabled, pausing the agent runner and rendering an **Approve & Download** action button in the progress view.
-* **Timeout Enforcement**:
-  * Implemented combined timeout abort controllers (based on the user's `requestTimeoutSeconds` setting) across Pexels API calls, downloader connections, and LLM text generation turns.
-* **Real-time Token and Cost Tracking**:
-  * Added tracking properties mapping input and output token counts, displaying real-time usage statistics and estimated LLM fees in the progress header.
-* **UI Refinements**:
-  * Added a dedicated failed-run **Error Alert Card** with a retry runner trigger.
-  * Exposed controls for request timeout and human approvals in the settings view.
-  * Added a **Show App Data Folder** button for diagnostic navigation.
+- **Tool-Loop Security Hardening**:
+  - Exchanged the basic tool operations for a secure four-tool contract: `search_pexels_photos`, `search_pexels_videos`, `select_assets_for_download`, and `download_selected_assets`.
+  - Implemented search candidate results caching (`pexelsCandidates` map) to verify download candidates strictly belong to the active job.
+  - Added `validateDownloadUrl` checking download protocols (forcing `http` or `https`) and banning private subnet ranges, `localhost`, or `.local` lookup hosts.
+- **Human Approval Flow**:
+  - Integrated a review lock when `requireApprovalBeforeDownload` is enabled, pausing the agent runner and rendering an **Approve & Download** action button in the progress view.
+- **Timeout Enforcement**:
+  - Implemented combined timeout abort controllers (based on the user's `requestTimeoutSeconds` setting) across Pexels API calls, downloader connections, and LLM text generation turns.
+- **Real-time Token and Cost Tracking**:
+  - Added tracking properties mapping input and output token counts, displaying real-time usage statistics and estimated LLM fees in the progress header.
+- **UI Refinements**:
+  - Added a dedicated failed-run **Error Alert Card** with a retry runner trigger.
+  - Exposed controls for request timeout and human approvals in the settings view.
+  - Added a **Show App Data Folder** button for diagnostic navigation.

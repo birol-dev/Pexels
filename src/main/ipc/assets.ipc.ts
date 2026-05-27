@@ -12,7 +12,7 @@ export function registerAssetsHandlers(): void {
       const manifestPath = join(summary.downloadPath, 'manifest.json')
       const data = await fs.readFile(manifestPath, 'utf-8')
       const manifest = JSON.parse(data)
-      
+
       const assets: any[] = []
       if (manifest.beats) {
         for (const beat of manifest.beats) {
@@ -88,12 +88,13 @@ export function registerAssetsHandlers(): void {
       if (fileDeleted || true) {
         // Save manifest changes
         await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8')
-        
+
         // Recalculate downloaded asset count in project registry
-        const activeCount = manifest.beats
-          ?.flatMap((b: any) => b.assets || [])
-          ?.filter((a: any) => a.status === 'completed')?.length || 0
-        
+        const activeCount =
+          manifest.beats
+            ?.flatMap((b: any) => b.assets || [])
+            ?.filter((a: any) => a.status === 'completed')?.length || 0
+
         summary.assetCount = activeCount
         await ProjectStore.save(summary)
       }

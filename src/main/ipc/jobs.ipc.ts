@@ -9,7 +9,15 @@ const StartJobInputSchema = z.object({
   title: z.string().min(1),
   script: z.string().min(1),
   platform: z.enum(['YouTube', 'Shorts', 'TikTok', 'Instagram Reels']),
-  style: z.enum(['cinematic', 'documentary', 'business', 'tech', 'nature', 'lifestyle', 'abstract']),
+  style: z.enum([
+    'cinematic',
+    'documentary',
+    'business',
+    'tech',
+    'nature',
+    'lifestyle',
+    'abstract'
+  ]),
   mix: z.enum(['videos only', 'photos only', 'videos + photos']),
   maxAssetsPerBeat: z.number().min(1).max(10),
   maxTotalDownloads: z.number().min(1).max(100)
@@ -22,11 +30,51 @@ function broadcastJobEvent(event: any) {
   }
 }
 
+async function getJobInputFromManifest(summary: any): Promise<StartJobInput> {
+  const defaultInput: StartJobInput = {
+    title: summary.title,
+    script: summary.script,
+    platform: 'YouTube',
+    style: 'cinematic',
+    mix: 'videos + photos',
+    maxAssetsPerBeat: 3,
+    maxTotalDownloads: 15
+  }
+
+  try {
+    const manifestPath = join(summary.downloadPath, 'manifest.json')
+    const data = await fs.readFile(manifestPath, 'utf-8')
+    const manifest = JSON.parse(data)
+    if (manifest.settingsSnapshot) {
+      const snap = manifest.settingsSnapshot
+
+      const mapAssetMixBack = (mix: string): StartJobInput['mix'] => {
+        if (mix === 'videos_only') return 'videos only'
+        if (mix === 'photos_only') return 'photos only'
+        return 'videos + photos'
+      }
+
+      return {
+        title: manifest.title || summary.title,
+        script: manifest.script || summary.script,
+        platform: snap.targetPlatform || 'YouTube',
+        style: snap.visualStyle || 'cinematic',
+        mix: mapAssetMixBack(snap.assetMix),
+        maxAssetsPerBeat: snap.maxAssetsPerBeat || 3,
+        maxTotalDownloads: snap.maxTotalDownloads || 15
+      }
+    }
+  } catch (err) {
+    console.warn(`Could not read manifest for job settings:`, err)
+  }
+  return defaultInput
+}
+
 export function registerJobsHandlers(): void {
   ipcMain.handle('jobs:start', async (_, rawInput) => {
     const input = StartJobInputSchema.parse(rawInput)
     const jobId = `job_${Date.now()}`
-    
+
     const runner = new AgentRunner(jobId, input)
     runner.on('event', (evt) => {
       broadcastJobEvent(evt)
@@ -55,16 +103,7 @@ export function registerJobsHandlers(): void {
       // If not active (e.g. process restarted), we can start a new runner
       const summary = await ProjectStore.get(jobId)
       if (summary) {
-        const input: StartJobInput = {
-          title: summary.title,
-          script: summary.script,
-          // Re-fallback to defaults if metadata is missing
-          platform: 'YouTube',
-          style: 'cinematic',
-          mix: 'videos + photos',
-          maxAssetsPerBeat: 3,
-          maxTotalDownloads: 15
-        }
+        const input = await getJobInputFromManifest(summary)
         const newRunner = new AgentRunner(jobId, input)
         newRunner.on('event', (evt) => broadcastJobEvent(evt))
         newRunner.start().catch((err) => console.error(err))
@@ -97,15 +136,8 @@ export function registerJobsHandlers(): void {
     if (!summary) throw new Error('Job not found')
 
     const newJobId = `job_${Date.now()}`
-    const input: StartJobInput = {
-      title: `${summary.title} (Rerun)`,
-      script: summary.script,
-      platform: 'YouTube',
-      style: 'cinematic',
-      mix: 'videos + photos',
-      maxAssetsPerBeat: 3,
-      maxTotalDownloads: 15
-    }
+    const input = await getJobInputFromManifest(summary)
+    input.title = `${input.title} (Rerun)`
 
     const runner = new AgentRunner(newJobId, input)
     runner.on('event', (evt) => broadcastJobEvent(evt))
@@ -127,7 +159,7 @@ export function registerJobsHandlers(): void {
       const manifestPath = join(summary.downloadPath, 'manifest.json')
       const data = await fs.readFile(manifestPath, 'utf-8')
       const manifest = JSON.parse(data)
-      
+
       let logs: any[] = []
       try {
         const logsPath = join(summary.downloadPath, 'agent-log.jsonl')
@@ -139,16 +171,16 @@ export function registerJobsHandlers(): void {
       } catch {}
 
       return {
-        jobId: manifest.jobId || jobId,
-        title: manifest.projectTitle || summary.title,
-        script: manifest.originalScript || summary.script,
-        status: manifest.status || summary.status,
-        progress: manifest.status === 'completed' ? 100 : 0,
-        currentStep: manifest.status === 'completed' ? 'Finished' : 'Stopped',
+        jobId: manifest.projectId || jobId,
+        title: manifest.title || summary.title,
+        script: manifest.script || summary.script,
+        status: summary.status,
+        progress: summary.status === 'completed' ? 100 : 0,
+        currentStep: summary.status === 'completed' ? 'Finished' : 'Stopped',
         beats: manifest.beats || [],
         logs,
-        downloadedCount: manifest.downloadedAssets?.length || 0,
-        failedCount: manifest.failedAssets?.length || 0
+        downloadedCount: manifest.assets?.length || 0,
+        failedCount: manifest.failures?.length || 0
       }
     } catch (err) {
       return {

@@ -25,13 +25,18 @@ export interface ManifestData {
 
 export class ManifestWriter {
   public static cleanFolderName(title: string): string {
-    return title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '') || 'untitled-project'
+    return (
+      title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '') || 'untitled-project'
+    )
   }
 
-  public static async initializeProjectFolder(downloadRoot: string, projectName: string): Promise<string> {
+  public static async initializeProjectFolder(
+    downloadRoot: string,
+    projectName: string
+  ): Promise<string> {
     const cleanName = this.cleanFolderName(projectName)
     const projectDir = join(downloadRoot, cleanName)
 

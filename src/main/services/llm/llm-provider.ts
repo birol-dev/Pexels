@@ -38,9 +38,9 @@ export interface LlmToolTurnResult {
   toolCalls: NormalizedToolCall[]
   stopReason: 'tool_calls' | 'final' | 'length' | 'error'
   usage?: {
-    inputTokens?: number;
-    outputTokens?: number;
-    totalTokens?: number;
+    inputTokens?: number
+    outputTokens?: number
+    totalTokens?: number
   }
   raw: unknown
 }
@@ -56,7 +56,10 @@ export interface ProviderTestResult {
 
 export interface LlmProvider {
   id: 'openai' | 'openrouter' | 'gemini'
-  createToolTurn(input: LlmToolTurnInput, credentials: ProviderCredentials): Promise<LlmToolTurnResult>
+  createToolTurn(
+    input: LlmToolTurnInput,
+    credentials: ProviderCredentials
+  ): Promise<LlmToolTurnResult>
   testConnection(credentials: ProviderCredentials, modelId: string): Promise<ProviderTestResult>
 }
 
@@ -112,11 +115,14 @@ function toOpenAiMessages(messages: AgentMessage[], systemPrompt?: string) {
 class OpenAiProvider implements LlmProvider {
   public id = 'openai' as const
 
-  public async createToolTurn(input: LlmToolTurnInput, credentials: ProviderCredentials): Promise<LlmToolTurnResult> {
+  public async createToolTurn(
+    input: LlmToolTurnInput,
+    credentials: ProviderCredentials
+  ): Promise<LlmToolTurnResult> {
     const url = 'https://api.openai.com/v1/chat/completions'
     const headers = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${credentials.apiKey}`
+      Authorization: `Bearer ${credentials.apiKey}`
     }
 
     const payload: any = {
@@ -194,7 +200,10 @@ class OpenAiProvider implements LlmProvider {
     }
   }
 
-  public async testConnection(credentials: ProviderCredentials, modelId: string): Promise<ProviderTestResult> {
+  public async testConnection(
+    credentials: ProviderCredentials,
+    modelId: string
+  ): Promise<ProviderTestResult> {
     try {
       await this.createToolTurn(
         {
@@ -222,11 +231,14 @@ class OpenAiProvider implements LlmProvider {
 class OpenRouterProvider implements LlmProvider {
   public id = 'openrouter' as const
 
-  public async createToolTurn(input: LlmToolTurnInput, credentials: ProviderCredentials): Promise<LlmToolTurnResult> {
+  public async createToolTurn(
+    input: LlmToolTurnInput,
+    credentials: ProviderCredentials
+  ): Promise<LlmToolTurnResult> {
     const url = 'https://openrouter.ai/api/v1/chat/completions'
     const headers = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${credentials.apiKey}`,
+      Authorization: `Bearer ${credentials.apiKey}`,
       'HTTP-Referer': 'https://github.com/google-demind/antigravity',
       'X-Title': 'AI Stock Asset Finder'
     }
@@ -310,7 +322,10 @@ class OpenRouterProvider implements LlmProvider {
     }
   }
 
-  public async testConnection(credentials: ProviderCredentials, modelId: string): Promise<ProviderTestResult> {
+  public async testConnection(
+    credentials: ProviderCredentials,
+    modelId: string
+  ): Promise<ProviderTestResult> {
     try {
       await this.createToolTurn(
         {
@@ -340,7 +355,7 @@ class GeminiProvider implements LlmProvider {
 
   private toGeminiContents(messages: AgentMessage[]) {
     const contents: any[] = []
-    
+
     for (const msg of messages) {
       if (msg.role === 'system') {
         continue // handled separately in systemInstruction
@@ -395,7 +410,10 @@ class GeminiProvider implements LlmProvider {
     return contents
   }
 
-  public async createToolTurn(input: LlmToolTurnInput, credentials: ProviderCredentials): Promise<LlmToolTurnResult> {
+  public async createToolTurn(
+    input: LlmToolTurnInput,
+    credentials: ProviderCredentials
+  ): Promise<LlmToolTurnResult> {
     const cleanModel = input.model.startsWith('models/') ? input.model : `models/${input.model}`
     const url = `https://generativelanguage.googleapis.com/v1beta/${cleanModel}:generateContent?key=${credentials.apiKey}`
     const headers = { 'Content-Type': 'application/json' }
@@ -422,15 +440,18 @@ class GeminiProvider implements LlmProvider {
         description: t.description,
         parameters: {
           type: 'OBJECT',
-          properties: Object.entries(t.parameters.properties).reduce((acc, [k, v]) => {
-            // Gemini schema parameters properties require CAPITAL uppercase type names (e.g. 'STRING', 'NUMBER', 'OBJECT')
-            const geminiProperty = { ...v }
-            if (geminiProperty.type) {
-              geminiProperty.type = geminiProperty.type.toUpperCase()
-            }
-            acc[k] = geminiProperty
-            return acc
-          }, {} as Record<string, any>),
+          properties: Object.entries(t.parameters.properties).reduce(
+            (acc, [k, v]) => {
+              // Gemini schema parameters properties require CAPITAL uppercase type names (e.g. 'STRING', 'NUMBER', 'OBJECT')
+              const geminiProperty = { ...v }
+              if (geminiProperty.type) {
+                geminiProperty.type = geminiProperty.type.toUpperCase()
+              }
+              acc[k] = geminiProperty
+              return acc
+            },
+            {} as Record<string, any>
+          ),
           required: t.parameters.required
         }
       }))
@@ -472,7 +493,7 @@ class GeminiProvider implements LlmProvider {
     }
 
     const contentParts = candidate.content?.parts || []
-    
+
     // Find text content
     const textPart = contentParts.find((p: any) => p.text)
     const contentText = textPart ? textPart.text : null
@@ -513,7 +534,10 @@ class GeminiProvider implements LlmProvider {
     }
   }
 
-  public async testConnection(credentials: ProviderCredentials, modelId: string): Promise<ProviderTestResult> {
+  public async testConnection(
+    credentials: ProviderCredentials,
+    modelId: string
+  ): Promise<ProviderTestResult> {
     try {
       await this.createToolTurn(
         {

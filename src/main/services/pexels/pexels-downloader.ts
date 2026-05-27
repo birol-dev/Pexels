@@ -25,7 +25,11 @@ export class PexelsDownloader {
   private onTaskUpdate?: (task: DownloadTask) => void
   private requestTimeoutSeconds = 60
 
-  constructor(maxConcurrency = 3, onTaskUpdate?: (task: DownloadTask) => void, requestTimeoutSeconds = 60) {
+  constructor(
+    maxConcurrency = 3,
+    onTaskUpdate?: (task: DownloadTask) => void,
+    requestTimeoutSeconds = 60
+  ) {
     this.maxConcurrency = maxConcurrency
     this.onTaskUpdate = onTaskUpdate
     this.requestTimeoutSeconds = requestTimeoutSeconds
@@ -111,10 +115,11 @@ export class PexelsDownloader {
   }
 
   private async runDownload(task: DownloadTask): Promise<string> {
-    const slugifiedQuery = task.query
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '') || 'asset'
+    const slugifiedQuery =
+      task.query
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '') || 'asset'
 
     // Determine temporary extension, download and check content-type
     const controller = new AbortController()
@@ -155,7 +160,7 @@ export class PexelsDownloader {
     // Stream download
     const tempPath = finalPath + '.tmp'
     const fileStream = fs.createWriteStream(tempPath)
-    
+
     const reader = response.body.getReader()
     const contentLength = Number(response.headers.get('content-length') || 0)
     let downloadedBytes = 0
@@ -164,10 +169,10 @@ export class PexelsDownloader {
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        
+
         fileStream.write(Buffer.from(value))
         downloadedBytes += value.length
-        
+
         if (contentLength > 0) {
           const newProgress = Math.round((downloadedBytes / contentLength) * 100)
           if (newProgress !== task.progress) {

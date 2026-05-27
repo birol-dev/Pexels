@@ -25,32 +25,32 @@ The loop must be implemented in code. The model is allowed to choose tools, but 
 
 ```ts
 type AgentState = {
-  jobId: string;
-  projectId: string;
-  script: string;
-  settings: JobSettings;
-  beats: VisualBeat[];
-  selectedAssets: AssetCandidate[];
-  downloadedAssets: AssetRecord[];
-  rejectedAssets: RejectedAsset[];
-  iteration: number;
-  status: "planning" | "searching" | "downloading" | "finalizing" | "done" | "failed" | "cancelled";
-};
+  jobId: string
+  projectId: string
+  script: string
+  settings: JobSettings
+  beats: VisualBeat[]
+  selectedAssets: AssetCandidate[]
+  downloadedAssets: AssetRecord[]
+  rejectedAssets: RejectedAsset[]
+  iteration: number
+  status: 'planning' | 'searching' | 'downloading' | 'finalizing' | 'done' | 'failed' | 'cancelled'
+}
 ```
 
 ```ts
 type VisualBeat = {
-  id: string;
-  order: number;
-  scriptExcerpt: string;
-  visualIntent: string;
-  mood: string;
-  subjects: string[];
-  searchQueries: string[];
-  desiredAssetTypes: ("photo" | "video")[];
-  minNeeded: number;
-  status: "pending" | "searched" | "selected" | "downloaded" | "skipped";
-};
+  id: string
+  order: number
+  scriptExcerpt: string
+  visualIntent: string
+  mood: string
+  subjects: string[]
+  searchQueries: string[]
+  desiredAssetTypes: ('photo' | 'video')[]
+  minNeeded: number
+  status: 'pending' | 'searched' | 'selected' | 'downloaded' | 'skipped'
+}
 ```
 
 ## Termination Conditions
@@ -136,15 +136,20 @@ This can be implemented as a tool or as a structured non-tool LLM step. Prefer s
 
 ```ts
 const AnalyzeScriptBeatsSchema = z.object({
-  beats: z.array(z.object({
-    scriptExcerpt: z.string().min(1),
-    visualIntent: z.string().min(1),
-    mood: z.string().min(1),
-    subjects: z.array(z.string()).min(1),
-    desiredAssetTypes: z.array(z.enum(["photo", "video"])).min(1),
-    minNeeded: z.number().int().min(0).max(5),
-  })).min(1).max(80),
-});
+  beats: z
+    .array(
+      z.object({
+        scriptExcerpt: z.string().min(1),
+        visualIntent: z.string().min(1),
+        mood: z.string().min(1),
+        subjects: z.array(z.string()).min(1),
+        desiredAssetTypes: z.array(z.enum(['photo', 'video'])).min(1),
+        minNeeded: z.number().int().min(0).max(5)
+      })
+    )
+    .min(1)
+    .max(80)
+})
 ```
 
 ### `search_pexels_photos`
@@ -155,12 +160,12 @@ Purpose: search Pexels photos for one visual beat.
 const SearchPexelsPhotosArgsSchema = z.object({
   beatId: z.string().min(1),
   query: z.string().min(2).max(100),
-  orientation: z.enum(["landscape", "portrait", "square"]).optional(),
-  size: z.enum(["large", "medium", "small"]).optional(),
+  orientation: z.enum(['landscape', 'portrait', 'square']).optional(),
+  size: z.enum(['large', 'medium', 'small']).optional(),
   color: z.string().optional(),
   page: z.number().int().min(1).max(10).default(1),
-  perPage: z.number().int().min(1).max(80).default(15),
-});
+  perPage: z.number().int().min(1).max(80).default(15)
+})
 ```
 
 Tool result:
@@ -168,23 +173,23 @@ Tool result:
 ```ts
 type SearchPexelsPhotosResult = {
   results: Array<{
-    pexelsId: number;
-    url: string;
-    photographer: string;
-    photographerUrl?: string;
-    width: number;
-    height: number;
-    avgColor?: string;
-    alt?: string;
-    previewUrl: string;
+    pexelsId: number
+    url: string
+    photographer: string
+    photographerUrl?: string
+    width: number
+    height: number
+    avgColor?: string
+    alt?: string
+    previewUrl: string
     downloadableVariants: Array<{
-      label: string;
-      url: string;
-      width?: number;
-      height?: number;
-    }>;
-  }>;
-};
+      label: string
+      url: string
+      width?: number
+      height?: number
+    }>
+  }>
+}
 ```
 
 ### `search_pexels_videos`
@@ -195,11 +200,11 @@ Purpose: search Pexels videos for one visual beat.
 const SearchPexelsVideosArgsSchema = z.object({
   beatId: z.string().min(1),
   query: z.string().min(2).max(100),
-  orientation: z.enum(["landscape", "portrait", "square"]).optional(),
-  size: z.enum(["large", "medium", "small"]).optional(),
+  orientation: z.enum(['landscape', 'portrait', 'square']).optional(),
+  size: z.enum(['large', 'medium', 'small']).optional(),
   page: z.number().int().min(1).max(10).default(1),
-  perPage: z.number().int().min(1).max(80).default(10),
-});
+  perPage: z.number().int().min(1).max(80).default(10)
+})
 ```
 
 Tool result:
@@ -207,24 +212,24 @@ Tool result:
 ```ts
 type SearchPexelsVideosResult = {
   results: Array<{
-    pexelsId: number;
-    url: string;
-    userName?: string;
-    userUrl?: string;
-    width: number;
-    height: number;
-    durationSeconds: number;
-    previewImageUrl: string;
+    pexelsId: number
+    url: string
+    userName?: string
+    userUrl?: string
+    width: number
+    height: number
+    durationSeconds: number
+    previewImageUrl: string
     downloadableVariants: Array<{
-      quality?: string;
-      fileType?: string;
-      width?: number;
-      height?: number;
-      fps?: number;
-      url: string;
-    }>;
-  }>;
-};
+      quality?: string
+      fileType?: string
+      width?: number
+      height?: number
+      fps?: number
+      url: string
+    }>
+  }>
+}
 ```
 
 ### `select_assets_for_download`
@@ -235,20 +240,29 @@ This is a local decision tool. It should not download files by itself.
 
 ```ts
 const SelectAssetsForDownloadArgsSchema = z.object({
-  selections: z.array(z.object({
-    beatId: z.string().min(1),
-    assetType: z.enum(["photo", "video"]),
-    pexelsId: z.number().int().positive(),
-    variantUrl: z.string().url(),
-    reason: z.string().min(1).max(500),
-  })).min(1).max(50),
-  rejections: z.array(z.object({
-    beatId: z.string().min(1),
-    assetType: z.enum(["photo", "video"]),
-    pexelsId: z.number().int().positive(),
-    reason: z.string().min(1).max(200),
-  })).default([]),
-});
+  selections: z
+    .array(
+      z.object({
+        beatId: z.string().min(1),
+        assetType: z.enum(['photo', 'video']),
+        pexelsId: z.number().int().positive(),
+        variantUrl: z.string().url(),
+        reason: z.string().min(1).max(500)
+      })
+    )
+    .min(1)
+    .max(50),
+  rejections: z
+    .array(
+      z.object({
+        beatId: z.string().min(1),
+        assetType: z.enum(['photo', 'video']),
+        pexelsId: z.number().int().positive(),
+        reason: z.string().min(1).max(200)
+      })
+    )
+    .default([])
+})
 ```
 
 ### `download_selected_assets`
@@ -259,25 +273,30 @@ Important: The model must not provide arbitrary download URLs here. The app shou
 
 ```ts
 const DownloadSelectedAssetsArgsSchema = z.object({
-  assetIds: z.array(z.object({
-    assetType: z.enum(["photo", "video"]),
-    pexelsId: z.number().int().positive(),
-  })).min(1).max(50),
-});
+  assetIds: z
+    .array(
+      z.object({
+        assetType: z.enum(['photo', 'video']),
+        pexelsId: z.number().int().positive()
+      })
+    )
+    .min(1)
+    .max(50)
+})
 ```
 
 Tool result:
 
 ```ts
 type DownloadSelectedAssetsResult = {
-  downloaded: AssetRecord[];
+  downloaded: AssetRecord[]
   failed: Array<{
-    assetType: "photo" | "video";
-    pexelsId: number;
-    reason: string;
-    retryable: boolean;
-  }>;
-};
+    assetType: 'photo' | 'video'
+    pexelsId: number
+    reason: string
+    retryable: boolean
+  }>
+}
 ```
 
 ## Tool Execution Safety

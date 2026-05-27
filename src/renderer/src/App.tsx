@@ -35,7 +35,9 @@ export default function App(): React.JSX.Element {
               <Film className="h-5 w-5 text-white" />
             </div>
             <div>
-              <span className="font-bold text-sm tracking-tight bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent">StockFinder AI</span>
+              <span className="font-bold text-sm tracking-tight bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent">
+                StockFinder AI
+              </span>
               <span className="text-[10px] text-muted-foreground block font-mono">v1.0.0</span>
             </div>
           </div>
@@ -102,10 +104,8 @@ export default function App(): React.JSX.Element {
       <main className="flex-1 min-w-0 flex flex-col bg-[#09090b]">
         {/* Decorative Top Glow */}
         <div className="absolute top-0 right-0 left-64 h-[1px] bg-gradient-to-r from-transparent via-violet-500/20 to-transparent pointer-events-none" />
-        
-        <div className="flex-1 overflow-y-auto p-8 lg:p-10">
-          {renderActiveView()}
-        </div>
+
+        <div className="flex-1 overflow-y-auto p-8 lg:p-10">{renderActiveView()}</div>
       </main>
     </div>
   )

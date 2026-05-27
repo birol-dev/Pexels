@@ -71,50 +71,59 @@ Normalize photo response fields into:
 
 ```ts
 type NormalizedPexelsPhoto = {
-  assetType: "photo";
-  pexelsId: number;
-  sourceUrl: string;
-  photographer: string;
-  photographerUrl?: string;
-  width: number;
-  height: number;
-  avgColor?: string;
-  alt?: string;
-  previewUrl: string;
+  assetType: 'photo'
+  pexelsId: number
+  sourceUrl: string
+  photographer: string
+  photographerUrl?: string
+  width: number
+  height: number
+  avgColor?: string
+  alt?: string
+  previewUrl: string
   variants: Array<{
-    label: "original" | "large2x" | "large" | "medium" | "small" | "portrait" | "landscape" | "tiny" | string;
-    url: string;
-    width?: number;
-    height?: number;
-  }>;
-  raw: unknown;
-};
+    label:
+      | 'original'
+      | 'large2x'
+      | 'large'
+      | 'medium'
+      | 'small'
+      | 'portrait'
+      | 'landscape'
+      | 'tiny'
+      | string
+    url: string
+    width?: number
+    height?: number
+  }>
+  raw: unknown
+}
 ```
 
 Normalize video response fields into:
 
 ```ts
 type NormalizedPexelsVideo = {
-  assetType: "video";
-  pexelsId: number;
-  sourceUrl: string;
-  creatorName?: string;
-  creatorUrl?: string;
-  width: number;
-  height: number;
-  durationSeconds: number;
-  previewImageUrl: string;
+  assetType: 'video'
+  pexelsId: number
+  sourceUrl: string
+  creatorName?: string
+  creatorUrl?: string
+  width: number
+  height: number
+  durationSeconds: number
+  previewImageUrl: string
   variants: Array<{
-    id?: number;
-    quality?: string;
-    fileType?: string;
-    width?: number;
-    height?: number;
-    fps?: number;
-    url: string;
-  }>;
-  raw: unknown;
-};
+    id?: number
+    quality?: string
+    fileType?: string
+    width?: number
+    height?: number
+    fps?: number
+    url: string
+  }>
+  raw: unknown
+}
 ```
 
 ## Provider-Neutral Tool Contract
@@ -123,34 +132,34 @@ Internal tools must use JSON Schema-compatible shapes because OpenAI-compatible 
 
 ```ts
 type NormalizedToolDefinition = {
-  name: string;
-  description: string;
+  name: string
+  description: string
   parameters: {
-    type: "object";
-    properties: Record<string, unknown>;
-    required?: string[];
-    additionalProperties?: boolean;
-  };
-};
+    type: 'object'
+    properties: Record<string, unknown>
+    required?: string[]
+    additionalProperties?: boolean
+  }
+}
 ```
 
 ```ts
 type NormalizedToolCall = {
-  id: string;
-  name: string;
-  argumentsJson: string;
-};
+  id: string
+  name: string
+  argumentsJson: string
+}
 ```
 
 Tool result messages must be represented internally as:
 
 ```ts
 type NormalizedToolResult = {
-  toolCallId: string;
-  name: string;
-  resultJson: string;
-  isError: boolean;
-};
+  toolCallId: string
+  name: string
+  resultJson: string
+  isError: boolean
+}
 ```
 
 ## OpenAI Adapter Mapping
@@ -254,26 +263,26 @@ Reject any tool call that attempts to download:
 
 ```ts
 type ProjectManifestV1 = {
-  schemaVersion: 1;
-  projectId: string;
-  title: string;
-  createdAt: string;
-  finishedAt?: string;
-  script: string;
+  schemaVersion: 1
+  projectId: string
+  title: string
+  createdAt: string
+  finishedAt?: string
+  script: string
   settingsSnapshot: {
-    provider: "openai" | "openrouter" | "gemini";
-    modelId: string;
-    targetPlatform: string;
-    visualStyle: string;
-    assetMix: "videos_only" | "photos_only" | "videos_and_photos";
-    maxAssetsPerBeat: number;
-    maxTotalDownloads: number;
-  };
-  beats: VisualBeat[];
-  assets: AssetRecord[];
-  failures: AssetFailure[];
-  sourceDocsCheckedAt?: string;
-};
+    provider: 'openai' | 'openrouter' | 'gemini'
+    modelId: string
+    targetPlatform: string
+    visualStyle: string
+    assetMix: 'videos_only' | 'photos_only' | 'videos_and_photos'
+    maxAssetsPerBeat: number
+    maxTotalDownloads: number
+  }
+  beats: VisualBeat[]
+  assets: AssetRecord[]
+  failures: AssetFailure[]
+  sourceDocsCheckedAt?: string
+}
 ```
 
 ## Implementation Warning

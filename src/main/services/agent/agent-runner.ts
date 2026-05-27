@@ -1,5 +1,10 @@
 import { EventEmitter } from 'events'
-import { LlmProviderFactory, AgentMessage, NormalizedToolDefinition, NormalizedToolCall } from '../llm/llm-provider'
+import {
+  LlmProviderFactory,
+  AgentMessage,
+  NormalizedToolDefinition,
+  NormalizedToolCall
+} from '../llm/llm-provider'
 import { PexelsClient } from '../pexels/pexels-client'
 import { PexelsDownloader, DownloadTask } from '../pexels/pexels-downloader'
 import { ManifestWriter, ManifestData } from '../files/manifest-writer'
@@ -96,7 +101,7 @@ export class AgentRunner extends EventEmitter {
     outputTokens: 0,
     totalTokens: 0
   }
-  
+
   private downloader!: PexelsDownloader
   private abortController: AbortController | null = null
   private projectDir = ''
@@ -109,18 +114,28 @@ export class AgentRunner extends EventEmitter {
     avoidPeople: false
   }
 
-  private pexelsCandidates = new Map<string, {
-    pexelsId: number
-    type: 'photo' | 'video'
-    photographer: string
-    photographerUrl?: string
-    width: number
-    height: number
-    imageUrl: string
-    duration?: number
-    query: string
-    variants: Array<{ label?: string; quality?: string; fileType?: string; url: string; width?: number; height?: number }>
-  }>()
+  private pexelsCandidates = new Map<
+    string,
+    {
+      pexelsId: number
+      type: 'photo' | 'video'
+      photographer: string
+      photographerUrl?: string
+      width: number
+      height: number
+      imageUrl: string
+      duration?: number
+      query: string
+      variants: Array<{
+        label?: string
+        quality?: string
+        fileType?: string
+        url: string
+        width?: number
+        height?: number
+      }>
+    }
+  >()
 
   constructor(jobId: string, input: StartJobInput) {
     super()
@@ -130,20 +145,20 @@ export class AgentRunner extends EventEmitter {
 
   private getCombinedSignal(timeoutSeconds: number): AbortSignal {
     const controller = new AbortController()
-    
+
     const onAbort = () => {
       controller.abort()
     }
-    
+
     if (this.abortController?.signal) {
       this.abortController.signal.addEventListener('abort', onAbort)
     }
-    
+
     const timeoutId = setTimeout(() => {
       controller.abort()
       this.log('error', `Request timed out after ${timeoutSeconds} seconds.`)
     }, timeoutSeconds * 1000)
-    
+
     // Clean up
     controller.signal.addEventListener('abort', () => {
       clearTimeout(timeoutId)
@@ -151,7 +166,7 @@ export class AgentRunner extends EventEmitter {
         this.abortController.signal.removeEventListener('abort', onAbort)
       }
     })
-    
+
     return controller.signal
   }
 
@@ -328,8 +343,12 @@ export class AgentRunner extends EventEmitter {
         maxTotalDownloads: this.input.maxTotalDownloads
       },
       beats: this.beats,
-      assets: this.downloader ? this.downloader.getTasks().filter((t) => t.status === 'completed') : [],
-      failures: this.downloader ? this.downloader.getTasks().filter((t) => t.status === 'failed') : [],
+      assets: this.downloader
+        ? this.downloader.getTasks().filter((t) => t.status === 'completed')
+        : [],
+      failures: this.downloader
+        ? this.downloader.getTasks().filter((t) => t.status === 'failed')
+        : [],
       sourceDocsCheckedAt: new Date().toISOString()
     }
     await ManifestWriter.writeManifest(this.projectDir, manifest)
@@ -385,7 +404,10 @@ Output ONLY a raw JSON array matching this format (no markdown blocks, no wrappe
     let parsedBeats: any[] = []
     const content = response.assistantMessage.content || ''
     try {
-      const cleanJson = content.replace(/```json/g, '').replace(/```/g, '').trim()
+      const cleanJson = content
+        .replace(/```json/g, '')
+        .replace(/```/g, '')
+        .trim()
       parsedBeats = JSON.parse(cleanJson)
     } catch (err) {
       this.log('error', `Failed to parse beats JSON. Raw content: ${content}`)
@@ -411,7 +433,7 @@ Output ONLY a raw JSON array matching this format (no markdown blocks, no wrappe
 
   private async runAgentLoop(): Promise<void> {
     this.updateProgress('Executing agent search and downloads', 30)
-    
+
     const providerKey = await SecureSecrets.getSecret(`${this.providerId}Key`)
     const provider = LlmProviderFactory.getProvider(this.providerId)
 
@@ -458,7 +480,11 @@ Script configuration:
 - Safety controls: ${this.safetySettings.skipExplicit ? 'Skip explicit/adult keywords.' : 'No strict content filtering.'} ${this.safetySettings.avoidPeople ? 'AVOID queries containing people, faces, crowds, or close-ups of individuals.' : ''}
 
 Here is the parsed list of visual beats:
-${JSON.stringify(this.beats.map((b) => ({ id: b.id, visualPrompt: b.visualPrompt })), null, 2)}
+${JSON.stringify(
+  this.beats.map((b) => ({ id: b.id, visualPrompt: b.visualPrompt })),
+  null,
+  2
+)}
 
 Your workflow:
 1. For each beat, call Pexels search tools ('search_pexels_photos' or 'search_pexels_videos') to look for matching items. Use simple keyword queries matching the beat's visualPrompt.
@@ -478,8 +504,16 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           properties: {
             beatId: { type: 'string', description: 'The ID of the beat (e.g. beat_1).' },
             query: { type: 'string', description: 'The search query keyword.' },
-            orientation: { type: 'string', enum: ['landscape', 'portrait', 'square'], description: 'Desired orientation.' },
-            size: { type: 'string', enum: ['large', 'medium', 'small'], description: 'Desired size.' },
+            orientation: {
+              type: 'string',
+              enum: ['landscape', 'portrait', 'square'],
+              description: 'Desired orientation.'
+            },
+            size: {
+              type: 'string',
+              enum: ['large', 'medium', 'small'],
+              description: 'Desired size.'
+            },
             color: { type: 'string', description: 'Desired dominant color.' },
             page: { type: 'number', description: 'Page number (default 1).' },
             perPage: { type: 'number', description: 'Results per page (default 15).' }
@@ -495,8 +529,16 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           properties: {
             beatId: { type: 'string', description: 'The ID of the beat (e.g. beat_1).' },
             query: { type: 'string', description: 'The search query keyword.' },
-            orientation: { type: 'string', enum: ['landscape', 'portrait', 'square'], description: 'Desired orientation.' },
-            size: { type: 'string', enum: ['large', 'medium', 'small'], description: 'Desired size.' },
+            orientation: {
+              type: 'string',
+              enum: ['landscape', 'portrait', 'square'],
+              description: 'Desired orientation.'
+            },
+            size: {
+              type: 'string',
+              enum: ['large', 'medium', 'small'],
+              description: 'Desired size.'
+            },
             page: { type: 'number', description: 'Page number (default 1).' },
             perPage: { type: 'number', description: 'Results per page (default 10).' }
           },
@@ -505,7 +547,8 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       },
       {
         name: 'select_assets_for_download',
-        description: 'Select candidates to be downloaded or reject candidates with a reason after search results are visible.',
+        description:
+          'Select candidates to be downloaded or reject candidates with a reason after search results are visible.',
         parameters: {
           type: 'object',
           properties: {
@@ -517,8 +560,14 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
                   beatId: { type: 'string', description: 'The ID of the beat.' },
                   assetType: { type: 'string', enum: ['photo', 'video'] },
                   pexelsId: { type: 'number', description: 'Pexels asset ID.' },
-                  variantUrl: { type: 'string', description: 'The direct download URL from the search result variants.' },
-                  reason: { type: 'string', description: 'Brief explanation of why this asset is selected.' }
+                  variantUrl: {
+                    type: 'string',
+                    description: 'The direct download URL from the search result variants.'
+                  },
+                  reason: {
+                    type: 'string',
+                    description: 'Brief explanation of why this asset is selected.'
+                  }
                 },
                 required: ['beatId', 'assetType', 'pexelsId', 'variantUrl', 'reason']
               }
@@ -531,7 +580,10 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
                   beatId: { type: 'string', description: 'The ID of the beat.' },
                   assetType: { type: 'string', enum: ['photo', 'video'] },
                   pexelsId: { type: 'number' },
-                  reason: { type: 'string', description: 'Brief explanation of why this asset was rejected.' }
+                  reason: {
+                    type: 'string',
+                    description: 'Brief explanation of why this asset was rejected.'
+                  }
                 },
                 required: ['beatId', 'assetType', 'pexelsId', 'reason']
               }
@@ -629,7 +681,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
             beat.searchQueries.push(args.query)
           }
         }
-        
+
         const searchRes = await PexelsClient.searchPhotos({
           query: args.query,
           orientation: args.orientation,
@@ -737,7 +789,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       } else if (tc.name === 'select_assets_for_download') {
         const selections = args.selections || []
         const rejections = args.rejections || []
-        
+
         const selectionResults: any[] = []
         const rejectionResults: any[] = []
 
@@ -745,14 +797,18 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
         for (const sel of selections) {
           const key = `${sel.assetType}_${sel.pexelsId}`
           const candidate = this.pexelsCandidates.get(key)
-          
+
           if (!candidate) {
-            throw new Error(`Security Check Failed: Asset ${sel.pexelsId} (${sel.assetType}) was not found in Pexels search results of this job.`)
+            throw new Error(
+              `Security Check Failed: Asset ${sel.pexelsId} (${sel.assetType}) was not found in Pexels search results of this job.`
+            )
           }
 
           const variantExists = candidate.variants.some((v) => v.url === sel.variantUrl)
           if (!variantExists) {
-            throw new Error(`Security Check Failed: URL for asset ${sel.pexelsId} is not a valid Pexels download variant from this job.`)
+            throw new Error(
+              `Security Check Failed: URL for asset ${sel.pexelsId} is not a valid Pexels download variant from this job.`
+            )
           }
 
           this.validateDownloadUrl(sel.variantUrl)
@@ -795,7 +851,11 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
             if (!beat.rejectedAssets) {
               beat.rejectedAssets = []
             }
-            if (!beat.rejectedAssets.some(r => r.pexelsId === rej.pexelsId && r.type === rej.assetType)) {
+            if (
+              !beat.rejectedAssets.some(
+                (r) => r.pexelsId === rej.pexelsId && r.type === rej.assetType
+              )
+            ) {
               beat.rejectedAssets.push({
                 type: rej.assetType,
                 pexelsId: rej.pexelsId,
@@ -811,18 +871,19 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
 
         const { SettingsStore } = await import('../storage/settings-store')
         const settings = await SettingsStore.getSettings()
-        
+
         if (settings.requireApprovalBeforeDownload && selections.length > 0) {
           this.status = 'paused'
           this.log('info', `Awaiting user approval for ${selections.length} selected assets.`)
-          
+
           result = {
             status: 'awaiting_user_approval',
-            message: 'Assets selected. Pausing execution for user approval. Please approve from UI.',
+            message:
+              'Assets selected. Pausing execution for user approval. Please approve from UI.',
             selections: selectionResults,
             rejections: rejectionResults
           }
-          
+
           if (this.abortController) {
             this.abortController.abort()
           }
@@ -857,7 +918,9 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           let parentBeat: VisualBeat | undefined
 
           for (const b of this.beats) {
-            const record = b.assets.find((a) => a.pexelsId === assetRef.pexelsId && a.type === assetRef.assetType)
+            const record = b.assets.find(
+              (a) => a.pexelsId === assetRef.pexelsId && a.type === assetRef.assetType
+            )
             if (record) {
               assetRecord = record
               parentBeat = b
@@ -927,7 +990,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
 
   public async approveAndResume(): Promise<void> {
     if (this.status !== 'paused') return
-    
+
     // Find all pending assets in beats
     const pendingAssets: { asset: AssetRecord; beat: VisualBeat }[] = []
     for (const beat of this.beats) {
@@ -971,7 +1034,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     for (const { asset, beat } of pendingAssets) {
       asset.status = 'downloading'
       beat.status = 'downloading'
-      
+
       this.downloader.enqueue(
         asset.pexelsId,
         asset.type,
@@ -987,12 +1050,12 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
 
     this.messages.push({
       role: 'user',
-      content: `User has approved the selections: ${pendingAssets.map(p => `${p.asset.type} ${p.asset.pexelsId}`).join(', ')}. The downloads are now in progress.`
+      content: `User has approved the selections: ${pendingAssets.map((p) => `${p.asset.type} ${p.asset.pexelsId}`).join(', ')}. The downloads are now in progress.`
     })
 
     this.status = 'running'
     this.abortController = new AbortController()
-    
+
     this.runAgentLoop()
       .then(() => {
         if (this.status === 'running') {
@@ -1067,18 +1130,26 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     // Reevaluate beat status
     const allDone = parentBeat.assets.every((a) => a.status === 'completed')
     const anyFailed = parentBeat.assets.some((a) => a.status === 'failed')
-    const anyDownloading = parentBeat.assets.some((a) => a.status === 'downloading' || a.status === 'pending')
+    const anyDownloading = parentBeat.assets.some(
+      (a) => a.status === 'downloading' || a.status === 'pending'
+    )
 
     if (allDone) parentBeat.status = 'completed'
     else if (anyDownloading) parentBeat.status = 'downloading'
     else if (anyFailed) parentBeat.status = 'failed'
 
     // Update counts
-    this.downloadedCount = this.beats.flatMap((b) => b.assets).filter((a) => a.status === 'completed').length
-    this.failedCount = this.beats.flatMap((b) => b.assets).filter((a) => a.status === 'failed').length
+    this.downloadedCount = this.beats
+      .flatMap((b) => b.assets)
+      .filter((a) => a.status === 'completed').length
+    this.failedCount = this.beats
+      .flatMap((b) => b.assets)
+      .filter((a) => a.status === 'failed').length
 
     // Write manifest update
-    this.writeManifest().catch((err) => console.error('Failed to write manifest on progress update:', err))
+    this.writeManifest().catch((err) =>
+      console.error('Failed to write manifest on progress update:', err)
+    )
 
     // Broadcast update
     this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })

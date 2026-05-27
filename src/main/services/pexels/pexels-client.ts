@@ -20,7 +20,7 @@ export class PexelsClient {
       throw new Error('Pexels API Key is missing. Please set it in Settings.')
     }
     return {
-      'Authorization': key
+      Authorization: key
     }
   }
 
@@ -41,10 +41,12 @@ export class PexelsClient {
     }
   }
 
-  public static async searchPhotos(input: PexelsPhotoSearchInput): Promise<PexelsPhotoSearchResult> {
+  public static async searchPhotos(
+    input: PexelsPhotoSearchInput
+  ): Promise<PexelsPhotoSearchResult> {
     const headers = await this.getHeaders()
     const url = new URL('https://api.pexels.com/v1/search')
-    
+
     url.searchParams.append('query', input.query)
     if (input.orientation) url.searchParams.append('orientation', input.orientation)
     if (input.size) url.searchParams.append('size', input.size)
@@ -65,10 +67,12 @@ export class PexelsClient {
     return PexelsPhotoSearchResultSchema.parse(data)
   }
 
-  public static async searchVideos(input: PexelsVideoSearchInput): Promise<PexelsVideoSearchResult> {
+  public static async searchVideos(
+    input: PexelsVideoSearchInput
+  ): Promise<PexelsVideoSearchResult> {
     const headers = await this.getHeaders()
     const url = new URL('https://api.pexels.com/videos/search')
-    
+
     url.searchParams.append('query', input.query)
     if (input.orientation) url.searchParams.append('orientation', input.orientation)
     if (input.size) url.searchParams.append('size', input.size)
@@ -90,7 +94,9 @@ export class PexelsClient {
 
   public static async getPhoto(id: number): Promise<PexelsPhoto> {
     const headers = await this.getHeaders()
-    const response = await this.fetchWithTimeout(`https://api.pexels.com/v1/photos/${id}`, { headers })
+    const response = await this.fetchWithTimeout(`https://api.pexels.com/v1/photos/${id}`, {
+      headers
+    })
     if (!response.ok) {
       throw new Error(`Pexels API error: ${response.status} ${response.statusText}`)
     }
@@ -100,7 +106,9 @@ export class PexelsClient {
 
   public static async getVideo(id: number): Promise<PexelsVideo> {
     const headers = await this.getHeaders()
-    const response = await this.fetchWithTimeout(`https://api.pexels.com/videos/videos/${id}`, { headers })
+    const response = await this.fetchWithTimeout(`https://api.pexels.com/videos/videos/${id}`, {
+      headers
+    })
     if (!response.ok) {
       throw new Error(`Pexels API error: ${response.status} ${response.statusText}`)
     }
