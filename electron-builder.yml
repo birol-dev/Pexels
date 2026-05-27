@@ -1,4 +1,4 @@
-appId: com.electron.app
+appId: com.eact6.stockfinder-ai
 productName: StockFinder AI
 directories:
   buildResources: build

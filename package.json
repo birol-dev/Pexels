@@ -1,10 +1,10 @@
 {
   "name": "stockfinder-ai",
   "version": "1.1.2",
-  "description": "An Electron application with React and TypeScript",
+  "description": "An Electron desktop app for finding and downloading Pexels stock assets with AI.",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "eact6",
+  "homepage": "https://github.com/eact6/Pexels",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",

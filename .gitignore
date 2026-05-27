@@ -1,6 +1,30 @@
-node_modules
-dist
-out
-.DS_Store
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+out/
+release/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Caches and reports
 .eslintcache
-*.log*
+.vite/
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
