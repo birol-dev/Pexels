@@ -1,8 +1,10 @@
-import { ElectronAPI } from '@electron-toolkit/preload'
-
 declare global {
   interface Window {
-    electron: ElectronAPI
+    electron: {
+      process: {
+        versions: NodeJS.ProcessVersions
+      }
+    }
     api: {
       settings: {
         getPublicSettings(): Promise<any>
@@ -32,3 +34,5 @@ declare global {
     }
   }
 }
+
+export {}

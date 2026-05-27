@@ -1,7 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
 
 // Expose the custom AppApi to the renderer
+const electron = {
+  process: {
+    versions: process.versions
+  }
+}
+
 const api = {
   settings: {
     getPublicSettings: () => ipcRenderer.invoke('settings:getPublicSettings'),
@@ -30,22 +35,17 @@ const api = {
   },
   assets: {
     list: (projectId: string) => ipcRenderer.invoke('assets:list', projectId),
-    openInFolder: (projectId: string, assetId: string) => ipcRenderer.invoke('assets:openInFolder', projectId, assetId),
-    deleteLocal: (projectId: string, assetId: string) => ipcRenderer.invoke('assets:deleteLocal', projectId, assetId),
+    openInFolder: (projectId: string, assetId: string) =>
+      ipcRenderer.invoke('assets:openInFolder', projectId, assetId),
+    deleteLocal: (projectId: string, assetId: string) =>
+      ipcRenderer.invoke('assets:deleteLocal', projectId, assetId),
     exportManifest: (projectId: string) => ipcRenderer.invoke('assets:exportManifest', projectId)
   }
 }
 
-if (process.contextIsolated) {
-  try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
-  } catch (error) {
-    console.error(error)
-  }
-} else {
-  // @ts-ignore (define in dts)
-  window.electron = electronAPI
-  // @ts-ignore (define in dts)
-  window.api = api
+try {
+  contextBridge.exposeInMainWorld('electron', electron)
+  contextBridge.exposeInMainWorld('api', api)
+} catch (error) {
+  console.error('Failed to expose preload API:', error)
 }
