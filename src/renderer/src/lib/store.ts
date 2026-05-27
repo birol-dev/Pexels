@@ -48,14 +48,14 @@ interface AppStore {
   jobs: JobSummary[]
   settings: any | null
   loading: boolean
-  
+
   navigate: (route: 'input' | 'run' | 'stuff' | 'settings') => void
   setActiveJobId: (id: string | null) => void
   loadSettings: () => Promise<void>
   updateSettings: (updates: any) => Promise<void>
   loadJobs: () => Promise<void>
   loadActiveJob: (id: string) => Promise<void>
-  
+
   startJob: (input: any) => Promise<string>
   pauseJob: (id: string) => Promise<void>
   resumeJob: (id: string) => Promise<void>
@@ -81,7 +81,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ activeJobId: id })
     if (id) {
       get().loadActiveJob(id)
-      
+
       // Unsubscribe existing IPC listeners
       if (eventUnsubscribe) {
         eventUnsubscribe()
@@ -136,8 +136,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   updateSettings: async (updates) => {
-    await api.settings.updateSettings(updates)
-    await get().loadSettings()
+    const settings = await api.settings.updateSettings(updates)
+    set({ settings })
   },
 
   loadJobs: async () => {

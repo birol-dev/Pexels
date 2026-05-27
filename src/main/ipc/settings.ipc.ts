@@ -27,35 +27,87 @@ const ProviderTestRequestSchema = z.object({
   modelId: z.string()
 })
 
+const MASKED_SECRET = '••••••••••••••••'
+
+function isMaskedSecret(value: string): boolean {
+  return value.includes('•') || value.includes('â€¢')
+}
+
+async function getPublicSettingsWithSecretStatus(): Promise<Record<string, unknown>> {
+  const settings = await SettingsStore.getSettings()
+
+  const openaiKey = await SecureSecrets.getSecret('openaiKey')
+  const geminiKey = await SecureSecrets.getSecret('geminiKey')
+  const openrouterKey = await SecureSecrets.getSecret('openrouterKey')
+  const pexelsKey = await SecureSecrets.getSecret('pexelsKey')
+
+  return {
+    ...settings,
+    openaiKey: openaiKey ? MASKED_SECRET : '',
+    geminiKey: geminiKey ? MASKED_SECRET : '',
+    openrouterKey: openrouterKey ? MASKED_SECRET : '',
+    pexelsKey: pexelsKey ? MASKED_SECRET : ''
+  }
+}
+
 export function registerSettingsHandlers(): void {
   ipcMain.handle('settings:getPublicSettings', async () => {
-    return await SettingsStore.getSettings()
+    return await getPublicSettingsWithSecretStatus()
   })
 
   ipcMain.handle('settings:updateSettings', async (_, rawInput) => {
     const input = SettingsUpdateSchema.parse(rawInput)
-    
-    // Save secure keys separately
-    if (input.openaiKey !== undefined) await SecureSecrets.setSecret('openaiKey', input.openaiKey)
-    if (input.geminiKey !== undefined) await SecureSecrets.setSecret('geminiKey', input.geminiKey)
-    if (input.openrouterKey !== undefined) await SecureSecrets.setSecret('openrouterKey', input.openrouterKey)
-    if (input.pexelsKey !== undefined) await SecureSecrets.setSecret('pexelsKey', input.pexelsKey)
 
-    // Filter out keys from public settings saving
-    const { openaiKey, geminiKey, openrouterKey, pexelsKey, ...publicSettings } = input
+    // Save secure keys separately if they are provided and not masked strings
+    if (input.openaiKey !== undefined && !isMaskedSecret(input.openaiKey)) {
+      await SecureSecrets.setSecret('openaiKey', input.openaiKey)
+    }
+    if (input.geminiKey !== undefined && !isMaskedSecret(input.geminiKey)) {
+      await SecureSecrets.setSecret('geminiKey', input.geminiKey)
+    }
+    if (input.openrouterKey !== undefined && !isMaskedSecret(input.openrouterKey)) {
+      await SecureSecrets.setSecret('openrouterKey', input.openrouterKey)
+    }
+    if (input.pexelsKey !== undefined && !isMaskedSecret(input.pexelsKey)) {
+      await SecureSecrets.setSecret('pexelsKey', input.pexelsKey)
+    }
+
+    const publicSettings = Object.fromEntries(
+      Object.entries({
+        llmProvider: input.llmProvider,
+        modelId: input.modelId,
+        downloadFolder: input.downloadFolder,
+        maxConcurrentDownloads: input.maxConcurrentDownloads,
+        maxAgentIterations: input.maxAgentIterations,
+        requestTimeoutSeconds: input.requestTimeoutSeconds,
+        skipExplicitQueries: input.skipExplicitQueries,
+        requireApprovalBeforeDownload: input.requireApprovalBeforeDownload,
+        avoidPeopleAndFaces: input.avoidPeopleAndFaces
+      }).filter(([, value]) => value !== undefined)
+    )
     await SettingsStore.updateSettings(publicSettings)
+    return await getPublicSettingsWithSecretStatus()
   })
 
   ipcMain.handle('settings:testProvider', async (_, rawInput) => {
-    const { provider, apiKey, modelId } = ProviderTestRequestSchema.parse(rawInput)
+    const providerRequest = ProviderTestRequestSchema.parse(rawInput)
+    const { provider, modelId } = providerRequest
+    let { apiKey } = providerRequest
+    if (apiKey === 'CURRENT_KEY_ON_DISK') {
+      apiKey = await SecureSecrets.getSecret(`${provider}Key`)
+    }
     const client = LlmProviderFactory.getProvider(provider)
     return await client.testConnection({ apiKey }, modelId)
   })
 
   ipcMain.handle('settings:testPexelsKey', async (_, apiKey: string) => {
     try {
+      let activeKey = apiKey
+      if (activeKey === 'CURRENT_KEY_ON_DISK') {
+        activeKey = await SecureSecrets.getSecret('pexelsKey')
+      }
       const response = await fetch('https://api.pexels.com/v1/search?query=test&per_page=1', {
-        headers: { 'Authorization': apiKey }
+        headers: { Authorization: activeKey }
       })
       if (response.ok) {
         return { success: true, message: 'Pexels API key is valid!' }

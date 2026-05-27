@@ -6,7 +6,7 @@ declare global {
     api: {
       settings: {
         getPublicSettings(): Promise<any>
-        updateSettings(input: any): Promise<void>
+        updateSettings(input: any): Promise<any>
         testProvider(input: any): Promise<any>
         testPexelsKey(key: string): Promise<any>
         chooseDownloadFolder(): Promise<string | null>

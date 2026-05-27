@@ -5,12 +5,29 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Switch } from '../components/ui/switch'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '../components/ui/select'
 import { Slider } from '../components/ui/slider'
-import { KeyRound, Folder, Settings2, ShieldCheck, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import {
+  KeyRound,
+  Folder,
+  Settings2,
+  ShieldCheck,
+  CheckCircle2,
+  XCircle,
+  Loader2
+} from 'lucide-react'
 
 export default function SettingsView(): React.JSX.Element {
   const { settings, loadSettings, updateSettings } = useAppStore()
+
+  // Buffers settings in local state to prevent frequent disk writes on keystrokes/drags
+  const [localSettings, setLocalSettings] = useState<any>(null)
 
   // API keys state (loaded as blank/obscured initially)
   const [openaiKey, setOpenaiKey] = useState('')
@@ -20,16 +37,29 @@ export default function SettingsView(): React.JSX.Element {
 
   // Testing status
   const [testingLlm, setTestingLlm] = useState(false)
-  const [llmTestResult, setLlmTestResult] = useState<{ success: boolean; message: string } | null>(null)
-  
+  const [llmTestResult, setLlmTestResult] = useState<{ success: boolean; message: string } | null>(
+    null
+  )
+
   const [testingPexels, setTestingPexels] = useState(false)
-  const [pexelsTestResult, setPexelsTestResult] = useState<{ success: boolean; message: string } | null>(null)
+  const [pexelsTestResult, setPexelsTestResult] = useState<{
+    success: boolean
+    message: string
+  } | null>(null)
+  const [savingSettings, setSavingSettings] = useState(false)
+  const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null)
 
   useEffect(() => {
     loadSettings()
   }, [])
 
-  if (!settings) {
+  useEffect(() => {
+    if (settings) {
+      setLocalSettings({ ...settings })
+    }
+  }, [settings])
+
+  if (!localSettings) {
     return (
       <div className="flex h-[400px] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -39,25 +69,43 @@ export default function SettingsView(): React.JSX.Element {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    const updates: any = {}
+    setSavingSettings(true)
+    setSaveResult(null)
+    const updates: any = { ...localSettings }
+
+    // Clear out masked values so we do not overwrite actual secrets with "••••••••••••••••"
+    delete updates.openaiKey
+    delete updates.geminiKey
+    delete updates.openrouterKey
+    delete updates.pexelsKey
+
     if (openaiKey) updates.openaiKey = openaiKey
     if (geminiKey) updates.geminiKey = geminiKey
     if (openrouterKey) updates.openrouterKey = openrouterKey
     if (pexelsKey) updates.pexelsKey = pexelsKey
 
-    await updateSettings(updates)
-    alert('Settings saved successfully!')
-    // Clear password inputs
-    setOpenaiKey('')
-    setGeminiKey('')
-    setOpenrouterKey('')
-    setPexelsKey('')
-  };
+    try {
+      await updateSettings(updates)
+      setSaveResult({ success: true, message: 'Settings saved successfully.' })
+      // Clear password inputs
+      setOpenaiKey('')
+      setGeminiKey('')
+      setOpenrouterKey('')
+      setPexelsKey('')
+    } catch (err: any) {
+      setSaveResult({
+        success: false,
+        message: err?.message || 'Failed to save settings.'
+      })
+    } finally {
+      setSavingSettings(false)
+    }
+  }
 
   const handleChooseFolder = async () => {
     const folder = await api.settings.chooseDownloadFolder()
     if (folder) {
-      await updateSettings({ downloadFolder: folder })
+      setLocalSettings((prev: any) => ({ ...prev, downloadFolder: folder }))
     }
   }
 
@@ -66,16 +114,16 @@ export default function SettingsView(): React.JSX.Element {
     setLlmTestResult(null)
     try {
       const activeKey =
-        settings.llmProvider === 'openai'
+        localSettings.llmProvider === 'openai'
           ? openaiKey
-          : settings.llmProvider === 'gemini'
+          : localSettings.llmProvider === 'gemini'
             ? geminiKey
             : openrouterKey
 
       const result = await api.settings.testProvider({
-        provider: settings.llmProvider,
+        provider: localSettings.llmProvider,
         apiKey: activeKey || 'CURRENT_KEY_ON_DISK', // If blank, the backend secure secrets will load from disk
-        modelId: settings.modelId
+        modelId: localSettings.modelId
       })
       setLlmTestResult(result)
     } catch (err: any) {
@@ -104,7 +152,9 @@ export default function SettingsView(): React.JSX.Element {
         <Settings2 className="h-8 w-8 text-primary" />
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Configuration Settings</h1>
-          <p className="text-sm text-muted-foreground">Manage API keys, output directories, and agent safety filters.</p>
+          <p className="text-sm text-muted-foreground">
+            Manage API keys, output directories, and agent safety filters.
+          </p>
         </div>
       </div>
 
@@ -119,8 +169,10 @@ export default function SettingsView(): React.JSX.Element {
           <div className="space-y-2">
             <Label htmlFor="provider">LLM Provider</Label>
             <Select
-              value={settings.llmProvider}
-              onValueChange={(val) => updateSettings({ llmProvider: val })}
+              value={localSettings.llmProvider}
+              onValueChange={(val) =>
+                setLocalSettings((prev: any) => ({ ...prev, llmProvider: val }))
+              }
             >
               <SelectTrigger className="bg-black/20 border-white/10">
                 <SelectValue placeholder="Select LLM provider" />
@@ -138,8 +190,10 @@ export default function SettingsView(): React.JSX.Element {
             <Input
               id="model-id"
               placeholder="e.g. gpt-4o, gemini-2.5-flash"
-              value={settings.modelId}
-              onChange={(e) => updateSettings({ modelId: e.target.value })}
+              value={localSettings.modelId}
+              onChange={(e) =>
+                setLocalSettings((prev: any) => ({ ...prev, modelId: e.target.value }))
+              }
               className="bg-black/20 border-white/10"
             />
           </div>
@@ -150,7 +204,7 @@ export default function SettingsView(): React.JSX.Element {
               <Input
                 id="openai-key"
                 type="password"
-                placeholder="••••••••••••••••••••••••"
+                placeholder={localSettings.openaiKey ? '••••••••••••••••' : 'Enter key...'}
                 value={openaiKey}
                 onChange={(e) => setOpenaiKey(e.target.value)}
                 className="bg-black/20 border-white/10"
@@ -162,7 +216,7 @@ export default function SettingsView(): React.JSX.Element {
               <Input
                 id="gemini-key"
                 type="password"
-                placeholder="••••••••••••••••••••••••"
+                placeholder={localSettings.geminiKey ? '••••••••••••••••' : 'Enter key...'}
                 value={geminiKey}
                 onChange={(e) => setGeminiKey(e.target.value)}
                 className="bg-black/20 border-white/10"
@@ -174,7 +228,7 @@ export default function SettingsView(): React.JSX.Element {
               <Input
                 id="openrouter-key"
                 type="password"
-                placeholder="••••••••••••••••••••••••"
+                placeholder={localSettings.openrouterKey ? '••••••••••••••••' : 'Enter key...'}
                 value={openrouterKey}
                 onChange={(e) => setOpenrouterKey(e.target.value)}
                 className="bg-black/20 border-white/10"
@@ -186,7 +240,7 @@ export default function SettingsView(): React.JSX.Element {
               <Input
                 id="pexels-key"
                 type="password"
-                placeholder="••••••••••••••••••••••••"
+                placeholder={localSettings.pexelsKey ? '••••••••••••••••' : 'Enter key...'}
                 value={pexelsKey}
                 onChange={(e) => setPexelsKey(e.target.value)}
                 className="bg-black/20 border-white/10"
@@ -209,10 +263,15 @@ export default function SettingsView(): React.JSX.Element {
               <div className="flex space-x-2">
                 <Input
                   readOnly
-                  value={settings.downloadFolder}
+                  value={localSettings.downloadFolder}
                   className="bg-black/20 border-white/10 text-xs font-mono select-all flex-1"
                 />
-                <Button type="button" variant="secondary" onClick={handleChooseFolder} className="bg-white/10 hover:bg-white/20 border border-white/5">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleChooseFolder}
+                  className="bg-white/10 hover:bg-white/20 border border-white/5"
+                >
                   Browse
                 </Button>
               </div>
@@ -229,14 +288,18 @@ export default function SettingsView(): React.JSX.Element {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <Label>Max Concurrent Downloads</Label>
-                <span className="text-primary font-semibold">{settings.maxConcurrentDownloads}</span>
+                <span className="text-primary font-semibold">
+                  {localSettings.maxConcurrentDownloads}
+                </span>
               </div>
               <Slider
-                value={[settings.maxConcurrentDownloads]}
+                value={[localSettings.maxConcurrentDownloads]}
                 min={1}
                 max={5}
                 step={1}
-                onValueChange={([val]) => updateSettings({ maxConcurrentDownloads: val })}
+                onValueChange={([val]) =>
+                  setLocalSettings((prev: any) => ({ ...prev, maxConcurrentDownloads: val }))
+                }
                 className="py-2"
               />
             </div>
@@ -244,14 +307,18 @@ export default function SettingsView(): React.JSX.Element {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <Label>Max Agent Loop Turns</Label>
-                <span className="text-primary font-semibold">{settings.maxAgentIterations}</span>
+                <span className="text-primary font-semibold">
+                  {localSettings.maxAgentIterations}
+                </span>
               </div>
               <Slider
-                value={[settings.maxAgentIterations]}
+                value={[localSettings.maxAgentIterations]}
                 min={5}
                 max={50}
                 step={5}
-                onValueChange={([val]) => updateSettings({ maxAgentIterations: val })}
+                onValueChange={([val]) =>
+                  setLocalSettings((prev: any) => ({ ...prev, maxAgentIterations: val }))
+                }
                 className="py-2"
               />
             </div>
@@ -259,14 +326,18 @@ export default function SettingsView(): React.JSX.Element {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <Label>Request Timeout</Label>
-                <span className="text-primary font-semibold">{settings.requestTimeoutSeconds}s</span>
+                <span className="text-primary font-semibold">
+                  {localSettings.requestTimeoutSeconds}s
+                </span>
               </div>
               <Slider
-                value={[settings.requestTimeoutSeconds]}
+                value={[localSettings.requestTimeoutSeconds]}
                 min={10}
                 max={180}
                 step={5}
-                onValueChange={([val]) => updateSettings({ requestTimeoutSeconds: val })}
+                onValueChange={([val]) =>
+                  setLocalSettings((prev: any) => ({ ...prev, requestTimeoutSeconds: val }))
+                }
                 className="py-2"
               />
             </div>
@@ -281,37 +352,58 @@ export default function SettingsView(): React.JSX.Element {
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="skip-explicit" className="text-sm font-medium">Skip Explicit Content</Label>
-                <p className="text-xs text-muted-foreground">Filters out explicit search results.</p>
+                <Label htmlFor="skip-explicit" className="text-sm font-medium">
+                  Skip Explicit Content
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Filters out explicit search results.
+                </p>
               </div>
               <Switch
                 id="skip-explicit"
-                checked={settings.skipExplicitQueries}
-                onCheckedChange={(checked) => updateSettings({ skipExplicitQueries: checked })}
+                checked={localSettings.skipExplicitQueries}
+                onCheckedChange={(checked) =>
+                  setLocalSettings((prev: any) => ({ ...prev, skipExplicitQueries: checked }))
+                }
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="avoid-people" className="text-sm font-medium">Avoid Faces & People</Label>
-                <p className="text-xs text-muted-foreground">Tries to find b-roll without people.</p>
+                <Label htmlFor="avoid-people" className="text-sm font-medium">
+                  Avoid Faces & People
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Tries to find b-roll without people.
+                </p>
               </div>
               <Switch
                 id="avoid-people"
-                checked={settings.avoidPeopleAndFaces}
-                onCheckedChange={(checked) => updateSettings({ avoidPeopleAndFaces: checked })}
+                checked={localSettings.avoidPeopleAndFaces}
+                onCheckedChange={(checked) =>
+                  setLocalSettings((prev: any) => ({ ...prev, avoidPeopleAndFaces: checked }))
+                }
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="require-approval" className="text-sm font-medium">Require Approval Before Download</Label>
-                <p className="text-xs text-muted-foreground">Approve selected assets before downloading.</p>
+                <Label htmlFor="require-approval" className="text-sm font-medium">
+                  Require Approval Before Download
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Approve selected assets before downloading.
+                </p>
               </div>
               <Switch
                 id="require-approval"
-                checked={settings.requireApprovalBeforeDownload}
-                onCheckedChange={(checked) => updateSettings({ requireApprovalBeforeDownload: checked })}
+                checked={localSettings.requireApprovalBeforeDownload}
+                onCheckedChange={(checked) =>
+                  setLocalSettings((prev: any) => ({
+                    ...prev,
+                    requireApprovalBeforeDownload: checked
+                  }))
+                }
               />
             </div>
           </div>
@@ -330,7 +422,7 @@ export default function SettingsView(): React.JSX.Element {
               {testingLlm && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Test LLM Connection
             </Button>
-            
+
             <Button
               type="button"
               variant="outline"
@@ -354,7 +446,12 @@ export default function SettingsView(): React.JSX.Element {
             </Button>
           </div>
 
-          <Button type="submit" className="w-full sm:w-auto px-8 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-medium shadow-lg shadow-violet-500/20">
+          <Button
+            type="submit"
+            disabled={savingSettings}
+            className="w-full sm:w-auto px-8 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-medium shadow-lg shadow-violet-500/20"
+          >
+            {savingSettings && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Save All Changes
           </Button>
         </div>
@@ -362,9 +459,31 @@ export default function SettingsView(): React.JSX.Element {
 
       {/* Diagnostics Results Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {saveResult && (
+          <div
+            className={`p-4 rounded-xl flex items-start space-x-3 border ${saveResult.success ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-300' : 'bg-destructive/10 border-destructive/20 text-destructive-foreground'}`}
+          >
+            {saveResult.success ? (
+              <CheckCircle2 className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+            ) : (
+              <XCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+            )}
+            <div>
+              <div className="font-semibold text-sm">Settings</div>
+              <div className="text-xs mt-1 leading-relaxed opacity-90">{saveResult.message}</div>
+            </div>
+          </div>
+        )}
+
         {llmTestResult && (
-          <div className={`p-4 rounded-xl flex items-start space-x-3 border ${llmTestResult.success ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-300' : 'bg-destructive/10 border-destructive/20 text-destructive-foreground'}`}>
-            {llmTestResult.success ? <CheckCircle2 className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" /> : <XCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />}
+          <div
+            className={`p-4 rounded-xl flex items-start space-x-3 border ${llmTestResult.success ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-300' : 'bg-destructive/10 border-destructive/20 text-destructive-foreground'}`}
+          >
+            {llmTestResult.success ? (
+              <CheckCircle2 className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+            ) : (
+              <XCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+            )}
             <div>
               <div className="font-semibold text-sm">LLM Test Result</div>
               <div className="text-xs mt-1 leading-relaxed opacity-90">{llmTestResult.message}</div>
@@ -373,11 +492,19 @@ export default function SettingsView(): React.JSX.Element {
         )}
 
         {pexelsTestResult && (
-          <div className={`p-4 rounded-xl flex items-start space-x-3 border ${pexelsTestResult.success ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-300' : 'bg-destructive/10 border-destructive/20 text-destructive-foreground'}`}>
-            {pexelsTestResult.success ? <CheckCircle2 className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" /> : <XCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />}
+          <div
+            className={`p-4 rounded-xl flex items-start space-x-3 border ${pexelsTestResult.success ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-300' : 'bg-destructive/10 border-destructive/20 text-destructive-foreground'}`}
+          >
+            {pexelsTestResult.success ? (
+              <CheckCircle2 className="h-5 w-5 text-emerald-400 mt-0.5 shrink-0" />
+            ) : (
+              <XCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+            )}
             <div>
               <div className="font-semibold text-sm">Pexels Test Result</div>
-              <div className="text-xs mt-1 leading-relaxed opacity-90">{pexelsTestResult.message}</div>
+              <div className="text-xs mt-1 leading-relaxed opacity-90">
+                {pexelsTestResult.message}
+              </div>
             </div>
           </div>
         )}

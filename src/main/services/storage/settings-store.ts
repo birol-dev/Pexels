@@ -48,13 +48,9 @@ export class SettingsStore {
   public static async updateSettings(updates: Partial<PublicSettings>): Promise<PublicSettings> {
     const current = await this.getSettings()
     const updated = { ...current, ...updates }
-    this.cachedSettings = updated
 
-    try {
-      await fs.writeFile(SETTINGS_FILE, JSON.stringify(updated, null, 2), 'utf-8')
-    } catch (error) {
-      console.error('Failed to write settings file:', error)
-    }
+    await fs.writeFile(SETTINGS_FILE, JSON.stringify(updated, null, 2), 'utf-8')
+    this.cachedSettings = updated
 
     return updated
   }

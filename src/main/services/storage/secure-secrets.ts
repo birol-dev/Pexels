@@ -3,6 +3,8 @@ import { join } from 'path'
 import { promises as fs } from 'fs'
 
 const SECRETS_FILE = join(app.getPath('userData'), 'secrets.json')
+const ENCRYPTED_PREFIX = 'encrypted:'
+const PLAIN_PREFIX = 'plain:'
 
 export class SecureSecrets {
   private static async readSecretsFile(): Promise<Record<string, string>> {
@@ -25,11 +27,21 @@ export class SecureSecrets {
 
     if (!safeStorage.isEncryptionAvailable()) {
       console.warn('safeStorage is not available. Returning raw value.')
-      return encryptedHex
+      if (encryptedHex.startsWith(ENCRYPTED_PREFIX)) return ''
+      return encryptedHex.startsWith(PLAIN_PREFIX)
+        ? encryptedHex.slice(PLAIN_PREFIX.length)
+        : encryptedHex
     }
 
     try {
-      const encryptedBuffer = Buffer.from(encryptedHex, 'hex')
+      if (encryptedHex.startsWith(PLAIN_PREFIX)) {
+        return encryptedHex.slice(PLAIN_PREFIX.length)
+      }
+
+      const hex = encryptedHex.startsWith(ENCRYPTED_PREFIX)
+        ? encryptedHex.slice(ENCRYPTED_PREFIX.length)
+        : encryptedHex
+      const encryptedBuffer = Buffer.from(hex, 'hex')
       return safeStorage.decryptString(encryptedBuffer)
     } catch (error) {
       console.error(`Failed to decrypt secret for key ${key}:`, error)
@@ -47,10 +59,10 @@ export class SecureSecrets {
 
     if (!safeStorage.isEncryptionAvailable()) {
       console.warn('safeStorage is not available. Saving in plaintext.')
-      secrets[key] = value
+      secrets[key] = `${PLAIN_PREFIX}${value}`
     } else {
       const encryptedBuffer = safeStorage.encryptString(value)
-      secrets[key] = encryptedBuffer.toString('hex')
+      secrets[key] = `${ENCRYPTED_PREFIX}${encryptedBuffer.toString('hex')}`
     }
 
     await this.writeSecretsFile(secrets)
