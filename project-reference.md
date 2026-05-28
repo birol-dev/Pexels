@@ -8,7 +8,7 @@ StockFinder AI (registered in `package.json` as `stockfinder-ai`) is an Electron
 
 StockFinder AI follows Electron’s secure multi-process architecture with strict context isolation. It consists of:
 
-1. **Main Process (`src/main`)**: The Node.js backend. It controls application lifecycle, secure local storage, network requests, file system operations, and orchestrates the AI search/download agent.
+1. **Main Process (`src/main`)**: The Node.js backend. It controls application lifecycle, secure local storage, network requests, file system operations, registers custom privileged protocols (`media://` for streaming local resources safely), and orchestrates the AI search/download agent.
 2. **Preload Script (`src/preload`)**: The secure gateway between the main process and the renderer. It exposes a minimal, safe set of IPC methods using Electron's `contextBridge` and `ipcRenderer`.
 3. **Renderer Process (`src/renderer`)**: The React frontend built with Vite, styled with Tailwind CSS (v4) and Radix UI primitives. It handles user inputs, renders live run progress, acts as a media dashboard, and triggers configuration settings.
 
@@ -208,7 +208,14 @@ A run goes through the following lifecycle:
      └────────────────────────────────────┴────────────────────────> [Finished]
 ```
 
-#### 2. Visual Beat Schema
+#### 2. Dynamic Progress & Step Tracking
+
+Rather than remaining static during the search and download loops, the runner dynamically calculates progress metrics:
+*   **Live Description updates**: Updates `currentStep` in real time with the active action (e.g., `Searching photos for "nebula" (beat 1)`).
+*   **Beat-Ratio Progress**: Calculates progress percentages based on the ratio of completed beats, smoothly transitioning from 30% to 90% as files finish downloading.
+*   **Detailed Console Logging**: Appends explicit console entries when LLM consults start, when Pexels API calls initiate, and when download queues change state (start, fail, finish).
+
+#### 3. Visual Beat Schema
 
 Each script segment is parsed into a **Visual Beat** structure:
 
@@ -341,6 +348,7 @@ StockFinder AI uses a dark theme themed with HSL color tokens.
   - `.glass-panel`: Translucent background (`rgba(20, 20, 25, 0.7)`) with `backdrop-filter: blur(12px)` and a subtle light border (`border-white/5`).
   - `.glass-card`: Interactive hover-responsive layouts for list containers.
 - **Transitions & Custom Scrollbars**: Smooth webkit-based scroll bars for log consoles and history queues.
+- **Flowing Loader Animations**: Custom `@keyframes shimmer` and `.animate-shimmer` linear gradient background shifts applied on progress indicators to convey active API calls.
 
 ---
 
@@ -376,9 +384,10 @@ The entry dashboard for starting new projects.
 
 A dashboard displaying the active agent run status.
 
-- **Progress Dashboard**: Displays a progress bar, estimated token usage cost, and action controls (Pause, Resume, Cancel, Rerun, and Approve & Download).
-- **Script Beats**: Shows script segments, AI visual direction details, search query history, and preview thumbnails for downloaded assets.
-- **Agent Console**: Displays real-time logs from the agent (such as thoughts, tool calls, and output logs).
+- **Progress Dashboard**: Displays a progress bar with a flowing shimmer effect, cost calculations, status badge indicators (with green/purple pulse highlights), and actions. Shows an active loading spinner next to the running step.
+- **Script Beats**: Displays visual beats cards featuring:
+  - **Download overlays**: An active loader spinner for queued (`pending`) assets, and a live progress bar overlay with percentage labels for assets in the `downloading` status.
+- **Agent Console**: Displays real-time logs from the agent (such as thoughts, tool calls, and outputs). Outputs are processed through a formatting module (`renderLogData`) that pretty-prints tool parameters and outputs into structured JSON blocks.
 
 ```
 +--------------------------------------------------------------------------------+
@@ -405,7 +414,7 @@ A dashboard for managing downloaded stock assets.
 
 - **Filters**: Displays assets filtered by type (videos, photos) and status (downloaded, failed).
 - **Asset Inspector**: Clicking an asset displays its details, including Pexels source, photographer licensing, dimensions, search query context, and local file path.
-- **Media Player**: Plays local video files and displays local images directly in the UI.
+- **Media Player**: Plays local video files and displays local images directly in the UI using the custom secure `media://` local streaming protocol to allow seeking, scrubbing, and bypassing CORS blockages.
 
 #### 4. Settings View (`settings.tsx`)
 
@@ -419,12 +428,13 @@ Manages application configuration settings.
 
 ## 6. Security Hardening Controls
 
-To protect users against unauthorized access and malicious network requests, StockFinder AI implements several security checks inside `src/main/services/agent/agent-runner.ts`:
+To protect users against unauthorized access and malicious network requests, StockFinder AI implements several security checks:
 
-1.  **Protocol Verification**: Ensures the download URL protocol is strictly `http:` or `https:`.
-2.  **Domain Filtering (`validateDownloadUrl`)**: Rejects requests targeting local hostnames, loopbacks, or private IP address spaces to prevent Server-Side Request Forgery (SSRF):
+1.  **Local Resource Isolation (`media://` scheme)**: By registering the `media` scheme as a privileged custom protocol standard and routing local requests securely through Node's native fetches inside the main process, the system avoids opening up unsafe `file://` resources inside the React browser renderer.
+2.  **Protocol Verification**: Ensures the download URL protocol is strictly `http:` or `https:`.
+3.  **Domain Filtering (`validateDownloadUrl`)**: Rejects requests targeting local hostnames, loopbacks, or private IP address spaces to prevent Server-Side Request Forgery (SSRF):
     - Blocks: `localhost`, `127.0.0.1`, `0.0.0.0`, `192.168.*`, `10.*`, `172.16.*`, and subdomains ending in `.local`.
-3.  **Selection Validation**: Before downloading an asset, the application verifies the download URL and Pexels ID against the search results cached in the `pexelsCandidates` map. This prevents the agent from downloading files from unverified external URLs.
+4.  **Selection Validation**: Before downloading an asset, the application verifies the download URL and Pexels ID against the search results cached in the `pexelsCandidates` map. This prevents the agent from downloading files from unverified external URLs.
 
 ---
 
