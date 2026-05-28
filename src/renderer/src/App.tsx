@@ -137,7 +137,7 @@ export default function App(): React.JSX.Element {
             <span>Chrome: {window.process?.versions?.chrome || '130.0'}</span>
           </div>
           <div className="text-[9px] opacity-60 text-center border-t border-black/5 pt-3">
-            v1.2.0 • Natural Aero Powered
+            v1.2.1 • Natural Aero Powered
           </div>
         </div>
       </aside>

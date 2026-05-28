@@ -30,5 +30,7 @@ pnpm-debug.log*
 Thumbs.db
 
 # Design files (except SVGs)
-/stitch_stockfinder_ai/*
-!/stitch_stockfinder_ai/*.svg
+/stitch_stockfinder_ai/**
+!/stitch_stockfinder_ai/**/
+!/stitch_stockfinder_ai/**/*.svg
+
