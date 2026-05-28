@@ -17,7 +17,7 @@ const OpenAIIcon = (): React.JSX.Element => (
 )
 
 const GeminiIcon = (): React.JSX.Element => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#3186FF] flex-shrink-0">
+  <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#3186FF] shrink-0">
     <title>Gemini</title>
     <path
       d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z"
@@ -43,7 +43,7 @@ const OpenRouterIcon = (): React.JSX.Element => (
     viewBox="0 0 24 24"
     fill="currentColor"
     fillRule="evenodd"
-    className="h-5 w-5 text-on-surface-variant flex-shrink-0"
+    className="h-5 w-5 text-on-surface-variant shrink-0"
   >
     <title>OpenRouter</title>
     <path d="M16.804 1.957l7.22 4.105v.087L16.73 10.21l.017-2.117-.821-.03c-1.059-.028-1.611.002-2.268.11-1.064.175-2.038.577-3.147 1.352L8.345 11.03c-.284.195-.495.336-.68.455l-.515.322-.397.234.385.23.53.338c.476.314 1.17.796 2.701 1.866 1.11.775 2.083 1.177 3.147 1.352l.3.045c.694.091 1.375.094 2.825.033l.022-2.159 7.22 4.105v.087L16.589 22l.014-1.862-.635.022c-1.386.042-2.137.002-3.138-.162-1.694-.28-3.26-.926-4.881-2.059l-2.158-1.5a21.997 21.997 0 00-.755-.498l-.467-.28a55.927 55.927 0 00-.76-.43C2.908 14.73.563 14.116 0 14.116V9.888l.14.004c.564-.007 2.91-.622 3.809-1.124l1.016-.58.438-.274c.428-.28 1.072-.726 2.686-1.853 1.621-1.133 3.186-1.78 4.881-2.059 1.152-.19 1.974-.213 3.814-.138l.02-1.907z"></path>
@@ -228,7 +228,7 @@ export default function SettingsView(): React.JSX.Element {
       <form onSubmit={handleSave} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Left Side: Keys & Providers */}
         <section className="glass-panel p-6 xl:col-span-2 flex flex-col gap-6 rounded-2xl">
-          <div className="border-b border-black/[0.05] pb-3">
+          <div className="border-b border-black/5 pb-3">
             <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2.5">
               <span className="material-symbols-outlined text-primary text-[20px]">neurology</span>
               AI Provider Configuration
@@ -271,7 +271,7 @@ export default function SettingsView(): React.JSX.Element {
                 <button
                   type="button"
                   onClick={() => handleProviderChange('openai')}
-                  className={`flex-grow py-2.5 rounded-lg border-2 flex items-center justify-center transition-all ${
+                  className={`grow py-2.5 rounded-lg border-2 flex items-center justify-center transition-all ${
                     localSettings.llmProvider === 'openai'
                       ? 'border-primary bg-white/70 shadow-sm'
                       : 'border-white/40 bg-white/30 hover:bg-white/50'
@@ -282,7 +282,7 @@ export default function SettingsView(): React.JSX.Element {
                 <button
                   type="button"
                   onClick={() => handleProviderChange('gemini')}
-                  className={`flex-grow py-2.5 rounded-lg border-2 flex items-center justify-center transition-all ${
+                  className={`grow py-2.5 rounded-lg border-2 flex items-center justify-center transition-all ${
                     localSettings.llmProvider === 'gemini'
                       ? 'border-primary bg-white/70 shadow-sm'
                       : 'border-white/40 bg-white/30 hover:bg-white/50'
@@ -293,7 +293,7 @@ export default function SettingsView(): React.JSX.Element {
                 <button
                   type="button"
                   onClick={() => handleProviderChange('openrouter')}
-                  className={`flex-grow py-2.5 rounded-lg border-2 flex items-center justify-center transition-all ${
+                  className={`grow py-2.5 rounded-lg border-2 flex items-center justify-center transition-all ${
                     localSettings.llmProvider === 'openrouter'
                       ? 'border-primary bg-white/70 shadow-sm'
                       : 'border-white/40 bg-white/30 hover:bg-white/50'
@@ -370,14 +370,14 @@ export default function SettingsView(): React.JSX.Element {
 
         {/* Right Side: Pexels integration */}
         <section className="glass-panel p-6 xl:col-span-1 flex flex-col gap-6 rounded-2xl">
-          <div className="border-b border-black/[0.05] pb-3">
+          <div className="border-b border-black/5 pb-3">
             <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2.5">
               <span className="material-symbols-outlined text-secondary text-[20px]">image</span>
               Pexels Integration
             </h3>
           </div>
 
-          <div className="flex flex-col gap-2 flex-grow justify-center">
+          <div className="flex flex-col gap-2 grow justify-center">
             <label className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider pl-0.5">
               Pexels API Key
             </label>
@@ -408,7 +408,7 @@ export default function SettingsView(): React.JSX.Element {
 
         {/* Performance / Tuning Loop */}
         <section className="glass-panel p-6 xl:col-span-2 flex flex-col gap-6 rounded-2xl">
-          <div className="border-b border-black/[0.05] pb-3">
+          <div className="border-b border-black/5 pb-3">
             <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2.5">
               <span className="material-symbols-outlined text-tertiary text-[20px]">speed</span>
               Performance Tuning
@@ -517,7 +517,7 @@ export default function SettingsView(): React.JSX.Element {
         <div className="flex flex-col gap-6 xl:col-span-1">
           {/* Storage config */}
           <section className="glass-panel p-6 flex flex-col gap-4 rounded-2xl">
-            <div className="border-b border-black/[0.05] pb-3">
+            <div className="border-b border-black/5 pb-3">
               <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2.5">
                 <span className="material-symbols-outlined text-primary text-[20px]">
                   folder_open
@@ -547,7 +547,7 @@ export default function SettingsView(): React.JSX.Element {
 
           {/* Safety Switches */}
           <section className="glass-panel p-6 flex flex-col gap-5 flex-1 rounded-2xl">
-            <div className="border-b border-black/[0.05] pb-3">
+            <div className="border-b border-black/5 pb-3">
               <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2.5">
                 <span className="material-symbols-outlined text-error text-[20px]">gpp_maybe</span>
                 Safety Switches
@@ -641,7 +641,7 @@ export default function SettingsView(): React.JSX.Element {
             className={`p-4 rounded-xl flex items-start gap-3 border ${
               saveResult.success
                 ? 'bg-secondary-container/20 border-secondary/30 text-secondary'
-                : 'bg-error-container/20 border-error/30 text-[#93000a]'
+                : 'bg-error-container/20 border-error/30 text-on-error-container'
             }`}
           >
             <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
@@ -661,7 +661,7 @@ export default function SettingsView(): React.JSX.Element {
             className={`p-4 rounded-xl flex items-start gap-3 border ${
               llmTestResult.success
                 ? 'bg-secondary-container/20 border-secondary/30 text-secondary'
-                : 'bg-error-container/20 border-error/30 text-[#93000a]'
+                : 'bg-error-container/20 border-error/30 text-on-error-container'
             }`}
           >
             <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
@@ -681,7 +681,7 @@ export default function SettingsView(): React.JSX.Element {
             className={`p-4 rounded-xl flex items-start gap-3 border ${
               pexelsTestResult.success
                 ? 'bg-secondary-container/20 border-secondary/30 text-secondary'
-                : 'bg-error-container/20 border-error/30 text-[#93000a]'
+                : 'bg-error-container/20 border-error/30 text-on-error-container'
             }`}
           >
             <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
@@ -698,7 +698,7 @@ export default function SettingsView(): React.JSX.Element {
       </div>
 
       {/* Save Action Area */}
-      <div className="flex items-center justify-between border-t border-black/[0.05] pt-5">
+      <div className="flex items-center justify-between border-t border-black/5 pt-5">
         <button
           type="button"
           onClick={handleResetOnboarding}

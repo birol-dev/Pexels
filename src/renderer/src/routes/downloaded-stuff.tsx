@@ -132,7 +132,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           {/* Search bar */}
-          <div className="relative flex-grow sm:flex-grow-0">
+          <div className="relative grow sm:grow-0">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">
               search
             </span>
@@ -281,7 +281,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
                   </div>
 
                   {/* Info Hover details */}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-2 text-[9px]">
+                  <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 via-black/30 to-transparent p-2 text-[9px]">
                     <h4 className="text-white font-semibold truncate leading-tight">
                       {asset.filePath
                         ? asset.filePath.split(/[\\/]/).pop()
@@ -362,7 +362,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
                   </a>
                 </div>
 
-                <div className="h-[1px] w-full bg-black/[0.04]" />
+                <div className="h-px w-full bg-black/4" />
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -393,7 +393,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
                   </div>
                 </div>
 
-                <div className="h-[1px] w-full bg-black/[0.04]" />
+                <div className="h-px w-full bg-black/4" />
 
                 <div>
                   <span className="text-outline uppercase text-[9px] font-mono block">
@@ -418,7 +418,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
                     <span className="text-outline uppercase text-[9px] font-mono block">
                       Local Disk Path
                     </span>
-                    <p className="text-on-surface-variant font-mono select-all break-all leading-normal mt-1 text-[10px] bg-black/[0.03] p-2.5 rounded border border-black/[0.04]">
+                    <p className="text-on-surface-variant font-mono select-all break-all leading-normal mt-1 text-[10px] bg-black/3 p-2.5 rounded border border-black/4">
                       {selectedAsset.filePath}
                     </p>
                   </div>
@@ -434,10 +434,10 @@ export default function DownloadedStuffView(): React.JSX.Element {
 
               {/* Action buttons pinned */}
               {selectedAsset.status === 'completed' && (
-                <div className="p-4 border-t border-black/[0.04] bg-white/20 flex gap-2">
+                <div className="p-4 border-t border-black/4 bg-white/20 flex gap-2">
                   <button
                     onClick={() => handleOpenFolder(selectedAsset.id)}
-                    className="btn-interactive flex-grow py-2.5 rounded-lg bg-white hover:bg-surface-container-high border border-outline-variant/60 font-semibold text-xs text-on-surface transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                    className="btn-interactive grow py-2.5 rounded-lg bg-white hover:bg-surface-container-high border border-outline-variant/60 font-semibold text-xs text-on-surface transition-all flex items-center justify-center gap-1.5 shadow-sm"
                   >
                     <span className="material-symbols-outlined text-[18px]">folder_open</span>{' '}
                     Reveal in Folder

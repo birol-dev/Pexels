@@ -71,29 +71,29 @@ export default function ScriptInputView(): React.JSX.Element {
     switch (status) {
       case 'running':
         return (
-          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-[#d8e2ff] border border-[#adc6ff] text-[#004493] px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 animate-pulse-glow">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#004493]"></span>
+          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-primary-fixed border border-[#adc6ff] text-on-primary-fixed-variant px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 animate-pulse-glow">
+            <span className="w-1.5 h-1.5 rounded-full bg-on-primary-fixed-variant"></span>
             Running
           </span>
         )
       case 'paused':
         return (
-          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-[#ffdbcc] border border-[#ffb595] text-[#7c2e00] px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#7c2e00]"></span>
+          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-tertiary-fixed border border-tertiary-fixed-dim text-on-tertiary-fixed-variant px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-on-tertiary-fixed-variant"></span>
             Paused
           </span>
         )
       case 'completed':
         return (
-          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-[#99f3de] border border-[#7dd7c3] text-[#005145] px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#006b5c]"></span>
+          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-secondary-fixed border border-secondary-fixed-dim text-on-secondary-fixed-variant px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
             Completed
           </span>
         )
       case 'failed':
         return (
-          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-[#ffdad6] border border-[#ffb4ab] text-[#93000a] px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#ba1a1a]"></span>
+          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-error-container border border-[#ffb4ab] text-on-error-container px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-error"></span>
             Failed
           </span>
         )
@@ -130,9 +130,9 @@ export default function ScriptInputView(): React.JSX.Element {
 
       {/* Warning Panel */}
       {(!settings?.pexelsKey || !settings?.[`${settings?.llmProvider || 'openai'}Key`]) && (
-        <div className="p-4 rounded-xl flex items-center justify-between bg-[#ffdbcc]/40 border border-[#ffb595]/30 text-[#7c2e00] text-xs font-semibold shadow-sm">
+        <div className="p-4 rounded-xl flex items-center justify-between bg-tertiary-fixed/40 border border-tertiary-fixed-dim/30 text-on-tertiary-fixed-variant text-xs font-semibold shadow-sm">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[#7c2e00] text-[22px] shrink-0">
+            <span className="material-symbols-outlined text-on-tertiary-fixed-variant text-[22px] shrink-0">
               warning
             </span>
             <div>
@@ -159,7 +159,7 @@ export default function ScriptInputView(): React.JSX.Element {
           </div>
           <button
             onClick={() => navigate('settings')}
-            className="bg-[#7c2e00]/10 hover:bg-[#7c2e00]/25 text-[#7c2e00] border-none shrink-0 font-bold px-3 py-1.5 rounded-lg transition-colors"
+            className="bg-on-tertiary-fixed-variant/10 hover:bg-on-tertiary-fixed-variant/25 text-on-tertiary-fixed-variant border-none shrink-0 font-bold px-3 py-1.5 rounded-lg transition-colors"
           >
             Configure
           </button>
@@ -323,7 +323,7 @@ export default function ScriptInputView(): React.JSX.Element {
           </div>
 
           {/* Limits Config Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-black/[0.05]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-black/5">
             <div>
               <label
                 className="block font-semibold text-sm text-on-surface mb-2.5"
@@ -383,7 +383,7 @@ export default function ScriptInputView(): React.JSX.Element {
 
       {/* Run History Section */}
       <section className="glass-panel overflow-hidden flex flex-col rounded-2xl">
-        <div className="p-5 border-b border-black/[0.05] flex justify-between items-center bg-white/30">
+        <div className="p-5 border-b border-black/5 flex justify-between items-center bg-white/30">
           <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-[20px]">history</span>
             Recent Pack Generations
@@ -399,7 +399,7 @@ export default function ScriptInputView(): React.JSX.Element {
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-black/[0.02] border-b border-black/[0.05]">
+                <tr className="bg-black/2 border-b border-black/5">
                   <th className="py-3.5 px-6 font-mono text-[10px] text-outline uppercase tracking-wider font-semibold">
                     Project Title
                   </th>
@@ -422,7 +422,7 @@ export default function ScriptInputView(): React.JSX.Element {
                   <tr
                     key={job.jobId}
                     onClick={() => handleSelectJob(job.jobId)}
-                    className="list-row border-b border-black/[0.03] hover:bg-white/40 cursor-pointer transition-colors duration-150"
+                    className="list-row border-b border-black/3 hover:bg-white/40 cursor-pointer transition-colors duration-150"
                   >
                     <td className="py-4 px-6 font-semibold">{job.title}</td>
                     <td className="py-4 px-6">{getStatusBadge(job.status)}</td>

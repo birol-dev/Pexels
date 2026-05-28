@@ -17,7 +17,7 @@ const OpenAIIcon = (): React.JSX.Element => (
 )
 
 const GeminiIcon = (): React.JSX.Element => (
-  <svg viewBox="0 0 24 24" className="h-9 w-9 text-[#3186FF] flex-shrink-0">
+  <svg viewBox="0 0 24 24" className="h-9 w-9 text-[#3186FF] shrink-0">
     <title>Gemini</title>
     <path
       d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z"
@@ -78,7 +78,7 @@ const OpenRouterIcon = (): React.JSX.Element => (
     viewBox="0 0 24 24"
     fill="currentColor"
     fillRule="evenodd"
-    className="h-9 w-9 text-on-surface-variant flex-shrink-0"
+    className="h-9 w-9 text-on-surface-variant shrink-0"
   >
     <title>OpenRouter</title>
     <path d="M16.804 1.957l7.22 4.105v.087L16.73 10.21l.017-2.117-.821-.03c-1.059-.028-1.611.002-2.268.11-1.064.175-2.038.577-3.147 1.352L8.345 11.03c-.284.195-.495.336-.68.455l-.515.322-.397.234.385.23.53.338c.476.314 1.17.796 2.701 1.866 1.11.775 2.083 1.177 3.147 1.352l.3.045c.694.091 1.375.094 2.825.033l.022-2.159 7.22 4.105v.087L16.589 22l.014-1.862-.635.022c-1.386.042-2.137.002-3.138-.162-1.694-.28-3.26-.926-4.881-2.059l-2.158-1.5a21.997 21.997 0 00-.755-.498l-.467-.28a55.927 55.927 0 00-.76-.43C2.908 14.73.563 14.116 0 14.116V9.888l.14.004c.564-.007 2.91-.622 3.809-1.124l1.016-.58.438-.274c.428-.28 1.072-.726 2.686-1.853 1.621-1.133 3.186-1.78 4.881-2.059 1.152-.19 1.974-.213 3.814-.138l.02-1.907z"></path>
@@ -211,7 +211,7 @@ export default function OnboardingView(): React.JSX.Element {
       {/* Main Wizard Card */}
       <main className="relative z-10 w-full max-w-2xl mx-6 flex flex-col animate-fade-in-up">
         {step === 1 && (
-          <div className="bg-white/55 backdrop-blur-[16px] border border-white/40 shadow-[0px_20px_40px_rgba(0,0,0,0.05),0px_4px_8px_rgba(0,0,0,0.04)] rounded-2xl p-12 flex flex-col items-center text-center">
+          <div className="bg-white/55 backdrop-blur-lg border border-white/40 shadow-[0px_20px_40px_rgba(0,0,0,0.05),0px_4px_8px_rgba(0,0,0,0.04)] rounded-2xl p-12 flex flex-col items-center text-center">
             {/* App Branding */}
             <div className="flex items-center gap-3 mb-12">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 shadow-sm">
@@ -238,7 +238,7 @@ export default function OnboardingView(): React.JSX.Element {
               {/* Primary CTA */}
               <button
                 onClick={() => setStep(2)}
-                className="bg-primary btn-gradient text-white font-semibold text-xs px-8 py-4 rounded-lg shadow-[0_4px_12px_rgba(0,88,188,0.2)] hover:shadow-[0_8px_24px_rgba(0,88,188,0.3)] hover:-translate-y-[1px] transition-all duration-200 flex items-center gap-2 group uppercase tracking-wider"
+                className="bg-primary btn-gradient text-white font-semibold text-xs px-8 py-4 rounded-lg shadow-[0_4px_12px_rgba(0,88,188,0.2)] hover:shadow-[0_8px_24px_rgba(0,88,188,0.3)] hover:-translate-y-px transition-all duration-200 flex items-center gap-2 group uppercase tracking-wider"
               >
                 Get Started
                 <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">
@@ -250,7 +250,7 @@ export default function OnboardingView(): React.JSX.Element {
         )}
 
         {step === 2 && (
-          <div className="bg-white/55 backdrop-blur-[16px] border border-white/40 shadow-[0px_20px_40px_rgba(0,0,0,0.05),0px_4px_8px_rgba(0,0,0,0.04)] rounded-2xl p-10 flex flex-col gap-6">
+          <div className="bg-white/55 backdrop-blur-lg border border-white/40 shadow-[0px_20px_40px_rgba(0,0,0,0.05),0px_4px_8px_rgba(0,0,0,0.04)] rounded-2xl p-10 flex flex-col gap-6">
             {/* Header */}
             <div className="flex flex-col gap-1 text-center items-center">
               <span className="font-mono text-[11px] text-primary tracking-widest uppercase">
@@ -433,7 +433,7 @@ export default function OnboardingView(): React.JSX.Element {
         )}
 
         {step === 3 && (
-          <div className="bg-white/55 backdrop-blur-[16px] border border-white/40 shadow-[0px_20px_40px_rgba(0,0,0,0.05),0px_4px_8px_rgba(0,0,0,0.04)] rounded-2xl p-10 flex flex-col gap-6">
+          <div className="bg-white/55 backdrop-blur-lg border border-white/40 shadow-[0px_20px_40px_rgba(0,0,0,0.05),0px_4px_8px_rgba(0,0,0,0.04)] rounded-2xl p-10 flex flex-col gap-6">
             {/* Header */}
             <div className="flex flex-col gap-1 text-center items-center">
               <span className="font-mono text-[11px] text-primary tracking-widest uppercase">
@@ -552,7 +552,7 @@ export default function OnboardingView(): React.JSX.Element {
         )}
 
         {step === 4 && (
-          <div className="bg-white/55 backdrop-blur-[16px] border border-white/40 shadow-[0px_20px_40px_rgba(0,0,0,0.05),0px_4px_8px_rgba(0,0,0,0.04)] rounded-2xl p-10 flex flex-col gap-6">
+          <div className="bg-white/55 backdrop-blur-lg border border-white/40 shadow-[0px_20px_40px_rgba(0,0,0,0.05),0px_4px_8px_rgba(0,0,0,0.04)] rounded-2xl p-10 flex flex-col gap-6">
             {/* Header */}
             <div className="flex flex-col gap-1 text-center items-center">
               <span className="font-mono text-[11px] text-primary tracking-widest uppercase">
@@ -579,7 +579,7 @@ export default function OnboardingView(): React.JSX.Element {
                 <div className="flex flex-col sm:flex-row gap-4 items-stretch w-full">
                   <div
                     onClick={handleChooseFolder}
-                    className="flex-grow glass-input rounded-lg flex items-center p-3 gap-3 group relative cursor-pointer hover:bg-white/90"
+                    className="grow glass-input rounded-lg flex items-center p-3 gap-3 group relative cursor-pointer hover:bg-white/90"
                   >
                     <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors">
                       folder
@@ -591,7 +591,7 @@ export default function OnboardingView(): React.JSX.Element {
 
                   <button
                     onClick={handleChooseFolder}
-                    className="tactile-btn-secondary bg-white/60 border border-outline-variant text-primary shadow-[0px_1px_2px_rgba(0,0,0,0.05)] transition-transform duration-200 hover:-translate-y-[1px] hover:bg-white hover:shadow-[0px_2px_4px_rgba(0,0,0,0.08)] rounded-lg text-xs font-semibold px-5 py-3 whitespace-nowrap flex items-center justify-center gap-1.5 shrink-0"
+                    className="tactile-btn-secondary bg-white/60 border border-outline-variant text-primary shadow-[0px_1px_2px_rgba(0,0,0,0.05)] transition-transform duration-200 hover:-translate-y-px hover:bg-white hover:shadow-[0px_2px_4px_rgba(0,0,0,0.08)] rounded-lg text-xs font-semibold px-5 py-3 whitespace-nowrap flex items-center justify-center gap-1.5 shrink-0"
                   >
                     <span className="material-symbols-outlined text-[18px]">create_new_folder</span>
                     Choose Folder
@@ -637,7 +637,7 @@ export default function OnboardingView(): React.JSX.Element {
         )}
 
         {step === 5 && (
-          <div className="bg-white/55 backdrop-blur-[16px] border border-white/40 shadow-[0px_20px_40px_rgba(0,0,0,0.05),0px_4px_8px_rgba(0,0,0,0.04)] rounded-2xl p-8 flex flex-col items-center text-center">
+          <div className="bg-white/55 backdrop-blur-lg border border-white/40 shadow-[0px_20px_40px_rgba(0,0,0,0.05),0px_4px_8px_rgba(0,0,0,0.04)] rounded-2xl p-8 flex flex-col items-center text-center">
             {/* Hero Confetti Graphic */}
             <div className="relative w-28 h-28 mb-6 flex items-center justify-center">
               <div className="absolute inset-0 bg-primary-container opacity-10 rounded-full blur-xl animate-pulse"></div>
@@ -667,7 +667,7 @@ export default function OnboardingView(): React.JSX.Element {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full mb-8 max-w-lg text-left">
               {/* AI Brain Card */}
               <div className="glass-card rounded-xl p-4 flex items-start gap-3">
-                <div className="w-9 h-9 rounded-full bg-secondary-fixed/30 flex-shrink-0 flex items-center justify-center border border-secondary-fixed-dim text-secondary">
+                <div className="w-9 h-9 rounded-full bg-secondary-fixed/30 shrink-0 flex items-center justify-center border border-secondary-fixed-dim text-secondary">
                   {llmProvider === 'openai' ? (
                     <OpenAIIcon />
                   ) : llmProvider === 'gemini' ? (
@@ -689,7 +689,7 @@ export default function OnboardingView(): React.JSX.Element {
 
               {/* Media Card */}
               <div className="glass-card rounded-xl p-4 flex items-start gap-3">
-                <div className="w-9 h-9 rounded-full bg-secondary-fixed/30 flex-shrink-0 flex items-center justify-center border border-secondary-fixed-dim text-secondary">
+                <div className="w-9 h-9 rounded-full bg-secondary-fixed/30 shrink-0 flex items-center justify-center border border-secondary-fixed-dim text-secondary">
                   <span className="material-symbols-outlined text-[18px]">photo_library</span>
                 </div>
                 <div>
@@ -705,10 +705,10 @@ export default function OnboardingView(): React.JSX.Element {
 
               {/* Local Folder Card */}
               <div className="glass-card rounded-xl p-4 flex items-start gap-3 sm:col-span-2">
-                <div className="w-9 h-9 rounded-full bg-secondary-fixed/30 flex-shrink-0 flex items-center justify-center border border-secondary-fixed-dim text-secondary">
+                <div className="w-9 h-9 rounded-full bg-secondary-fixed/30 shrink-0 flex items-center justify-center border border-secondary-fixed-dim text-secondary">
                   <span className="material-symbols-outlined text-[18px]">folder</span>
                 </div>
-                <div className="flex-grow overflow-hidden">
+                <div className="grow overflow-hidden">
                   <h4 className="font-semibold text-xs text-on-surface mb-0.5">
                     Local Export Directory
                   </h4>

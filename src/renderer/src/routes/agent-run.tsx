@@ -34,7 +34,7 @@ export default function AgentRunView(): React.JSX.Element {
     }
 
     return (
-      <pre className="bg-[#ecedf9]/60 border border-white/50 rounded p-2.5 text-[10px] text-on-surface-variant leading-normal overflow-x-auto whitespace-pre font-mono mt-1.5 max-h-60">
+      <pre className="bg-surface-container/60 border border-white/50 rounded p-2.5 text-[10px] text-on-surface-variant leading-normal overflow-x-auto whitespace-pre font-mono mt-1.5 max-h-60">
         {displayStr}
       </pre>
     )
@@ -241,7 +241,7 @@ export default function AgentRunView(): React.JSX.Element {
             {(activeJob.status === 'running' || activeJob.status === 'paused') && (
               <button
                 onClick={() => cancelJob(activeJob.jobId)}
-                className="btn-interactive px-4 py-2.5 bg-error-container border border-error/20 text-[#93000a] rounded-lg font-semibold text-xs flex items-center gap-1.5 shadow-sm"
+                className="btn-interactive px-4 py-2.5 bg-error-container border border-error/20 text-on-error-container rounded-lg font-semibold text-xs flex items-center gap-1.5 shadow-sm"
               >
                 <span className="material-symbols-outlined text-[18px]">close</span> Cancel Run
               </button>
@@ -270,9 +270,9 @@ export default function AgentRunView(): React.JSX.Element {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-6 pt-2 border-t border-black/[0.04]">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-6 pt-2 border-t border-black/4">
           {/* Progress Bar */}
-          <div className="flex-grow">
+          <div className="grow">
             <div className="flex justify-between items-end mb-2">
               <span className="font-mono text-[10px] text-outline uppercase tracking-wider pl-0.5">
                 Overall Progress
@@ -292,7 +292,7 @@ export default function AgentRunView(): React.JSX.Element {
           </div>
 
           {/* Metrics */}
-          <div className="flex gap-6 pl-0 sm:pl-6 border-l border-transparent sm:border-black/[0.06] shrink-0 font-mono text-xs">
+          <div className="flex gap-6 pl-0 sm:pl-6 border-l border-transparent sm:border-black/6 shrink-0 font-mono text-xs">
             <div className="flex flex-col">
               <span className="text-[10px] text-outline uppercase tracking-wider">Beats</span>
               <span className="font-bold text-on-surface mt-0.5">
@@ -375,7 +375,7 @@ export default function AgentRunView(): React.JSX.Element {
 
                 {/* Asset Grid Inside Card */}
                 {beat.assets && beat.assets.length > 0 && (
-                  <div className="border-t border-black/[0.04] pt-3.5 mt-3">
+                  <div className="border-t border-black/4 pt-3.5 mt-3">
                     <div className="text-[10px] font-mono text-outline uppercase tracking-wider mb-2 font-semibold">
                       Beat Stock Assets:
                     </div>
@@ -419,7 +419,7 @@ export default function AgentRunView(): React.JSX.Element {
                           )}
 
                           {/* Overlay on hover or always for labels */}
-                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1.5 flex flex-col justify-end text-[9px]">
+                          <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 via-black/40 to-transparent p-1.5 flex flex-col justify-end text-[9px]">
                             <span className="text-white font-bold capitalize leading-none mb-0.5">
                               {asset.type}
                             </span>
@@ -441,7 +441,7 @@ export default function AgentRunView(): React.JSX.Element {
 
                 {/* Rejected Assets Info */}
                 {beat.rejectedAssets && beat.rejectedAssets.length > 0 && (
-                  <div className="border-t border-black/[0.04] pt-3 mt-3">
+                  <div className="border-t border-black/4 pt-3 mt-3">
                     <div className="text-[10px] font-mono text-outline uppercase tracking-wider mb-2 font-semibold">
                       Skipped / Filtered Out:
                     </div>
@@ -449,7 +449,7 @@ export default function AgentRunView(): React.JSX.Element {
                       {beat.rejectedAssets.map((rej, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between text-[11px] bg-error-container/20 border border-error/15 rounded p-2 text-[#93000a] font-medium"
+                          className="flex items-center justify-between text-[11px] bg-error-container/20 border border-error/15 rounded p-2 text-on-error-container font-medium"
                         >
                           <span className="font-mono text-[9px]">
                             {rej.type.toUpperCase()} #{rej.pexelsId}
@@ -467,7 +467,7 @@ export default function AgentRunView(): React.JSX.Element {
 
         {/* Right Column: Agent Console */}
         <div className="glass-panel rounded-2xl flex flex-col overflow-hidden max-h-[694px] hover:shadow-lg transition-all duration-300">
-          <div className="px-5 py-3.5 border-b border-black/[0.05] bg-white/20 backdrop-blur-sm flex justify-between items-center">
+          <div className="px-5 py-3.5 border-b border-black/5 bg-white/20 backdrop-blur-sm flex justify-between items-center">
             <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2">
               <span className="material-symbols-outlined text-[20px] text-primary">terminal</span>
               Agent Console
@@ -485,10 +485,10 @@ export default function AgentRunView(): React.JSX.Element {
             </span>
           </div>
 
-          <div className="flex-grow p-5 overflow-y-auto log-scroll bg-white/35 font-mono text-xs flex flex-col gap-4">
+          <div className="grow p-5 overflow-y-auto log-scroll bg-white/35 font-mono text-xs flex flex-col gap-4">
             {activeJob.logs.map((log, index) => (
               <div key={index} className="space-y-1">
-                <div className="flex items-center space-x-2 text-[10px] text-outline border-b border-black/[0.03] pb-1 font-semibold">
+                <div className="flex items-center space-x-2 text-[10px] text-outline border-b border-black/3 pb-1 font-semibold">
                   <span>[{new Date(log.timestamp).toLocaleTimeString()}]</span>
                   <span className="uppercase text-primary font-bold">
                     {log.type.replace('_', ' ')}

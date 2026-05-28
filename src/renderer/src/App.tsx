@@ -4,7 +4,7 @@ import ScriptInputView from './routes/script-input'
 import AgentRunView from './routes/agent-run'
 import DownloadedStuffView from './routes/downloaded-stuff'
 import SettingsView from './routes/settings'
-import OnboardingView from './routes/onboarding'
+import OnboardingView from './routes/onboarding' // Onboarding Wizard
 
 export default function App(): React.JSX.Element {
   const { currentRoute, navigate, activeJobId, settings, loadSettings } = useAppStore()
@@ -59,7 +59,7 @@ export default function App(): React.JSX.Element {
         <div className="p-6">
           {/* Logo Brand */}
           <div className="flex items-center space-x-3 mb-10">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-primary-container shadow-inner flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-linear-to-br from-primary to-primary-container shadow-inner flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-white text-[24px]">eco</span>
             </div>
             <div>
@@ -172,7 +172,7 @@ export default function App(): React.JSX.Element {
 
       {/* Main Workspace Content Area */}
       <main className="flex-1 min-w-0 flex flex-col z-10 relative">
-        <div className="flex-grow overflow-y-auto p-8 lg:p-10">{renderActiveView()}</div>
+        <div className="grow overflow-y-auto p-8 lg:p-10">{renderActiveView()}</div>
       </main>
     </div>
   )
