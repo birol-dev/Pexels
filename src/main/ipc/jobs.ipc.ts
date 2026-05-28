@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron'
-import { AgentRunner, StartJobInput } from '../services/agent/agent-runner'
-import { ProjectStore } from '../services/storage/project-store'
+import { AgentRunner, StartJobInput, JobSnapshot } from '../services/agent/agent-runner'
+import { ProjectStore, JobSummary } from '../services/storage/project-store'
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { z } from 'zod'
@@ -23,14 +23,14 @@ const StartJobInputSchema = z.object({
   maxTotalDownloads: z.number().min(1).max(100)
 })
 
-function broadcastJobEvent(event: any) {
+function broadcastJobEvent(event: unknown): void {
   const windows = BrowserWindow.getAllWindows()
   for (const w of windows) {
     w.webContents.send('jobs:event', event)
   }
 }
 
-async function getJobInputFromManifest(summary: any): Promise<StartJobInput> {
+async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInput> {
   const defaultInput: StartJobInput = {
     title: summary.title,
     script: summary.script,
@@ -44,7 +44,17 @@ async function getJobInputFromManifest(summary: any): Promise<StartJobInput> {
   try {
     const manifestPath = join(summary.downloadPath, 'manifest.json')
     const data = await fs.readFile(manifestPath, 'utf-8')
-    const manifest = JSON.parse(data)
+    const manifest = JSON.parse(data) as {
+      title?: string
+      script?: string
+      settingsSnapshot?: {
+        targetPlatform?: string
+        visualStyle?: string
+        assetMix?: string
+        maxAssetsPerBeat?: number
+        maxTotalDownloads?: number
+      }
+    }
     if (manifest.settingsSnapshot) {
       const snap = manifest.settingsSnapshot
 
@@ -57,9 +67,9 @@ async function getJobInputFromManifest(summary: any): Promise<StartJobInput> {
       return {
         title: manifest.title || summary.title,
         script: manifest.script || summary.script,
-        platform: snap.targetPlatform || 'YouTube',
-        style: snap.visualStyle || 'cinematic',
-        mix: mapAssetMixBack(snap.assetMix),
+        platform: (snap.targetPlatform || 'YouTube') as StartJobInput['platform'],
+        style: (snap.visualStyle || 'cinematic') as StartJobInput['style'],
+        mix: mapAssetMixBack(snap.assetMix || ''),
         maxAssetsPerBeat: snap.maxAssetsPerBeat || 3,
         maxTotalDownloads: snap.maxTotalDownloads || 15
       }
@@ -71,8 +81,8 @@ async function getJobInputFromManifest(summary: any): Promise<StartJobInput> {
 }
 
 export function registerJobsHandlers(): void {
-  ipcMain.handle('jobs:start', async (_, rawInput) => {
-    const input = StartJobInputSchema.parse(rawInput)
+  ipcMain.handle('jobs:start', async (_, rawInput): Promise<string> => {
+    const input = StartJobInputSchema.parse(rawInput) as StartJobInput
     const jobId = `job_${Date.now()}`
 
     const runner = new AgentRunner(jobId, input)
@@ -88,14 +98,14 @@ export function registerJobsHandlers(): void {
     return jobId
   })
 
-  ipcMain.handle('jobs:pause', async (_, jobId: string) => {
+  ipcMain.handle('jobs:pause', async (_, jobId: string): Promise<void> => {
     const runner = AgentRunner.getActive(jobId)
     if (runner) {
       await runner.pause()
     }
   })
 
-  ipcMain.handle('jobs:resume', async (_, jobId: string) => {
+  ipcMain.handle('jobs:resume', async (_, jobId: string): Promise<void> => {
     const runner = AgentRunner.getActive(jobId)
     if (runner) {
       await runner.resume()
@@ -111,7 +121,7 @@ export function registerJobsHandlers(): void {
     }
   })
 
-  ipcMain.handle('jobs:approveAndResume', async (_, jobId: string) => {
+  ipcMain.handle('jobs:approveAndResume', async (_, jobId: string): Promise<void> => {
     let runner = AgentRunner.getActive(jobId)
     if (!runner) {
       const summary = await ProjectStore.get(jobId)
@@ -129,7 +139,7 @@ export function registerJobsHandlers(): void {
     }
   })
 
-  ipcMain.handle('jobs:cancel', async (_, jobId: string) => {
+  ipcMain.handle('jobs:cancel', async (_, jobId: string): Promise<void> => {
     const runner = AgentRunner.getActive(jobId)
     if (runner) {
       await runner.cancel()
@@ -142,7 +152,7 @@ export function registerJobsHandlers(): void {
     }
   })
 
-  ipcMain.handle('jobs:rerun', async (_, jobId: string) => {
+  ipcMain.handle('jobs:rerun', async (_, jobId: string): Promise<string> => {
     const summary = await ProjectStore.get(jobId)
     if (!summary) throw new Error('Job not found')
 
@@ -157,7 +167,7 @@ export function registerJobsHandlers(): void {
     return newJobId
   })
 
-  ipcMain.handle('jobs:get', async (_, jobId: string) => {
+  ipcMain.handle('jobs:get', async (_, jobId: string): Promise<JobSnapshot> => {
     const active = AgentRunner.getActive(jobId)
     if (active) {
       return active.getSnapshot()
@@ -169,17 +179,26 @@ export function registerJobsHandlers(): void {
     try {
       const manifestPath = join(summary.downloadPath, 'manifest.json')
       const data = await fs.readFile(manifestPath, 'utf-8')
-      const manifest = JSON.parse(data)
+      const manifest = JSON.parse(data) as {
+        projectId?: string
+        title?: string
+        script?: string
+        beats?: unknown[]
+        assets?: unknown[]
+        failures?: unknown[]
+      }
 
-      let logs: any[] = []
+      let logs: unknown[] = []
       try {
         const logsPath = join(summary.downloadPath, 'agent-log.jsonl')
         const logData = await fs.readFile(logsPath, 'utf-8')
         logs = logData
           .split('\n')
           .filter((line) => line.trim())
-          .map((line) => JSON.parse(line))
-      } catch {}
+          .map((line) => JSON.parse(line) as unknown)
+      } catch {
+        // Logs file may be missing, which is fine
+      }
 
       return {
         jobId: manifest.projectId || jobId,
@@ -188,12 +207,12 @@ export function registerJobsHandlers(): void {
         status: summary.status,
         progress: summary.status === 'completed' ? 100 : 0,
         currentStep: summary.status === 'completed' ? 'Finished' : 'Stopped',
-        beats: manifest.beats || [],
-        logs,
+        beats: (manifest.beats || []) as JobSnapshot['beats'],
+        logs: logs as JobSnapshot['logs'],
         downloadedCount: manifest.assets?.length || 0,
         failedCount: manifest.failures?.length || 0
       }
-    } catch (err) {
+    } catch {
       return {
         jobId: summary.jobId,
         title: summary.title,
@@ -209,7 +228,7 @@ export function registerJobsHandlers(): void {
     }
   })
 
-  ipcMain.handle('jobs:list', async () => {
+  ipcMain.handle('jobs:list', async (): Promise<JobSummary[]> => {
     return await ProjectStore.list()
   })
 }

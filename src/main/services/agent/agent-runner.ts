@@ -46,7 +46,7 @@ export interface AgentLogEvent {
   timestamp: string
   type: 'thought' | 'tool_call' | 'tool_result' | 'progress' | 'error' | 'info'
   message: string
-  data?: any
+  data?: unknown
 }
 
 export interface JobSnapshot {
@@ -148,7 +148,7 @@ export class AgentRunner extends EventEmitter {
   private getCombinedSignal(timeoutSeconds: number): AbortSignal {
     const controller = new AbortController()
 
-    const onAbort = () => {
+    const onAbort = (): void => {
       controller.abort()
     }
 
@@ -188,7 +188,7 @@ export class AgentRunner extends EventEmitter {
     }
   }
 
-  private log(type: AgentLogEvent['type'], message: string, data?: any) {
+  private log(type: AgentLogEvent['type'], message: string, data?: unknown): void {
     const event: AgentLogEvent = {
       timestamp: new Date().toISOString(),
       type,
@@ -199,13 +199,13 @@ export class AgentRunner extends EventEmitter {
     this.emit('event', { jobId: this.jobId, type: 'log', data: event })
 
     if (this.projectDir) {
-      ManifestWriter.appendLog(this.projectDir, event).catch((err) =>
-        console.error('Failed to write agent log event:', err)
+      ManifestWriter.appendLog(this.projectDir, event as unknown as Record<string, unknown>).catch(
+        (err) => console.error('Failed to write agent log event:', err)
       )
     }
   }
 
-  private updateProgress(step: string, progress: number) {
+  private updateProgress(step: string, progress: number): void {
     this.currentStep = step
     this.progress = progress
     this.emit('event', { jobId: this.jobId, type: 'progress', data: { step, progress } })
@@ -252,13 +252,17 @@ export class AgentRunner extends EventEmitter {
       const data = await fs.readFile(manifestPath, 'utf-8')
       const manifest = JSON.parse(data)
       if (manifest.beats && manifest.beats.length > 0) {
-        this.beats = manifest.beats.map((beat: any) => {
+        this.beats = (manifest.beats as VisualBeat[]).map((beat: VisualBeat) => {
           // Reset any beat stuck in downloading/searching/selecting back to a clean state
-          if (beat.status === 'downloading' || beat.status === 'searching' || beat.status === 'selecting') {
+          if (
+            beat.status === 'downloading' ||
+            beat.status === 'searching' ||
+            beat.status === 'selecting'
+          ) {
             beat.status = 'pending'
           }
           if (beat.assets) {
-            beat.assets = beat.assets.map((asset: any) => {
+            beat.assets = beat.assets.map((asset: AssetRecord) => {
               if (asset.status === 'downloading') {
                 asset.status = 'pending'
                 asset.progress = 0
@@ -271,6 +275,10 @@ export class AgentRunner extends EventEmitter {
         this.log('info', `Loaded ${this.beats.length} beats from existing manifest.`)
       }
 
+      if (manifest.messages) {
+        this.messages = manifest.messages as AgentMessage[]
+      }
+
       // Load logs
       try {
         const logsPath = join(this.projectDir, 'agent-log.jsonl')
@@ -279,9 +287,11 @@ export class AgentRunner extends EventEmitter {
           this.logs = logData
             .split('\n')
             .filter((line) => line.trim())
-            .map((line) => JSON.parse(line))
+            .map((line) => JSON.parse(line) as AgentLogEvent)
         }
-      } catch {}
+      } catch (logErr) {
+        console.warn('Failed to load logs from agent-log.jsonl:', logErr)
+      }
 
       // Update metrics
       this.downloadedCount = this.beats
@@ -290,7 +300,7 @@ export class AgentRunner extends EventEmitter {
       this.failedCount = this.beats
         .flatMap((b) => b.assets || [])
         .filter((a) => a.status === 'failed').length
-    } catch (err) {
+    } catch {
       // Manifest doesn't exist yet, which is normal for new runs
     }
   }
@@ -396,7 +406,7 @@ export class AgentRunner extends EventEmitter {
     this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
   }
 
-  private async saveRegistry() {
+  private async saveRegistry(): Promise<void> {
     const summary: JobSummary = {
       jobId: this.jobId,
       projectName: ManifestWriter.cleanFolderName(this.input.title),
@@ -411,13 +421,15 @@ export class AgentRunner extends EventEmitter {
     await ProjectStore.save(summary)
   }
 
-  private async writeManifest() {
+  private async writeManifest(): Promise<void> {
     if (!this.projectDir) return
 
-    const mapAssetMix = (mix: StartJobInput['mix']) => {
-      if (mix === 'videos only') return 'videos_only' as const
-      if (mix === 'photos only') return 'photos_only' as const
-      return 'videos_and_photos' as const
+    const mapAssetMix = (
+      mix: StartJobInput['mix']
+    ): 'videos_only' | 'photos_only' | 'videos_and_photos' => {
+      if (mix === 'videos only') return 'videos_only'
+      if (mix === 'photos only') return 'photos_only'
+      return 'videos_and_photos'
     }
 
     const manifest: ManifestData = {
@@ -443,6 +455,7 @@ export class AgentRunner extends EventEmitter {
       failures: this.downloader
         ? this.downloader.getTasks().filter((t) => t.status === 'failed')
         : [],
+      messages: this.messages,
       sourceDocsCheckedAt: new Date().toISOString()
     }
     await ManifestWriter.writeManifest(this.projectDir, manifest)
@@ -498,15 +511,15 @@ Output ONLY a raw JSON array matching this format (no markdown blocks, no wrappe
       this.usage.totalTokens += response.usage.totalTokens || 0
     }
 
-    let parsedBeats: any[] = []
+    let parsedBeats: Array<{ text?: string; visualPrompt?: string }> = []
     const content = response.assistantMessage.content || ''
     try {
       const cleanJson = content
         .replace(/```json/g, '')
         .replace(/```/g, '')
         .trim()
-      parsedBeats = JSON.parse(cleanJson)
-    } catch (err) {
+      parsedBeats = JSON.parse(cleanJson) as Array<{ text?: string; visualPrompt?: string }>
+    } catch {
       this.log('error', `Failed to parse beats JSON. Raw content: ${content}`)
       throw new Error('Script parsing returned invalid JSON.')
     }
@@ -515,7 +528,7 @@ Output ONLY a raw JSON array matching this format (no markdown blocks, no wrappe
       throw new Error('Script parsing did not return a JSON array.')
     }
 
-    this.beats = parsedBeats.map((b: any, index: number) => ({
+    this.beats = parsedBeats.map((b: { text?: string; visualPrompt?: string }, index: number) => ({
       id: `beat_${index + 1}`,
       text: b.text || '',
       visualPrompt: b.visualPrompt || '',
@@ -778,7 +791,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
 
   private async executeToolCall(tc: NormalizedToolCall): Promise<void> {
     this.log('tool_call', `Executing tool call: ${tc.name}`, tc.arguments)
-    let result: any = {}
+    let result: unknown = {}
 
     try {
       const args = JSON.parse(tc.arguments)
@@ -914,8 +927,8 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
         const selections = args.selections || []
         const rejections = args.rejections || []
 
-        const selectionResults: any[] = []
-        const rejectionResults: any[] = []
+        const selectionResults: unknown[] = []
+        const rejectionResults: unknown[] = []
 
         const firstBeatId = selections[0]?.beatId || rejections[0]?.beatId || ''
         this.log('info', `Selecting/rejecting assets for ${firstBeatId.replace('_', ' ')}...`)
@@ -1030,8 +1043,8 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
         }
       } else if (tc.name === 'download_selected_assets') {
         const assetIds = args.assetIds || []
-        const downloaded: any[] = []
-        const failed: any[] = []
+        const downloaded: unknown[] = []
+        const failed: unknown[] = []
 
         this.log('info', `Queuing ${assetIds.length} assets for local download...`)
         this.updateProgress(`Queuing assets for download...`, this.progress)
@@ -1217,7 +1230,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       })
   }
 
-  private validateDownloadUrl(urlStr: string) {
+  private validateDownloadUrl(urlStr: string): void {
     let url: URL
     try {
       url = new URL(urlStr)
@@ -1243,7 +1256,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     }
   }
 
-  private handleDownloadProgress(task: DownloadTask) {
+  private handleDownloadProgress(task: DownloadTask): void {
     // Find the beat that owns this download task
     let assetRecord: AssetRecord | undefined
     let parentBeat: VisualBeat | undefined

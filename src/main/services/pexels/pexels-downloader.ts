@@ -121,25 +121,32 @@ export class PexelsDownloader {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '') || 'asset'
 
-    // Determine temporary extension, download and check content-type
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), this.requestTimeoutSeconds * 1000)
+    let timeoutId = setTimeout(() => controller.abort(), this.requestTimeoutSeconds * 1000)
+
+    const resetTimeout = (): void => {
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => controller.abort(), this.requestTimeoutSeconds * 1000)
+    }
 
     let response: Response
     try {
       response = await fetch(task.url, { signal: controller.signal })
-    } finally {
+    } catch (err) {
       clearTimeout(timeoutId)
+      throw err
     }
 
     if (!response.ok) {
+      clearTimeout(timeoutId)
       throw new Error(`HTTP Error: ${response.status} ${response.statusText}`)
     }
     if (!response.body) {
+      clearTimeout(timeoutId)
       throw new Error('Response body is empty')
     }
 
-    const contentType = response.headers.get('content-type') || ''
+    const contentType = (response.headers.get('content-type') || '').toLowerCase()
     let ext = task.type === 'photo' ? '.jpeg' : '.mp4'
     if (task.type === 'photo') {
       if (contentType.includes('png')) ext = '.png'
@@ -167,6 +174,7 @@ export class PexelsDownloader {
 
     try {
       while (true) {
+        resetTimeout()
         const { done, value } = await reader.read()
         if (done) break
 
@@ -181,18 +189,28 @@ export class PexelsDownloader {
           }
         }
       }
-    } finally {
+
+      clearTimeout(timeoutId)
       fileStream.end()
+
+      // Wait for stream to finish writing fully
+      await new Promise<void>((resolve, reject) => {
+        fileStream.on('finish', () => resolve())
+        fileStream.on('error', (err) => reject(err))
+      })
+
+      // Rename temp file to final destination path
+      await fsPromises.rename(tempPath, finalPath)
+      return finalPath
+    } catch (error) {
+      clearTimeout(timeoutId)
+      fileStream.destroy()
+      try {
+        await fsPromises.unlink(tempPath)
+      } catch {
+        // Ignore unlink errors
+      }
+      throw error
     }
-
-    // Wait for stream to finish writing fully
-    await new Promise<void>((resolve, reject) => {
-      fileStream.on('finish', () => resolve())
-      fileStream.on('error', (err) => reject(err))
-    })
-
-    // Rename temp file to final destination path
-    await fsPromises.rename(tempPath, finalPath)
-    return finalPath
   }
 }

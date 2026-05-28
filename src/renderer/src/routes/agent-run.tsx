@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { useAppStore } from '../lib/store'
+import { useAppStore, AgentLogEvent, AssetRecord } from '../lib/store'
 
 export default function AgentRunView(): React.JSX.Element {
   const {
@@ -14,12 +14,12 @@ export default function AgentRunView(): React.JSX.Element {
   } = useAppStore()
   const logEndRef = useRef<HTMLDivElement>(null)
 
-  const formatCost = (input: number, output: number) => {
+  const formatCost = (input: number, output: number): string => {
     const cost = (input * 0.0025 + output * 0.01) / 1000
     return cost.toFixed(4)
   }
 
-  const renderLogData = (log: any) => {
+  const renderLogData = (log: AgentLogEvent): React.JSX.Element | null => {
     if (!log.data) return null
     let displayStr = ''
     try {
@@ -69,28 +69,52 @@ export default function AgentRunView(): React.JSX.Element {
   if (!activeJob) {
     return (
       <div className="flex h-[400px] items-center justify-center bg-transparent">
-        <span className="material-symbols-outlined text-[48px] text-primary animate-spin">sync</span>
+        <span className="material-symbols-outlined text-[48px] text-primary animate-spin">
+          sync
+        </span>
       </div>
     )
   }
 
-  const getBeatStatusIcon = (status: string) => {
+  const getBeatStatusIcon = (status: string): React.JSX.Element => {
     switch (status) {
       case 'completed':
-        return <span className="material-symbols-outlined text-secondary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+        return (
+          <span
+            className="material-symbols-outlined text-secondary text-[20px]"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            check_circle
+          </span>
+        )
       case 'searching':
-        return <span className="material-symbols-outlined text-primary text-[20px] animate-spin">sync</span>
+        return (
+          <span className="material-symbols-outlined text-primary text-[20px] animate-spin">
+            sync
+          </span>
+        )
       case 'selecting':
       case 'downloading':
-        return <span className="material-symbols-outlined text-primary text-[20px] animate-spin">hourglass_empty</span>
+        return (
+          <span className="material-symbols-outlined text-primary text-[20px] animate-spin">
+            hourglass_empty
+          </span>
+        )
       case 'failed':
-        return <span className="material-symbols-outlined text-error text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>cancel</span>
+        return (
+          <span
+            className="material-symbols-outlined text-error text-[20px]"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            cancel
+          </span>
+        )
       default:
         return <span className="material-symbols-outlined text-outline text-[20px]">schedule</span>
     }
   }
 
-  const getBeatBorderColor = (status: string) => {
+  const getBeatBorderColor = (status: string): string => {
     switch (status) {
       case 'completed':
         return 'border-l-secondary'
@@ -105,7 +129,7 @@ export default function AgentRunView(): React.JSX.Element {
     }
   }
 
-  const getBeatTextColor = (status: string) => {
+  const getBeatTextColor = (status: string): string => {
     switch (status) {
       case 'completed':
         return 'text-secondary font-bold'
@@ -120,7 +144,7 @@ export default function AgentRunView(): React.JSX.Element {
     }
   }
 
-  const getLogColor = (type: string) => {
+  const getLogColor = (type: string): string => {
     switch (type) {
       case 'thought':
         return 'text-on-surface-variant italic'
@@ -135,12 +159,12 @@ export default function AgentRunView(): React.JSX.Element {
     }
   }
 
-  const handleInspectAssets = () => {
+  const handleInspectAssets = (): void => {
     navigate('stuff')
   }
 
   const hasPendingAssets = activeJob.beats.some((b) =>
-    b.assets.some((a: any) => a.status === 'pending')
+    b.assets.some((a: AssetRecord) => a.status === 'pending')
   )
 
   return (
@@ -157,11 +181,17 @@ export default function AgentRunView(): React.JSX.Element {
               Back to project setup
             </button>
             <div className="flex items-center space-x-3">
-              <h1 className="text-2xl font-bold tracking-tight text-on-surface">{activeJob.title}</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-on-surface">
+                {activeJob.title}
+              </h1>
               <span className="px-2.5 py-1 bg-surface-container-low border border-primary/20 text-primary rounded-full text-[10px] uppercase font-bold tracking-wider flex items-center gap-1.5">
                 <span className="relative flex h-2 w-2">
-                  <span className={`motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75 ${activeJob.status === 'running' ? '' : 'hidden'}`}></span>
-                  <span className={`relative inline-flex rounded-full h-2 w-2 bg-primary ${activeJob.status === 'running' ? '' : 'opacity-60'}`}></span>
+                  <span
+                    className={`motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75 ${activeJob.status === 'running' ? '' : 'hidden'}`}
+                  ></span>
+                  <span
+                    className={`relative inline-flex rounded-full h-2 w-2 bg-primary ${activeJob.status === 'running' ? '' : 'opacity-60'}`}
+                  ></span>
                 </span>
                 {activeJob.status}
               </span>
@@ -244,8 +274,12 @@ export default function AgentRunView(): React.JSX.Element {
           {/* Progress Bar */}
           <div className="flex-grow">
             <div className="flex justify-between items-end mb-2">
-              <span className="font-mono text-[10px] text-outline uppercase tracking-wider pl-0.5">Overall Progress</span>
-              <span className="font-mono text-xs text-primary font-extrabold">{activeJob.progress}%</span>
+              <span className="font-mono text-[10px] text-outline uppercase tracking-wider pl-0.5">
+                Overall Progress
+              </span>
+              <span className="font-mono text-xs text-primary font-extrabold">
+                {activeJob.progress}%
+              </span>
             </div>
             <div className="h-3 w-full bg-surface-container-high rounded-full overflow-hidden border border-white/50 shadow-inner">
               <div
@@ -261,14 +295,20 @@ export default function AgentRunView(): React.JSX.Element {
           <div className="flex gap-6 pl-0 sm:pl-6 border-l border-transparent sm:border-black/[0.06] shrink-0 font-mono text-xs">
             <div className="flex flex-col">
               <span className="text-[10px] text-outline uppercase tracking-wider">Beats</span>
-              <span className="font-bold text-on-surface mt-0.5">{activeJob.beats.length} scenes</span>
+              <span className="font-bold text-on-surface mt-0.5">
+                {activeJob.beats.length} scenes
+              </span>
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] text-outline uppercase tracking-wider">Downloads</span>
-              <span className="font-bold text-secondary mt-0.5">{activeJob.downloadedCount} active</span>
+              <span className="font-bold text-secondary mt-0.5">
+                {activeJob.downloadedCount} active
+              </span>
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] text-outline uppercase tracking-wider">Estimated Cost</span>
+              <span className="text-[10px] text-outline uppercase tracking-wider">
+                Estimated Cost
+              </span>
               <span className="font-bold text-on-surface mt-0.5">
                 {activeJob.usage && activeJob.usage.totalTokens > 0
                   ? `$${formatCost(activeJob.usage.inputTokens, activeJob.usage.outputTokens)}`
@@ -298,11 +338,15 @@ export default function AgentRunView(): React.JSX.Element {
                 className={`glass-panel border-l-4 ${getBeatBorderColor(beat.status)} rounded-xl p-5 space-y-4 hover:shadow-md transition-all duration-200`}
               >
                 <div className="flex justify-between items-center">
-                  <span className={`font-mono text-[10px] uppercase flex items-center gap-1.5 ${getBeatTextColor(beat.status)}`}>
+                  <span
+                    className={`font-mono text-[10px] uppercase flex items-center gap-1.5 ${getBeatTextColor(beat.status)}`}
+                  >
                     {getBeatStatusIcon(beat.status)}
                     {beat.id.replace('_', ' ')}
                   </span>
-                  <span className="font-mono text-[10px] text-outline uppercase">{beat.status}</span>
+                  <span className="font-mono text-[10px] text-outline uppercase">
+                    {beat.status}
+                  </span>
                 </div>
 
                 <div className="space-y-3">
@@ -314,7 +358,7 @@ export default function AgentRunView(): React.JSX.Element {
                       Visual Direction:
                     </span>
                     <p className="text-[11px] text-on-surface-variant leading-relaxed select-all">
-                      "{beat.visualPrompt}"
+                      &ldquo;{beat.visualPrompt}&rdquo;
                     </p>
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {beat.searchQueries.map((query) => (
@@ -350,8 +394,12 @@ export default function AgentRunView(): React.JSX.Element {
                           {/* Queued State overlay */}
                           {asset.status === 'pending' && (
                             <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] flex flex-col items-center justify-center p-2">
-                              <span className="material-symbols-outlined text-primary text-[18px] animate-spin mb-1">sync</span>
-                              <span className="text-[9px] text-primary font-mono font-bold">Queued</span>
+                              <span className="material-symbols-outlined text-primary text-[18px] animate-spin mb-1">
+                                sync
+                              </span>
+                              <span className="text-[9px] text-primary font-mono font-bold">
+                                Queued
+                              </span>
                             </div>
                           )}
 
@@ -426,8 +474,12 @@ export default function AgentRunView(): React.JSX.Element {
             </h3>
             <span className="font-mono text-[10px] text-outline flex items-center gap-1.5 font-semibold">
               <span className="relative flex h-2 w-2">
-                <span className={`motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75 ${activeJob.status === 'running' ? '' : 'hidden'}`}></span>
-                <span className={`relative inline-flex rounded-full h-2 w-2 bg-secondary ${activeJob.status === 'running' ? '' : 'opacity-60'}`}></span>
+                <span
+                  className={`motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75 ${activeJob.status === 'running' ? '' : 'hidden'}`}
+                ></span>
+                <span
+                  className={`relative inline-flex rounded-full h-2 w-2 bg-secondary ${activeJob.status === 'running' ? '' : 'opacity-60'}`}
+                ></span>
               </span>
               Live Feed
             </span>
@@ -442,7 +494,9 @@ export default function AgentRunView(): React.JSX.Element {
                     {log.type.replace('_', ' ')}
                   </span>
                 </div>
-                <div className={`leading-relaxed whitespace-pre-wrap text-[11px] ${getLogColor(log.type)}`}>
+                <div
+                  className={`leading-relaxed whitespace-pre-wrap text-[11px] ${getLogColor(log.type)}`}
+                >
                   {log.message}
                 </div>
 

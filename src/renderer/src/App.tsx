@@ -11,13 +11,15 @@ export default function App(): React.JSX.Element {
 
   useEffect(() => {
     loadSettings()
-  }, [])
+  }, [loadSettings])
 
   if (!settings) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#f0f2f9]">
         <div className="flex flex-col items-center gap-3">
-          <span className="material-symbols-outlined text-[48px] text-primary animate-spin">sync</span>
+          <span className="material-symbols-outlined text-[48px] text-primary animate-spin">
+            sync
+          </span>
           <span className="text-sm font-medium text-outline">Loading settings...</span>
         </div>
       </div>
@@ -29,7 +31,7 @@ export default function App(): React.JSX.Element {
     return <OnboardingView />
   }
 
-  const renderActiveView = () => {
+  const renderActiveView = (): React.JSX.Element => {
     switch (currentRoute) {
       case 'input':
         return <ScriptInputView />
@@ -78,7 +80,14 @@ export default function App(): React.JSX.Element {
                   : 'text-on-surface-variant hover:text-on-surface hover:bg-white/30'
               }`}
             >
-              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: currentRoute === 'input' ? "'FILL' 1" : "'FILL' 0" }}>add_box</span>
+              <span
+                className="material-symbols-outlined text-[20px]"
+                style={{
+                  fontVariationSettings: currentRoute === 'input' ? "'FILL' 1" : "'FILL' 0"
+                }}
+              >
+                add_box
+              </span>
               <span>Create Pack</span>
             </button>
 
@@ -93,7 +102,12 @@ export default function App(): React.JSX.Element {
                     : 'text-on-surface-variant hover:text-on-surface hover:bg-white/30'
               }`}
             >
-              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: currentRoute === 'run' ? "'FILL' 1" : "'FILL' 0" }}>analytics</span>
+              <span
+                className="material-symbols-outlined text-[20px]"
+                style={{ fontVariationSettings: currentRoute === 'run' ? "'FILL' 1" : "'FILL' 0" }}
+              >
+                analytics
+              </span>
               <span>Run Progress</span>
             </button>
 
@@ -108,7 +122,14 @@ export default function App(): React.JSX.Element {
                     : 'text-on-surface-variant hover:text-on-surface hover:bg-white/30'
               }`}
             >
-              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: currentRoute === 'stuff' ? "'FILL' 1" : "'FILL' 0" }}>perm_media</span>
+              <span
+                className="material-symbols-outlined text-[20px]"
+                style={{
+                  fontVariationSettings: currentRoute === 'stuff' ? "'FILL' 1" : "'FILL' 0"
+                }}
+              >
+                perm_media
+              </span>
               <span>Media Library</span>
             </button>
 
@@ -120,7 +141,14 @@ export default function App(): React.JSX.Element {
                   : 'text-on-surface-variant hover:text-on-surface hover:bg-white/30'
               }`}
             >
-              <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: currentRoute === 'settings' ? "'FILL' 1" : "'FILL' 0" }}>settings</span>
+              <span
+                className="material-symbols-outlined text-[20px]"
+                style={{
+                  fontVariationSettings: currentRoute === 'settings' ? "'FILL' 1" : "'FILL' 0"
+                }}
+              >
+                settings
+              </span>
               <span>Settings</span>
             </button>
           </nav>

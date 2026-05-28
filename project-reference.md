@@ -211,9 +211,10 @@ A run goes through the following lifecycle:
 #### 2. Dynamic Progress & Step Tracking
 
 Rather than remaining static during the search and download loops, the runner dynamically calculates progress metrics:
-*   **Live Description updates**: Updates `currentStep` in real time with the active action (e.g., `Searching photos for "nebula" (beat 1)`).
-*   **Beat-Ratio Progress**: Calculates progress percentages based on the ratio of completed beats, smoothly transitioning from 30% to 90% as files finish downloading.
-*   **Detailed Console Logging**: Appends explicit console entries when LLM consults start, when Pexels API calls initiate, and when download queues change state (start, fail, finish).
+
+- **Live Description updates**: Updates `currentStep` in real time with the active action (e.g., `Searching photos for "nebula" (beat 1)`).
+- **Beat-Ratio Progress**: Calculates progress percentages based on the ratio of completed beats, smoothly transitioning from 30% to 90% as files finish downloading.
+- **Detailed Console Logging**: Appends explicit console entries when LLM consults start, when Pexels API calls initiate, and when download queues change state (start, fail, finish).
 
 #### 3. Visual Beat Schema
 

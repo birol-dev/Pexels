@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useAppStore } from '../lib/store'
 import { api } from '../lib/api-client'
 
@@ -30,14 +30,14 @@ export default function DownloadedStuffView(): React.JSX.Element {
   const [filter, setFilter] = useState<'all' | 'video' | 'photo' | 'completed' | 'failed'>('all')
   const [selectedAsset, setSelectedAsset] = useState<FlatAsset | null>(null)
 
-  const loadAssets = async () => {
+  const loadAssets = useCallback(async (): Promise<void> => {
     if (!activeJobId) return
     setLoading(true)
     try {
-      const list = await api.assets.list(activeJobId)
+      const list = (await api.assets.list(activeJobId)) as unknown as FlatAsset[]
       setAssets(list)
       if (selectedAsset) {
-        const updated = list.find((a: any) => a.id === selectedAsset.id)
+        const updated = list.find((a: FlatAsset) => a.id === selectedAsset.id)
         setSelectedAsset(updated || null)
       }
     } catch (err) {
@@ -45,11 +45,13 @@ export default function DownloadedStuffView(): React.JSX.Element {
     } finally {
       setLoading(false)
     }
-  }
+  }, [activeJobId, selectedAsset])
 
   useEffect(() => {
-    loadAssets()
-  }, [activeJobId, activeJob?.downloadedCount, activeJob?.failedCount])
+    Promise.resolve().then(() => {
+      loadAssets()
+    })
+  }, [activeJobId, activeJob?.downloadedCount, activeJob?.failedCount, loadAssets])
 
   if (!activeJobId) {
     return (
@@ -71,11 +73,11 @@ export default function DownloadedStuffView(): React.JSX.Element {
     )
   }
 
-  const handleOpenFolder = async (assetId: string) => {
+  const handleOpenFolder = async (assetId: string): Promise<void> => {
     await api.assets.openInFolder(activeJobId, assetId)
   }
 
-  const handleDelete = async (assetId: string) => {
+  const handleDelete = async (assetId: string): Promise<void> => {
     if (confirm('Are you sure you want to delete this file from local storage?')) {
       await api.assets.deleteLocal(activeJobId, assetId)
       await loadAssets()
@@ -83,7 +85,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
     }
   }
 
-  const handleExportManifest = async () => {
+  const handleExportManifest = async (): Promise<void> => {
     try {
       const manifestStr = await api.assets.exportManifest(activeJobId)
       const blob = new Blob([manifestStr], { type: 'application/json' })
@@ -180,7 +182,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
           {/* Status Filter */}
           <select
             value={filter}
-            onChange={(e: any) => setFilter(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              setFilter(e.target.value as 'all' | 'video' | 'photo' | 'completed' | 'failed')
+            }
             className="glass-input px-4 py-2 rounded-lg text-xs font-semibold appearance-none pr-10 cursor-pointer"
             style={{
               backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23414755%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E")`,
@@ -209,7 +213,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
         <div className="lg:col-span-2 space-y-4">
           {loading ? (
             <div className="flex h-[300px] items-center justify-center bg-transparent">
-              <span className="material-symbols-outlined text-[48px] text-primary animate-spin">sync</span>
+              <span className="material-symbols-outlined text-[48px] text-primary animate-spin">
+                sync
+              </span>
             </div>
           ) : filteredAssets.length === 0 ? (
             <div className="glass-panel rounded-2xl p-12 text-center text-xs text-on-surface-variant font-medium">
@@ -222,7 +228,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
                   key={asset.id}
                   onClick={() => setSelectedAsset(asset)}
                   className={`glass-panel rounded-xl overflow-hidden cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg relative aspect-video group ${
-                    selectedAsset?.id === asset.id ? 'ring-2 ring-primary border-primary' : 'border-white/50'
+                    selectedAsset?.id === asset.id
+                      ? 'ring-2 ring-primary border-primary'
+                      : 'border-white/50'
                   }`}
                 >
                   <img
@@ -235,7 +243,10 @@ export default function DownloadedStuffView(): React.JSX.Element {
                   {asset.type === 'video' && asset.status === 'completed' && (
                     <div className="absolute inset-0 bg-black/10 flex items-center justify-center transition-opacity hover:bg-black/25">
                       <div className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center border border-white/50 text-white shadow-md">
-                        <span className="material-symbols-outlined text-[24px] ml-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        <span
+                          className="material-symbols-outlined text-[24px] ml-0.5"
+                          style={{ fontVariationSettings: "'FILL' 1" }}
+                        >
                           play_arrow
                         </span>
                       </div>
@@ -272,10 +283,14 @@ export default function DownloadedStuffView(): React.JSX.Element {
                   {/* Info Hover details */}
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-2 text-[9px]">
                     <h4 className="text-white font-semibold truncate leading-tight">
-                      {asset.filePath ? asset.filePath.split(/[\\/]/).pop() : `${asset.type}_${asset.pexelsId}`}
+                      {asset.filePath
+                        ? asset.filePath.split(/[\\/]/).pop()
+                        : `${asset.type}_${asset.pexelsId}`}
                     </h4>
                     <div className="flex justify-between items-center text-neutral-300 font-mono text-[8px] mt-0.5 leading-none">
-                      <span>Pexels • {asset.width}x{asset.height}</span>
+                      <span>
+                        Pexels • {asset.width}x{asset.height}
+                      </span>
                       <span>By {asset.photographer}</span>
                     </div>
                   </div>
@@ -294,7 +309,8 @@ export default function DownloadedStuffView(): React.JSX.Element {
 
           {!selectedAsset ? (
             <div className="glass-panel rounded-2xl p-6 text-center text-xs text-on-surface-variant font-medium">
-              Select any asset in the library grid to inspect file coordinates, creator licensing, and run local playback.
+              Select any asset in the library grid to inspect file coordinates, creator licensing,
+              and run local playback.
             </div>
           ) : (
             <div className="glass-panel-elevated rounded-2xl overflow-hidden flex flex-col relative animate-fade-in-up">
@@ -317,9 +333,13 @@ export default function DownloadedStuffView(): React.JSX.Element {
                   )
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center bg-surface-container opacity-60">
-                    <span className="material-symbols-outlined text-[36px] text-outline">broken_image</span>
+                    <span className="material-symbols-outlined text-[36px] text-outline">
+                      broken_image
+                    </span>
                     <span className="text-[10px] font-mono mt-1 text-on-surface-variant">
-                      {selectedAsset.status === 'downloading' ? 'File is downloading...' : 'Local file missing'}
+                      {selectedAsset.status === 'downloading'
+                        ? 'File is downloading...'
+                        : 'Local file missing'}
                     </span>
                   </div>
                 )}
@@ -328,7 +348,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
               {/* Metadata content */}
               <div className="p-5 space-y-4 text-xs font-semibold text-on-surface-variant">
                 <div>
-                  <span className="text-outline uppercase text-[9px] font-mono block mb-0.5">Original Source</span>
+                  <span className="text-outline uppercase text-[9px] font-mono block mb-0.5">
+                    Original Source
+                  </span>
                   <a
                     href={selectedAsset.url}
                     target="_blank"
@@ -344,16 +366,24 @@ export default function DownloadedStuffView(): React.JSX.Element {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-outline uppercase text-[9px] font-mono block">Creator</span>
+                    <span className="text-outline uppercase text-[9px] font-mono block">
+                      Creator
+                    </span>
                     <p className="text-on-surface mt-0.5 truncate">{selectedAsset.photographer}</p>
                   </div>
                   <div>
-                    <span className="text-outline uppercase text-[9px] font-mono block">Resolution</span>
-                    <p className="text-on-surface mt-0.5">{selectedAsset.width} × {selectedAsset.height}</p>
+                    <span className="text-outline uppercase text-[9px] font-mono block">
+                      Resolution
+                    </span>
+                    <p className="text-on-surface mt-0.5">
+                      {selectedAsset.width} × {selectedAsset.height}
+                    </p>
                   </div>
                   {selectedAsset.duration !== undefined && (
                     <div>
-                      <span className="text-outline uppercase text-[9px] font-mono block">Duration</span>
+                      <span className="text-outline uppercase text-[9px] font-mono block">
+                        Duration
+                      </span>
                       <p className="text-on-surface mt-0.5">{selectedAsset.duration}s</p>
                     </div>
                   )}
@@ -366,20 +396,28 @@ export default function DownloadedStuffView(): React.JSX.Element {
                 <div className="h-[1px] w-full bg-black/[0.04]" />
 
                 <div>
-                  <span className="text-outline uppercase text-[9px] font-mono block">Search Query Context</span>
-                  <p className="text-on-surface font-mono mt-1 italic text-[11px]">"{selectedAsset.query}"</p>
+                  <span className="text-outline uppercase text-[9px] font-mono block">
+                    Search Query Context
+                  </span>
+                  <p className="text-on-surface font-mono mt-1 italic text-[11px]">
+                    &ldquo;{selectedAsset.query}&rdquo;
+                  </p>
                 </div>
 
                 <div>
-                  <span className="text-outline uppercase text-[9px] font-mono block">Script beat segment</span>
+                  <span className="text-outline uppercase text-[9px] font-mono block">
+                    Script beat segment
+                  </span>
                   <p className="text-on-surface italic leading-relaxed mt-1 bg-surface-container-low border border-white/60 p-2.5 rounded text-[11px]">
-                    "{selectedAsset.beatText}"
+                    &ldquo;{selectedAsset.beatText}&rdquo;
                   </p>
                 </div>
 
                 {selectedAsset.filePath && (
                   <div>
-                    <span className="text-outline uppercase text-[9px] font-mono block">Local Disk Path</span>
+                    <span className="text-outline uppercase text-[9px] font-mono block">
+                      Local Disk Path
+                    </span>
                     <p className="text-on-surface-variant font-mono select-all break-all leading-normal mt-1 text-[10px] bg-black/[0.03] p-2.5 rounded border border-black/[0.04]">
                       {selectedAsset.filePath}
                     </p>
@@ -401,7 +439,8 @@ export default function DownloadedStuffView(): React.JSX.Element {
                     onClick={() => handleOpenFolder(selectedAsset.id)}
                     className="btn-interactive flex-grow py-2.5 rounded-lg bg-white hover:bg-surface-container-high border border-outline-variant/60 font-semibold text-xs text-on-surface transition-all flex items-center justify-center gap-1.5 shadow-sm"
                   >
-                    <span className="material-symbols-outlined text-[18px]">folder_open</span> Reveal in Folder
+                    <span className="material-symbols-outlined text-[18px]">folder_open</span>{' '}
+                    Reveal in Folder
                   </button>
                   <button
                     onClick={() => handleDelete(selectedAsset.id)}

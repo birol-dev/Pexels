@@ -11,7 +11,7 @@ export interface NormalizedToolDefinition {
   description: string
   parameters: {
     type: 'object'
-    properties: Record<string, any>
+    properties: Record<string, unknown>
     required?: string[]
   }
 }
@@ -63,8 +63,21 @@ export interface LlmProvider {
   testConnection(credentials: ProviderCredentials, modelId: string): Promise<ProviderTestResult>
 }
 
+interface OpenAiToolFunction {
+  type: 'function'
+  function: {
+    name: string
+    description: string
+    parameters: {
+      type: 'object'
+      properties: Record<string, unknown>
+      required?: string[]
+    }
+  }
+}
+
 // Helper to convert standard tools to OpenAI tool objects
-function toOpenAiTools(tools: NormalizedToolDefinition[]) {
+function toOpenAiTools(tools: NormalizedToolDefinition[]): OpenAiToolFunction[] {
   return tools.map((t) => ({
     type: 'function',
     function: {
@@ -75,19 +88,34 @@ function toOpenAiTools(tools: NormalizedToolDefinition[]) {
   }))
 }
 
+interface OpenAiMessage {
+  role: 'system' | 'user' | 'assistant' | 'tool'
+  content: string
+  name?: string
+  tool_call_id?: string
+  tool_calls?: Array<{
+    id: string
+    type: 'function'
+    function: {
+      name: string
+      arguments: string
+    }
+  }>
+}
+
 // Helper to convert AgentMessage array to OpenAI format
-function toOpenAiMessages(messages: AgentMessage[], systemPrompt?: string) {
-  const result: any[] = []
+function toOpenAiMessages(messages: AgentMessage[], systemPrompt?: string): OpenAiMessage[] {
+  const result: OpenAiMessage[] = []
   if (systemPrompt) {
     result.push({ role: 'system', content: systemPrompt })
   }
   for (const msg of messages) {
     if (msg.role === 'system') {
-      result.push({ role: 'system', content: msg.content })
+      result.push({ role: 'system', content: msg.content || '' })
     } else if (msg.role === 'user') {
-      result.push({ role: 'user', content: msg.content })
+      result.push({ role: 'user', content: msg.content || '' })
     } else if (msg.role === 'assistant') {
-      const openAiMsg: any = { role: 'assistant', content: msg.content }
+      const openAiMsg: OpenAiMessage = { role: 'assistant', content: msg.content || '' }
       if (msg.tool_calls && msg.tool_calls.length > 0) {
         openAiMsg.tool_calls = msg.tool_calls.map((tc) => ({
           id: tc.id,
@@ -125,7 +153,7 @@ class OpenAiProvider implements LlmProvider {
       Authorization: `Bearer ${credentials.apiKey}`
     }
 
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       model: input.model,
       messages: toOpenAiMessages(input.messages, input.systemPrompt),
       temperature: input.temperature,
@@ -158,7 +186,27 @@ class OpenAiProvider implements LlmProvider {
       throw new Error(`OpenAI HTTP Error ${response.status}: ${errText}`)
     }
 
-    const data = await response.json()
+    const data = (await response.json()) as {
+      choices: Array<{
+        message: {
+          content: string | null
+          tool_calls?: Array<{
+            id: string
+            type: string
+            function: {
+              name: string
+              arguments: string
+            }
+          }>
+        }
+        finish_reason: string
+      }>
+      usage?: {
+        prompt_tokens?: number
+        completion_tokens?: number
+        total_tokens?: number
+      }
+    }
     const choice = data.choices[0]
     const choiceMsg = choice.message
 
@@ -243,7 +291,7 @@ class OpenRouterProvider implements LlmProvider {
       'X-Title': 'AI Stock Asset Finder'
     }
 
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       model: input.model,
       messages: toOpenAiMessages(input.messages, input.systemPrompt),
       temperature: input.temperature,
@@ -276,7 +324,31 @@ class OpenRouterProvider implements LlmProvider {
       throw new Error(`OpenRouter HTTP Error ${response.status}: ${errText}`)
     }
 
-    const data = await response.json()
+    const data = (await response.json()) as {
+      error?: {
+        message?: string
+      }
+      choices: Array<{
+        message: {
+          content: string | null
+          tool_calls?: Array<{
+            id: string
+            type: string
+            function: {
+              name: string
+              arguments: string
+            }
+          }>
+        }
+        finish_reason: string
+      }>
+      usage?: {
+        prompt_tokens?: number
+        completion_tokens?: number
+        total_tokens?: number
+      }
+    }
+
     if (data.error) {
       throw new Error(`OpenRouter API Error: ${data.error.message || JSON.stringify(data.error)}`)
     }
@@ -349,12 +421,55 @@ class OpenRouterProvider implements LlmProvider {
   }
 }
 
+interface GeminiTextPart {
+  text: string
+}
+
+interface GeminiFunctionCallPart {
+  functionCall: {
+    name: string
+    args: Record<string, unknown>
+  }
+}
+
+interface GeminiFunctionResponsePart {
+  functionResponse: {
+    name: string
+    response: Record<string, unknown>
+  }
+}
+
+type GeminiPart = GeminiTextPart | GeminiFunctionCallPart | GeminiFunctionResponsePart
+
+interface GeminiContent {
+  role: 'user' | 'model'
+  parts: GeminiPart[]
+}
+
+// Recursively format schema parameter type strings to uppercase for Gemini API
+function normalizeGeminiSchema(schema: unknown): unknown {
+  if (!schema || typeof schema !== 'object') {
+    return schema
+  }
+  const result = (Array.isArray(schema) ? [] : {}) as Record<string, unknown>
+  for (const [key, value] of Object.entries(schema)) {
+    if (key === 'type' && typeof value === 'string') {
+      result[key] = value.toUpperCase()
+    } else if (typeof value === 'object' && value !== null) {
+      result[key] = normalizeGeminiSchema(value)
+    } else {
+      result[key] = value
+    }
+  }
+  return result
+}
+
 // 3. Gemini Implementation
 class GeminiProvider implements LlmProvider {
   public id = 'gemini' as const
 
-  private toGeminiContents(messages: AgentMessage[]) {
-    const contents: any[] = []
+  private toGeminiContents(messages: AgentMessage[]): GeminiContent[] {
+    const contents: GeminiContent[] = []
 
     for (const msg of messages) {
       if (msg.role === 'system') {
@@ -367,7 +482,7 @@ class GeminiProvider implements LlmProvider {
           parts: [{ text: msg.content || '' }]
         })
       } else if (msg.role === 'assistant') {
-        const parts: any[] = []
+        const parts: GeminiPart[] = []
         if (msg.content) {
           parts.push({ text: msg.content })
         }
@@ -376,7 +491,7 @@ class GeminiProvider implements LlmProvider {
             parts.push({
               functionCall: {
                 name: tc.name,
-                args: JSON.parse(tc.arguments)
+                args: JSON.parse(tc.arguments) as Record<string, unknown>
               }
             })
           }
@@ -386,11 +501,11 @@ class GeminiProvider implements LlmProvider {
           parts
         })
       } else if (msg.role === 'tool') {
-        let parsedResponse = {}
+        let parsedResponse: Record<string, unknown> = {}
         try {
-          parsedResponse = msg.content ? JSON.parse(msg.content) : {}
+          parsedResponse = msg.content ? (JSON.parse(msg.content) as Record<string, unknown>) : {}
         } catch {
-          parsedResponse = { response: msg.content }
+          parsedResponse = { response: msg.content || '' }
         }
 
         contents.push({
@@ -420,7 +535,7 @@ class GeminiProvider implements LlmProvider {
 
     const contents = this.toGeminiContents(input.messages)
 
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       contents,
       generationConfig: {
         temperature: input.temperature,
@@ -438,22 +553,7 @@ class GeminiProvider implements LlmProvider {
       const functionDeclarations = input.tools.map((t) => ({
         name: t.name,
         description: t.description,
-        parameters: {
-          type: 'OBJECT',
-          properties: Object.entries(t.parameters.properties).reduce(
-            (acc, [k, v]) => {
-              // Gemini schema parameters properties require CAPITAL uppercase type names (e.g. 'STRING', 'NUMBER', 'OBJECT')
-              const geminiProperty = { ...v }
-              if (geminiProperty.type) {
-                geminiProperty.type = geminiProperty.type.toUpperCase()
-              }
-              acc[k] = geminiProperty
-              return acc
-            },
-            {} as Record<string, any>
-          ),
-          required: t.parameters.required
-        }
+        parameters: normalizeGeminiSchema(t.parameters)
       }))
 
       payload.tools = [{ functionDeclarations }]
@@ -486,7 +586,26 @@ class GeminiProvider implements LlmProvider {
       throw new Error(`Gemini HTTP Error ${response.status}: ${errText}`)
     }
 
-    const data = await response.json()
+    interface GeminiResponseCandidate {
+      content?: {
+        parts?: Array<{
+          text?: string
+          functionCall?: {
+            name: string
+            args?: Record<string, unknown>
+          }
+        }>
+      }
+      finishReason?: string
+    }
+    const data = (await response.json()) as {
+      candidates?: GeminiResponseCandidate[]
+      usageMetadata?: {
+        promptTokenCount?: number
+        candidatesTokenCount?: number
+        totalTokenCount?: number
+      }
+    }
     const candidate = data.candidates?.[0]
     if (!candidate) {
       throw new Error('Gemini API returned no candidates. Safety block or error.')
@@ -495,12 +614,16 @@ class GeminiProvider implements LlmProvider {
     const contentParts = candidate.content?.parts || []
 
     // Find text content
-    const textPart = contentParts.find((p: any) => p.text)
+    const textPart = contentParts.find((p) => 'text' in p && typeof p.text === 'string') as
+      | GeminiTextPart
+      | undefined
     const contentText = textPart ? textPart.text : null
 
     // Find function calls
-    const functionCalls = contentParts.filter((p: any) => p.functionCall)
-    const toolCalls: NormalizedToolCall[] = functionCalls.map((fc: any, index: number) => ({
+    const functionCalls = contentParts.filter(
+      (p) => 'functionCall' in p && p.functionCall
+    ) as GeminiFunctionCallPart[]
+    const toolCalls: NormalizedToolCall[] = functionCalls.map((fc, index: number) => ({
       id: `gemini_call_${Date.now()}_${index}`,
       name: fc.functionCall.name,
       arguments: JSON.stringify(fc.functionCall.args || {})

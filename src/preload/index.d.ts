@@ -7,26 +7,26 @@ declare global {
     }
     api: {
       settings: {
-        getPublicSettings(): Promise<any>
-        updateSettings(input: any): Promise<any>
-        testProvider(input: any): Promise<any>
-        testPexelsKey(key: string): Promise<any>
+        getPublicSettings(): Promise<Record<string, unknown>>
+        updateSettings(input: Record<string, unknown>): Promise<Record<string, unknown>>
+        testProvider(input: Record<string, unknown>): Promise<Record<string, unknown>>
+        testPexelsKey(key: string): Promise<Record<string, unknown>>
         chooseDownloadFolder(): Promise<string | null>
         openAppDataFolder(): Promise<void>
       }
       jobs: {
-        start(input: any): Promise<string>
+        start(input: Record<string, unknown>): Promise<string>
         pause(jobId: string): Promise<void>
         resume(jobId: string): Promise<void>
         approveAndResume(jobId: string): Promise<void>
         cancel(jobId: string): Promise<void>
         rerun(jobId: string): Promise<string>
-        get(jobId: string): Promise<any>
-        list(): Promise<any[]>
-        onEvent(callback: (event: any) => void): () => void
+        get(jobId: string): Promise<Record<string, unknown>>
+        list(): Promise<Record<string, unknown>[]>
+        onEvent(callback: (event: Record<string, unknown>) => void): () => void
       }
       assets: {
-        list(projectId: string): Promise<any[]>
+        list(projectId: string): Promise<Record<string, unknown>[]>
         openInFolder(projectId: string, assetId: string): Promise<void>
         deleteLocal(projectId: string, assetId: string): Promise<void>
         exportManifest(projectId: string): Promise<string>

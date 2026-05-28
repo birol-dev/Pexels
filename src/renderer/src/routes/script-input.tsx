@@ -14,16 +14,18 @@ export default function ScriptInputView(): React.JSX.Element {
   const [style, setStyle] = useState<
     'cinematic' | 'documentary' | 'business' | 'tech' | 'nature' | 'lifestyle' | 'abstract'
   >('cinematic')
-  const [mix, setMix] = useState<'videos only' | 'photos only' | 'videos + photos'>('videos + photos')
+  const [mix, setMix] = useState<'videos only' | 'photos only' | 'videos + photos'>(
+    'videos + photos'
+  )
   const [maxAssetsPerBeat, setMaxAssetsPerBeat] = useState(3)
   const [maxTotalDownloads, setMaxTotalDownloads] = useState(15)
 
   useEffect(() => {
     loadJobs()
     loadSettings()
-  }, [])
+  }, [loadJobs, loadSettings])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     if (!title.trim() || !script.trim()) {
       alert('Please fill out both the title and the script.')
@@ -60,12 +62,12 @@ export default function ScriptInputView(): React.JSX.Element {
     })
   }
 
-  const handleSelectJob = (jobId: string) => {
+  const handleSelectJob = (jobId: string): void => {
     setActiveJobId(jobId)
     navigate('run')
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string): React.JSX.Element => {
     switch (status) {
       case 'running':
         return (
@@ -130,21 +132,27 @@ export default function ScriptInputView(): React.JSX.Element {
       {(!settings?.pexelsKey || !settings?.[`${settings?.llmProvider || 'openai'}Key`]) && (
         <div className="p-4 rounded-xl flex items-center justify-between bg-[#ffdbcc]/40 border border-[#ffb595]/30 text-[#7c2e00] text-xs font-semibold shadow-sm">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[#7c2e00] text-[22px] shrink-0">warning</span>
+            <span className="material-symbols-outlined text-[#7c2e00] text-[22px] shrink-0">
+              warning
+            </span>
             <div>
               {!settings?.pexelsKey && !settings?.[`${settings?.llmProvider || 'openai'}Key`] ? (
                 <span>
-                  Credentials required: Configure both your <strong>Pexels API Key</strong> and active{' '}
-                  <strong>{(settings?.llmProvider || 'openai').toUpperCase()} API Key</strong> before generating packs.
+                  Credentials required: Configure both your <strong>Pexels API Key</strong> and
+                  active{' '}
+                  <strong>{(settings?.llmProvider || 'openai').toUpperCase()} API Key</strong>{' '}
+                  before generating packs.
                 </span>
               ) : !settings?.pexelsKey ? (
                 <span>
-                  Credentials required: Configure your <strong>Pexels API Key</strong> before generating packs.
+                  Credentials required: Configure your <strong>Pexels API Key</strong> before
+                  generating packs.
                 </span>
               ) : (
                 <span>
                   Credentials required: Configure your active{' '}
-                  <strong>{(settings?.llmProvider || 'openai').toUpperCase()} API Key</strong> before generating packs.
+                  <strong>{(settings?.llmProvider || 'openai').toUpperCase()} API Key</strong>{' '}
+                  before generating packs.
                 </span>
               )}
             </div>
@@ -163,7 +171,10 @@ export default function ScriptInputView(): React.JSX.Element {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Project Title */}
           <div>
-            <label className="block font-semibold text-sm text-on-surface mb-2.5" htmlFor="project-title">
+            <label
+              className="block font-semibold text-sm text-on-surface mb-2.5"
+              htmlFor="project-title"
+            >
               Project Title
             </label>
             <input
@@ -200,14 +211,21 @@ export default function ScriptInputView(): React.JSX.Element {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Platform Layout */}
             <div>
-              <label className="block font-semibold text-sm text-on-surface mb-2.5" htmlFor="platform-layout">
+              <label
+                className="block font-semibold text-sm text-on-surface mb-2.5"
+                htmlFor="platform-layout"
+              >
                 Platform Layout
               </label>
               <div className="relative">
                 <select
                   id="platform-layout"
                   value={platform}
-                  onChange={(e: any) => setPlatform(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setPlatform(
+                      e.target.value as 'YouTube' | 'Shorts' | 'TikTok' | 'Instagram Reels'
+                    )
+                  }
                   className="w-full glass-input rounded-lg px-4 py-3 text-sm text-on-surface appearance-none pr-10 font-semibold cursor-pointer"
                 >
                   <option value="YouTube">YouTube (16:9)</option>
@@ -223,14 +241,28 @@ export default function ScriptInputView(): React.JSX.Element {
 
             {/* Visual Mood */}
             <div>
-              <label className="block font-semibold text-sm text-on-surface mb-2.5" htmlFor="visual-mood">
+              <label
+                className="block font-semibold text-sm text-on-surface mb-2.5"
+                htmlFor="visual-mood"
+              >
                 Visual Mood
               </label>
               <div className="relative">
                 <select
                   id="visual-mood"
                   value={style}
-                  onChange={(e: any) => setStyle(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setStyle(
+                      e.target.value as
+                        | 'cinematic'
+                        | 'documentary'
+                        | 'business'
+                        | 'tech'
+                        | 'nature'
+                        | 'lifestyle'
+                        | 'abstract'
+                    )
+                  }
                   className="w-full glass-input rounded-lg px-4 py-3 text-sm text-on-surface appearance-none pr-10 font-semibold cursor-pointer"
                 >
                   <option value="cinematic">Cinematic</option>
@@ -249,7 +281,9 @@ export default function ScriptInputView(): React.JSX.Element {
 
             {/* Asset Mix Toggle */}
             <div>
-              <label className="block font-semibold text-sm text-on-surface mb-2.5">Asset Mix</label>
+              <label className="block font-semibold text-sm text-on-surface mb-2.5">
+                Asset Mix
+              </label>
               <div className="flex bg-white/50 rounded-lg p-1 border border-white/40 h-[46px]">
                 <button
                   type="button"
@@ -291,7 +325,10 @@ export default function ScriptInputView(): React.JSX.Element {
           {/* Limits Config Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-black/[0.05]">
             <div>
-              <label className="block font-semibold text-sm text-on-surface mb-2.5" htmlFor="max-assets">
+              <label
+                className="block font-semibold text-sm text-on-surface mb-2.5"
+                htmlFor="max-assets"
+              >
                 Max Assets per Beat
               </label>
               <input
@@ -303,10 +340,15 @@ export default function ScriptInputView(): React.JSX.Element {
                 onChange={(e) => setMaxAssetsPerBeat(Number(e.target.value))}
                 className="w-full glass-input rounded-lg px-4 py-3 font-mono text-sm text-on-surface"
               />
-              <p className="mt-1.5 text-xs text-outline font-medium">Assets downloaded for each script segment.</p>
+              <p className="mt-1.5 text-xs text-outline font-medium">
+                Assets downloaded for each script segment.
+              </p>
             </div>
             <div>
-              <label className="block font-semibold text-sm text-on-surface mb-2.5" htmlFor="max-total">
+              <label
+                className="block font-semibold text-sm text-on-surface mb-2.5"
+                htmlFor="max-total"
+              >
                 Max Total Downloads
               </label>
               <input
@@ -318,7 +360,9 @@ export default function ScriptInputView(): React.JSX.Element {
                 onChange={(e) => setMaxTotalDownloads(Number(e.target.value))}
                 className="w-full glass-input rounded-lg px-4 py-3 font-mono text-sm text-on-surface"
               />
-              <p className="mt-1.5 text-xs text-outline font-medium">Safety threshold to conserve API request limits.</p>
+              <p className="mt-1.5 text-xs text-outline font-medium">
+                Safety threshold to conserve API request limits.
+              </p>
             </div>
           </div>
 

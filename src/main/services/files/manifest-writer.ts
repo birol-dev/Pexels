@@ -17,9 +17,10 @@ export interface ManifestData {
     maxAssetsPerBeat: number
     maxTotalDownloads: number
   }
-  beats: any[]
-  assets: any[]
-  failures: any[]
+  beats: unknown[]
+  assets: unknown[]
+  failures: unknown[]
+  messages?: unknown[]
   sourceDocsCheckedAt?: string
 }
 
@@ -53,7 +54,7 @@ export class ManifestWriter {
     await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8')
   }
 
-  public static async appendLog(projectDir: string, event: any): Promise<void> {
+  public static async appendLog(projectDir: string, event: Record<string, unknown>): Promise<void> {
     const logPath = join(projectDir, 'agent-log.jsonl')
     const logLine = JSON.stringify({ timestamp: new Date().toISOString(), ...event }) + '\n'
     await fs.appendFile(logPath, logLine, 'utf-8')

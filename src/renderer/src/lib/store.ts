@@ -1,14 +1,42 @@
 import { create } from 'zustand'
 import { api } from './api-client'
 
+export interface AssetRecord {
+  id: string
+  pexelsId: number
+  type: 'photo' | 'video'
+  url: string
+  imageUrl: string
+  downloadUrl: string
+  width: number
+  height: number
+  duration?: number
+  photographer: string
+  photographerUrl?: string
+  query: string
+  filePath?: string
+  status: 'pending' | 'downloading' | 'completed' | 'failed'
+  error?: string
+  progress?: number
+  beatId?: string
+  beatText?: string
+}
+
 export interface VisualBeat {
   id: string
   text: string
   visualPrompt: string
   searchQueries: string[]
-  assets: any[]
+  assets: AssetRecord[]
   rejectedAssets?: Array<{ type: 'photo' | 'video'; pexelsId: number; reason: string }>
   status: 'pending' | 'searching' | 'selecting' | 'downloading' | 'completed' | 'failed'
+}
+
+export interface AgentLogEvent {
+  timestamp: string
+  type: 'thought' | 'tool_call' | 'tool_result' | 'progress' | 'error' | 'info'
+  message: string
+  data?: unknown
 }
 
 export interface JobSnapshot {
@@ -19,7 +47,7 @@ export interface JobSnapshot {
   progress: number
   currentStep: string
   beats: VisualBeat[]
-  logs: any[]
+  logs: AgentLogEvent[]
   downloadedCount: number
   failedCount: number
   usage?: {
@@ -41,23 +69,48 @@ export interface JobSummary {
   assetCount: number
 }
 
+export interface PublicSettings {
+  llmProvider: 'openai' | 'openrouter' | 'gemini'
+  modelId: string
+  downloadFolder: string
+  maxConcurrentDownloads: number
+  maxAgentIterations: number
+  requestTimeoutSeconds: number
+  skipExplicitQueries: boolean
+  requireApprovalBeforeDownload: boolean
+  avoidPeopleAndFaces: boolean
+  isOnboarded: boolean
+  openaiKey?: string
+  geminiKey?: string
+  openrouterKey?: string
+  pexelsKey?: string
+}
+
 interface AppStore {
   currentRoute: 'input' | 'run' | 'stuff' | 'settings'
   activeJobId: string | null
   activeJob: JobSnapshot | null
   jobs: JobSummary[]
-  settings: any | null
+  settings: PublicSettings | null
   loading: boolean
-  pendingEvents: any[]
+  pendingEvents: Record<string, unknown>[]
 
   navigate: (route: 'input' | 'run' | 'stuff' | 'settings') => void
   setActiveJobId: (id: string | null) => void
   loadSettings: () => Promise<void>
-  updateSettings: (updates: any) => Promise<void>
+  updateSettings: (updates: Partial<PublicSettings>) => Promise<void>
   loadJobs: () => Promise<void>
   loadActiveJob: (id: string) => Promise<void>
 
-  startJob: (input: any) => Promise<string>
+  startJob: (input: {
+    title: string
+    script: string
+    platform: 'YouTube' | 'Shorts' | 'TikTok' | 'Instagram Reels'
+    style: 'cinematic' | 'documentary' | 'business' | 'tech' | 'nature' | 'lifestyle' | 'abstract'
+    mix: 'videos only' | 'photos only' | 'videos + photos'
+    maxAssetsPerBeat: number
+    maxTotalDownloads: number
+  }) => Promise<string>
   pauseJob: (id: string) => Promise<void>
   resumeJob: (id: string) => Promise<void>
   approveAndResumeJob: (id: string) => Promise<void>
@@ -65,7 +118,6 @@ interface AppStore {
   rerunJob: (id: string) => Promise<void>
 }
 
-// Store unsubscribe reference for live updates
 let eventUnsubscribe: (() => void) | null = null
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -84,27 +136,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (id) {
       get().loadActiveJob(id)
 
-      // Unsubscribe existing IPC listeners
       if (eventUnsubscribe) {
         eventUnsubscribe()
         eventUnsubscribe = null
       }
 
-      // Subscribe to real-time events for this job
-      eventUnsubscribe = api.jobs.onEvent((event: any) => {
+      eventUnsubscribe = api.jobs.onEvent((event: Record<string, unknown>) => {
         if (event.jobId === id) {
           const currentActive = get().activeJob
 
           if (event.type === 'snapshot') {
-            set({ activeJob: event.data })
-            // Update corresponding job summary in the jobs list
+            set({ activeJob: event.data as JobSnapshot })
             const currentJobs = get().jobs
             const updatedJobs = currentJobs.map((j) => {
               if (j.jobId === event.jobId) {
+                const snap = event.data as JobSnapshot
                 return {
                   ...j,
-                  status: event.data.status,
-                  assetCount: event.data.downloadedCount,
+                  status: snap.status,
+                  assetCount: snap.downloadedCount,
                   updatedAt: new Date().toISOString()
                 }
               }
@@ -123,22 +173,23 @@ export const useAppStore = create<AppStore>((set, get) => ({
             set({
               activeJob: {
                 ...currentActive,
-                logs: [...currentActive.logs, event.data]
+                logs: [...currentActive.logs, event.data as AgentLogEvent]
               }
             })
           } else if (event.type === 'progress') {
+            const data = event.data as { step: string; progress: number }
             set({
               activeJob: {
                 ...currentActive,
-                currentStep: event.data.step,
-                progress: event.data.progress
+                currentStep: data.step,
+                progress: data.progress
               }
             })
           } else if (event.type === 'beats') {
             set({
               activeJob: {
                 ...currentActive,
-                beats: event.data
+                beats: event.data as VisualBeat[]
               }
             })
           }
@@ -155,18 +206,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   loadSettings: async () => {
     const settings = await api.settings.getPublicSettings()
-    set({ settings })
+    set({ settings: settings as unknown as PublicSettings })
   },
 
   updateSettings: async (updates) => {
-    const settings = await api.settings.updateSettings(updates)
-    set({ settings })
+    const settings = await api.settings.updateSettings(updates as Record<string, unknown>)
+    set({ settings: settings as unknown as PublicSettings })
   },
 
   loadJobs: async () => {
     const jobs = await api.jobs.list()
-    // Sort jobs newest first
-    const sorted = jobs.sort((a: any, b: any) => b.createdAt.localeCompare(a.createdAt))
+    const sorted = (jobs as unknown as JobSummary[]).sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt)
+    )
     set({ jobs: sorted })
   },
 
@@ -174,23 +226,26 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ loading: true })
     try {
       const activeJob = await api.jobs.get(id)
-      if (activeJob) {
-        // Apply any buffered events
+      const snapshot = activeJob as unknown as JobSnapshot | null
+      if (snapshot) {
         const state = get()
         for (const event of state.pendingEvents) {
           if (event.jobId === id) {
             if (event.type === 'log') {
-              activeJob.logs = [...activeJob.logs, event.data]
+              snapshot.logs = [...snapshot.logs, event.data as AgentLogEvent]
             } else if (event.type === 'progress') {
-              activeJob.currentStep = event.data.step
-              activeJob.progress = event.data.progress
+              const data = event.data as { step: string; progress: number }
+              snapshot.currentStep = data.step
+              snapshot.progress = data.progress
             } else if (event.type === 'beats') {
-              activeJob.beats = event.data
+              snapshot.beats = event.data as VisualBeat[]
             }
           }
         }
+        set({ activeJob: snapshot, pendingEvents: [] })
+      } else {
+        set({ activeJob: null, pendingEvents: [] })
       }
-      set({ activeJob, pendingEvents: [] })
     } catch (err) {
       console.error('Failed to load active job:', err)
     } finally {
@@ -201,7 +256,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   startJob: async (input) => {
     set({ loading: true })
     try {
-      const jobId = await api.jobs.start(input)
+      const jobId = await api.jobs.start(input as unknown as Record<string, unknown>)
       get().setActiveJobId(jobId)
       set({ currentRoute: 'run' })
       await get().loadJobs()
