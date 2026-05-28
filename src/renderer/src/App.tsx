@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react'
 import { useAppStore } from './lib/store'
-import ScriptInputView from './routes/script-input'
-import AgentRunView from './routes/agent-run'
-import DownloadedStuffView from './routes/downloaded-stuff'
-import SettingsView from './routes/settings'
-import OnboardingView from './routes/onboarding' // Onboarding Wizard
+import ScriptInputView from '@renderer/routes/script-input'
+import AgentRunView from '@renderer/routes/agent-run'
+import DownloadedStuffView from '@renderer/routes/downloaded-stuff'
+import SettingsView from '@renderer/routes/settings'
+import OnboardingView from '@renderer/routes/onboarding'
 
 export default function App(): React.JSX.Element {
   const { currentRoute, navigate, activeJobId, settings, loadSettings } = useAppStore()
