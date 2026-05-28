@@ -1,4 +1,6 @@
 import { EventEmitter } from 'events'
+import { promises as fs } from 'fs'
+import { join } from 'path'
 import {
   LlmProviderFactory,
   AgentMessage,
@@ -209,6 +211,90 @@ export class AgentRunner extends EventEmitter {
     this.emit('event', { jobId: this.jobId, type: 'progress', data: { step, progress } })
   }
 
+  public async initializeAndLoadState(): Promise<void> {
+    AgentRunner.activeRunners.set(this.jobId, this)
+    this.abortController = new AbortController()
+
+    const { SettingsStore } = await import('../storage/settings-store')
+    const settings = await SettingsStore.getSettings()
+    this.modelId = settings.modelId
+    this.providerId = settings.llmProvider
+    this.maxIterations = settings.maxAgentIterations
+    this.requestTimeoutSeconds = settings.requestTimeoutSeconds
+    this.safetySettings = {
+      skipExplicit: settings.skipExplicitQueries,
+      avoidPeople: settings.avoidPeopleAndFaces
+    }
+
+    this.projectDir = await ManifestWriter.initializeProjectFolder(
+      settings.downloadFolder,
+      this.input.title
+    )
+
+    if (!this.downloader) {
+      this.downloader = new PexelsDownloader(
+        settings.maxConcurrentDownloads,
+        (task) => {
+          this.handleDownloadProgress(task)
+        },
+        settings.requestTimeoutSeconds
+      )
+    }
+
+    await this.loadStateFromManifest()
+    this.status = 'paused'
+  }
+
+  private async loadStateFromManifest(): Promise<void> {
+    if (!this.projectDir) return
+    try {
+      const manifestPath = join(this.projectDir, 'manifest.json')
+      const data = await fs.readFile(manifestPath, 'utf-8')
+      const manifest = JSON.parse(data)
+      if (manifest.beats && manifest.beats.length > 0) {
+        this.beats = manifest.beats.map((beat: any) => {
+          // Reset any beat stuck in downloading/searching/selecting back to a clean state
+          if (beat.status === 'downloading' || beat.status === 'searching' || beat.status === 'selecting') {
+            beat.status = 'pending'
+          }
+          if (beat.assets) {
+            beat.assets = beat.assets.map((asset: any) => {
+              if (asset.status === 'downloading') {
+                asset.status = 'pending'
+                asset.progress = 0
+              }
+              return asset
+            })
+          }
+          return beat
+        })
+        this.log('info', `Loaded ${this.beats.length} beats from existing manifest.`)
+      }
+
+      // Load logs
+      try {
+        const logsPath = join(this.projectDir, 'agent-log.jsonl')
+        const logData = await fs.readFile(logsPath, 'utf-8')
+        if (logData.trim()) {
+          this.logs = logData
+            .split('\n')
+            .filter((line) => line.trim())
+            .map((line) => JSON.parse(line))
+        }
+      } catch {}
+
+      // Update metrics
+      this.downloadedCount = this.beats
+        .flatMap((b) => b.assets || [])
+        .filter((a) => a.status === 'completed').length
+      this.failedCount = this.beats
+        .flatMap((b) => b.assets || [])
+        .filter((a) => a.status === 'failed').length
+    } catch (err) {
+      // Manifest doesn't exist yet, which is normal for new runs
+    }
+  }
+
   public async start(): Promise<void> {
     AgentRunner.activeRunners.set(this.jobId, this)
     this.abortController = new AbortController()
@@ -235,6 +321,10 @@ export class AgentRunner extends EventEmitter {
         this.input.title
       )
       this.log('info', `Created project workspace directory at: ${this.projectDir}`)
+
+      // Load existing state if it exists
+      await this.loadStateFromManifest()
+      this.status = 'running'
 
       // Init downloader
       if (!this.downloader) {
@@ -269,6 +359,7 @@ export class AgentRunner extends EventEmitter {
       AgentRunner.activeRunners.delete(this.jobId)
       await this.saveRegistry()
       await this.writeManifest()
+      this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
     }
   }
 
@@ -281,12 +372,14 @@ export class AgentRunner extends EventEmitter {
     }
     await this.saveRegistry()
     await this.writeManifest()
+    this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
   }
 
   public async resume(): Promise<void> {
     if (this.status !== 'paused') return
     this.status = 'running'
     this.log('info', 'Agent run resumed by user')
+    this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
     this.start().catch((err) => {
       console.error('Failed to resume agent runner:', err)
     })
@@ -300,6 +393,7 @@ export class AgentRunner extends EventEmitter {
     }
     await this.saveRegistry()
     await this.writeManifest()
+    this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
   }
 
   private async saveRegistry() {
@@ -481,10 +575,14 @@ Script configuration:
 - Max assets per beat: ${this.input.maxAssetsPerBeat}
 - Max total downloads allowed: ${this.input.maxTotalDownloads}
 - Safety controls: ${this.safetySettings.skipExplicit ? 'Skip explicit/adult keywords.' : 'No strict content filtering.'} ${this.safetySettings.avoidPeople ? 'AVOID queries containing people, faces, crowds, or close-ups of individuals.' : ''}
-
 Here is the parsed list of visual beats:
 ${JSON.stringify(
-  this.beats.map((b) => ({ id: b.id, visualPrompt: b.visualPrompt })),
+  this.beats.map((b) => ({
+    id: b.id,
+    visualPrompt: b.visualPrompt,
+    status: b.status,
+    assets: b.assets.map((a) => ({ id: a.id, type: a.type, status: a.status }))
+  })),
   null,
   2
 )}
@@ -1062,6 +1160,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           AgentRunner.activeRunners.delete(this.jobId)
           await this.saveRegistry()
           await this.writeManifest()
+          this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
         })
       return
     }
@@ -1114,6 +1213,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
         AgentRunner.activeRunners.delete(this.jobId)
         await this.saveRegistry()
         await this.writeManifest()
+        this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
       })
   }
 

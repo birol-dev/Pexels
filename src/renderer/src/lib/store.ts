@@ -48,6 +48,7 @@ interface AppStore {
   jobs: JobSummary[]
   settings: any | null
   loading: boolean
+  pendingEvents: any[]
 
   navigate: (route: 'input' | 'run' | 'stuff' | 'settings') => void
   setActiveJobId: (id: string | null) => void
@@ -74,11 +75,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
   jobs: [],
   settings: null,
   loading: false,
+  pendingEvents: [],
 
   navigate: (route) => set({ currentRoute: route }),
 
   setActiveJobId: (id) => {
-    set({ activeJobId: id })
+    set({ activeJobId: id, pendingEvents: [] })
     if (id) {
       get().loadActiveJob(id)
 
@@ -92,7 +94,30 @@ export const useAppStore = create<AppStore>((set, get) => ({
       eventUnsubscribe = api.jobs.onEvent((event: any) => {
         if (event.jobId === id) {
           const currentActive = get().activeJob
-          if (!currentActive) return
+
+          if (event.type === 'snapshot') {
+            set({ activeJob: event.data })
+            // Update corresponding job summary in the jobs list
+            const currentJobs = get().jobs
+            const updatedJobs = currentJobs.map((j) => {
+              if (j.jobId === event.jobId) {
+                return {
+                  ...j,
+                  status: event.data.status,
+                  assetCount: event.data.downloadedCount,
+                  updatedAt: new Date().toISOString()
+                }
+              }
+              return j
+            })
+            set({ jobs: updatedJobs })
+            return
+          }
+
+          if (!currentActive) {
+            set((state) => ({ pendingEvents: [...state.pendingEvents, event] }))
+            return
+          }
 
           if (event.type === 'log') {
             set({
@@ -116,8 +141,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
                 beats: event.data
               }
             })
-          } else if (event.type === 'snapshot') {
-            set({ activeJob: event.data })
           }
         }
       })
@@ -151,7 +174,23 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ loading: true })
     try {
       const activeJob = await api.jobs.get(id)
-      set({ activeJob })
+      if (activeJob) {
+        // Apply any buffered events
+        const state = get()
+        for (const event of state.pendingEvents) {
+          if (event.jobId === id) {
+            if (event.type === 'log') {
+              activeJob.logs = [...activeJob.logs, event.data]
+            } else if (event.type === 'progress') {
+              activeJob.currentStep = event.data.step
+              activeJob.progress = event.data.progress
+            } else if (event.type === 'beats') {
+              activeJob.beats = event.data
+            }
+          }
+        }
+      }
+      set({ activeJob, pendingEvents: [] })
     } catch (err) {
       console.error('Failed to load active job:', err)
     } finally {
@@ -163,10 +202,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ loading: true })
     try {
       const jobId = await api.jobs.start(input)
-      set({ activeJobId: jobId, currentRoute: 'run' })
-      // Load details
-      await get().loadActiveJob(jobId)
-      // Refresh jobs list
+      get().setActiveJobId(jobId)
+      set({ currentRoute: 'run' })
       await get().loadJobs()
       return jobId
     } finally {
@@ -210,8 +247,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ loading: true })
     try {
       const newJobId = await api.jobs.rerun(id)
-      set({ activeJobId: newJobId, currentRoute: 'run' })
-      await get().loadActiveJob(newJobId)
+      get().setActiveJobId(newJobId)
+      set({ currentRoute: 'run' })
       await get().loadJobs()
     } finally {
       set({ loading: false })

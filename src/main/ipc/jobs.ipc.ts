@@ -112,7 +112,18 @@ export function registerJobsHandlers(): void {
   })
 
   ipcMain.handle('jobs:approveAndResume', async (_, jobId: string) => {
-    const runner = AgentRunner.getActive(jobId)
+    let runner = AgentRunner.getActive(jobId)
+    if (!runner) {
+      const summary = await ProjectStore.get(jobId)
+      if (summary) {
+        const input = await getJobInputFromManifest(summary)
+        const newRunner = new AgentRunner(jobId, input)
+        newRunner.on('event', (evt) => broadcastJobEvent(evt))
+        await newRunner.initializeAndLoadState()
+        runner = newRunner
+      }
+    }
+
     if (runner) {
       await runner.approveAndResume()
     }
