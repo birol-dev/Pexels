@@ -28,3 +28,7 @@ pnpm-debug.log*
 # OS and editor noise
 .DS_Store
 Thumbs.db
+
+# Design files (except SVGs)
+/stitch_stockfinder_ai/*
+!/stitch_stockfinder_ai/*.svg

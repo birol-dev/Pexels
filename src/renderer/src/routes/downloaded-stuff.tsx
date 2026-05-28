@@ -1,18 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAppStore } from '../lib/store'
 import { api } from '../lib/api-client'
-import { Button } from '../components/ui/button'
-import { Badge } from '../components/ui/badge'
-import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs'
-import {
-  FolderOpen,
-  Trash2,
-  Download,
-  ExternalLink,
-  Info,
-  AlertCircle,
-  Loader2
-} from 'lucide-react'
 
 interface FlatAsset {
   id: string
@@ -38,6 +26,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
   const { activeJobId, activeJob, navigate, loadActiveJob } = useAppStore()
   const [assets, setAssets] = useState<FlatAsset[]>([])
   const [loading, setLoading] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'video' | 'photo' | 'completed' | 'failed'>('all')
   const [selectedAsset, setSelectedAsset] = useState<FlatAsset | null>(null)
 
@@ -47,7 +36,6 @@ export default function DownloadedStuffView(): React.JSX.Element {
     try {
       const list = await api.assets.list(activeJobId)
       setAssets(list)
-      // Reset selection if it doesn't exist anymore or update details
       if (selectedAsset) {
         const updated = list.find((a: any) => a.id === selectedAsset.id)
         setSelectedAsset(updated || null)
@@ -65,15 +53,20 @@ export default function DownloadedStuffView(): React.JSX.Element {
 
   if (!activeJobId) {
     return (
-      <div className="flex flex-col items-center justify-center h-[400px] text-center space-y-4">
-        <AlertCircle className="h-12 w-12 text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center h-[400px] text-center space-y-4 animate-fade-in-up">
+        <span className="material-symbols-outlined text-[48px] text-outline">perm_media</span>
         <div>
           <h2 className="text-xl font-bold">No Workspace Active</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-on-surface-variant mt-1">
             Select a running or completed project from history to inspect downloaded files.
           </p>
         </div>
-        <Button onClick={() => navigate('input')}>Back to Dashboard</Button>
+        <button
+          onClick={() => navigate('input')}
+          className="tactile-button px-6 py-2.5 rounded-lg text-xs font-semibold shadow-md cursor-pointer"
+        >
+          Back to Dashboard
+        </button>
       </div>
     )
   }
@@ -108,6 +101,15 @@ export default function DownloadedStuffView(): React.JSX.Element {
   }
 
   const filteredAssets = assets.filter((asset) => {
+    // Search filter
+    const matchesSearch =
+      asset.photographer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      asset.query.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      asset.beatText.toLowerCase().includes(searchQuery.toLowerCase())
+
+    if (!matchesSearch) return false
+
+    // Tabs filter
     if (filter === 'all') return true
     if (filter === 'video') return asset.type === 'video'
     if (filter === 'photo') return asset.type === 'photo'
@@ -117,54 +119,101 @@ export default function DownloadedStuffView(): React.JSX.Element {
   })
 
   return (
-    <div className="w-full space-y-6 pb-12">
-      {/* Header and Actions */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
+    <div className="w-full space-y-6 pb-12 animate-fade-in-up">
+      {/* Top Header Filter Bar */}
+      <header className="glass-panel w-full px-6 py-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sticky top-0 z-40">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Downloaded Stock Assets</h1>
-          <p className="text-sm text-muted-foreground">Project: {activeJob?.title}</p>
+          <h2 className="text-2xl font-extrabold text-on-surface">Media Library</h2>
+          <p className="text-xs text-on-surface-variant mt-0.5">Project: {activeJob?.title}</p>
         </div>
 
-        <Button
-          size="sm"
-          onClick={handleExportManifest}
-          className="bg-white/10 hover:bg-white/20 border border-white/5 text-white"
-        >
-          <Download className="h-4 w-4 mr-1.5" />
-          Export Project Manifest
-        </Button>
-      </div>
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          {/* Search bar */}
+          <div className="relative flex-grow sm:flex-grow-0">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">
+              search
+            </span>
+            <input
+              type="text"
+              placeholder="Search assets..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="glass-input pl-10 pr-4 py-2 rounded-full text-xs font-semibold w-full sm:w-56"
+            />
+          </div>
 
+          {/* Type Filter Buttons */}
+          <div className="flex bg-white/40 p-1 rounded-lg border border-white/50 shadow-sm backdrop-blur-sm">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                filter === 'all'
+                  ? 'bg-white shadow-sm text-primary'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilter('video')}
+              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                filter === 'video'
+                  ? 'bg-white shadow-sm text-primary'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              Videos
+            </button>
+            <button
+              onClick={() => setFilter('photo')}
+              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                filter === 'photo'
+                  ? 'bg-white shadow-sm text-primary'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              Photos
+            </button>
+          </div>
+
+          {/* Status Filter */}
+          <select
+            value={filter}
+            onChange={(e: any) => setFilter(e.target.value)}
+            className="glass-input px-4 py-2 rounded-lg text-xs font-semibold appearance-none pr-10 cursor-pointer"
+            style={{
+              backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23414755%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E")`,
+              backgroundSize: '14px',
+              backgroundPosition: 'right 10px center',
+              backgroundRepeat: 'no-repeat'
+            }}
+          >
+            <option value="all">Status: All</option>
+            <option value="completed">Downloaded</option>
+            <option value="failed">Failed</option>
+          </select>
+
+          <button
+            onClick={handleExportManifest}
+            className="btn-interactive px-4 py-2 bg-white/60 border border-outline-variant hover:bg-white text-on-surface rounded-lg font-semibold text-xs flex items-center gap-1.5 shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[18px]">download</span> Export Manifest
+          </button>
+        </div>
+      </header>
+
+      {/* Main Grid & Details Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Assets Grid */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex justify-between items-center">
-            <Tabs value={filter} onValueChange={(val: any) => setFilter(val)} className="w-auto">
-              <TabsList className="bg-black/40 border border-white/5">
-                <TabsTrigger value="all">All ({assets.length})</TabsTrigger>
-                <TabsTrigger value="video">
-                  Videos ({assets.filter((a) => a.type === 'video').length})
-                </TabsTrigger>
-                <TabsTrigger value="photo">
-                  Photos ({assets.filter((a) => a.type === 'photo').length})
-                </TabsTrigger>
-                <TabsTrigger value="completed">
-                  Downloaded ({assets.filter((a) => a.status === 'completed').length})
-                </TabsTrigger>
-                <TabsTrigger value="failed">
-                  Failed ({assets.filter((a) => a.status === 'failed').length})
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-
           {loading ? (
-            <div className="flex h-[300px] items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex h-[300px] items-center justify-center bg-transparent">
+              <span className="material-symbols-outlined text-[48px] text-primary animate-spin">sync</span>
             </div>
           ) : filteredAssets.length === 0 ? (
-            <div className="glass-panel rounded-xl p-12 text-center text-muted-foreground text-sm">
-              No matching assets found in this project.
+            <div className="glass-panel rounded-2xl p-12 text-center text-xs text-on-surface-variant font-medium">
+              No matching assets found in this project workspace.
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -172,47 +221,63 @@ export default function DownloadedStuffView(): React.JSX.Element {
                 <div
                   key={asset.id}
                   onClick={() => setSelectedAsset(asset)}
-                  className={`glass-card rounded-xl overflow-hidden border transition-all cursor-pointer aspect-video relative group ${selectedAsset?.id === asset.id ? 'border-primary ring-2 ring-primary/20' : 'border-white/5'}`}
+                  className={`glass-panel rounded-xl overflow-hidden cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg relative aspect-video group ${
+                    selectedAsset?.id === asset.id ? 'ring-2 ring-primary border-primary' : 'border-white/50'
+                  }`}
                 >
                   <img
                     src={asset.imageUrl}
-                    className="w-full h-full object-cover"
-                    alt="Stock Thumbnail"
+                    className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                    alt="Asset thumbnail"
                   />
-                  <div className="absolute inset-0 bg-black/40 flex flex-col justify-between p-2.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[10px] uppercase font-bold text-white tracking-wider">
-                      {asset.type}
-                    </span>
-                    <div className="flex justify-between items-center text-[10px] font-mono text-neutral-200">
-                      <span className="truncate max-w-[100px]">By {asset.photographer}</span>
-                      {asset.status === 'completed' && (
-                        <Badge className="bg-emerald-600 text-white text-[8px] h-4 py-0">
-                          Ready
-                        </Badge>
-                      )}
-                      {asset.status === 'failed' && (
-                        <Badge variant="destructive" className="text-[8px] h-4 py-0">
-                          Failed
-                        </Badge>
-                      )}
-                      {asset.status === 'downloading' && (
-                        <Badge className="bg-blue-600 text-white text-[8px] h-4 py-0">
-                          Downloading
-                        </Badge>
-                      )}
+
+                  {/* Play icon overlay for videos */}
+                  {asset.type === 'video' && asset.status === 'completed' && (
+                    <div className="absolute inset-0 bg-black/10 flex items-center justify-center transition-opacity hover:bg-black/25">
+                      <div className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center border border-white/50 text-white shadow-md">
+                        <span className="material-symbols-outlined text-[24px] ml-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>
+                          play_arrow
+                        </span>
+                      </div>
                     </div>
+                  )}
+
+                  {/* Type badge on thumbnail top-left */}
+                  <div className="absolute top-2.5 left-2.5">
+                    <span className="px-2 py-0.5 bg-surface-container-lowest/80 backdrop-blur-md border border-outline-variant/30 rounded font-mono text-[9px] text-on-surface shadow-sm flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[12px]">
+                        {asset.type === 'video' ? 'videocam' : 'image'}
+                      </span>
+                      {asset.type === 'video' ? '4K' : 'IMG'}
+                    </span>
                   </div>
-                  {/* Status indicator on thumbnail when not hovered */}
-                  <div className="absolute bottom-2 right-2 group-hover:hidden">
-                    {asset.status === 'completed' && (
-                      <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-md shadow-emerald-500/50" />
+
+                  {/* Status badge top-right */}
+                  <div className="absolute top-2.5 right-2.5">
+                    {asset.status === 'completed' ? (
+                      <span className="px-1.5 py-0.5 bg-secondary-container border border-secondary/20 rounded font-mono text-[9px] text-on-secondary-container uppercase shadow-sm">
+                        Ready
+                      </span>
+                    ) : asset.status === 'failed' ? (
+                      <span className="px-1.5 py-0.5 bg-error-container border border-error/20 rounded font-mono text-[9px] text-on-error-container uppercase shadow-sm">
+                        Failed
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 bg-primary-fixed border border-primary/20 rounded font-mono text-[9px] text-primary uppercase shadow-sm animate-pulse-glow">
+                        Active
+                      </span>
                     )}
-                    {asset.status === 'failed' && (
-                      <div className="h-2 w-2 rounded-full bg-red-500 shadow-md shadow-red-500/50" />
-                    )}
-                    {asset.status === 'downloading' && (
-                      <div className="h-2 w-2 rounded-full bg-blue-500 shadow-md shadow-blue-500/50 animate-pulse" />
-                    )}
+                  </div>
+
+                  {/* Info Hover details */}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-2 text-[9px]">
+                    <h4 className="text-white font-semibold truncate leading-tight">
+                      {asset.filePath ? asset.filePath.split(/[\\/]/).pop() : `${asset.type}_${asset.pexelsId}`}
+                    </h4>
+                    <div className="flex justify-between items-center text-neutral-300 font-mono text-[8px] mt-0.5 leading-none">
+                      <span>Pexels • {asset.width}x{asset.height}</span>
+                      <span>By {asset.photographer}</span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -220,21 +285,21 @@ export default function DownloadedStuffView(): React.JSX.Element {
           )}
         </div>
 
-        {/* Details Panel */}
+        {/* Details Panel (Inspector) */}
         <div className="space-y-4">
           <div className="flex items-center space-x-2 pb-2">
-            <Info className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-xl font-bold tracking-tight">Asset Inspector</h2>
+            <span className="material-symbols-outlined text-outline text-[20px]">info</span>
+            <h2 className="text-xl font-bold tracking-tight text-on-surface">Asset Inspector</h2>
           </div>
 
           {!selectedAsset ? (
-            <div className="glass-panel rounded-xl p-8 text-center text-muted-foreground text-sm">
-              Click any asset in the grid to inspect details, path locations, and creator licensing.
+            <div className="glass-panel rounded-2xl p-6 text-center text-xs text-on-surface-variant font-medium">
+              Select any asset in the library grid to inspect file coordinates, creator licensing, and run local playback.
             </div>
           ) : (
-            <div className="glass-panel rounded-xl p-5 space-y-4">
-              {/* Media Preview (Video player or Image Preview) */}
-              <div className="relative aspect-video rounded-lg overflow-hidden border border-white/10 bg-black flex items-center justify-center">
+            <div className="glass-panel-elevated rounded-2xl overflow-hidden flex flex-col relative animate-fade-in-up">
+              {/* Media Preview Player */}
+              <div className="w-full aspect-video bg-black flex items-center justify-center relative group">
                 {selectedAsset.status === 'completed' && selectedAsset.filePath ? (
                   selectedAsset.type === 'video' ? (
                     <video
@@ -251,129 +316,100 @@ export default function DownloadedStuffView(): React.JSX.Element {
                     />
                   )
                 ) : (
-                  <img
-                    src={selectedAsset.imageUrl}
-                    className="w-full h-full object-cover opacity-60 filter blur-xs"
-                    alt="Stock Preview"
-                  />
-                )}
-                {selectedAsset.status !== 'completed' && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-xs font-mono">
-                    {selectedAsset.status === 'downloading'
-                      ? 'Asset is downloading...'
-                      : 'Download failed or user deleted'}
+                  <div className="w-full h-full flex flex-col items-center justify-center bg-surface-container opacity-60">
+                    <span className="material-symbols-outlined text-[36px] text-outline">broken_image</span>
+                    <span className="text-[10px] font-mono mt-1 text-on-surface-variant">
+                      {selectedAsset.status === 'downloading' ? 'File is downloading...' : 'Local file missing'}
+                    </span>
                   </div>
                 )}
               </div>
 
-              {/* Asset Metadata */}
-              <div className="space-y-3.5 text-xs">
+              {/* Metadata content */}
+              <div className="p-5 space-y-4 text-xs font-semibold text-on-surface-variant">
                 <div>
-                  <span className="text-muted-foreground uppercase text-[9px] font-mono block">
-                    Original Source
-                  </span>
+                  <span className="text-outline uppercase text-[9px] font-mono block mb-0.5">Original Source</span>
                   <a
                     href={selectedAsset.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-primary hover:underline flex items-center mt-0.5"
+                    className="text-primary hover:underline flex items-center gap-1 mt-0.5"
                   >
                     View on Pexels
-                    <ExternalLink className="h-3 w-3 ml-1" />
+                    <span className="material-symbols-outlined text-[12px]">open_in_new</span>
                   </a>
                 </div>
 
-                <div>
-                  <span className="text-muted-foreground uppercase text-[9px] font-mono block">
-                    Photographer / Creator
-                  </span>
-                  <div className="font-semibold text-white mt-0.5">
-                    {selectedAsset.photographer}
-                  </div>
-                </div>
+                <div className="h-[1px] w-full bg-black/[0.04]" />
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-muted-foreground uppercase text-[9px] font-mono block">
-                      Dimensions
-                    </span>
-                    <div className="text-white mt-0.5">
-                      {selectedAsset.width} × {selectedAsset.height} px
-                    </div>
+                    <span className="text-outline uppercase text-[9px] font-mono block">Creator</span>
+                    <p className="text-on-surface mt-0.5 truncate">{selectedAsset.photographer}</p>
                   </div>
-                  {selectedAsset.type === 'video' && selectedAsset.duration !== undefined && (
+                  <div>
+                    <span className="text-outline uppercase text-[9px] font-mono block">Resolution</span>
+                    <p className="text-on-surface mt-0.5">{selectedAsset.width} × {selectedAsset.height}</p>
+                  </div>
+                  {selectedAsset.duration !== undefined && (
                     <div>
-                      <span className="text-muted-foreground uppercase text-[9px] font-mono block">
-                        Duration
-                      </span>
-                      <div className="text-white mt-0.5">{selectedAsset.duration} seconds</div>
+                      <span className="text-outline uppercase text-[9px] font-mono block">Duration</span>
+                      <p className="text-on-surface mt-0.5">{selectedAsset.duration}s</p>
                     </div>
                   )}
-                </div>
-
-                <div>
-                  <span className="text-muted-foreground uppercase text-[9px] font-mono block">
-                    Stock Query Used
-                  </span>
-                  <div className="text-white font-mono mt-0.5">"{selectedAsset.query}"</div>
-                </div>
-
-                <div>
-                  <span className="text-muted-foreground uppercase text-[9px] font-mono block">
-                    Script Beat Context
-                  </span>
-                  <div className="text-neutral-300 italic leading-relaxed mt-1 bg-black/10 border border-white/5 rounded p-2 text-[11px]">
-                    "{selectedAsset.beatText}"
+                  <div>
+                    <span className="text-outline uppercase text-[9px] font-mono block">Type</span>
+                    <p className="text-on-surface mt-0.5 capitalize">{selectedAsset.type}</p>
                   </div>
+                </div>
+
+                <div className="h-[1px] w-full bg-black/[0.04]" />
+
+                <div>
+                  <span className="text-outline uppercase text-[9px] font-mono block">Search Query Context</span>
+                  <p className="text-on-surface font-mono mt-1 italic text-[11px]">"{selectedAsset.query}"</p>
+                </div>
+
+                <div>
+                  <span className="text-outline uppercase text-[9px] font-mono block">Script beat segment</span>
+                  <p className="text-on-surface italic leading-relaxed mt-1 bg-surface-container-low border border-white/60 p-2.5 rounded text-[11px]">
+                    "{selectedAsset.beatText}"
+                  </p>
                 </div>
 
                 {selectedAsset.filePath && (
                   <div>
-                    <span className="text-muted-foreground uppercase text-[9px] font-mono block">
-                      Local Disk Path
-                    </span>
-                    <div className="text-neutral-400 font-mono select-all break-all leading-normal mt-0.5 text-[10px] bg-black/25 p-2 rounded border border-white/5">
+                    <span className="text-outline uppercase text-[9px] font-mono block">Local Disk Path</span>
+                    <p className="text-on-surface-variant font-mono select-all break-all leading-normal mt-1 text-[10px] bg-black/[0.03] p-2.5 rounded border border-black/[0.04]">
                       {selectedAsset.filePath}
-                    </div>
+                    </p>
                   </div>
                 )}
 
                 {selectedAsset.error && (
-                  <div className="p-3 bg-destructive/10 border border-destructive/20 text-destructive-foreground rounded-lg">
-                    <span className="font-semibold block mb-0.5">Download Error:</span>
+                  <div className="p-3 bg-error-container border border-error/20 text-on-error-container rounded-lg text-[10px] font-medium leading-normal">
+                    <span className="font-bold block mb-0.5">Download Error:</span>
                     {selectedAsset.error}
                   </div>
                 )}
-
-                <div>
-                  <span className="text-muted-foreground uppercase text-[9px] font-mono block">
-                    Licensing Note
-                  </span>
-                  <div className="text-emerald-400 font-medium mt-0.5">
-                    Free to use under the Pexels License.
-                  </div>
-                </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action buttons pinned */}
               {selectedAsset.status === 'completed' && (
-                <div className="flex gap-2 border-t border-white/5 pt-4">
-                  <Button
+                <div className="p-4 border-t border-black/[0.04] bg-white/20 flex gap-2">
+                  <button
                     onClick={() => handleOpenFolder(selectedAsset.id)}
-                    className="flex-1 bg-white/10 hover:bg-white/20 border border-white/5 text-white"
+                    className="btn-interactive flex-grow py-2.5 rounded-lg bg-white hover:bg-surface-container-high border border-outline-variant/60 font-semibold text-xs text-on-surface transition-all flex items-center justify-center gap-1.5 shadow-sm"
                   >
-                    <FolderOpen className="h-4 w-4 mr-1.5" />
-                    Open Location
-                  </Button>
-
-                  <Button
-                    variant="destructive"
+                    <span className="material-symbols-outlined text-[18px]">folder_open</span> Reveal in Folder
+                  </button>
+                  <button
                     onClick={() => handleDelete(selectedAsset.id)}
-                    className="shrink-0"
-                    title="Delete File"
+                    className="btn-interactive py-2.5 px-3 rounded-lg hover:bg-error-container hover:text-error text-on-surface-variant font-semibold text-xs flex items-center justify-center transition-colors"
+                    title="Delete Asset"
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                  </button>
                 </div>
               )}
             </div>

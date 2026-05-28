@@ -1,28 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { useAppStore } from '../lib/store'
-import { Button } from '../components/ui/button'
-import { Input } from '../components/ui/input'
-import { Label } from '../components/ui/label'
-import { Textarea } from '../components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '../components/ui/select'
-import { Card } from '../components/ui/card'
-import { Badge } from '../components/ui/badge'
-import {
-  Film,
-  Image as ImageIcon,
-  Video,
-  Sparkles,
-  History,
-  Play,
-  RotateCcw,
-  AlertTriangle
-} from 'lucide-react'
 
 export default function ScriptInputView(): React.JSX.Element {
   const { startJob, jobs, loadJobs, setActiveJobId, navigate, rerunJob, settings, loadSettings } =
@@ -37,9 +14,7 @@ export default function ScriptInputView(): React.JSX.Element {
   const [style, setStyle] = useState<
     'cinematic' | 'documentary' | 'business' | 'tech' | 'nature' | 'lifestyle' | 'abstract'
   >('cinematic')
-  const [mix, setMix] = useState<'videos only' | 'photos only' | 'videos + photos'>(
-    'videos + photos'
-  )
+  const [mix, setMix] = useState<'videos only' | 'photos only' | 'videos + photos'>('videos + photos')
   const [maxAssetsPerBeat, setMaxAssetsPerBeat] = useState(3)
   const [maxTotalDownloads, setMaxTotalDownloads] = useState(15)
 
@@ -94,255 +69,350 @@ export default function ScriptInputView(): React.JSX.Element {
     switch (status) {
       case 'running':
         return (
-          <Badge className="bg-blue-600/20 text-blue-400 border border-blue-500/20 animate-pulse">
+          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-[#d8e2ff] border border-[#adc6ff] text-[#004493] px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 animate-pulse-glow">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#004493]"></span>
             Running
-          </Badge>
+          </span>
         )
       case 'paused':
         return (
-          <Badge className="bg-yellow-600/20 text-yellow-400 border border-yellow-500/20">
+          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-[#ffdbcc] border border-[#ffb595] text-[#7c2e00] px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#7c2e00]"></span>
             Paused
-          </Badge>
+          </span>
         )
       case 'completed':
         return (
-          <Badge className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/20">
+          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-[#99f3de] border border-[#7dd7c3] text-[#005145] px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#006b5c]"></span>
             Completed
-          </Badge>
+          </span>
         )
       case 'failed':
-        return <Badge className="bg-red-600/20 text-red-400 border border-red-500/20">Failed</Badge>
+        return (
+          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-[#ffdad6] border border-[#ffb4ab] text-[#93000a] px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#ba1a1a]"></span>
+            Failed
+          </span>
+        )
       default:
         return (
-          <Badge className="bg-neutral-600/20 text-neutral-400 border border-neutral-500/20">
+          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-surface-container-high border border-outline-variant/30 text-outline px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-outline"></span>
             Cancelled
-          </Badge>
+          </span>
         )
     }
   }
 
   return (
-    <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-6 pb-12">
-      {/* Left Column: Script Setup Form */}
-      <div className="lg:col-span-2 space-y-6">
-        <div className="flex items-center space-x-3 border-b border-white/5 pb-4">
-          <Sparkles className="h-8 w-8 text-primary animate-pulse" />
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Create Asset Pack</h1>
-            <p className="text-sm text-muted-foreground">
-              Paste your script, customize matching criteria, and let the AI find visual stock
-              b-roll.
-            </p>
-          </div>
+    <div className="w-full space-y-8 pb-12 animate-fade-in-up">
+      {/* Header Area */}
+      <header className="flex justify-between items-end">
+        <div>
+          <h2 className="text-3xl font-extrabold text-on-surface mb-2">Create New Pack</h2>
+          <p className="text-sm font-medium text-on-surface-variant">
+            Analyze your script to fetch cohesive visual assets automatically.
+          </p>
         </div>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('settings')}
+            className="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors shadow-sm"
+            title="Help & Settings"
+          >
+            <span className="material-symbols-outlined text-[20px]">help_outline</span>
+          </button>
+        </div>
+      </header>
 
-        {(!settings?.pexelsKey || !settings?.[`${settings?.llmProvider || 'openai'}Key`]) && (
-          <div className="p-4 rounded-xl flex items-center space-x-3 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm">
-            <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0" />
-            <div className="flex-1">
+      {/* Warning Panel */}
+      {(!settings?.pexelsKey || !settings?.[`${settings?.llmProvider || 'openai'}Key`]) && (
+        <div className="p-4 rounded-xl flex items-center justify-between bg-[#ffdbcc]/40 border border-[#ffb595]/30 text-[#7c2e00] text-xs font-semibold shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#7c2e00] text-[22px] shrink-0">warning</span>
+            <div>
               {!settings?.pexelsKey && !settings?.[`${settings?.llmProvider || 'openai'}Key`] ? (
                 <span>
-                  You need to configure both your <strong>Pexels API Key</strong> and active{' '}
-                  <strong>{(settings?.llmProvider || 'openai').toUpperCase()} API Key</strong> in
-                  the Settings panel before generating b-roll asset packages.
+                  Credentials required: Configure both your <strong>Pexels API Key</strong> and active{' '}
+                  <strong>{(settings?.llmProvider || 'openai').toUpperCase()} API Key</strong> before generating packs.
                 </span>
               ) : !settings?.pexelsKey ? (
                 <span>
-                  You need to configure your <strong>Pexels API Key</strong> in the Settings panel
-                  before generating b-roll asset packages.
+                  Credentials required: Configure your <strong>Pexels API Key</strong> before generating packs.
                 </span>
               ) : (
                 <span>
-                  You need to configure your active{' '}
-                  <strong>{(settings?.llmProvider || 'openai').toUpperCase()} API Key</strong> in
-                  the Settings panel before generating b-roll asset packages.
+                  Credentials required: Configure your active{' '}
+                  <strong>{(settings?.llmProvider || 'openai').toUpperCase()} API Key</strong> before generating packs.
                 </span>
               )}
             </div>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => navigate('settings')}
-              className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-none shrink-0"
-            >
-              Configure Now
-            </Button>
           </div>
-        )}
+          <button
+            onClick={() => navigate('settings')}
+            className="bg-[#7c2e00]/10 hover:bg-[#7c2e00]/25 text-[#7c2e00] border-none shrink-0 font-bold px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Configure
+          </button>
+        </div>
+      )}
 
-        <form onSubmit={handleSubmit} className="glass-panel rounded-xl p-6 space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="project-title">Project Title</Label>
-            <Input
+      {/* Main Form Panel */}
+      <section className="glass-panel p-6 lg:p-8 rounded-2xl">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Project Title */}
+          <div>
+            <label className="block font-semibold text-sm text-on-surface mb-2.5" htmlFor="project-title">
+              Project Title
+            </label>
+            <input
               id="project-title"
-              placeholder="e.g. History of Space Travel, AI Office Hacks"
+              type="text"
+              placeholder="e.g. Q3 Marketing Explainer, AI Office Hacks"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="bg-black/20 border-white/10"
+              className="w-full glass-input rounded-lg px-4 py-3 text-sm text-on-surface placeholder:text-outline/70 font-medium"
               required
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="video-script">Video Script</Label>
-            <Textarea
+          {/* Video Script */}
+          <div>
+            <div className="flex justify-between items-baseline mb-2.5">
+              <label className="block font-semibold text-sm text-on-surface" htmlFor="video-script">
+                Video Script
+              </label>
+              <span className="font-mono text-[10px] text-outline">Markdown Supported</span>
+            </div>
+            <textarea
               id="video-script"
-              placeholder="Paste your video narrative script here..."
-              rows={12}
+              rows={8}
+              placeholder="Paste your video script narrative here. The AI will segment this script into beats and search matching assets..."
               value={script}
               onChange={(e) => setScript(e.target.value)}
-              className="bg-black/20 border-white/10 leading-relaxed font-sans"
+              className="w-full glass-input rounded-lg px-4 py-3 text-sm text-on-surface placeholder:text-outline/70 font-medium leading-relaxed resize-y"
               required
             />
           </div>
 
-          {/* Quick Config Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="platform">Platform Layout</Label>
-              <Select value={platform} onValueChange={(val: any) => setPlatform(val)}>
-                <SelectTrigger className="bg-black/20 border-white/10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-neutral-900 border-white/10 text-white">
-                  <SelectItem value="YouTube">YouTube (16:9)</SelectItem>
-                  <SelectItem value="Shorts">YouTube Shorts (9:16)</SelectItem>
-                  <SelectItem value="TikTok">TikTok (9:16)</SelectItem>
-                  <SelectItem value="Instagram Reels">Instagram Reels (9:16)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="style">Visual Mood / Style</Label>
-              <Select value={style} onValueChange={(val: any) => setStyle(val)}>
-                <SelectTrigger className="bg-black/20 border-white/10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-neutral-900 border-white/10 text-white">
-                  <SelectItem value="cinematic">Cinematic</SelectItem>
-                  <SelectItem value="documentary">Documentary</SelectItem>
-                  <SelectItem value="business">Business / Office</SelectItem>
-                  <SelectItem value="tech">Technology / Futuristic</SelectItem>
-                  <SelectItem value="nature">Nature / Slow-mo</SelectItem>
-                  <SelectItem value="lifestyle">Lifestyle / Real life</SelectItem>
-                  <SelectItem value="abstract">Abstract / Artistic</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Asset Mix Controls */}
-          <div className="space-y-2">
-            <Label>Asset Mix Type</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {(['videos only', 'photos only', 'videos + photos'] as const).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setMix(option)}
-                  className={`flex flex-col items-center justify-center p-3 rounded-lg border text-sm font-medium transition-all ${mix === option ? 'bg-primary/20 border-primary text-white shadow-lg shadow-primary/10' : 'bg-black/20 border-white/5 text-muted-foreground hover:bg-white/5 hover:text-white'}`}
+          {/* Grid Configurations */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Platform Layout */}
+            <div>
+              <label className="block font-semibold text-sm text-on-surface mb-2.5" htmlFor="platform-layout">
+                Platform Layout
+              </label>
+              <div className="relative">
+                <select
+                  id="platform-layout"
+                  value={platform}
+                  onChange={(e: any) => setPlatform(e.target.value)}
+                  className="w-full glass-input rounded-lg px-4 py-3 text-sm text-on-surface appearance-none pr-10 font-semibold cursor-pointer"
                 >
-                  {option === 'videos only' && <Video className="h-5 w-5 mb-1.5" />}
-                  {option === 'photos only' && <ImageIcon className="h-5 w-5 mb-1.5" />}
-                  {option === 'videos + photos' && <Film className="h-5 w-5 mb-1.5" />}
-                  <span className="capitalize">{option}</span>
+                  <option value="YouTube">YouTube (16:9)</option>
+                  <option value="Shorts">YouTube Shorts (9:16)</option>
+                  <option value="TikTok">TikTok (9:16)</option>
+                  <option value="Instagram Reels">Instagram Reels (9:16)</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                  expand_more
+                </span>
+              </div>
+            </div>
+
+            {/* Visual Mood */}
+            <div>
+              <label className="block font-semibold text-sm text-on-surface mb-2.5" htmlFor="visual-mood">
+                Visual Mood
+              </label>
+              <div className="relative">
+                <select
+                  id="visual-mood"
+                  value={style}
+                  onChange={(e: any) => setStyle(e.target.value)}
+                  className="w-full glass-input rounded-lg px-4 py-3 text-sm text-on-surface appearance-none pr-10 font-semibold cursor-pointer"
+                >
+                  <option value="cinematic">Cinematic</option>
+                  <option value="documentary">Documentary</option>
+                  <option value="business">Business / Office</option>
+                  <option value="tech">Technology / Futuristic</option>
+                  <option value="nature">Nature / Slow-mo</option>
+                  <option value="lifestyle">Lifestyle / Real-life</option>
+                  <option value="abstract">Abstract / Artistic</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                  expand_more
+                </span>
+              </div>
+            </div>
+
+            {/* Asset Mix Toggle */}
+            <div>
+              <label className="block font-semibold text-sm text-on-surface mb-2.5">Asset Mix</label>
+              <div className="flex bg-white/50 rounded-lg p-1 border border-white/40 h-[46px]">
+                <button
+                  type="button"
+                  onClick={() => setMix('videos only')}
+                  className={`flex-1 text-center font-bold text-xs rounded-md transition-all shadow-sm ${
+                    mix === 'videos only'
+                      ? 'bg-white text-primary shadow-[0_2px_4px_rgba(0,0,0,0.05)]'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  Videos
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setMix('photos only')}
+                  className={`flex-1 text-center font-bold text-xs rounded-md transition-all shadow-sm ${
+                    mix === 'photos only'
+                      ? 'bg-white text-primary shadow-[0_2px_4px_rgba(0,0,0,0.05)]'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  Photos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMix('videos + photos')}
+                  className={`flex-1 text-center font-bold text-xs rounded-md transition-all shadow-sm ${
+                    mix === 'videos + photos'
+                      ? 'bg-white text-primary shadow-[0_2px_4px_rgba(0,0,0,0.05)]'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  Both
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Concurrency and limits config */}
-          <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="max-per-beat">Max Assets Per Beat</Label>
-              <Input
-                id="max-per-beat"
+          {/* Limits Config Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-black/[0.05]">
+            <div>
+              <label className="block font-semibold text-sm text-on-surface mb-2.5" htmlFor="max-assets">
+                Max Assets per Beat
+              </label>
+              <input
+                id="max-assets"
                 type="number"
-                min={1}
-                max={5}
+                min="1"
+                max="5"
                 value={maxAssetsPerBeat}
                 onChange={(e) => setMaxAssetsPerBeat(Number(e.target.value))}
-                className="bg-black/20 border-white/10 text-center font-semibold"
+                className="w-full glass-input rounded-lg px-4 py-3 font-mono text-sm text-on-surface"
               />
+              <p className="mt-1.5 text-xs text-outline font-medium">Assets downloaded for each script segment.</p>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="max-total">Max Total Downloads</Label>
-              <Input
+            <div>
+              <label className="block font-semibold text-sm text-on-surface mb-2.5" htmlFor="max-total">
+                Max Total Downloads
+              </label>
+              <input
                 id="max-total"
                 type="number"
-                min={1}
-                max={50}
+                min="1"
+                max="100"
                 value={maxTotalDownloads}
                 onChange={(e) => setMaxTotalDownloads(Number(e.target.value))}
-                className="bg-black/20 border-white/10 text-center font-semibold"
+                className="w-full glass-input rounded-lg px-4 py-3 font-mono text-sm text-on-surface"
               />
+              <p className="mt-1.5 text-xs text-outline font-medium">Safety threshold to conserve API request limits.</p>
             </div>
           </div>
 
-          <Button
-            type="submit"
-            className="w-full py-6 mt-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-base font-semibold shadow-lg shadow-violet-500/25"
-          >
-            <Play className="mr-2 h-5 w-5 fill-current" />
-            Analyze & Fetch Visual Assets
-          </Button>
+          {/* CTA Action Area */}
+          <div className="pt-4 flex justify-end">
+            <button
+              type="submit"
+              className="tactile-button text-white font-semibold text-xs px-8 py-4 rounded-lg flex items-center gap-2 group tracking-wider uppercase cursor-pointer shadow-md"
+            >
+              <span className="material-symbols-outlined text-[18px] group-hover:rotate-12 transition-transform">
+                model_training
+              </span>
+              Analyze & Fetch Visual Assets
+            </button>
+          </div>
         </form>
-      </div>
+      </section>
 
-      {/* Right Column: Historical runs */}
-      <div className="space-y-6">
-        <div className="flex items-center space-x-2.5 border-b border-white/5 pb-4">
-          <History className="h-6 w-6 text-muted-foreground" />
-          <h2 className="text-xl font-bold tracking-tight">Run History</h2>
+      {/* Run History Section */}
+      <section className="glass-panel overflow-hidden flex flex-col rounded-2xl">
+        <div className="p-5 border-b border-black/[0.05] flex justify-between items-center bg-white/30">
+          <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-[20px]">history</span>
+            Recent Pack Generations
+          </h3>
+          <span className="font-mono text-[10px] text-outline">Sorted by Newest</span>
         </div>
 
-        <div className="space-y-3 max-h-[700px] overflow-y-auto pr-1">
+        <div className="overflow-x-auto">
           {jobs.length === 0 ? (
-            <div className="glass-panel rounded-xl p-8 text-center text-muted-foreground text-sm">
-              No historical runs found. Create your first project to start.
+            <div className="p-8 text-center text-xs text-on-surface-variant font-medium">
+              No historical runs found. Create a project above to kick off.
             </div>
           ) : (
-            jobs.map((job) => (
-              <Card
-                key={job.jobId}
-                className="glass-card hover:bg-neutral-900/40 p-4 border border-white/5 transition-all cursor-pointer relative group"
-                onClick={() => handleSelectJob(job.jobId)}
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-semibold text-sm group-hover:text-primary transition-colors pr-2 line-clamp-1">
-                    {job.title}
-                  </h3>
-                  {getStatusBadge(job.status)}
-                </div>
-
-                <div className="text-xs text-muted-foreground font-sans line-clamp-2 mb-3 pr-4 leading-relaxed">
-                  {job.script}
-                </div>
-
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground border-t border-white/5 pt-2">
-                  <span>{new Date(job.createdAt).toLocaleDateString()}</span>
-                  <div className="flex items-center space-x-3">
-                    <span className="font-medium text-white">{job.assetCount} assets</span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        rerunJob(job.jobId)
-                      }}
-                      className="p-1 hover:bg-white/10 hover:text-white rounded transition-colors"
-                      title="Rerun Project"
-                    >
-                      <RotateCcw className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-              </Card>
-            ))
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-black/[0.02] border-b border-black/[0.05]">
+                  <th className="py-3.5 px-6 font-mono text-[10px] text-outline uppercase tracking-wider font-semibold">
+                    Project Title
+                  </th>
+                  <th className="py-3.5 px-6 font-mono text-[10px] text-outline uppercase tracking-wider font-semibold">
+                    Status
+                  </th>
+                  <th className="py-3.5 px-6 font-mono text-[10px] text-outline uppercase tracking-wider font-semibold">
+                    Assets
+                  </th>
+                  <th className="py-3.5 px-6 font-mono text-[10px] text-outline uppercase tracking-wider font-semibold">
+                    Date
+                  </th>
+                  <th className="py-3.5 px-6 font-mono text-[10px] text-outline uppercase tracking-wider font-semibold text-right">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="text-xs text-on-surface font-medium">
+                {jobs.map((job) => (
+                  <tr
+                    key={job.jobId}
+                    onClick={() => handleSelectJob(job.jobId)}
+                    className="list-row border-b border-black/[0.03] hover:bg-white/40 cursor-pointer transition-colors duration-150"
+                  >
+                    <td className="py-4 px-6 font-semibold">{job.title}</td>
+                    <td className="py-4 px-6">{getStatusBadge(job.status)}</td>
+                    <td className="py-4 px-6 font-mono text-on-surface-variant">
+                      {job.status === 'running' ? '--' : job.assetCount} assets
+                    </td>
+                    <td className="py-4 px-6 font-mono text-on-surface-variant">
+                      {new Date(job.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="py-4 px-6 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleSelectJob(job.jobId)}
+                          className="text-on-surface-variant hover:text-primary transition-colors p-1.5 rounded hover:bg-white/60"
+                          title="Open View"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">visibility</span>
+                        </button>
+                        <button
+                          onClick={() => rerunJob(job.jobId)}
+                          className="text-on-surface-variant hover:text-primary transition-colors p-1.5 rounded hover:bg-white/60"
+                          title="Rerun Project"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">replay</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
-      </div>
+      </section>
     </div>
   )
 }

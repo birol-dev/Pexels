@@ -1,4 +1,4 @@
-# StockFinder AI — Technical Project Reference (v1.1.3)
+# StockFinder AI — Technical Project Reference (v1.2.0)
 
 StockFinder AI (registered in `package.json` as `stockfinder-ai`) is an Electron-based desktop application designed for video producers, YouTube creators, and short-form editors. It uses an AI-powered agent to parse narrational video scripts into structured visual scenes ("beats"), generate highly contextual visual prompts, search the Pexels API for relevant stock b-roll photos/videos, and automatically download them into a structured local directory structure.
 

@@ -14,6 +14,7 @@ export interface PublicSettings {
   skipExplicitQueries: boolean
   requireApprovalBeforeDownload: boolean
   avoidPeopleAndFaces: boolean
+  isOnboarded: boolean
 }
 
 export const DEFAULT_SETTINGS: PublicSettings = {
@@ -25,7 +26,8 @@ export const DEFAULT_SETTINGS: PublicSettings = {
   requestTimeoutSeconds: 60,
   skipExplicitQueries: true,
   requireApprovalBeforeDownload: false,
-  avoidPeopleAndFaces: false
+  avoidPeopleAndFaces: false,
+  isOnboarded: false
 }
 
 export class SettingsStore {
