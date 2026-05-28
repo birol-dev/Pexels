@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   Eye
 } from 'lucide-react'
+import { cn } from '../lib/utils'
 
 export default function AgentRunView(): React.JSX.Element {
   const {
@@ -33,6 +34,27 @@ export default function AgentRunView(): React.JSX.Element {
   const formatCost = (input: number, output: number) => {
     const cost = (input * 0.0025 + output * 0.01) / 1000
     return cost.toFixed(4)
+  }
+
+  const renderLogData = (log: any) => {
+    if (!log.data) return null
+    let displayStr = ''
+    try {
+      if (typeof log.data === 'string') {
+        const parsed = JSON.parse(log.data)
+        displayStr = JSON.stringify(parsed, null, 2)
+      } else {
+        displayStr = JSON.stringify(log.data, null, 2)
+      }
+    } catch {
+      displayStr = String(log.data)
+    }
+
+    return (
+      <pre className="bg-black/45 rounded p-2 text-[10px] text-neutral-400 leading-normal overflow-x-auto whitespace-pre font-mono mt-1.5 max-h-60 border border-white/5">
+        {displayStr}
+      </pre>
+    )
   }
 
   useEffect(() => {
@@ -127,8 +149,21 @@ export default function AgentRunView(): React.JSX.Element {
               <ArrowLeft className="h-3.5 w-3.5 mr-1" />
               Back to project setup
             </button>
-            <h1 className="text-2xl font-bold tracking-tight">{activeJob.title}</h1>
-            <p className="text-sm text-muted-foreground font-mono">{activeJob.currentStep}</p>
+            <div className="flex items-center space-x-2.5">
+              <h1 className="text-2xl font-bold tracking-tight">{activeJob.title}</h1>
+              {activeJob.status === 'running' && (
+                <span className="flex h-2.5 w-2.5 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-violet-500"></span>
+                </span>
+              )}
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground font-mono mt-0.5">
+              {activeJob.status === 'running' && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />
+              )}
+              <span>{activeJob.currentStep}</span>
+            </div>
           </div>
 
           <div className="flex items-center space-x-2 shrink-0">
@@ -210,13 +245,34 @@ export default function AgentRunView(): React.JSX.Element {
             <span>Progress</span>
             <span>{activeJob.progress}%</span>
           </div>
-          <Progress value={activeJob.progress} className="h-2 bg-neutral-900/60" />
+          <Progress
+            value={activeJob.progress}
+            className="h-2.5 bg-neutral-900/60 overflow-hidden"
+            indicatorClassName={cn(
+              'bg-gradient-to-r from-violet-600 via-indigo-500 to-violet-600 bg-[length:200%_100%]',
+              activeJob.status === 'running' && 'animate-shimmer'
+            )}
+          />
         </div>
 
         {/* Stats strip */}
         <div className="flex flex-wrap gap-6 text-xs text-muted-foreground font-mono pt-2 border-t border-white/5">
           <div>
-            Status: <span className="capitalize text-white font-medium">{activeJob.status}</span>
+            Status:{' '}
+            <span
+              className={cn(
+                'capitalize font-semibold',
+                activeJob.status === 'running'
+                  ? 'text-violet-400 animate-pulse'
+                  : activeJob.status === 'completed'
+                    ? 'text-emerald-400'
+                    : activeJob.status === 'failed'
+                      ? 'text-red-400'
+                      : 'text-white'
+              )}
+            >
+              {activeJob.status}
+            </span>
           </div>
           <div>
             Beats: <span className="text-white font-medium">{activeJob.beats.length}</span>
@@ -306,7 +362,7 @@ export default function AgentRunView(): React.JSX.Element {
 
                   <div className="space-y-2">
                     <div className="text-sm font-medium leading-relaxed select-all">
-                      "{beat.text}"
+                      &ldquo;{beat.text}&rdquo;
                     </div>
                     <div className="text-xs text-muted-foreground bg-black/10 border border-white/5 rounded p-2.5 font-sans leading-relaxed select-all">
                       <span className="font-mono text-[10px] text-primary uppercase block mb-1">
@@ -358,27 +414,44 @@ export default function AgentRunView(): React.JSX.Element {
                                 alt="Stock Photo"
                               />
                             )}
-                            <div className="absolute inset-0 bg-black/40 flex flex-col justify-end p-2 opacity-100 transition-opacity">
+
+                            {/* Visual overlays for queued / downloading states */}
+                            {asset.status === 'pending' && (
+                              <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-2">
+                                <Loader2 className="h-4 w-4 text-violet-400 animate-spin mb-1" />
+                                <span className="text-[9px] text-neutral-400 font-mono">
+                                  Queued
+                                </span>
+                              </div>
+                            )}
+
+                            {asset.status === 'downloading' && (
+                              <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center p-2">
+                                <span className="text-[10px] text-blue-400 font-semibold font-mono mb-1.5 animate-pulse">
+                                  Downloading ({asset.progress || 0}%)
+                                </span>
+                                <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden max-w-[80px]">
+                                  <div
+                                    className="bg-blue-500 h-full transition-all duration-300"
+                                    style={{ width: `${asset.progress || 0}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2 opacity-100 transition-opacity">
                               <span className="text-[9px] font-semibold text-white block capitalize">
                                 {asset.type}
                               </span>
-                              <div className="flex items-center justify-between mt-1 text-[8px] font-mono">
-                                <span className="text-neutral-300 truncate max-w-[80px]">
-                                  {asset.photographer}
+                              <div className="flex items-center justify-between mt-0.5 text-[8px] font-mono">
+                                <span className="text-neutral-400 truncate max-w-[80px]">
+                                  By {asset.photographer}
                                 </span>
                                 {asset.status === 'completed' && (
-                                  <span className="text-emerald-400">Complete</span>
-                                )}
-                                {asset.status === 'downloading' && (
-                                  <span className="text-blue-400">
-                                    Downloading ({asset.progress || 0}%)
-                                  </span>
+                                  <span className="text-emerald-400 font-semibold">Complete</span>
                                 )}
                                 {asset.status === 'failed' && (
-                                  <span className="text-red-400">Failed</span>
-                                )}
-                                {asset.status === 'pending' && (
-                                  <span className="text-neutral-400">Queued</span>
+                                  <span className="text-red-400 font-semibold">Failed</span>
                                 )}
                               </div>
                             </div>
@@ -437,17 +510,7 @@ export default function AgentRunView(): React.JSX.Element {
                       {log.message}
                     </div>
 
-                    {log.data && log.type === 'tool_call' && (
-                      <div className="bg-black/35 rounded p-2 text-[10px] text-neutral-400 leading-normal overflow-x-auto">
-                        Arguments: {log.data}
-                      </div>
-                    )}
-
-                    {log.data && log.type === 'tool_result' && (
-                      <div className="bg-black/35 rounded p-2 text-[10px] text-neutral-400 leading-normal max-h-48 overflow-y-auto">
-                        Output: {JSON.stringify(log.data)}
-                      </div>
-                    )}
+                    {renderLogData(log)}
                   </div>
                 ))}
                 <div ref={logEndRef} />

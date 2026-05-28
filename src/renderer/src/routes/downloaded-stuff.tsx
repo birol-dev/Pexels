@@ -239,13 +239,13 @@ export default function DownloadedStuffView(): React.JSX.Element {
                   selectedAsset.type === 'video' ? (
                     <video
                       key={selectedAsset.filePath}
-                      src={`file://${selectedAsset.filePath}`}
+                      src={`media://${selectedAsset.filePath}`}
                       controls
                       className="w-full h-full object-contain"
                     />
                   ) : (
                     <img
-                      src={`file://${selectedAsset.filePath}`}
+                      src={`media://${selectedAsset.filePath}`}
                       className="w-full h-full object-contain"
                       alt="Local Stock Preview"
                     />

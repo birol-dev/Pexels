@@ -55,8 +55,21 @@ export default function ScriptInputView(): React.JSX.Element {
       return
     }
 
-    if (!settings?.pexelsKey) {
-      alert('Warning: Pexels API Key is missing. Please set it in Settings first.')
+    const activeProvider = settings?.llmProvider || 'openai'
+    const activeProviderKey = settings ? settings[`${activeProvider}Key`] : ''
+    const hasPexelsKey = !!settings?.pexelsKey
+    const hasLlmKey = !!activeProviderKey
+
+    if (!hasPexelsKey || !hasLlmKey) {
+      let missingMsg = ''
+      if (!hasPexelsKey && !hasLlmKey) {
+        missingMsg = 'Both Pexels API Key and active LLM Provider API Key are missing.'
+      } else if (!hasPexelsKey) {
+        missingMsg = 'Pexels API Key is missing.'
+      } else {
+        missingMsg = `Active LLM Provider (${activeProvider.toUpperCase()}) API Key is missing.`
+      }
+      alert(`Warning: ${missingMsg} Please set it in Settings first.`)
       navigate('settings')
       return
     }
@@ -123,12 +136,28 @@ export default function ScriptInputView(): React.JSX.Element {
           </div>
         </div>
 
-        {!settings?.pexelsKey && (
+        {(!settings?.pexelsKey || !settings?.[`${settings?.llmProvider || 'openai'}Key`]) && (
           <div className="p-4 rounded-xl flex items-center space-x-3 bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm">
             <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0" />
             <div className="flex-1">
-              You need to configure your <strong>Pexels API Key</strong> in the Settings panel
-              before generating b-roll asset packages.
+              {!settings?.pexelsKey && !settings?.[`${settings?.llmProvider || 'openai'}Key`] ? (
+                <span>
+                  You need to configure both your <strong>Pexels API Key</strong> and active{' '}
+                  <strong>{(settings?.llmProvider || 'openai').toUpperCase()} API Key</strong> in
+                  the Settings panel before generating b-roll asset packages.
+                </span>
+              ) : !settings?.pexelsKey ? (
+                <span>
+                  You need to configure your <strong>Pexels API Key</strong> in the Settings panel
+                  before generating b-roll asset packages.
+                </span>
+              ) : (
+                <span>
+                  You need to configure your active{' '}
+                  <strong>{(settings?.llmProvider || 'openai').toUpperCase()} API Key</strong> in
+                  the Settings panel before generating b-roll asset packages.
+                </span>
+              )}
             </div>
             <Button
               size="sm"

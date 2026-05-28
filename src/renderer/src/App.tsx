@@ -38,7 +38,7 @@ export default function App(): React.JSX.Element {
               <span className="font-bold text-sm tracking-tight bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-transparent">
                 StockFinder AI
               </span>
-              <span className="text-[10px] text-muted-foreground block font-mono">v1.0.0</span>
+              <span className="text-[10px] text-muted-foreground block font-mono">v1.1.3</span>
             </div>
           </div>
 

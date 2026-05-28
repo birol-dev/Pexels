@@ -358,7 +358,10 @@ export class AgentRunner extends EventEmitter {
     if (this.beats.length > 0) return // Already parsed if resuming
 
     this.updateProgress('Analyzing script into beats', 15)
-    this.log('info', 'Parsing script into logical visual beats...')
+    this.log(
+      'info',
+      `Contacting LLM provider (${this.providerId} / model: ${this.modelId}) to segment script into beats...`
+    )
 
     const providerKey = await SecureSecrets.getSecret(`${this.providerId}Key`)
     if (!providerKey) {
@@ -620,7 +623,16 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
 
     while (iteration < this.maxIterations && this.status === 'running') {
       iteration++
-      this.log('info', `Agent turn ${iteration}/${this.maxIterations}`)
+      this.log(
+        'info',
+        `Agent turn ${iteration}/${this.maxIterations}: Consulting StockScout AI (${this.providerId} / ${this.modelId})...`
+      )
+      const completedBeatsCount = this.beats.filter((b) => b.status === 'completed').length
+      const loopProgressVal = Math.round(30 + (completedBeatsCount / this.beats.length) * 60)
+      this.updateProgress(
+        `StockScout AI is thinking... (Turn ${iteration}/${this.maxIterations})`,
+        loopProgressVal
+      )
 
       const turnResult = await provider.createToolTurn(
         {
@@ -681,6 +693,13 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
             beat.searchQueries.push(args.query)
           }
         }
+        this.log('info', `[${args.beatId}] Querying Pexels Photos API for "${args.query}"...`)
+        const completedBeatsCount = this.beats.filter((b) => b.status === 'completed').length
+        const loopProgressVal = Math.round(30 + (completedBeatsCount / this.beats.length) * 60)
+        this.updateProgress(
+          `Searching photos for "${args.query}" (${args.beatId.replace('_', ' ')})`,
+          loopProgressVal
+        )
 
         const searchRes = await PexelsClient.searchPhotos({
           query: args.query,
@@ -734,6 +753,13 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
             beat.searchQueries.push(args.query)
           }
         }
+        this.log('info', `[${args.beatId}] Querying Pexels Videos API for "${args.query}"...`)
+        const completedBeatsCount = this.beats.filter((b) => b.status === 'completed').length
+        const loopProgressVal = Math.round(30 + (completedBeatsCount / this.beats.length) * 60)
+        this.updateProgress(
+          `Searching videos for "${args.query}" (${args.beatId.replace('_', ' ')})`,
+          loopProgressVal
+        )
 
         const searchRes = await PexelsClient.searchVideos({
           query: args.query,
@@ -792,6 +818,15 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
 
         const selectionResults: any[] = []
         const rejectionResults: any[] = []
+
+        const firstBeatId = selections[0]?.beatId || rejections[0]?.beatId || ''
+        this.log('info', `Selecting/rejecting assets for ${firstBeatId.replace('_', ' ')}...`)
+        const completedBeatsCount = this.beats.filter((b) => b.status === 'completed').length
+        const loopProgressVal = Math.round(30 + (completedBeatsCount / this.beats.length) * 60)
+        this.updateProgress(
+          `Selecting assets for Beat ${firstBeatId.replace('_', ' ')}`,
+          loopProgressVal
+        )
 
         // Handle selections
         for (const sel of selections) {
@@ -899,6 +934,9 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
         const assetIds = args.assetIds || []
         const downloaded: any[] = []
         const failed: any[] = []
+
+        this.log('info', `Queuing ${assetIds.length} assets for local download...`)
+        this.updateProgress(`Queuing assets for download...`, this.progress)
 
         const { SettingsStore } = await import('../storage/settings-store')
         const settings = await SettingsStore.getSettings()
@@ -1121,11 +1159,32 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
 
     if (!assetRecord || !parentBeat) return
 
+    const prevStatus = assetRecord.status
+
     // Update asset record details
     assetRecord.status = task.status
     assetRecord.progress = task.progress
-    if (task.error) assetRecord.error = task.error
-    if (task.filePath) assetRecord.filePath = task.filePath
+
+    // Log download transitions
+    if (prevStatus === 'pending' && task.status === 'downloading') {
+      this.log(
+        'info',
+        `[Download] Started downloading ${task.type} ${task.assetId} for ${parentBeat.id.replace('_', ' ')}...`
+      )
+    }
+
+    if (task.error && prevStatus !== 'failed') {
+      assetRecord.error = task.error
+      this.log('error', `[Download] Failed to download ${task.type} ${task.assetId}: ${task.error}`)
+    }
+
+    if (task.filePath && prevStatus !== 'completed') {
+      assetRecord.filePath = task.filePath
+      this.log(
+        'info',
+        `[Download] Successfully downloaded ${task.type} ${task.assetId} for ${parentBeat.id.replace('_', ' ')}.`
+      )
+    }
 
     // Reevaluate beat status
     const allDone = parentBeat.assets.every((a) => a.status === 'completed')
@@ -1134,9 +1193,17 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       (a) => a.status === 'downloading' || a.status === 'pending'
     )
 
-    if (allDone) parentBeat.status = 'completed'
-    else if (anyDownloading) parentBeat.status = 'downloading'
-    else if (anyFailed) parentBeat.status = 'failed'
+    if (allDone && parentBeat.status !== 'completed') {
+      parentBeat.status = 'completed'
+      this.log(
+        'info',
+        `[Beat Complete] All selected assets downloaded for ${parentBeat.id.replace('_', ' ')}.`
+      )
+    } else if (anyDownloading) {
+      parentBeat.status = 'downloading'
+    } else if (anyFailed) {
+      parentBeat.status = 'failed'
+    }
 
     // Update counts
     this.downloadedCount = this.beats

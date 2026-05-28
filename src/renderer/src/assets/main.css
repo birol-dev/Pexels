@@ -122,3 +122,18 @@
   background: rgba(35, 35, 40, 0.6);
   border-color: rgba(255, 255, 255, 0.08);
 }
+
+/* Shimmer gradient loading effects */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}

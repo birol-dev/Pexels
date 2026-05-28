@@ -1,11 +1,26 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
 import { join } from 'path'
+import { pathToFileURL } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
 import { registerSettingsHandlers } from './ipc/settings.ipc'
 import { registerJobsHandlers } from './ipc/jobs.ipc'
 import { registerAssetsHandlers } from './ipc/assets.ipc'
+
+// Register schemes as privileged before app is ready
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'media',
+    privileges: {
+      standard: true,
+      secure: true,
+      bypassCSP: true,
+      supportFetchAPI: true,
+      stream: true
+    }
+  }
+])
 
 function createWindow(): void {
   // Create the browser window.
@@ -45,6 +60,13 @@ function createWindow(): void {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  // Register media protocol to serve local files securely
+  protocol.handle('media', (request) => {
+    const urlPath = request.url.replace(/^media:\/\/+/i, '')
+    const decodedPath = decodeURIComponent(urlPath)
+    return net.fetch(pathToFileURL(decodedPath).toString())
+  })
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
