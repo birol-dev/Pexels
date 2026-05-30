@@ -24,6 +24,7 @@ export class PexelsDownloader {
   private maxConcurrency = 3
   private onTaskUpdate?: (task: DownloadTask) => void
   private requestTimeoutSeconds = 60
+  private idleResolvers: Array<() => void> = []
 
   constructor(
     maxConcurrency = 3,
@@ -46,6 +47,14 @@ export class PexelsDownloader {
 
   public getTasks(): DownloadTask[] {
     return this.queue
+  }
+
+  public async waitForIdle(): Promise<void> {
+    if (this.isIdle()) return
+
+    await new Promise<void>((resolve) => {
+      this.idleResolvers.push(resolve)
+    })
   }
 
   public enqueue(
@@ -80,7 +89,10 @@ export class PexelsDownloader {
     if (this.activeCount >= this.maxConcurrency) return
 
     const nextTask = this.queue.find((t) => t.status === 'pending')
-    if (!nextTask) return
+    if (!nextTask) {
+      this.resolveIdleIfNeeded()
+      return
+    }
 
     nextTask.status = 'downloading'
     this.activeCount++
@@ -109,9 +121,26 @@ export class PexelsDownloader {
           nextTask.error = err instanceof Error ? err.message : String(err)
           this.activeCount--
           if (this.onTaskUpdate) this.onTaskUpdate(nextTask)
+          this.resolveIdleIfNeeded()
           this.processNext()
         }
       })
+  }
+
+  private isIdle(): boolean {
+    return (
+      this.activeCount === 0 &&
+      !this.queue.some((t) => t.status === 'pending' || t.status === 'downloading')
+    )
+  }
+
+  private resolveIdleIfNeeded(): void {
+    if (!this.isIdle()) return
+
+    const resolvers = this.idleResolvers.splice(0)
+    for (const resolve of resolvers) {
+      resolve()
+    }
   }
 
   private async runDownload(task: DownloadTask): Promise<string> {

@@ -1,5 +1,5 @@
 import { app, safeStorage } from 'electron'
-import { join } from 'path'
+import { dirname, join } from 'path'
 import { promises as fs } from 'fs'
 
 const ENCRYPTED_PREFIX = 'encrypted:'
@@ -18,7 +18,8 @@ export class SecureSecrets {
     const filePath = getSecretsFile()
     try {
       const data = await fs.readFile(filePath, 'utf-8')
-      return JSON.parse(data)
+      const parsed = JSON.parse(data)
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
     } catch {
       return {}
     }
@@ -26,6 +27,7 @@ export class SecureSecrets {
 
   private static async writeSecretsFile(secrets: Record<string, string>): Promise<void> {
     const filePath = getSecretsFile()
+    await fs.mkdir(dirname(filePath), { recursive: true })
     await fs.writeFile(filePath, JSON.stringify(secrets, null, 2), 'utf-8')
   }
 

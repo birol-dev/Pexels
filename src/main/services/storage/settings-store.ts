@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { join } from 'path'
+import { dirname, join } from 'path'
 import { promises as fs } from 'fs'
 
 export interface PublicSettings {
@@ -53,7 +53,10 @@ export class SettingsStore {
     try {
       const data = await fs.readFile(filePath, 'utf-8')
       const parsed = JSON.parse(data)
-      this.cachedSettings = { ...fallback, ...parsed }
+      this.cachedSettings = {
+        ...fallback,
+        ...(parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {})
+      }
     } catch {
       this.cachedSettings = { ...fallback }
     }
@@ -66,6 +69,7 @@ export class SettingsStore {
     const updated = { ...current, ...updates }
     const filePath = getSettingsFile()
 
+    await fs.mkdir(dirname(filePath), { recursive: true })
     await fs.writeFile(filePath, JSON.stringify(updated, null, 2), 'utf-8')
     this.cachedSettings = updated
 

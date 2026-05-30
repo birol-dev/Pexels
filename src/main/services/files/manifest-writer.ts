@@ -36,17 +36,23 @@ export class ManifestWriter {
 
   public static async initializeProjectFolder(
     downloadRoot: string,
-    projectName: string
+    projectName: string,
+    uniqueSuffix?: string
   ): Promise<string> {
-    const cleanName = this.cleanFolderName(projectName)
+    const cleanName = uniqueSuffix
+      ? `${this.cleanFolderName(projectName)}-${this.cleanFolderName(uniqueSuffix)}`
+      : this.cleanFolderName(projectName)
     const projectDir = join(downloadRoot, cleanName)
 
+    await this.ensureProjectStructure(projectDir)
+    return projectDir
+  }
+
+  public static async ensureProjectStructure(projectDir: string): Promise<void> {
     await fs.mkdir(projectDir, { recursive: true })
     await fs.mkdir(join(projectDir, 'photos'), { recursive: true })
     await fs.mkdir(join(projectDir, 'videos'), { recursive: true })
     await fs.mkdir(join(projectDir, 'thumbnails'), { recursive: true })
-
-    return projectDir
   }
 
   public static async writeManifest(projectDir: string, manifest: ManifestData): Promise<void> {

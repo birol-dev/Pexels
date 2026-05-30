@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { join } from 'path'
+import { dirname, join } from 'path'
 import { promises as fs } from 'fs'
 
 export interface JobSummary {
@@ -30,7 +30,8 @@ export class ProjectStore {
     const filePath = getProjectsFile()
     try {
       const data = await fs.readFile(filePath, 'utf-8')
-      this.cachedProjects = JSON.parse(data)
+      const parsed = JSON.parse(data)
+      this.cachedProjects = Array.isArray(parsed) ? parsed : []
     } catch {
       this.cachedProjects = []
     }
@@ -41,6 +42,7 @@ export class ProjectStore {
     this.cachedProjects = projects
     const filePath = getProjectsFile()
     try {
+      await fs.mkdir(dirname(filePath), { recursive: true })
       await fs.writeFile(filePath, JSON.stringify(projects, null, 2), 'utf-8')
     } catch (error) {
       console.error('Failed to write projects file:', error)

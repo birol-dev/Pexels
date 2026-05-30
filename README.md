@@ -1,4 +1,4 @@
-# StockFinder AI (v1.1.0)
+# StockFinder AI (v1.2.3)
 
 An Electron-based desktop application that helps YouTube creators, short-form editors, and visual producers turn script narratives into a curated local asset pack of stock b-roll videos and photos.
 

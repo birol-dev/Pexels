@@ -1,8 +1,15 @@
 import { ipcMain, shell } from 'electron'
 import { ProjectStore } from '../services/storage/project-store'
 import { promises as fs } from 'fs'
-import { join } from 'path'
+import { isAbsolute, join, normalize, relative } from 'path'
 import { VisualBeat } from '../services/agent/agent-runner'
+
+function isInsideProject(projectDir: string, filePath: string): boolean {
+  const normalizedProject = normalize(projectDir)
+  const normalizedFile = normalize(filePath)
+  const rel = relative(normalizedProject, normalizedFile)
+  return isAbsolute(normalizedFile) && rel !== '' && !rel.startsWith('..') && !isAbsolute(rel)
+}
 
 export function registerAssetsHandlers(): void {
   ipcMain.handle('assets:list', async (_, jobId: string): Promise<unknown[]> => {
@@ -48,7 +55,7 @@ export function registerAssetsHandlers(): void {
         if (manifest.beats) {
           for (const beat of manifest.beats) {
             const asset = beat.assets?.find((a) => a.id === assetId)
-            if (asset && asset.filePath) {
+            if (asset && asset.filePath && isInsideProject(summary.downloadPath, asset.filePath)) {
               shell.showItemInFolder(asset.filePath)
               return
             }
@@ -74,7 +81,7 @@ export function registerAssetsHandlers(): void {
         for (const beat of manifest.beats) {
           const asset = beat.assets?.find((a) => a.id === assetId)
           if (asset) {
-            if (asset.filePath) {
+            if (asset.filePath && isInsideProject(summary.downloadPath, asset.filePath)) {
               try {
                 await fs.unlink(asset.filePath)
               } catch (unlinkErr) {

@@ -226,10 +226,7 @@ export class AgentRunner extends EventEmitter {
       avoidPeople: settings.avoidPeopleAndFaces
     }
 
-    this.projectDir = await ManifestWriter.initializeProjectFolder(
-      settings.downloadFolder,
-      this.input.title
-    )
+    this.projectDir = await this.resolveProjectDirectory(settings.downloadFolder)
 
     if (!this.downloader) {
       this.downloader = new PexelsDownloader(
@@ -305,6 +302,16 @@ export class AgentRunner extends EventEmitter {
     }
   }
 
+  private async resolveProjectDirectory(downloadRoot: string): Promise<string> {
+    const existingSummary = await ProjectStore.get(this.jobId)
+    if (existingSummary?.downloadPath) {
+      await ManifestWriter.ensureProjectStructure(existingSummary.downloadPath)
+      return existingSummary.downloadPath
+    }
+
+    return await ManifestWriter.initializeProjectFolder(downloadRoot, this.input.title, this.jobId)
+  }
+
   public async start(): Promise<void> {
     AgentRunner.activeRunners.set(this.jobId, this)
     this.abortController = new AbortController()
@@ -326,15 +333,13 @@ export class AgentRunner extends EventEmitter {
       }
 
       // Initialize project directories
-      this.projectDir = await ManifestWriter.initializeProjectFolder(
-        settings.downloadFolder,
-        this.input.title
-      )
+      this.projectDir = await this.resolveProjectDirectory(settings.downloadFolder)
       this.log('info', `Created project workspace directory at: ${this.projectDir}`)
 
       // Load existing state if it exists
       await this.loadStateFromManifest()
       this.status = 'running'
+      await this.saveRegistry()
 
       // Init downloader
       if (!this.downloader) {
@@ -352,6 +357,10 @@ export class AgentRunner extends EventEmitter {
 
       // Phase 2: Run agent loop
       await this.runAgentLoop()
+
+      if (this.status === 'running') {
+        await this.waitForDownloadsToSettle()
+      }
 
       if (this.status === 'running') {
         this.status = 'completed'
@@ -407,14 +416,16 @@ export class AgentRunner extends EventEmitter {
   }
 
   private async saveRegistry(): Promise<void> {
+    const existingSummary = await ProjectStore.get(this.jobId)
+    const now = new Date().toISOString()
     const summary: JobSummary = {
       jobId: this.jobId,
       projectName: ManifestWriter.cleanFolderName(this.input.title),
       title: this.input.title,
       script: this.input.script,
       status: this.status,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: existingSummary?.createdAt || now,
+      updatedAt: now,
       downloadPath: this.projectDir,
       assetCount: this.downloadedCount
     }
@@ -526,6 +537,10 @@ Output ONLY a raw JSON array matching this format (no markdown blocks, no wrappe
 
     if (!Array.isArray(parsedBeats)) {
       throw new Error('Script parsing did not return a JSON array.')
+    }
+
+    if (parsedBeats.length === 0) {
+      throw new Error('Script parsing returned no visual beats.')
     }
 
     this.beats = parsedBeats.map((b: { text?: string; visualPrompt?: string }, index: number) => ({
@@ -789,6 +804,30 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     }
   }
 
+  private getSelectedAssetCount(): number {
+    return this.beats.flatMap((b) => b.assets || []).filter((a) => a.status !== 'failed').length
+  }
+
+  private canUseAssetType(assetType: 'photo' | 'video'): boolean {
+    if (this.input.mix === 'photos only') return assetType === 'photo'
+    if (this.input.mix === 'videos only') return assetType === 'video'
+    return true
+  }
+
+  private async waitForDownloadsToSettle(): Promise<void> {
+    if (!this.downloader) return
+
+    const openDownloads = this.downloader
+      .getTasks()
+      .filter((task) => task.status === 'pending' || task.status === 'downloading')
+
+    if (openDownloads.length === 0) return
+
+    this.log('info', `Waiting for ${openDownloads.length} queued downloads to finish...`)
+    this.updateProgress('Finishing downloads', Math.max(this.progress, 90))
+    await this.downloader.waitForIdle()
+  }
+
   private async executeToolCall(tc: NormalizedToolCall): Promise<void> {
     this.log('tool_call', `Executing tool call: ${tc.name}`, tc.arguments)
     let result: unknown = {}
@@ -797,6 +836,10 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       const args = JSON.parse(tc.arguments)
 
       if (tc.name === 'search_pexels_photos') {
+        if (!this.canUseAssetType('photo')) {
+          throw new Error(`Photo search is disabled because asset mix is "${this.input.mix}".`)
+        }
+
         const beat = this.beats.find((b) => b.id === args.beatId)
         if (beat) {
           beat.status = 'searching'
@@ -857,6 +900,10 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           }))
         }
       } else if (tc.name === 'search_pexels_videos') {
+        if (!this.canUseAssetType('video')) {
+          throw new Error(`Video search is disabled because asset mix is "${this.input.mix}".`)
+        }
+
         const beat = this.beats.find((b) => b.id === args.beatId)
         if (beat) {
           beat.status = 'searching'
@@ -941,6 +988,15 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
 
         // Handle selections
         for (const sel of selections) {
+          if (!this.canUseAssetType(sel.assetType)) {
+            selectionResults.push({
+              pexelsId: sel.pexelsId,
+              status: 'rejected',
+              reason: `Asset type ${sel.assetType} is disabled by asset mix "${this.input.mix}".`
+            })
+            continue
+          }
+
           const key = `${sel.assetType}_${sel.pexelsId}`
           const candidate = this.pexelsCandidates.get(key)
 
@@ -968,6 +1024,25 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           const existingRecord = beat.assets.find((a) => a.id === recordId)
 
           if (!existingRecord) {
+            const activeBeatAssets = beat.assets.filter((a) => a.status !== 'failed').length
+            if (activeBeatAssets >= this.input.maxAssetsPerBeat) {
+              selectionResults.push({
+                pexelsId: sel.pexelsId,
+                status: 'rejected',
+                reason: `Beat cap of ${this.input.maxAssetsPerBeat} assets reached.`
+              })
+              continue
+            }
+
+            if (this.getSelectedAssetCount() >= this.input.maxTotalDownloads) {
+              selectionResults.push({
+                pexelsId: sel.pexelsId,
+                status: 'rejected',
+                reason: `Total download cap of ${this.input.maxTotalDownloads} assets reached.`
+              })
+              continue
+            }
+
             const newAsset: AssetRecord = {
               id: recordId,
               pexelsId: sel.pexelsId,
@@ -1053,7 +1128,18 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
         const settings = await SettingsStore.getSettings()
 
         for (const assetRef of assetIds) {
-          if (this.downloadedCount >= this.input.maxTotalDownloads) {
+          if (!this.canUseAssetType(assetRef.assetType)) {
+            failed.push({
+              assetType: assetRef.assetType,
+              pexelsId: assetRef.pexelsId,
+              reason: `Asset type ${assetRef.assetType} is disabled by asset mix "${this.input.mix}".`,
+              retryable: false
+            })
+            continue
+          }
+
+          const queuedOrCompletedCount = this.getSelectedAssetCount()
+          if (queuedOrCompletedCount > this.input.maxTotalDownloads) {
             failed.push({
               assetType: assetRef.assetType,
               pexelsId: assetRef.pexelsId,
@@ -1093,6 +1179,15 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
               pexelsId: assetRef.pexelsId,
               reason: `Asset requires user approval before downloading.`,
               retryable: false
+            })
+            continue
+          }
+
+          if (assetRecord.status === 'completed' || assetRecord.status === 'downloading') {
+            downloaded.push({
+              assetType: assetRecord.type,
+              pexelsId: assetRecord.pexelsId,
+              status: assetRecord.status
             })
             continue
           }
@@ -1154,7 +1249,10 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       this.status = 'running'
       this.abortController = new AbortController()
       this.runAgentLoop()
-        .then(() => {
+        .then(async () => {
+          if (this.status === 'running') {
+            await this.waitForDownloadsToSettle()
+          }
           if (this.status === 'running') {
             this.status = 'completed'
             this.log('info', 'Agent execution completed successfully!')
@@ -1207,7 +1305,10 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     this.abortController = new AbortController()
 
     this.runAgentLoop()
-      .then(() => {
+      .then(async () => {
+        if (this.status === 'running') {
+          await this.waitForDownloadsToSettle()
+        }
         if (this.status === 'running') {
           this.status = 'completed'
           this.log('info', 'Agent execution completed successfully!')

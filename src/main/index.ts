@@ -1,5 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain, protocol, net } from 'electron'
-import { join } from 'path'
+import { join, normalize, relative, isAbsolute } from 'path'
 import { pathToFileURL } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -7,6 +7,7 @@ import icon from '../../resources/icon.png?asset'
 import { registerSettingsHandlers } from './ipc/settings.ipc'
 import { registerJobsHandlers } from './ipc/jobs.ipc'
 import { registerAssetsHandlers } from './ipc/assets.ipc'
+import { ProjectStore } from './services/storage/project-store'
 
 // Register schemes as privileged before app is ready
 protocol.registerSchemesAsPrivileged([
@@ -43,7 +44,14 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    try {
+      const target = new URL(details.url)
+      if (target.protocol === 'https:' || target.protocol === 'http:') {
+        shell.openExternal(target.toString())
+      }
+    } catch {
+      // Ignore malformed URLs from renderer content.
+    }
     return { action: 'deny' }
   })
 
@@ -61,10 +69,30 @@ function createWindow(): void {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Register media protocol to serve local files securely
-  protocol.handle('media', (request) => {
-    const urlPath = request.url.replace(/^media:\/\/+/i, '')
-    const decodedPath = decodeURIComponent(urlPath)
-    return net.fetch(pathToFileURL(decodedPath).toString())
+  protocol.handle('media', async (request) => {
+    try {
+      const urlPath = request.url.replace(/^media:\/\/+/i, '')
+      const decodedPath = normalize(decodeURIComponent(urlPath))
+
+      if (!isAbsolute(decodedPath)) {
+        return new Response('Invalid media path', { status: 400 })
+      }
+
+      const projects = await ProjectStore.list()
+      const isProjectMedia = projects.some((project) => {
+        const projectPath = normalize(project.downloadPath)
+        const rel = relative(projectPath, decodedPath)
+        return rel && !rel.startsWith('..') && !isAbsolute(rel)
+      })
+
+      if (!isProjectMedia) {
+        return new Response('Media path is outside project folders', { status: 403 })
+      }
+
+      return net.fetch(pathToFileURL(decodedPath).toString())
+    } catch {
+      return new Response('Unable to load media', { status: 400 })
+    }
   })
 
   // Set app user model id for windows
