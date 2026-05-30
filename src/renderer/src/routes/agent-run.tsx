@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useAppStore, AgentLogEvent, AssetRecord } from '../lib/store'
 
 export default function AgentRunView(): React.JSX.Element {
@@ -13,6 +13,7 @@ export default function AgentRunView(): React.JSX.Element {
     navigate
   } = useAppStore()
   const logEndRef = useRef<HTMLDivElement>(null)
+  const [approvalSelection, setApprovalSelection] = useState<Record<string, boolean>>({})
 
   const formatCost = (input: number, output: number): string => {
     const cost = (input * 0.0025 + output * 0.01) / 1000
@@ -163,9 +164,16 @@ export default function AgentRunView(): React.JSX.Element {
     navigate('stuff')
   }
 
-  const hasPendingAssets = activeJob.beats.some((b) =>
-    b.assets.some((a: AssetRecord) => a.status === 'pending')
+  const pendingAssets = activeJob.beats.flatMap((b) =>
+    b.assets.filter((a: AssetRecord) => a.status === 'pending')
   )
+  const hasPendingAssets = pendingAssets.length > 0
+  const selectedApprovalIds = pendingAssets
+    .filter((asset) => approvalSelection[asset.id] !== false)
+    .map((asset) => asset.id)
+  const rejectedApprovalIds = pendingAssets
+    .filter((asset) => approvalSelection[asset.id] === false)
+    .map((asset) => asset.id)
 
   return (
     <div className="w-full space-y-6 pb-12 animate-fade-in-up">
@@ -214,7 +222,10 @@ export default function AgentRunView(): React.JSX.Element {
               <button
                 onClick={() => {
                   if (hasPendingAssets) {
-                    approveAndResumeJob(activeJob.jobId)
+                    approveAndResumeJob(activeJob.jobId, {
+                      approvedAssetIds: selectedApprovalIds,
+                      rejectedAssetIds: rejectedApprovalIds
+                    })
                   } else {
                     resumeJob(activeJob.jobId)
                   }
@@ -228,7 +239,7 @@ export default function AgentRunView(): React.JSX.Element {
                 {hasPendingAssets ? (
                   <>
                     <span className="material-symbols-outlined text-[18px]">verified</span>
-                    Approve &amp; Download
+                    Approve Selected
                   </>
                 ) : (
                   <>
@@ -269,6 +280,39 @@ export default function AgentRunView(): React.JSX.Element {
             )}
           </div>
         </div>
+
+        {activeJob.status === 'paused' && hasPendingAssets && (
+          <div className="rounded-xl border border-secondary/20 bg-secondary-container/25 p-4 text-xs text-on-secondary-container">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <div className="font-bold">Review selected assets before download</div>
+                <div className="mt-0.5 text-[11px] opacity-80">
+                  {selectedApprovalIds.length} approved, {rejectedApprovalIds.length} rejected.
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setApprovalSelection({})}
+                  className="rounded-lg bg-white/70 px-3 py-2 font-semibold text-on-secondary-container shadow-sm"
+                >
+                  Approve All
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setApprovalSelection(
+                      Object.fromEntries(pendingAssets.map((asset) => [asset.id, false]))
+                    )
+                  }
+                  className="rounded-lg bg-white/70 px-3 py-2 font-semibold text-on-secondary-container shadow-sm"
+                >
+                  Reject All
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-6 pt-2 border-t border-black/4">
           {/* Progress Bar */}
@@ -433,6 +477,43 @@ export default function AgentRunView(): React.JSX.Element {
                               )}
                             </div>
                           </div>
+
+                          {activeJob.status === 'paused' && asset.status === 'pending' && (
+                            <div className="absolute inset-x-1.5 top-1.5 flex gap-1">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setApprovalSelection((current) => ({
+                                    ...current,
+                                    [asset.id]: true
+                                  }))
+                                }
+                                className={`flex-1 rounded bg-white/90 py-1 font-mono text-[8px] font-bold shadow-sm ${
+                                  approvalSelection[asset.id] === false
+                                    ? 'text-outline'
+                                    : 'text-secondary'
+                                }`}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setApprovalSelection((current) => ({
+                                    ...current,
+                                    [asset.id]: false
+                                  }))
+                                }
+                                className={`flex-1 rounded bg-white/90 py-1 font-mono text-[8px] font-bold shadow-sm ${
+                                  approvalSelection[asset.id] === false
+                                    ? 'text-error'
+                                    : 'text-outline'
+                                }`}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

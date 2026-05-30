@@ -37,10 +37,10 @@ function isMaskedSecret(value: string): boolean {
 async function getPublicSettingsWithSecretStatus(): Promise<Record<string, unknown>> {
   const settings = await SettingsStore.getSettings()
 
-  const openaiKey = await SecureSecrets.getSecret('openaiKey')
-  const geminiKey = await SecureSecrets.getSecret('geminiKey')
-  const openrouterKey = await SecureSecrets.getSecret('openrouterKey')
-  const pexelsKey = await SecureSecrets.getSecret('pexelsKey')
+  const openaiKey = await SecureSecrets.hasSecret('openaiKey')
+  const geminiKey = await SecureSecrets.hasSecret('geminiKey')
+  const openrouterKey = await SecureSecrets.hasSecret('openrouterKey')
+  const pexelsKey = await SecureSecrets.hasSecret('pexelsKey')
 
   return {
     ...settings,

@@ -113,7 +113,10 @@ interface AppStore {
   }) => Promise<string>
   pauseJob: (id: string) => Promise<void>
   resumeJob: (id: string) => Promise<void>
-  approveAndResumeJob: (id: string) => Promise<void>
+  approveAndResumeJob: (
+    id: string,
+    decision?: { approvedAssetIds?: string[]; rejectedAssetIds?: string[] }
+  ) => Promise<void>
   cancelJob: (id: string) => Promise<void>
   rerunJob: (id: string) => Promise<void>
 }
@@ -282,8 +285,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     await get().loadJobs()
   },
 
-  approveAndResumeJob: async (id) => {
-    await api.jobs.approveAndResume(id)
+  approveAndResumeJob: async (id, decision) => {
+    await api.jobs.approveAndResume(id, decision)
     if (get().activeJobId === id) {
       await get().loadActiveJob(id)
     }

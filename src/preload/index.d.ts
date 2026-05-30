@@ -18,7 +18,10 @@ declare global {
         start(input: Record<string, unknown>): Promise<string>
         pause(jobId: string): Promise<void>
         resume(jobId: string): Promise<void>
-        approveAndResume(jobId: string): Promise<void>
+        approveAndResume(
+          jobId: string,
+          decision?: { approvedAssetIds?: string[]; rejectedAssetIds?: string[] }
+        ): Promise<void>
         cancel(jobId: string): Promise<void>
         rerun(jobId: string): Promise<string>
         get(jobId: string): Promise<Record<string, unknown>>

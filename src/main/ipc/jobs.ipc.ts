@@ -23,6 +23,13 @@ const StartJobInputSchema = z.object({
   maxTotalDownloads: z.number().min(1).max(100)
 })
 
+const ApprovalDecisionSchema = z
+  .object({
+    approvedAssetIds: z.array(z.string()).optional(),
+    rejectedAssetIds: z.array(z.string()).optional()
+  })
+  .optional()
+
 function broadcastJobEvent(event: unknown): void {
   const windows = BrowserWindow.getAllWindows()
   for (const w of windows) {
@@ -121,7 +128,8 @@ export function registerJobsHandlers(): void {
     }
   })
 
-  ipcMain.handle('jobs:approveAndResume', async (_, jobId: string): Promise<void> => {
+  ipcMain.handle('jobs:approveAndResume', async (_, jobId: string, rawDecision): Promise<void> => {
+    const decision = ApprovalDecisionSchema.parse(rawDecision) || {}
     let runner = AgentRunner.getActive(jobId)
     if (!runner) {
       const summary = await ProjectStore.get(jobId)
@@ -135,7 +143,7 @@ export function registerJobsHandlers(): void {
     }
 
     if (runner) {
-      await runner.approveAndResume()
+      await runner.approveAndResume(decision)
     }
   })
 

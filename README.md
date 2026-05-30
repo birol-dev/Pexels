@@ -1,4 +1,4 @@
-# StockFinder AI (v1.2.3)
+# StockFinder AI (v1.2.4)
 
 An Electron-based desktop application that helps YouTube creators, short-form editors, and visual producers turn script narratives into a curated local asset pack of stock b-roll videos and photos.
 
@@ -49,6 +49,20 @@ $ npm run build:linux
 ```
 
 ## Changelog
+
+### v1.2.4 - Release Hardening & Review Controls (2026-05-30)
+
+- **Secret Storage Fail-Closed**:
+  - Removed plaintext API key fallback when Electron `safeStorage` is unavailable or encryption fails.
+  - Legacy plaintext secrets are refused until the user re-enters keys for encrypted storage.
+- **Per-Asset Approval**:
+  - Added approve/reject controls for each pending asset when human approval mode pauses a run.
+  - Rejected assets are recorded with a user rejection reason instead of disappearing silently.
+- **Resume Continuity**:
+  - Preserved saved agent message history across resumed runs instead of restarting every agent loop.
+- **Offline Onboarding**:
+  - Replaced the remote onboarding background image with a local CSS background.
+  - Removed the external onboarding image host from the renderer Content Security Policy.
 
 ### v1.1.0 - Hardening & Alignment Release (2026-05-27)
 

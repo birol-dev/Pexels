@@ -42,6 +42,11 @@ export interface AssetRecord {
   progress?: number
 }
 
+export interface ApprovalDecision {
+  approvedAssetIds?: string[]
+  rejectedAssetIds?: string[]
+}
+
 export interface AgentLogEvent {
   timestamp: string
   type: 'thought' | 'tool_call' | 'tool_result' | 'progress' | 'error' | 'info'
@@ -744,7 +749,9 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       }
     ]
 
-    this.messages = [{ role: 'user', content: 'Begin searching and downloading assets.' }]
+    if (this.messages.length === 0) {
+      this.messages = [{ role: 'user', content: 'Begin searching and downloading assets.' }]
+    }
     let iteration = 0
 
     while (iteration < this.maxIterations && this.status === 'running') {
@@ -1232,7 +1239,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     })
   }
 
-  public async approveAndResume(): Promise<void> {
+  public async approveAndResume(decision: ApprovalDecision = {}): Promise<void> {
     if (this.status !== 'paused') return
 
     // Find all pending assets in beats
@@ -1245,9 +1252,42 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       }
     }
 
-    if (pendingAssets.length === 0) {
+    const approvedSet = decision.approvedAssetIds
+      ? new Set(decision.approvedAssetIds)
+      : new Set(pendingAssets.map(({ asset }) => asset.id))
+    const rejectedSet = new Set(decision.rejectedAssetIds || [])
+
+    for (const { asset, beat } of pendingAssets) {
+      if (!rejectedSet.has(asset.id)) continue
+
+      asset.status = 'failed'
+      asset.error = 'Rejected by user'
+      if (!beat.rejectedAssets) {
+        beat.rejectedAssets = []
+      }
+      if (
+        !beat.rejectedAssets.some((r) => r.type === asset.type && r.pexelsId === asset.pexelsId)
+      ) {
+        beat.rejectedAssets.push({
+          type: asset.type,
+          pexelsId: asset.pexelsId,
+          reason: 'Rejected by user'
+        })
+      }
+    }
+
+    const approvedPendingAssets = pendingAssets.filter(
+      ({ asset }) => approvedSet.has(asset.id) && !rejectedSet.has(asset.id)
+    )
+
+    if (approvedPendingAssets.length === 0) {
       this.status = 'running'
       this.abortController = new AbortController()
+      if (rejectedSet.size > 0) {
+        this.log('info', `User rejected ${rejectedSet.size} pending assets. Resuming agent loop.`)
+        this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
+        await this.writeManifest()
+      }
       this.runAgentLoop()
         .then(async () => {
           if (this.status === 'running') {
@@ -1276,10 +1316,15 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       return
     }
 
-    this.log('info', `User approved ${pendingAssets.length} assets. Starting downloads.`)
+    this.log(
+      'info',
+      `User approved ${approvedPendingAssets.length} assets${
+        rejectedSet.size > 0 ? ` and rejected ${rejectedSet.size}` : ''
+      }. Starting downloads.`
+    )
 
     // Start downloads and mark them as downloading
-    for (const { asset, beat } of pendingAssets) {
+    for (const { asset, beat } of approvedPendingAssets) {
       asset.status = 'downloading'
       beat.status = 'downloading'
 
@@ -1298,7 +1343,9 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
 
     this.messages.push({
       role: 'user',
-      content: `User has approved the selections: ${pendingAssets.map((p) => `${p.asset.type} ${p.asset.pexelsId}`).join(', ')}. The downloads are now in progress.`
+      content: `User has approved the selections: ${approvedPendingAssets.map((p) => `${p.asset.type} ${p.asset.pexelsId}`).join(', ')}.${
+        rejectedSet.size > 0 ? ` User rejected: ${Array.from(rejectedSet).join(', ')}.` : ''
+      } The approved downloads are now in progress.`
     })
 
     this.status = 'running'

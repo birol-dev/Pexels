@@ -31,22 +31,27 @@ export class SecureSecrets {
     await fs.writeFile(filePath, JSON.stringify(secrets, null, 2), 'utf-8')
   }
 
+  public static async hasSecret(key: string): Promise<boolean> {
+    const secrets = await this.readSecretsFile()
+    return Boolean(secrets[key])
+  }
+
   public static async getSecret(key: string): Promise<string> {
     const secrets = await this.readSecretsFile()
     const encryptedHex = secrets[key]
     if (!encryptedHex) return ''
 
     if (!safeStorage.isEncryptionAvailable()) {
-      console.warn('safeStorage is not available. Returning raw value.')
-      if (encryptedHex.startsWith(ENCRYPTED_PREFIX)) return ''
-      return encryptedHex.startsWith(PLAIN_PREFIX)
-        ? encryptedHex.slice(PLAIN_PREFIX.length)
-        : encryptedHex
+      throw new Error(
+        'Secure credential storage is unavailable on this system. API keys cannot be read safely.'
+      )
     }
 
     try {
       if (encryptedHex.startsWith(PLAIN_PREFIX)) {
-        return encryptedHex.slice(PLAIN_PREFIX.length)
+        throw new Error(
+          'A legacy plaintext API key was found. Re-enter the key so it can be encrypted before use.'
+        )
       }
 
       const hex = encryptedHex.startsWith(ENCRYPTED_PREFIX)
@@ -69,18 +74,16 @@ export class SecureSecrets {
     }
 
     if (!safeStorage.isEncryptionAvailable()) {
-      console.warn('safeStorage is not available. Saving in plaintext.')
-      secrets[key] = `${PLAIN_PREFIX}${value}`
+      throw new Error(
+        'Secure credential storage is unavailable on this system. API keys were not saved.'
+      )
     } else {
       try {
         const encryptedBuffer = safeStorage.encryptString(value)
         secrets[key] = `${ENCRYPTED_PREFIX}${encryptedBuffer.toString('hex')}`
       } catch (error) {
-        console.error(
-          `Failed to encrypt secret for key ${key} using safeStorage. Falling back to plain:`,
-          error
-        )
-        secrets[key] = `${PLAIN_PREFIX}${value}`
+        console.error(`Failed to encrypt secret for key ${key} using safeStorage:`, error)
+        throw new Error('Failed to encrypt API key. The key was not saved.')
       }
     }
 

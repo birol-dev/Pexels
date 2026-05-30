@@ -185,14 +185,8 @@ export default function OnboardingView(): React.JSX.Element {
 
   return (
     <div className="bg-background text-on-surface h-screen w-full overflow-hidden relative flex flex-col items-center justify-center selection:bg-primary-container selection:text-on-primary-container font-sans">
-      {/* Atmospheric Background Image */}
-      <div className="absolute inset-0 z-0">
-        <img
-          alt="Background Atmosphere"
-          className="w-full h-full object-cover opacity-60 mix-blend-multiply"
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnJCxbchQU3jNk52as3YYbJZb4q1YHHUjJWHOD0MTunEy7_cjPh8oqI_nyOIOW512WqYNYL5WQzsbngLwPDNnvMeTQSfRJeZQlLZlT-9WRaeAE4dOZKgjRo2ndIGWqHa9kfr6WdkpVdfK3eJSXT0_SGH361JaiQORn5RuYnxLf933Qq2j3xssc4ChVK0NFhqIzxWI8xtrFkV6uqU57-r_ElKskx50U95H3OAbZe7dXahsLnUtBBrUovJCcXy1DAKw2XMvmCWjGK4U"
-        />
-      </div>
+      {/* Offline atmospheric background */}
+      <div className="absolute inset-0 z-0 bg-[linear-gradient(135deg,#f9f9ff_0%,#ecedf9_52%,#d8e2ff_100%)]" />
 
       {/* Floating Decorative Glass Elements to enhance the "Aero" feel */}
       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary-fixed-dim/30 rounded-full blur-[80px] z-0 pointer-events-none"></div>
