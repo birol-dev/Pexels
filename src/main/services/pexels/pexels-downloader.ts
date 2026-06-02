@@ -16,6 +16,8 @@ export interface DownloadTask {
   error?: string
   filePath?: string
   retries: number
+  cancelled?: boolean
+  backingOff?: boolean
 }
 
 export class PexelsDownloader {
@@ -25,6 +27,7 @@ export class PexelsDownloader {
   private onTaskUpdate?: (task: DownloadTask) => void
   private requestTimeoutSeconds = 60
   private idleResolvers: Array<() => void> = []
+  private activeControllers = new Map<string, AbortController>()
 
   constructor(
     maxConcurrency = 3,
@@ -47,6 +50,21 @@ export class PexelsDownloader {
 
   public getTasks(): DownloadTask[] {
     return this.queue
+  }
+
+  public cancelAll(reason = 'Download cancelled'): void {
+    for (const task of this.queue) {
+      if (task.status !== 'pending' && task.status !== 'downloading') continue
+
+      task.cancelled = true
+      task.status = 'failed'
+      task.error = reason
+      this.activeControllers.get(task.id)?.abort()
+
+      if (this.onTaskUpdate) this.onTaskUpdate(task)
+    }
+
+    this.resolveIdleIfNeeded()
   }
 
   public async waitForIdle(): Promise<void> {
@@ -88,7 +106,7 @@ export class PexelsDownloader {
   private processNext(): void {
     if (this.activeCount >= this.maxConcurrency) return
 
-    const nextTask = this.queue.find((t) => t.status === 'pending')
+    const nextTask = this.queue.find((t) => t.status === 'pending' && !t.backingOff)
     if (!nextTask) {
       this.resolveIdleIfNeeded()
       return
@@ -108,17 +126,26 @@ export class PexelsDownloader {
         this.processNext()
       })
       .catch(async (err) => {
-        if (nextTask.retries < 2) {
+        if (!nextTask.cancelled && nextTask.retries < 2) {
           nextTask.retries++
           nextTask.status = 'pending'
+          nextTask.backingOff = true
           this.activeCount--
           // Exponential backoff
           const delay = Math.pow(2, nextTask.retries) * 1000
           if (this.onTaskUpdate) this.onTaskUpdate(nextTask)
-          setTimeout(() => this.processNext(), delay)
+          setTimeout(() => {
+            nextTask.backingOff = false
+            if (this.onTaskUpdate) this.onTaskUpdate(nextTask)
+            this.processNext()
+          }, delay)
         } else {
           nextTask.status = 'failed'
-          nextTask.error = err instanceof Error ? err.message : String(err)
+          nextTask.error = nextTask.cancelled
+            ? nextTask.error || 'Download cancelled'
+            : err instanceof Error
+              ? err.message
+              : String(err)
           this.activeCount--
           if (this.onTaskUpdate) this.onTaskUpdate(nextTask)
           this.resolveIdleIfNeeded()
@@ -144,13 +171,17 @@ export class PexelsDownloader {
   }
 
   private async runDownload(task: DownloadTask): Promise<string> {
-    const slugifiedQuery =
+    let slugifiedQuery =
       task.query
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '') || 'asset'
+    if (slugifiedQuery.length > 50) {
+      slugifiedQuery = slugifiedQuery.slice(0, 50).replace(/-$/, '')
+    }
 
     const controller = new AbortController()
+    this.activeControllers.set(task.id, controller)
     let timeoutId = setTimeout(() => controller.abort(), this.requestTimeoutSeconds * 1000)
 
     const resetTimeout = (): void => {
@@ -163,15 +194,18 @@ export class PexelsDownloader {
       response = await fetch(task.url, { signal: controller.signal })
     } catch (err) {
       clearTimeout(timeoutId)
+      this.activeControllers.delete(task.id)
       throw err
     }
 
     if (!response.ok) {
       clearTimeout(timeoutId)
+      this.activeControllers.delete(task.id)
       throw new Error(`HTTP Error: ${response.status} ${response.statusText}`)
     }
     if (!response.body) {
       clearTimeout(timeoutId)
+      this.activeControllers.delete(task.id)
       throw new Error('Response body is empty')
     }
 
@@ -197,12 +231,20 @@ export class PexelsDownloader {
     const tempPath = finalPath + '.tmp'
     const fileStream = fs.createWriteStream(tempPath)
 
+    let writeError: Error | null = null
+    fileStream.on('error', (err) => {
+      writeError = err
+    })
+
     const reader = response.body.getReader()
     const contentLength = Number(response.headers.get('content-length') || 0)
     let downloadedBytes = 0
 
     try {
       while (true) {
+        if (writeError) {
+          throw writeError
+        }
         resetTimeout()
         const { done, value } = await reader.read()
         if (done) break
@@ -224,15 +266,21 @@ export class PexelsDownloader {
 
       // Wait for stream to finish writing fully
       await new Promise<void>((resolve, reject) => {
+        if (writeError) {
+          reject(writeError)
+          return
+        }
         fileStream.on('finish', () => resolve())
         fileStream.on('error', (err) => reject(err))
       })
 
       // Rename temp file to final destination path
       await fsPromises.rename(tempPath, finalPath)
+      this.activeControllers.delete(task.id)
       return finalPath
     } catch (error) {
       clearTimeout(timeoutId)
+      this.activeControllers.delete(task.id)
       fileStream.destroy()
       try {
         await fsPromises.unlink(tempPath)

@@ -33,4 +33,5 @@ Thumbs.db
 /stitch_stockfinder_ai/**
 !/stitch_stockfinder_ai/**/
 !/stitch_stockfinder_ai/**/*.svg
+.agents
 

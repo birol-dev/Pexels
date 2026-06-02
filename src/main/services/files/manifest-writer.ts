@@ -26,12 +26,15 @@ export interface ManifestData {
 
 export class ManifestWriter {
   public static cleanFolderName(title: string): string {
-    return (
+    let cleaned =
       title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '') || 'untitled-project'
-    )
+    if (cleaned.length > 80) {
+      cleaned = cleaned.slice(0, 80).replace(/-$/, '')
+    }
+    return cleaned
   }
 
   public static async initializeProjectFolder(

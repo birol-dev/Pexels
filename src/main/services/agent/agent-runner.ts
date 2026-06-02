@@ -412,6 +412,7 @@ export class AgentRunner extends EventEmitter {
   public async cancel(): Promise<void> {
     this.status = 'cancelled'
     this.log('info', 'Agent run cancelled by user')
+    this.downloader?.cancelAll('Job cancelled by user')
     if (this.abortController) {
       this.abortController.abort()
     }
@@ -530,14 +531,18 @@ Output ONLY a raw JSON array matching this format (no markdown blocks, no wrappe
     let parsedBeats: Array<{ text?: string; visualPrompt?: string }> = []
     const content = response.assistantMessage.content || ''
     try {
-      const cleanJson = content
-        .replace(/```json/g, '')
-        .replace(/```/g, '')
-        .trim()
+      const startIndex = content.indexOf('[')
+      const endIndex = content.lastIndexOf(']')
+      if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
+        throw new Error('No JSON array structure found in LLM response.')
+      }
+      const cleanJson = content.substring(startIndex, endIndex + 1).trim()
       parsedBeats = JSON.parse(cleanJson) as Array<{ text?: string; visualPrompt?: string }>
-    } catch {
+    } catch (err) {
       this.log('error', `Failed to parse beats JSON. Raw content: ${content}`)
-      throw new Error('Script parsing returned invalid JSON.')
+      throw new Error(
+        `Script parsing returned invalid JSON format: ${err instanceof Error ? err.message : String(err)}`
+      )
     }
 
     if (!Array.isArray(parsedBeats)) {

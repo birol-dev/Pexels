@@ -476,13 +476,12 @@ class GeminiProvider implements LlmProvider {
         continue // handled separately in systemInstruction
       }
 
+      const role = msg.role === 'assistant' ? 'model' : 'user'
+      const parts: GeminiPart[] = []
+
       if (msg.role === 'user') {
-        contents.push({
-          role: 'user',
-          parts: [{ text: msg.content || '' }]
-        })
+        parts.push({ text: msg.content || '' })
       } else if (msg.role === 'assistant') {
-        const parts: GeminiPart[] = []
         if (msg.content) {
           parts.push({ text: msg.content })
         }
@@ -496,10 +495,6 @@ class GeminiProvider implements LlmProvider {
             })
           }
         }
-        contents.push({
-          role: 'model',
-          parts
-        })
       } else if (msg.role === 'tool') {
         let parsedResponse: Record<string, unknown> = {}
         try {
@@ -508,16 +503,23 @@ class GeminiProvider implements LlmProvider {
           parsedResponse = { response: msg.content || '' }
         }
 
+        parts.push({
+          functionResponse: {
+            name: msg.name || 'unknown_tool',
+            response: parsedResponse
+          }
+        })
+      }
+
+      if (parts.length === 0) continue
+
+      const lastContent = contents[contents.length - 1]
+      if (lastContent && lastContent.role === role) {
+        lastContent.parts.push(...parts)
+      } else {
         contents.push({
-          role: 'user',
-          parts: [
-            {
-              functionResponse: {
-                name: msg.name || 'unknown_tool',
-                response: parsedResponse
-              }
-            }
-          ]
+          role,
+          parts
         })
       }
     }

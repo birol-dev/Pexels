@@ -41,25 +41,29 @@ export class SecureSecrets {
     const encryptedHex = secrets[key]
     if (!encryptedHex) return ''
 
+    if (encryptedHex.startsWith(PLAIN_PREFIX)) {
+      return encryptedHex.slice(PLAIN_PREFIX.length)
+    }
+
     if (!safeStorage.isEncryptionAvailable()) {
-      throw new Error(
-        'Secure credential storage is unavailable on this system. API keys cannot be read safely.'
-      )
+      if (encryptedHex.startsWith(ENCRYPTED_PREFIX)) {
+        throw new Error(
+          'Secure credential storage is unavailable on this system. Cannot decrypt encrypted keys.'
+        )
+      }
+      return encryptedHex
     }
 
     try {
-      if (encryptedHex.startsWith(PLAIN_PREFIX)) {
-        throw new Error(
-          'A legacy plaintext API key was found. Re-enter the key so it can be encrypted before use.'
-        )
-      }
-
       const hex = encryptedHex.startsWith(ENCRYPTED_PREFIX)
         ? encryptedHex.slice(ENCRYPTED_PREFIX.length)
         : encryptedHex
       const encryptedBuffer = Buffer.from(hex, 'hex')
       return safeStorage.decryptString(encryptedBuffer)
     } catch (error) {
+      if (!encryptedHex.startsWith(ENCRYPTED_PREFIX)) {
+        return encryptedHex
+      }
       console.error(`Failed to decrypt secret for key ${key}:`, error)
       return ''
     }
@@ -74,16 +78,17 @@ export class SecureSecrets {
     }
 
     if (!safeStorage.isEncryptionAvailable()) {
-      throw new Error(
-        'Secure credential storage is unavailable on this system. API keys were not saved.'
-      )
+      secrets[key] = `${PLAIN_PREFIX}${value}`
     } else {
       try {
         const encryptedBuffer = safeStorage.encryptString(value)
         secrets[key] = `${ENCRYPTED_PREFIX}${encryptedBuffer.toString('hex')}`
       } catch (error) {
-        console.error(`Failed to encrypt secret for key ${key} using safeStorage:`, error)
-        throw new Error('Failed to encrypt API key. The key was not saved.')
+        console.error(
+          `Failed to encrypt secret for key ${key} using safeStorage, falling back to plain:`,
+          error
+        )
+        secrets[key] = `${PLAIN_PREFIX}${value}`
       }
     }
 
