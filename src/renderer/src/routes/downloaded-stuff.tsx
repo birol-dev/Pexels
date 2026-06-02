@@ -105,9 +105,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
   const filteredAssets = assets.filter((asset) => {
     // Search filter
     const matchesSearch =
-      asset.photographer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      asset.query.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      asset.beatText.toLowerCase().includes(searchQuery.toLowerCase())
+      (asset.photographer || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (asset.query || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (asset.beatText || '').toLowerCase().includes(searchQuery.toLowerCase())
 
     if (!matchesSearch) return false
 

@@ -263,15 +263,15 @@ export class AgentRunner extends EventEmitter {
           ) {
             beat.status = 'pending'
           }
-          if (beat.assets) {
-            beat.assets = beat.assets.map((asset: AssetRecord) => {
-              if (asset.status === 'downloading') {
-                asset.status = 'pending'
-                asset.progress = 0
-              }
-              return asset
-            })
-          }
+          beat.assets = beat.assets || []
+          beat.searchQueries = beat.searchQueries || []
+          beat.assets = beat.assets.map((asset: AssetRecord) => {
+            if (asset.status === 'downloading') {
+              asset.status = 'pending'
+              asset.progress = 0
+            }
+            return asset
+          })
           return beat
         })
         this.log('info', `Loaded ${this.beats.length} beats from existing manifest.`)
@@ -289,7 +289,14 @@ export class AgentRunner extends EventEmitter {
           this.logs = logData
             .split('\n')
             .filter((line) => line.trim())
-            .map((line) => JSON.parse(line) as AgentLogEvent)
+            .map((line) => {
+              try {
+                return JSON.parse(line) as AgentLogEvent
+              } catch {
+                return null
+              }
+            })
+            .filter((log): log is AgentLogEvent => log !== null)
         }
       } catch (logErr) {
         console.warn('Failed to load logs from agent-log.jsonl:', logErr)
@@ -806,7 +813,17 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
 
       // Handle all tool calls in parallel or sequentially
       for (const tc of turnResult.toolCalls) {
-        if (this.status !== 'running') break
+        if (this.status !== 'running') {
+          this.messages.push({
+            role: 'tool',
+            tool_call_id: tc.id,
+            name: tc.name,
+            content: JSON.stringify({
+              error: `Tool call skipped because agent execution was ${this.status}.`
+            })
+          })
+          continue
+        }
         await this.executeToolCall(tc)
       }
     }
@@ -1473,10 +1490,10 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
 
     // Update counts
     this.downloadedCount = this.beats
-      .flatMap((b) => b.assets)
+      .flatMap((b) => b.assets || [])
       .filter((a) => a.status === 'completed').length
     this.failedCount = this.beats
-      .flatMap((b) => b.assets)
+      .flatMap((b) => b.assets || [])
       .filter((a) => a.status === 'failed').length
 
     // Write manifest update

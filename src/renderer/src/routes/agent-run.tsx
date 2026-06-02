@@ -16,7 +16,7 @@ export default function AgentRunView(): React.JSX.Element {
   const [approvalSelection, setApprovalSelection] = useState<Record<string, boolean>>({})
 
   const formatCost = (input: number, output: number): string => {
-    const cost = (input * 0.0025 + output * 0.01) / 1000
+    const cost = ((input || 0) * 0.0025 + (output || 0) * 0.01) / 1000
     return cost.toFixed(4)
   }
 
@@ -165,7 +165,7 @@ export default function AgentRunView(): React.JSX.Element {
   }
 
   const pendingAssets = activeJob.beats.flatMap((b) =>
-    b.assets.filter((a: AssetRecord) => a.status === 'pending')
+    (b.assets || []).filter((a: AssetRecord) => a.status === 'pending')
   )
   const hasPendingAssets = pendingAssets.length > 0
   const selectedApprovalIds = pendingAssets

@@ -203,7 +203,14 @@ export function registerJobsHandlers(): void {
         logs = logData
           .split('\n')
           .filter((line) => line.trim())
-          .map((line) => JSON.parse(line) as unknown)
+          .map((line) => {
+            try {
+              return JSON.parse(line) as unknown
+            } catch {
+              return null
+            }
+          })
+          .filter((log) => log !== null)
       } catch {
         // Logs file may be missing, which is fine
       }

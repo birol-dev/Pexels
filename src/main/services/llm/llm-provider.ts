@@ -487,10 +487,16 @@ class GeminiProvider implements LlmProvider {
         }
         if (msg.tool_calls && msg.tool_calls.length > 0) {
           for (const tc of msg.tool_calls) {
+            let parsedArgs: Record<string, unknown> = {}
+            try {
+              parsedArgs = JSON.parse(tc.arguments) as Record<string, unknown>
+            } catch {
+              console.warn(`Failed to parse tool call arguments: ${tc.arguments}`)
+            }
             parts.push({
               functionCall: {
                 name: tc.name,
-                args: JSON.parse(tc.arguments) as Record<string, unknown>
+                args: parsedArgs
               }
             })
           }
@@ -498,7 +504,12 @@ class GeminiProvider implements LlmProvider {
       } else if (msg.role === 'tool') {
         let parsedResponse: Record<string, unknown> = {}
         try {
-          parsedResponse = msg.content ? (JSON.parse(msg.content) as Record<string, unknown>) : {}
+          const parsed = msg.content ? JSON.parse(msg.content) : {}
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            parsedResponse = parsed as Record<string, unknown>
+          } else {
+            parsedResponse = { result: parsed }
+          }
         } catch {
           parsedResponse = { response: msg.content || '' }
         }
