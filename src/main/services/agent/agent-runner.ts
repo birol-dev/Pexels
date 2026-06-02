@@ -1413,14 +1413,50 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     }
 
     const hostname = url.hostname.toLowerCase()
+
+    // 1. Block common local and multicast/DNS-SD host suffixes
+    if (hostname === 'localhost' || hostname.endsWith('.local') || hostname.endsWith('.internal')) {
+      throw new Error(`Security Check Failed: Download URL cannot reference private network hosts.`)
+    }
+
+    // 2. Block private IPv4 and loopbacks
+    const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/
+    const match = hostname.match(ipv4Regex)
+    if (match) {
+      const parts = match.slice(1).map(Number)
+      if (parts.some((p) => p < 0 || p > 255)) {
+        throw new Error(`Invalid IP address format.`)
+      }
+
+      const [p1, p2] = parts
+      // 127.0.0.0/8 (loopback)
+      // 10.0.0.0/8 (private Class A)
+      // 172.16.0.0/12 (private Class B: 172.16.x.x - 172.31.x.x)
+      // 192.168.0.0/16 (private Class C)
+      // 169.254.0.0/16 (link-local)
+      // 0.0.0.0 (any)
+      if (
+        p1 === 127 ||
+        p1 === 10 ||
+        (p1 === 172 && p2 >= 16 && p2 <= 31) ||
+        (p1 === 192 && p2 === 168) ||
+        (p1 === 169 && p2 === 254) ||
+        p1 === 0
+      ) {
+        throw new Error(
+          `Security Check Failed: Download URL cannot reference private network hosts.`
+        )
+      }
+    }
+
+    // 3. Block IPv6 loopback, link-local, unique-local, and multicast addresses
     if (
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '0.0.0.0' ||
-      hostname.startsWith('192.168.') ||
-      hostname.startsWith('10.') ||
-      hostname.startsWith('172.16.') ||
-      hostname.endsWith('.local')
+      hostname === '[::1]' ||
+      hostname === '[::]' ||
+      hostname.startsWith('[fe80:') ||
+      hostname.startsWith('[fc00:') ||
+      hostname.startsWith('[fd00:') ||
+      hostname.startsWith('[ff00:')
     ) {
       throw new Error(`Security Check Failed: Download URL cannot reference private network hosts.`)
     }

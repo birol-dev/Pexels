@@ -207,7 +207,10 @@ class OpenAiProvider implements LlmProvider {
         total_tokens?: number
       }
     }
-    const choice = data.choices[0]
+    const choice = data.choices?.[0]
+    if (!choice) {
+      throw new Error('OpenAI API returned an empty choices array.')
+    }
     const choiceMsg = choice.message
 
     const toolCalls: NormalizedToolCall[] = []
@@ -353,7 +356,10 @@ class OpenRouterProvider implements LlmProvider {
       throw new Error(`OpenRouter API Error: ${data.error.message || JSON.stringify(data.error)}`)
     }
 
-    const choice = data.choices[0]
+    const choice = data.choices?.[0]
+    if (!choice) {
+      throw new Error('OpenRouter API returned an empty choices array.')
+    }
     const choiceMsg = choice.message
 
     const toolCalls: NormalizedToolCall[] = []
@@ -612,6 +618,10 @@ class GeminiProvider implements LlmProvider {
       finishReason?: string
     }
     const data = (await response.json()) as {
+      error?: {
+        message?: string
+        status?: string
+      }
       candidates?: GeminiResponseCandidate[]
       usageMetadata?: {
         promptTokenCount?: number
@@ -619,9 +629,14 @@ class GeminiProvider implements LlmProvider {
         totalTokenCount?: number
       }
     }
+    if (data.error) {
+      throw new Error(`Gemini API Error: ${data.error.message || JSON.stringify(data.error)}`)
+    }
     const candidate = data.candidates?.[0]
     if (!candidate) {
-      throw new Error('Gemini API returned no candidates. Safety block or error.')
+      throw new Error(
+        'Gemini API returned no candidates. Safety block or content validation failure.'
+      )
     }
 
     const contentParts = candidate.content?.parts || []

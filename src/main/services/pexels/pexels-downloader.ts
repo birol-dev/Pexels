@@ -1,6 +1,8 @@
 import * as fs from 'fs'
 import { promises as fsPromises } from 'fs'
 import { join } from 'path'
+import { Readable, PassThrough } from 'stream'
+import { pipeline } from 'stream/promises'
 
 export interface DownloadTask {
   id: string // unique job/task ID
@@ -139,6 +141,8 @@ export class PexelsDownloader {
             if (this.onTaskUpdate) this.onTaskUpdate(nextTask)
             this.processNext()
           }, delay)
+          // Process other pending tasks immediately while this one backs off
+          this.processNext()
         } else {
           nextTask.status = 'failed'
           nextTask.error = nextTask.cancelled
@@ -231,48 +235,30 @@ export class PexelsDownloader {
     const tempPath = finalPath + '.tmp'
     const fileStream = fs.createWriteStream(tempPath)
 
-    let writeError: Error | null = null
-    fileStream.on('error', (err) => {
-      writeError = err
-    })
-
-    const reader = response.body.getReader()
     const contentLength = Number(response.headers.get('content-length') || 0)
     let downloadedBytes = 0
 
-    try {
-      while (true) {
-        if (writeError) {
-          throw writeError
-        }
-        resetTimeout()
-        const { done, value } = await reader.read()
-        if (done) break
-
-        fileStream.write(Buffer.from(value))
-        downloadedBytes += value.length
-
-        if (contentLength > 0) {
-          const newProgress = Math.round((downloadedBytes / contentLength) * 100)
-          if (newProgress !== task.progress) {
-            task.progress = newProgress
-            if (this.onTaskUpdate) this.onTaskUpdate(task)
-          }
+    // PassThrough stream taps into the data flow to update progress and reset the request timeout
+    const progressStream = new PassThrough()
+    progressStream.on('data', (chunk: Buffer) => {
+      resetTimeout()
+      downloadedBytes += chunk.length
+      if (contentLength > 0) {
+        const newProgress = Math.round((downloadedBytes / contentLength) * 100)
+        if (newProgress !== task.progress) {
+          task.progress = newProgress
+          if (this.onTaskUpdate) this.onTaskUpdate(task)
         }
       }
+    })
+
+    try {
+      const nodeReadable = Readable.fromWeb(
+        response.body as unknown as Parameters<typeof Readable.fromWeb>[0]
+      )
+      await pipeline(nodeReadable, progressStream, fileStream, { signal: controller.signal })
 
       clearTimeout(timeoutId)
-      fileStream.end()
-
-      // Wait for stream to finish writing fully
-      await new Promise<void>((resolve, reject) => {
-        if (writeError) {
-          reject(writeError)
-          return
-        }
-        fileStream.on('finish', () => resolve())
-        fileStream.on('error', (err) => reject(err))
-      })
 
       // Rename temp file to final destination path
       await fsPromises.rename(tempPath, finalPath)
@@ -282,6 +268,7 @@ export class PexelsDownloader {
       clearTimeout(timeoutId)
       this.activeControllers.delete(task.id)
       fileStream.destroy()
+      progressStream.destroy()
       try {
         await fsPromises.unlink(tempPath)
       } catch {

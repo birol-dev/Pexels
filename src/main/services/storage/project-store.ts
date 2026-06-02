@@ -24,6 +24,7 @@ function getProjectsFile(): string {
 
 export class ProjectStore {
   private static cachedProjects: JobSummary[] | null = null
+  private static writeQueue: Promise<void> = Promise.resolve()
 
   private static async readProjectsFile(): Promise<JobSummary[]> {
     if (this.cachedProjects) return this.cachedProjects
@@ -41,12 +42,15 @@ export class ProjectStore {
   private static async writeProjectsFile(projects: JobSummary[]): Promise<void> {
     this.cachedProjects = projects
     const filePath = getProjectsFile()
-    try {
-      await fs.mkdir(dirname(filePath), { recursive: true })
-      await fs.writeFile(filePath, JSON.stringify(projects, null, 2), 'utf-8')
-    } catch (error) {
-      console.error('Failed to write projects file:', error)
-    }
+    this.writeQueue = this.writeQueue.then(async () => {
+      try {
+        await fs.mkdir(dirname(filePath), { recursive: true })
+        await fs.writeFile(filePath, JSON.stringify(projects, null, 2), 'utf-8')
+      } catch (error) {
+        console.error('Failed to write projects file:', error)
+      }
+    })
+    await this.writeQueue
   }
 
   public static async list(): Promise<JobSummary[]> {
