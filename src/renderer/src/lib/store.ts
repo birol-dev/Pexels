@@ -106,7 +106,7 @@ interface AppStore {
     title: string
     script: string
     platform: 'YouTube' | 'Shorts' | 'TikTok' | 'Instagram Reels'
-    style: 'cinematic' | 'documentary' | 'business' | 'tech' | 'nature' | 'lifestyle' | 'abstract'
+    style: string
     mix: 'videos only' | 'photos only' | 'videos + photos'
     maxAssetsPerBeat: number
     maxTotalDownloads: number
@@ -119,6 +119,7 @@ interface AppStore {
   ) => Promise<void>
   cancelJob: (id: string) => Promise<void>
   rerunJob: (id: string) => Promise<void>
+  deleteJob: (id: string) => Promise<void>
 }
 
 let eventUnsubscribe: (() => void) | null = null
@@ -307,6 +308,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const newJobId = await api.jobs.rerun(id)
       get().setActiveJobId(newJobId)
       set({ currentRoute: 'run' })
+      await get().loadJobs()
+    } finally {
+      set({ loading: false })
+    }
+  },
+
+  deleteJob: async (id) => {
+    set({ loading: true })
+    try {
+      await api.jobs.delete(id)
+      if (get().activeJobId === id) {
+        get().setActiveJobId(null)
+      }
       await get().loadJobs()
     } finally {
       set({ loading: false })

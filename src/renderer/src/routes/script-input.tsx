@@ -2,8 +2,17 @@ import React, { useEffect, useState } from 'react'
 import { useAppStore } from '../lib/store'
 
 export default function ScriptInputView(): React.JSX.Element {
-  const { startJob, jobs, loadJobs, setActiveJobId, navigate, rerunJob, settings, loadSettings } =
-    useAppStore()
+  const {
+    startJob,
+    jobs,
+    loadJobs,
+    setActiveJobId,
+    navigate,
+    rerunJob,
+    settings,
+    loadSettings,
+    deleteJob
+  } = useAppStore()
 
   // Form State
   const [title, setTitle] = useState('')
@@ -11,9 +20,8 @@ export default function ScriptInputView(): React.JSX.Element {
   const [platform, setPlatform] = useState<'YouTube' | 'Shorts' | 'TikTok' | 'Instagram Reels'>(
     'YouTube'
   )
-  const [style, setStyle] = useState<
-    'cinematic' | 'documentary' | 'business' | 'tech' | 'nature' | 'lifestyle' | 'abstract'
-  >('cinematic')
+  const [style, setStyle] = useState<string>('cinematic')
+  const [customStyleText, setCustomStyleText] = useState('')
   const [mix, setMix] = useState<'videos only' | 'photos only' | 'videos + photos'>(
     'videos + photos'
   )
@@ -65,6 +73,20 @@ export default function ScriptInputView(): React.JSX.Element {
   const handleSelectJob = (jobId: string): void => {
     setActiveJobId(jobId)
     navigate('run')
+  }
+
+  const handleDeleteJob = async (jobId: string, jobTitle: string): Promise<void> => {
+    if (
+      confirm(
+        `Are you sure you want to delete the project "${jobTitle}"?\n\nThis will permanently delete all downloaded photos, videos, and settings logs associated with this project from your hard drive.`
+      )
+    ) {
+      try {
+        await deleteJob(jobId)
+      } catch (err) {
+        alert('Failed to delete project: ' + err)
+      }
+    }
   }
 
   const getStatusBadge = (status: string): React.JSX.Element => {
@@ -130,9 +152,9 @@ export default function ScriptInputView(): React.JSX.Element {
 
       {/* Warning Panel */}
       {(!settings?.pexelsKey || !settings?.[`${settings?.llmProvider || 'openai'}Key`]) && (
-        <div className="p-4 rounded-xl flex items-center justify-between bg-tertiary-fixed/40 border border-tertiary-fixed-dim/30 text-on-tertiary-fixed-variant text-xs font-semibold shadow-sm">
+        <div className="p-4 rounded-xl flex items-center justify-between bg-tertiary/10 border border-tertiary/20 text-tertiary text-xs font-semibold shadow-sm animate-pulse-glow">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-on-tertiary-fixed-variant text-[22px] shrink-0">
+            <span className="material-symbols-outlined text-tertiary text-[22px] shrink-0">
               warning
             </span>
             <div>
@@ -159,7 +181,7 @@ export default function ScriptInputView(): React.JSX.Element {
           </div>
           <button
             onClick={() => navigate('settings')}
-            className="bg-on-tertiary-fixed-variant/10 hover:bg-on-tertiary-fixed-variant/25 text-on-tertiary-fixed-variant border-none shrink-0 font-bold px-3 py-1.5 rounded-lg transition-colors"
+            className="bg-tertiary/20 hover:bg-tertiary/30 text-tertiary border-none shrink-0 font-bold px-3 py-1.5 rounded-lg transition-colors"
           >
             Configure
           </button>
@@ -247,22 +269,24 @@ export default function ScriptInputView(): React.JSX.Element {
               >
                 Visual Mood
               </label>
-              <div className="relative">
+              <div className="relative mb-2.5">
                 <select
                   id="visual-mood"
-                  value={style}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                    setStyle(
-                      e.target.value as
-                        | 'cinematic'
-                        | 'documentary'
-                        | 'business'
-                        | 'tech'
-                        | 'nature'
-                        | 'lifestyle'
-                        | 'abstract'
-                    )
+                  value={
+                    style === 'cinematic' ||
+                    style === 'documentary' ||
+                    style === 'business' ||
+                    style === 'tech' ||
+                    style === 'nature' ||
+                    style === 'lifestyle' ||
+                    style === 'abstract'
+                      ? style
+                      : 'custom'
                   }
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                    const val = e.target.value
+                    setStyle(val === 'custom' ? customStyleText || 'custom style' : val)
+                  }}
                   className="w-full glass-input rounded-lg px-4 py-3 text-sm text-on-surface appearance-none pr-10 font-semibold cursor-pointer"
                 >
                   <option value="cinematic">Cinematic</option>
@@ -272,11 +296,33 @@ export default function ScriptInputView(): React.JSX.Element {
                   <option value="nature">Nature / Slow-mo</option>
                   <option value="lifestyle">Lifestyle / Real-life</option>
                   <option value="abstract">Abstract / Artistic</option>
+                  <option value="custom">Custom Style...</option>
                 </select>
                 <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
                   expand_more
                 </span>
               </div>
+              {!(
+                style === 'cinematic' ||
+                style === 'documentary' ||
+                style === 'business' ||
+                style === 'tech' ||
+                style === 'nature' ||
+                style === 'lifestyle' ||
+                style === 'abstract'
+              ) && (
+                <input
+                  type="text"
+                  placeholder="e.g. vintage 8mm film, cyberpunk neon, sketch illustration"
+                  value={customStyleText}
+                  onChange={(e) => {
+                    setCustomStyleText(e.target.value)
+                    setStyle(e.target.value || 'custom style')
+                  }}
+                  className="w-full glass-input rounded-lg px-4 py-2.5 text-xs text-on-surface font-semibold animate-fade-in-up"
+                  required
+                />
+              )}
             </div>
 
             {/* Asset Mix Toggle */}
@@ -284,14 +330,14 @@ export default function ScriptInputView(): React.JSX.Element {
               <label className="block font-semibold text-sm text-on-surface mb-2.5">
                 Asset Mix
               </label>
-              <div className="flex bg-white/50 rounded-lg p-1 border border-white/40 h-[46px]">
+              <div className="flex bg-white/5 rounded-lg p-1 border border-white/10 h-[46px]">
                 <button
                   type="button"
                   onClick={() => setMix('videos only')}
-                  className={`flex-1 text-center font-bold text-xs rounded-md transition-all shadow-sm ${
+                  className={`flex-1 text-center font-bold text-xs rounded-md transition-all shadow-sm border ${
                     mix === 'videos only'
-                      ? 'bg-white text-primary shadow-[0_2px_4px_rgba(0,0,0,0.05)]'
-                      : 'text-on-surface-variant hover:text-on-surface'
+                      ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_2px_8px_rgba(139,92,246,0.15)]'
+                      : 'text-on-surface-variant hover:text-on-surface border-transparent'
                   }`}
                 >
                   Videos
@@ -299,10 +345,10 @@ export default function ScriptInputView(): React.JSX.Element {
                 <button
                   type="button"
                   onClick={() => setMix('photos only')}
-                  className={`flex-1 text-center font-bold text-xs rounded-md transition-all shadow-sm ${
+                  className={`flex-1 text-center font-bold text-xs rounded-md transition-all shadow-sm border ${
                     mix === 'photos only'
-                      ? 'bg-white text-primary shadow-[0_2px_4px_rgba(0,0,0,0.05)]'
-                      : 'text-on-surface-variant hover:text-on-surface'
+                      ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_2px_8px_rgba(139,92,246,0.15)]'
+                      : 'text-on-surface-variant hover:text-on-surface border-transparent'
                   }`}
                 >
                   Photos
@@ -310,10 +356,10 @@ export default function ScriptInputView(): React.JSX.Element {
                 <button
                   type="button"
                   onClick={() => setMix('videos + photos')}
-                  className={`flex-1 text-center font-bold text-xs rounded-md transition-all shadow-sm ${
+                  className={`flex-1 text-center font-bold text-xs rounded-md transition-all shadow-sm border ${
                     mix === 'videos + photos'
-                      ? 'bg-white text-primary shadow-[0_2px_4px_rgba(0,0,0,0.05)]'
-                      : 'text-on-surface-variant hover:text-on-surface'
+                      ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_2px_8px_rgba(139,92,246,0.15)]'
+                      : 'text-on-surface-variant hover:text-on-surface border-transparent'
                   }`}
                 >
                   Both
@@ -323,7 +369,7 @@ export default function ScriptInputView(): React.JSX.Element {
           </div>
 
           {/* Limits Config Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-black/5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
             <div>
               <label
                 className="block font-semibold text-sm text-on-surface mb-2.5"
@@ -383,7 +429,7 @@ export default function ScriptInputView(): React.JSX.Element {
 
       {/* Run History Section */}
       <section className="glass-panel overflow-hidden flex flex-col rounded-2xl">
-        <div className="p-5 border-b border-black/5 flex justify-between items-center bg-white/30">
+        <div className="p-5 border-b border-white/5 flex justify-between items-center bg-white/5">
           <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-[20px]">history</span>
             Recent Pack Generations
@@ -399,7 +445,7 @@ export default function ScriptInputView(): React.JSX.Element {
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-black/2 border-b border-black/5">
+                <tr className="bg-white/5 border-b border-white/5">
                   <th className="py-3.5 px-6 font-mono text-[10px] text-outline uppercase tracking-wider font-semibold">
                     Project Title
                   </th>
@@ -422,7 +468,7 @@ export default function ScriptInputView(): React.JSX.Element {
                   <tr
                     key={job.jobId}
                     onClick={() => handleSelectJob(job.jobId)}
-                    className="list-row border-b border-black/3 hover:bg-white/40 cursor-pointer transition-colors duration-150"
+                    className="list-row border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors duration-150"
                   >
                     <td className="py-4 px-6 font-semibold">{job.title}</td>
                     <td className="py-4 px-6">{getStatusBadge(job.status)}</td>
@@ -436,17 +482,24 @@ export default function ScriptInputView(): React.JSX.Element {
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => handleSelectJob(job.jobId)}
-                          className="text-on-surface-variant hover:text-primary transition-colors p-1.5 rounded hover:bg-white/60"
+                          className="text-on-surface-variant hover:text-primary transition-colors p-1.5 rounded hover:bg-white/10"
                           title="Open View"
                         >
                           <span className="material-symbols-outlined text-[18px]">visibility</span>
                         </button>
                         <button
                           onClick={() => rerunJob(job.jobId)}
-                          className="text-on-surface-variant hover:text-primary transition-colors p-1.5 rounded hover:bg-white/60"
+                          className="text-on-surface-variant hover:text-primary transition-colors p-1.5 rounded hover:bg-white/10"
                           title="Rerun Project"
                         >
                           <span className="material-symbols-outlined text-[18px]">replay</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteJob(job.jobId, job.title)}
+                          className="text-on-surface-variant hover:text-error transition-colors p-1.5 rounded hover:bg-white/10"
+                          title="Delete Project & Files"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
                         </button>
                       </div>
                     </td>

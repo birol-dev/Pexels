@@ -120,4 +120,15 @@ export function registerAssetsHandlers(): void {
     const manifestPath = join(summary.downloadPath, 'manifest.json')
     return await fs.readFile(manifestPath, 'utf-8')
   })
+
+  ipcMain.handle('assets:openProjectFolder', async (_, jobId: string): Promise<void> => {
+    const summary = await ProjectStore.get(jobId)
+    if (!summary || !summary.downloadPath) return
+
+    try {
+      await shell.openPath(summary.downloadPath)
+    } catch (err) {
+      console.error('Failed to open project folder:', err)
+    }
+  })
 }

@@ -186,11 +186,11 @@ export default function OnboardingView(): React.JSX.Element {
   return (
     <div className="bg-background text-on-surface h-screen w-full overflow-hidden relative flex flex-col items-center justify-center selection:bg-primary-container selection:text-on-primary-container font-sans">
       {/* Offline atmospheric background */}
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(135deg,#f9f9ff_0%,#ecedf9_52%,#d8e2ff_100%)]" />
+      <div className="absolute inset-0 z-0 bg-[linear-gradient(135deg,#09090b_0%,#121215_52%,#1a102f_100%)]" />
 
       {/* Floating Decorative Glass Elements to enhance the "Aero" feel */}
-      <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary-fixed-dim/30 rounded-full blur-[80px] z-0 pointer-events-none"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary-fixed-dim/20 rounded-full blur-[100px] z-0 pointer-events-none"></div>
+      <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/5 rounded-full blur-[80px] z-0 pointer-events-none"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary-container/5 rounded-full blur-[100px] z-0 pointer-events-none"></div>
 
       {/* Progress Bar (Visible after Step 1) */}
       {step > 1 && (
@@ -205,7 +205,7 @@ export default function OnboardingView(): React.JSX.Element {
       {/* Main Wizard Card */}
       <main className="relative z-10 w-full max-w-2xl mx-6 flex flex-col animate-fade-in-up">
         {step === 1 && (
-          <div className="bg-white/55 backdrop-blur-lg border border-white/40 shadow-[0px_20px_40px_rgba(0,0,0,0.05),0px_4px_8px_rgba(0,0,0,0.04)] rounded-2xl p-12 flex flex-col items-center text-center">
+          <div className="bg-[#121216]/65 backdrop-blur-lg border border-white/5 shadow-[0px_20px_40px_rgba(0,0,0,0.25),0px_4px_8px_rgba(0,0,0,0.15)] rounded-2xl p-12 flex flex-col items-center text-center">
             {/* App Branding */}
             <div className="flex items-center gap-3 mb-12">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 shadow-sm">
@@ -244,7 +244,7 @@ export default function OnboardingView(): React.JSX.Element {
         )}
 
         {step === 2 && (
-          <div className="bg-white/55 backdrop-blur-lg border border-white/40 shadow-[0px_20px_40px_rgba(0,0,0,0.05),0px_4px_8px_rgba(0,0,0,0.04)] rounded-2xl p-10 flex flex-col gap-6">
+          <div className="bg-[#121216]/65 backdrop-blur-lg border border-white/5 shadow-[0px_20px_40px_rgba(0,0,0,0.25),0px_4px_8px_rgba(0,0,0,0.15)] rounded-2xl p-10 flex flex-col gap-6">
             {/* Header */}
             <div className="flex flex-col gap-1 text-center items-center">
               <span className="font-mono text-[11px] text-primary tracking-widest uppercase">
@@ -266,10 +266,10 @@ export default function OnboardingView(): React.JSX.Element {
             <div className="grid grid-cols-3 gap-4 mt-2">
               <button
                 onClick={() => handleProviderSelect('openai')}
-                className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all hover:bg-white/60 ${
+                className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all hover:bg-white/10 ${
                   llmProvider === 'openai'
-                    ? 'border-primary bg-white/90 shadow-[0px_4px_12px_rgba(0,88,188,0.08)]'
-                    : 'border-white/40 bg-white/30'
+                    ? 'border-primary bg-primary/10 shadow-[0px_4px_12px_rgba(139,92,246,0.15)]'
+                    : 'border-white/5 bg-white/5'
                 }`}
               >
                 <div className="mb-2">
@@ -287,10 +287,10 @@ export default function OnboardingView(): React.JSX.Element {
 
               <button
                 onClick={() => handleProviderSelect('gemini')}
-                className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all hover:bg-white/60 ${
+                className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all hover:bg-white/10 ${
                   llmProvider === 'gemini'
-                    ? 'border-primary bg-white/90 shadow-[0px_4px_12px_rgba(0,88,188,0.08)]'
-                    : 'border-white/40 bg-white/30'
+                    ? 'border-primary bg-primary/10 shadow-[0px_4px_12px_rgba(139,92,246,0.15)]'
+                    : 'border-white/5 bg-white/5'
                 }`}
               >
                 <div className="mb-2">
@@ -308,10 +308,10 @@ export default function OnboardingView(): React.JSX.Element {
 
               <button
                 onClick={() => handleProviderSelect('openrouter')}
-                className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all hover:bg-white/60 ${
+                className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all hover:bg-white/10 ${
                   llmProvider === 'openrouter'
-                    ? 'border-primary bg-white/90 shadow-[0px_4px_12px_rgba(0,88,188,0.08)]'
-                    : 'border-white/40 bg-white/30'
+                    ? 'border-primary bg-primary/10 shadow-[0px_4px_12px_rgba(139,92,246,0.15)]'
+                    : 'border-white/5 bg-white/5'
                 }`}
               >
                 <div className="mb-2">
@@ -329,7 +329,7 @@ export default function OnboardingView(): React.JSX.Element {
             </div>
 
             {/* Provider Configuration */}
-            <div className="flex flex-col gap-4 bg-white/30 p-5 rounded-xl border border-white/40 mt-1 shadow-inner">
+            <div className="flex flex-col gap-4 bg-white/2 p-5 rounded-xl border border-white/5 mt-1 shadow-inner">
               <div className="flex flex-col gap-1.5">
                 <label className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider pl-0.5">
                   API Key for {llmProvider.toUpperCase()}
@@ -427,7 +427,7 @@ export default function OnboardingView(): React.JSX.Element {
         )}
 
         {step === 3 && (
-          <div className="bg-white/55 backdrop-blur-lg border border-white/40 shadow-[0px_20px_40px_rgba(0,0,0,0.05),0px_4px_8px_rgba(0,0,0,0.04)] rounded-2xl p-10 flex flex-col gap-6">
+          <div className="bg-[#121216]/65 backdrop-blur-lg border border-white/5 shadow-[0px_20px_40px_rgba(0,0,0,0.25),0px_4px_8px_rgba(0,0,0,0.15)] rounded-2xl p-10 flex flex-col gap-6">
             {/* Header */}
             <div className="flex flex-col gap-1 text-center items-center">
               <span className="font-mono text-[11px] text-primary tracking-widest uppercase">
@@ -446,7 +446,7 @@ export default function OnboardingView(): React.JSX.Element {
             </div>
 
             {/* Pexels Setup form */}
-            <div className="flex flex-col gap-6 bg-white/30 rounded-xl p-6 border border-white/40 shadow-inner">
+            <div className="flex flex-col gap-6 bg-white/2 rounded-xl p-6 border border-white/5 shadow-inner">
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
                   <label className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider pl-0.5">
@@ -546,7 +546,7 @@ export default function OnboardingView(): React.JSX.Element {
         )}
 
         {step === 4 && (
-          <div className="bg-white/55 backdrop-blur-lg border border-white/40 shadow-[0px_20px_40px_rgba(0,0,0,0.05),0px_4px_8px_rgba(0,0,0,0.04)] rounded-2xl p-10 flex flex-col gap-6">
+          <div className="bg-[#121216]/65 backdrop-blur-lg border border-white/5 shadow-[0px_20px_40px_rgba(0,0,0,0.25),0px_4px_8px_rgba(0,0,0,0.15)] rounded-2xl p-10 flex flex-col gap-6">
             {/* Header */}
             <div className="flex flex-col gap-1 text-center items-center">
               <span className="font-mono text-[11px] text-primary tracking-widest uppercase">
@@ -565,7 +565,7 @@ export default function OnboardingView(): React.JSX.Element {
             </div>
 
             {/* Folder Selection Form */}
-            <div className="flex flex-col gap-6 bg-white/30 rounded-xl p-6 border border-white/40 shadow-inner">
+            <div className="flex flex-col gap-6 bg-white/2 rounded-xl p-6 border border-white/5 shadow-inner">
               <div className="flex flex-col gap-3 text-left">
                 <label className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider pl-0.5">
                   Default Storage Path
@@ -631,7 +631,7 @@ export default function OnboardingView(): React.JSX.Element {
         )}
 
         {step === 5 && (
-          <div className="bg-white/55 backdrop-blur-lg border border-white/40 shadow-[0px_20px_40px_rgba(0,0,0,0.05),0px_4px_8px_rgba(0,0,0,0.04)] rounded-2xl p-8 flex flex-col items-center text-center">
+          <div className="bg-[#121216]/65 backdrop-blur-lg border border-white/5 shadow-[0px_20px_40px_rgba(0,0,0,0.25),0px_4px_8px_rgba(0,0,0,0.15)] rounded-2xl p-8 flex flex-col items-center text-center">
             {/* Hero Confetti Graphic */}
             <div className="relative w-28 h-28 mb-6 flex items-center justify-center">
               <div className="absolute inset-0 bg-primary-container opacity-10 rounded-full blur-xl animate-pulse"></div>
@@ -661,7 +661,7 @@ export default function OnboardingView(): React.JSX.Element {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full mb-8 max-w-lg text-left">
               {/* AI Brain Card */}
               <div className="glass-card rounded-xl p-4 flex items-start gap-3">
-                <div className="w-9 h-9 rounded-full bg-secondary-fixed/30 shrink-0 flex items-center justify-center border border-secondary-fixed-dim text-secondary">
+                <div className="w-9 h-9 rounded-full bg-secondary/10 shrink-0 flex items-center justify-center border border-secondary/20 text-secondary">
                   {llmProvider === 'openai' ? (
                     <OpenAIIcon />
                   ) : llmProvider === 'gemini' ? (
@@ -675,7 +675,7 @@ export default function OnboardingView(): React.JSX.Element {
                   <p className="text-[10px] text-on-surface-variant truncate w-[160px]">
                     {llmProvider.toUpperCase()} ({modelId})
                   </p>
-                  <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase text-secondary bg-secondary-container/30 px-1.5 py-0.5 rounded border border-secondary-container mt-1.5">
+                  <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase text-secondary bg-secondary/10 px-1.5 py-0.5 rounded border border-secondary/20 mt-1.5">
                     <span className="material-symbols-outlined text-[10px]">check</span> Configured
                   </span>
                 </div>
@@ -683,7 +683,7 @@ export default function OnboardingView(): React.JSX.Element {
 
               {/* Media Card */}
               <div className="glass-card rounded-xl p-4 flex items-start gap-3">
-                <div className="w-9 h-9 rounded-full bg-secondary-fixed/30 shrink-0 flex items-center justify-center border border-secondary-fixed-dim text-secondary">
+                <div className="w-9 h-9 rounded-full bg-secondary/10 shrink-0 flex items-center justify-center border border-secondary/20 text-secondary">
                   <span className="material-symbols-outlined text-[18px]">photo_library</span>
                 </div>
                 <div>
@@ -691,7 +691,7 @@ export default function OnboardingView(): React.JSX.Element {
                   <p className="text-[10px] text-on-surface-variant truncate w-[160px]">
                     Pexels API Link
                   </p>
-                  <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase text-secondary bg-secondary-container/30 px-1.5 py-0.5 rounded border border-secondary-container mt-1.5">
+                  <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase text-secondary bg-secondary/10 px-1.5 py-0.5 rounded border border-secondary/20 mt-1.5">
                     <span className="material-symbols-outlined text-[10px]">check</span> Configured
                   </span>
                 </div>
@@ -699,7 +699,7 @@ export default function OnboardingView(): React.JSX.Element {
 
               {/* Local Folder Card */}
               <div className="glass-card rounded-xl p-4 flex items-start gap-3 sm:col-span-2">
-                <div className="w-9 h-9 rounded-full bg-secondary-fixed/30 shrink-0 flex items-center justify-center border border-secondary-fixed-dim text-secondary">
+                <div className="w-9 h-9 rounded-full bg-secondary/10 shrink-0 flex items-center justify-center border border-secondary/20 text-secondary">
                   <span className="material-symbols-outlined text-[18px]">folder</span>
                 </div>
                 <div className="grow overflow-hidden">
@@ -709,7 +709,7 @@ export default function OnboardingView(): React.JSX.Element {
                   <p className="text-[10px] text-on-surface-variant truncate font-mono">
                     {downloadFolder || 'System default directory'}
                   </p>
-                  <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase text-secondary bg-secondary-container/30 px-1.5 py-0.5 rounded border border-secondary-container mt-1.5">
+                  <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase text-secondary bg-secondary/10 px-1.5 py-0.5 rounded border border-secondary/20 mt-1.5">
                     <span className="material-symbols-outlined text-[10px]">check</span> Ready
                   </span>
                 </div>

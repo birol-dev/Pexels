@@ -76,7 +76,7 @@ export interface StartJobInput {
   title: string
   script: string
   platform: 'YouTube' | 'Shorts' | 'TikTok' | 'Instagram Reels'
-  style: 'cinematic' | 'documentary' | 'business' | 'tech' | 'nature' | 'lifestyle' | 'abstract'
+  style: string
   mix: 'videos only' | 'photos only' | 'videos + photos'
   maxAssetsPerBeat: number
   maxTotalDownloads: number
@@ -239,7 +239,8 @@ export class AgentRunner extends EventEmitter {
         (task) => {
           this.handleDownloadProgress(task)
         },
-        settings.requestTimeoutSeconds
+        settings.requestTimeoutSeconds,
+        (type, assetId, currentUrl) => this.refreshDownloadUrl(type, assetId, currentUrl)
       )
     }
 
@@ -253,6 +254,9 @@ export class AgentRunner extends EventEmitter {
       const manifestPath = join(this.projectDir, 'manifest.json')
       const data = await fs.readFile(manifestPath, 'utf-8')
       const manifest = JSON.parse(data)
+      if (manifest.pexelsCandidates) {
+        this.pexelsCandidates = new Map(manifest.pexelsCandidates)
+      }
       if (manifest.beats && manifest.beats.length > 0) {
         this.beats = (manifest.beats as VisualBeat[]).map((beat: VisualBeat) => {
           // Reset any beat stuck in downloading/searching/selecting back to a clean state
@@ -360,7 +364,8 @@ export class AgentRunner extends EventEmitter {
           (task) => {
             this.handleDownloadProgress(task)
           },
-          settings.requestTimeoutSeconds
+          settings.requestTimeoutSeconds,
+          (type, assetId, currentUrl) => this.refreshDownloadUrl(type, assetId, currentUrl)
         )
       }
 
@@ -480,6 +485,7 @@ export class AgentRunner extends EventEmitter {
         ? this.downloader.getTasks().filter((t) => t.status === 'failed')
         : [],
       messages: this.messages,
+      pexelsCandidates: Array.from(this.pexelsCandidates.entries()),
       sourceDocsCheckedAt: new Date().toISOString()
     }
     await ManifestWriter.writeManifest(this.projectDir, manifest)
@@ -1492,6 +1498,11 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       )
     }
 
+    if (task.url) {
+      assetRecord.downloadUrl = task.url
+      assetRecord.url = task.url
+    }
+
     if (task.error && prevStatus !== 'failed') {
       assetRecord.error = task.error
       this.log('error', `[Download] Failed to download ${task.type} ${task.assetId}: ${task.error}`)
@@ -1540,5 +1551,59 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     // Broadcast update
     this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
     this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
+  }
+
+  private async refreshDownloadUrl(
+    type: 'photo' | 'video',
+    assetId: number,
+    currentUrl: string
+  ): Promise<string> {
+    this.log('info', `Refreshing expired download URL for ${type} ${assetId}...`)
+    try {
+      if (type === 'photo') {
+        const photo = await PexelsClient.getPhoto(assetId)
+        const oldUrlObj = new URL(currentUrl)
+        const params = oldUrlObj.search
+        const newBaseUrl = photo.src.original
+        const newUrlObj = new URL(newBaseUrl)
+        newUrlObj.search = params
+        const freshUrl = newUrlObj.toString()
+        this.validateDownloadUrl(freshUrl)
+        this.log('info', `Successfully refreshed photo URL: ${freshUrl}`)
+        return freshUrl
+      } else {
+        const video = await PexelsClient.getVideo(assetId)
+        const oldUrlObj = new URL(currentUrl)
+        const oldWidth = oldUrlObj.searchParams.get('w') || ''
+        const oldHeight = oldUrlObj.searchParams.get('h') || ''
+
+        let matchedFile = video.video_files.find(
+          (f) =>
+            f.link.includes(currentUrl.split('?')[0]) ||
+            (f.width && String(f.width) === oldWidth && f.height && String(f.height) === oldHeight)
+        )
+
+        if (!matchedFile) {
+          matchedFile =
+            video.video_files.find((f) => f.quality === 'hd') ||
+            video.video_files.find((f) => f.quality === 'sd') ||
+            video.video_files[0]
+        }
+
+        const freshUrl = matchedFile?.link || ''
+        if (freshUrl) {
+          this.validateDownloadUrl(freshUrl)
+          this.log('info', `Successfully refreshed video URL: ${freshUrl}`)
+          return freshUrl
+        }
+        throw new Error('No matching video files found in Pexels details')
+      }
+    } catch (err) {
+      this.log(
+        'error',
+        `Failed to refresh download URL for ${type} ${assetId}: ${err instanceof Error ? err.message : String(err)}`
+      )
+      throw err
+    }
   }
 }

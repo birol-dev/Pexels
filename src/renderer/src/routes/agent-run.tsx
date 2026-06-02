@@ -213,7 +213,7 @@ export default function AgentRunView(): React.JSX.Element {
             {activeJob.status === 'running' && (
               <button
                 onClick={() => pauseJob(activeJob.jobId)}
-                className="btn-interactive px-4 py-2.5 bg-white/60 border border-white/80 text-on-surface rounded-lg font-semibold text-xs flex items-center gap-1.5 shadow-sm"
+                className="btn-interactive px-4 py-2.5 bg-white/5 border border-white/10 text-on-surface rounded-lg font-semibold text-xs flex items-center gap-1.5 shadow-sm hover:bg-white/10"
               >
                 <span className="material-symbols-outlined text-[18px]">pause</span> Pause Run
               </button>
@@ -282,11 +282,13 @@ export default function AgentRunView(): React.JSX.Element {
         </div>
 
         {activeJob.status === 'paused' && hasPendingAssets && (
-          <div className="rounded-xl border border-secondary/20 bg-secondary-container/25 p-4 text-xs text-on-secondary-container">
+          <div className="rounded-xl border border-secondary/20 bg-secondary-container/10 p-4 text-xs text-on-secondary-container">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <div className="font-bold">Review selected assets before download</div>
-                <div className="mt-0.5 text-[11px] opacity-80">
+                <div className="font-bold text-on-surface">
+                  Review selected assets before download
+                </div>
+                <div className="mt-0.5 text-[11px] text-on-surface-variant">
                   {selectedApprovalIds.length} approved, {rejectedApprovalIds.length} rejected.
                 </div>
               </div>
@@ -294,7 +296,7 @@ export default function AgentRunView(): React.JSX.Element {
                 <button
                   type="button"
                   onClick={() => setApprovalSelection({})}
-                  className="rounded-lg bg-white/70 px-3 py-2 font-semibold text-on-secondary-container shadow-sm"
+                  className="rounded-lg bg-white/5 hover:bg-white/10 px-3 py-2 font-semibold text-on-surface border border-white/10 shadow-sm"
                 >
                   Approve All
                 </button>
@@ -305,7 +307,7 @@ export default function AgentRunView(): React.JSX.Element {
                       Object.fromEntries(pendingAssets.map((asset) => [asset.id, false]))
                     )
                   }
-                  className="rounded-lg bg-white/70 px-3 py-2 font-semibold text-on-secondary-container shadow-sm"
+                  className="rounded-lg bg-white/5 hover:bg-white/10 px-3 py-2 font-semibold text-on-surface border border-white/10 shadow-sm"
                 >
                   Reject All
                 </button>
@@ -325,7 +327,7 @@ export default function AgentRunView(): React.JSX.Element {
                 {activeJob.progress}%
               </span>
             </div>
-            <div className="h-3 w-full bg-surface-container-high rounded-full overflow-hidden border border-white/50 shadow-inner">
+            <div className="h-3 w-full bg-surface-container-high rounded-full overflow-hidden border border-white/10 shadow-inner">
               <div
                 className="h-full bg-primary relative rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${activeJob.progress}%` }}
@@ -336,7 +338,7 @@ export default function AgentRunView(): React.JSX.Element {
           </div>
 
           {/* Metrics */}
-          <div className="flex gap-6 pl-0 sm:pl-6 border-l border-transparent sm:border-black/6 shrink-0 font-mono text-xs">
+          <div className="flex gap-6 pl-0 sm:pl-6 border-l border-transparent sm:border-white/10 shrink-0 font-mono text-xs">
             <div className="flex flex-col">
               <span className="text-[10px] text-outline uppercase tracking-wider">Beats</span>
               <span className="font-bold text-on-surface mt-0.5">
@@ -419,7 +421,7 @@ export default function AgentRunView(): React.JSX.Element {
 
                 {/* Asset Grid Inside Card */}
                 {beat.assets && beat.assets.length > 0 && (
-                  <div className="border-t border-black/4 pt-3.5 mt-3">
+                  <div className="border-t border-white/5 pt-3.5 mt-3">
                     <div className="text-[10px] font-mono text-outline uppercase tracking-wider mb-2 font-semibold">
                       Beat Stock Assets:
                     </div>
@@ -427,7 +429,7 @@ export default function AgentRunView(): React.JSX.Element {
                       {beat.assets.map((asset) => (
                         <div
                           key={asset.id}
-                          className="relative aspect-video rounded-lg overflow-hidden border border-white/60 bg-surface-container shadow-inner group"
+                          className="relative aspect-video rounded-lg overflow-hidden border border-white/10 bg-surface-container shadow-inner group"
                         >
                           <img
                             src={asset.imageUrl}
@@ -479,7 +481,7 @@ export default function AgentRunView(): React.JSX.Element {
                           </div>
 
                           {activeJob.status === 'paused' && asset.status === 'pending' && (
-                            <div className="absolute inset-x-1.5 top-1.5 flex gap-1">
+                            <div className="absolute inset-x-1.5 top-1.5 flex gap-1 z-20">
                               <button
                                 type="button"
                                 onClick={() =>
@@ -488,10 +490,10 @@ export default function AgentRunView(): React.JSX.Element {
                                     [asset.id]: true
                                   }))
                                 }
-                                className={`flex-1 rounded bg-white/90 py-1 font-mono text-[8px] font-bold shadow-sm ${
+                                className={`flex-1 rounded bg-black/65 border border-white/10 py-1 font-mono text-[8px] font-bold shadow-sm backdrop-blur-xs ${
                                   approvalSelection[asset.id] === false
-                                    ? 'text-outline'
-                                    : 'text-secondary'
+                                    ? 'text-outline hover:text-on-surface'
+                                    : 'text-secondary hover:text-secondary'
                                 }`}
                               >
                                 Approve
@@ -504,10 +506,10 @@ export default function AgentRunView(): React.JSX.Element {
                                     [asset.id]: false
                                   }))
                                 }
-                                className={`flex-1 rounded bg-white/90 py-1 font-mono text-[8px] font-bold shadow-sm ${
+                                className={`flex-1 rounded bg-black/65 border border-white/10 py-1 font-mono text-[8px] font-bold shadow-sm backdrop-blur-xs ${
                                   approvalSelection[asset.id] === false
-                                    ? 'text-error'
-                                    : 'text-outline'
+                                    ? 'text-error hover:text-error'
+                                    : 'text-outline hover:text-on-surface'
                                 }`}
                               >
                                 Reject
@@ -522,7 +524,7 @@ export default function AgentRunView(): React.JSX.Element {
 
                 {/* Rejected Assets Info */}
                 {beat.rejectedAssets && beat.rejectedAssets.length > 0 && (
-                  <div className="border-t border-black/4 pt-3 mt-3">
+                  <div className="border-t border-white/5 pt-3 mt-3">
                     <div className="text-[10px] font-mono text-outline uppercase tracking-wider mb-2 font-semibold">
                       Skipped / Filtered Out:
                     </div>
@@ -530,7 +532,7 @@ export default function AgentRunView(): React.JSX.Element {
                       {beat.rejectedAssets.map((rej, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center justify-between text-[11px] bg-error-container/20 border border-error/15 rounded p-2 text-on-error-container font-medium"
+                          className="flex items-center justify-between text-[11px] bg-error-container/10 border border-error/15 rounded p-2 text-on-error-container font-medium"
                         >
                           <span className="font-mono text-[9px]">
                             {rej.type.toUpperCase()} #{rej.pexelsId}
@@ -548,7 +550,7 @@ export default function AgentRunView(): React.JSX.Element {
 
         {/* Right Column: Agent Console */}
         <div className="glass-panel rounded-2xl flex flex-col overflow-hidden max-h-[694px] hover:shadow-lg transition-all duration-300">
-          <div className="px-5 py-3.5 border-b border-black/5 bg-white/20 backdrop-blur-sm flex justify-between items-center">
+          <div className="px-5 py-3.5 border-b border-white/5 bg-white/5 backdrop-blur-sm flex justify-between items-center">
             <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2">
               <span className="material-symbols-outlined text-[20px] text-primary">terminal</span>
               Agent Console
@@ -566,10 +568,10 @@ export default function AgentRunView(): React.JSX.Element {
             </span>
           </div>
 
-          <div className="grow p-5 overflow-y-auto log-scroll bg-white/35 font-mono text-xs flex flex-col gap-4">
+          <div className="grow p-5 overflow-y-auto log-scroll bg-white/2 font-mono text-xs flex flex-col gap-4">
             {activeJob.logs.map((log, index) => (
               <div key={index} className="space-y-1">
-                <div className="flex items-center space-x-2 text-[10px] text-outline border-b border-black/3 pb-1 font-semibold">
+                <div className="flex items-center space-x-2 text-[10px] text-outline border-b border-white/5 pb-1 font-semibold">
                   <span>[{new Date(log.timestamp).toLocaleTimeString()}]</span>
                   <span className="uppercase text-primary font-bold">
                     {log.type.replace('_', ' ')}

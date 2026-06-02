@@ -9,15 +9,7 @@ const StartJobInputSchema = z.object({
   title: z.string().min(1),
   script: z.string().min(1),
   platform: z.enum(['YouTube', 'Shorts', 'TikTok', 'Instagram Reels']),
-  style: z.enum([
-    'cinematic',
-    'documentary',
-    'business',
-    'tech',
-    'nature',
-    'lifestyle',
-    'abstract'
-  ]),
+  style: z.string().min(1),
   mix: z.enum(['videos only', 'photos only', 'videos + photos']),
   maxAssetsPerBeat: z.number().min(1).max(10),
   maxTotalDownloads: z.number().min(1).max(100)
@@ -245,5 +237,21 @@ export function registerJobsHandlers(): void {
 
   ipcMain.handle('jobs:list', async (): Promise<JobSummary[]> => {
     return await ProjectStore.list()
+  })
+
+  ipcMain.handle('jobs:delete', async (_, jobId: string): Promise<void> => {
+    const runner = AgentRunner.getActive(jobId)
+    if (runner) {
+      await runner.cancel()
+    }
+    const summary = await ProjectStore.get(jobId)
+    if (summary && summary.downloadPath) {
+      try {
+        await fs.rm(summary.downloadPath, { recursive: true, force: true })
+      } catch (err) {
+        console.error(`Failed to delete local project files at ${summary.downloadPath}:`, err)
+      }
+    }
+    await ProjectStore.delete(jobId)
   })
 }

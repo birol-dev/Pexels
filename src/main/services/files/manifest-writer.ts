@@ -21,6 +21,7 @@ export interface ManifestData {
   assets: unknown[]
   failures: unknown[]
   messages?: unknown[]
+  pexelsCandidates?: Array<[string, unknown]>
   sourceDocsCheckedAt?: string
 }
 

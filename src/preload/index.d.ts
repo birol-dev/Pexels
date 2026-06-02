@@ -26,6 +26,7 @@ declare global {
         rerun(jobId: string): Promise<string>
         get(jobId: string): Promise<Record<string, unknown>>
         list(): Promise<Record<string, unknown>[]>
+        delete(jobId: string): Promise<void>
         onEvent(callback: (event: Record<string, unknown>) => void): () => void
       }
       assets: {
@@ -33,6 +34,7 @@ declare global {
         openInFolder(projectId: string, assetId: string): Promise<void>
         deleteLocal(projectId: string, assetId: string): Promise<void>
         exportManifest(projectId: string): Promise<string>
+        openProjectFolder(projectId: string): Promise<void>
       }
     }
   }

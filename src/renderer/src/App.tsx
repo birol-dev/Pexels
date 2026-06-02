@@ -15,7 +15,7 @@ export default function App(): React.JSX.Element {
 
   if (!settings) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#f0f2f9]">
+      <div className="flex h-screen items-center justify-center bg-[#09090b]">
         <div className="flex flex-col items-center gap-3">
           <span className="material-symbols-outlined text-[48px] text-primary animate-spin">
             sync
@@ -47,15 +47,15 @@ export default function App(): React.JSX.Element {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f2f9] text-on-surface flex font-sans antialiased overflow-x-hidden relative">
+    <div className="min-h-screen bg-[#09090b] text-on-surface flex font-sans antialiased overflow-x-hidden relative">
       {/* Luminous Natural Aero backgrounds */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary-fixed-dim/20 blur-[100px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-secondary-container/30 blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/10 blur-[150px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-secondary-container/10 blur-[150px]" />
       </div>
 
       {/* Sidebar Navigation */}
-      <aside className="w-64 border-r border-white/40 bg-white/55 backdrop-blur-md flex flex-col justify-between shrink-0 select-none z-10 relative">
+      <aside className="w-64 border-r border-white/5 bg-[#121216]/65 backdrop-blur-md flex flex-col justify-between shrink-0 select-none z-10 relative">
         <div className="p-6">
           {/* Logo Brand */}
           <div className="flex items-center space-x-3 mb-10">
@@ -76,8 +76,8 @@ export default function App(): React.JSX.Element {
               onClick={() => navigate('input')}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                 currentRoute === 'input'
-                  ? 'bg-white/45 text-primary shadow-sm border-l-2 border-primary font-bold scale-[0.98]'
-                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/30'
+                  ? 'bg-primary/15 text-primary shadow-[0_0_12px_rgba(139,92,246,0.15)] border-l-2 border-primary font-bold scale-[0.98]'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
               }`}
             >
               <span
@@ -98,8 +98,8 @@ export default function App(): React.JSX.Element {
                 !activeJobId
                   ? 'opacity-40 cursor-not-allowed'
                   : currentRoute === 'run'
-                    ? 'bg-white/45 text-primary shadow-sm border-l-2 border-primary font-bold scale-[0.98]'
-                    : 'text-on-surface-variant hover:text-on-surface hover:bg-white/30'
+                    ? 'bg-primary/15 text-primary shadow-[0_0_12px_rgba(139,92,246,0.15)] border-l-2 border-primary font-bold scale-[0.98]'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
               }`}
             >
               <span
@@ -118,8 +118,8 @@ export default function App(): React.JSX.Element {
                 !activeJobId
                   ? 'opacity-40 cursor-not-allowed'
                   : currentRoute === 'stuff'
-                    ? 'bg-white/45 text-primary shadow-sm border-l-2 border-primary font-bold scale-[0.98]'
-                    : 'text-on-surface-variant hover:text-on-surface hover:bg-white/30'
+                    ? 'bg-primary/15 text-primary shadow-[0_0_12px_rgba(139,92,246,0.15)] border-l-2 border-primary font-bold scale-[0.98]'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
               }`}
             >
               <span
@@ -137,8 +137,8 @@ export default function App(): React.JSX.Element {
               onClick={() => navigate('settings')}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                 currentRoute === 'settings'
-                  ? 'bg-white/45 text-primary shadow-sm border-l-2 border-primary font-bold scale-[0.98]'
-                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/30'
+                  ? 'bg-primary/15 text-primary shadow-[0_0_12px_rgba(139,92,246,0.15)] border-l-2 border-primary font-bold scale-[0.98]'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
               }`}
             >
               <span

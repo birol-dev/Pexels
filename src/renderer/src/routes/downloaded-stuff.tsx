@@ -102,6 +102,15 @@ export default function DownloadedStuffView(): React.JSX.Element {
     }
   }
 
+  const handleOpenProjectFolder = async (): Promise<void> => {
+    if (!activeJobId) return
+    try {
+      await api.assets.openProjectFolder(activeJobId)
+    } catch (err) {
+      alert('Failed to open project folder: ' + err)
+    }
+  }
+
   const filteredAssets = assets.filter((asset) => {
     // Search filter
     const matchesSearch =
@@ -146,33 +155,33 @@ export default function DownloadedStuffView(): React.JSX.Element {
           </div>
 
           {/* Type Filter Buttons */}
-          <div className="flex bg-white/40 p-1 rounded-lg border border-white/50 shadow-sm backdrop-blur-sm">
+          <div className="flex bg-white/5 p-1 rounded-lg border border-white/10 shadow-sm backdrop-blur-sm">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all border ${
                 filter === 'all'
-                  ? 'bg-white shadow-sm text-primary'
-                  : 'text-on-surface-variant hover:text-on-surface'
+                  ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_2px_8px_rgba(139,92,246,0.15)]'
+                  : 'text-on-surface-variant hover:text-on-surface border-transparent'
               }`}
             >
               All
             </button>
             <button
               onClick={() => setFilter('video')}
-              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all border ${
                 filter === 'video'
-                  ? 'bg-white shadow-sm text-primary'
-                  : 'text-on-surface-variant hover:text-on-surface'
+                  ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_2px_8px_rgba(139,92,246,0.15)]'
+                  : 'text-on-surface-variant hover:text-on-surface border-transparent'
               }`}
             >
               Videos
             </button>
             <button
               onClick={() => setFilter('photo')}
-              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all border ${
                 filter === 'photo'
-                  ? 'bg-white shadow-sm text-primary'
-                  : 'text-on-surface-variant hover:text-on-surface'
+                  ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_2px_8px_rgba(139,92,246,0.15)]'
+                  : 'text-on-surface-variant hover:text-on-surface border-transparent'
               }`}
             >
               Photos
@@ -200,9 +209,16 @@ export default function DownloadedStuffView(): React.JSX.Element {
 
           <button
             onClick={handleExportManifest}
-            className="btn-interactive px-4 py-2 bg-white/60 border border-outline-variant hover:bg-white text-on-surface rounded-lg font-semibold text-xs flex items-center gap-1.5 shadow-sm"
+            className="btn-interactive px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-on-surface rounded-lg font-semibold text-xs flex items-center gap-1.5 shadow-sm"
           >
             <span className="material-symbols-outlined text-[18px]">download</span> Export Manifest
+          </button>
+
+          <button
+            onClick={handleOpenProjectFolder}
+            className="btn-interactive px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-on-surface rounded-lg font-semibold text-xs flex items-center gap-1.5 shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[18px]">folder</span> Open Folder
           </button>
         </div>
       </header>
@@ -362,7 +378,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
                   </a>
                 </div>
 
-                <div className="h-px w-full bg-black/4" />
+                <div className="h-px w-full bg-white/5" />
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -393,7 +409,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
                   </div>
                 </div>
 
-                <div className="h-px w-full bg-black/4" />
+                <div className="h-px w-full bg-white/5" />
 
                 <div>
                   <span className="text-outline uppercase text-[9px] font-mono block">
@@ -408,7 +424,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
                   <span className="text-outline uppercase text-[9px] font-mono block">
                     Script beat segment
                   </span>
-                  <p className="text-on-surface italic leading-relaxed mt-1 bg-surface-container-low border border-white/60 p-2.5 rounded text-[11px]">
+                  <p className="text-on-surface italic leading-relaxed mt-1 bg-white/5 border border-white/5 p-2.5 rounded text-[11px]">
                     &ldquo;{selectedAsset.beatText}&rdquo;
                   </p>
                 </div>
@@ -418,7 +434,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
                     <span className="text-outline uppercase text-[9px] font-mono block">
                       Local Disk Path
                     </span>
-                    <p className="text-on-surface-variant font-mono select-all break-all leading-normal mt-1 text-[10px] bg-black/3 p-2.5 rounded border border-black/4">
+                    <p className="text-on-surface-variant font-mono select-all break-all leading-normal mt-1 text-[10px] bg-white/5 p-2.5 rounded border border-white/5">
                       {selectedAsset.filePath}
                     </p>
                   </div>
@@ -434,17 +450,17 @@ export default function DownloadedStuffView(): React.JSX.Element {
 
               {/* Action buttons pinned */}
               {selectedAsset.status === 'completed' && (
-                <div className="p-4 border-t border-black/4 bg-white/20 flex gap-2">
+                <div className="p-4 border-t border-white/5 bg-white/5 flex gap-2">
                   <button
                     onClick={() => handleOpenFolder(selectedAsset.id)}
-                    className="btn-interactive grow py-2.5 rounded-lg bg-white hover:bg-surface-container-high border border-outline-variant/60 font-semibold text-xs text-on-surface transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                    className="btn-interactive grow py-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 font-semibold text-xs text-on-surface transition-all flex items-center justify-center gap-1.5 shadow-sm"
                   >
                     <span className="material-symbols-outlined text-[18px]">folder_open</span>{' '}
                     Reveal in Folder
                   </button>
                   <button
                     onClick={() => handleDelete(selectedAsset.id)}
-                    className="btn-interactive py-2.5 px-3 rounded-lg hover:bg-error-container hover:text-error text-on-surface-variant font-semibold text-xs flex items-center justify-center transition-colors"
+                    className="btn-interactive py-2.5 px-3 rounded-lg hover:bg-error/20 hover:text-error text-on-surface-variant font-semibold text-xs flex items-center justify-center transition-colors"
                     title="Delete Asset"
                   >
                     <span className="material-symbols-outlined text-[18px]">delete</span>

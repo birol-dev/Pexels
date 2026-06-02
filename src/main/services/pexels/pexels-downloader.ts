@@ -30,15 +30,22 @@ export class PexelsDownloader {
   private requestTimeoutSeconds = 60
   private idleResolvers: Array<() => void> = []
   private activeControllers = new Map<string, AbortController>()
+  private refreshUrl?: (
+    type: 'photo' | 'video',
+    assetId: number,
+    currentUrl: string
+  ) => Promise<string>
 
   constructor(
     maxConcurrency = 3,
     onTaskUpdate?: (task: DownloadTask) => void,
-    requestTimeoutSeconds = 60
+    requestTimeoutSeconds = 60,
+    refreshUrl?: (type: 'photo' | 'video', assetId: number, currentUrl: string) => Promise<string>
   ) {
     this.maxConcurrency = maxConcurrency
     this.onTaskUpdate = onTaskUpdate
     this.requestTimeoutSeconds = requestTimeoutSeconds
+    this.refreshUrl = refreshUrl
   }
 
   public setConcurrency(limit: number): void {
@@ -130,6 +137,18 @@ export class PexelsDownloader {
       .catch(async (err) => {
         if (!nextTask.cancelled && nextTask.retries < 2) {
           nextTask.retries++
+
+          if (this.refreshUrl) {
+            try {
+              const newUrl = await this.refreshUrl(nextTask.type, nextTask.assetId, nextTask.url)
+              if (newUrl && newUrl !== nextTask.url) {
+                nextTask.url = newUrl
+              }
+            } catch (refreshErr) {
+              console.error(`Failed to refresh download URL for task ${nextTask.id}:`, refreshErr)
+            }
+          }
+
           nextTask.status = 'pending'
           nextTask.backingOff = true
           this.activeCount--

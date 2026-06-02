@@ -3,7 +3,6 @@ import { dirname, join } from 'path'
 import { promises as fs } from 'fs'
 
 const ENCRYPTED_PREFIX = 'encrypted:'
-const PLAIN_PREFIX = 'plain:'
 
 let secretsFile: string | null = null
 function getSecretsFile(): string {
@@ -41,29 +40,28 @@ export class SecureSecrets {
     const encryptedHex = secrets[key]
     if (!encryptedHex) return ''
 
-    if (encryptedHex.startsWith(PLAIN_PREFIX)) {
-      return encryptedHex.slice(PLAIN_PREFIX.length)
-    }
-
     if (!safeStorage.isEncryptionAvailable()) {
       if (encryptedHex.startsWith(ENCRYPTED_PREFIX)) {
         throw new Error(
           'Secure credential storage is unavailable on this system. Cannot decrypt encrypted keys.'
         )
       }
-      return encryptedHex
+      // If safeStorage is unavailable, refuse legacy or plain secrets to prevent plaintext usage
+      console.warn(`Refusing plaintext secret for key ${key} as plaintext fallback is disabled.`)
+      return ''
+    }
+
+    // safeStorage is available, so the secret MUST be encrypted
+    if (!encryptedHex.startsWith(ENCRYPTED_PREFIX)) {
+      console.warn(`Refusing unencrypted secret for key ${key} since secure storage is active.`)
+      return ''
     }
 
     try {
-      const hex = encryptedHex.startsWith(ENCRYPTED_PREFIX)
-        ? encryptedHex.slice(ENCRYPTED_PREFIX.length)
-        : encryptedHex
+      const hex = encryptedHex.slice(ENCRYPTED_PREFIX.length)
       const encryptedBuffer = Buffer.from(hex, 'hex')
       return safeStorage.decryptString(encryptedBuffer)
     } catch (error) {
-      if (!encryptedHex.startsWith(ENCRYPTED_PREFIX)) {
-        return encryptedHex
-      }
       console.error(`Failed to decrypt secret for key ${key}:`, error)
       return ''
     }
@@ -78,18 +76,18 @@ export class SecureSecrets {
     }
 
     if (!safeStorage.isEncryptionAvailable()) {
-      secrets[key] = `${PLAIN_PREFIX}${value}`
-    } else {
-      try {
-        const encryptedBuffer = safeStorage.encryptString(value)
-        secrets[key] = `${ENCRYPTED_PREFIX}${encryptedBuffer.toString('hex')}`
-      } catch (error) {
-        console.error(
-          `Failed to encrypt secret for key ${key} using safeStorage, falling back to plain:`,
-          error
-        )
-        secrets[key] = `${PLAIN_PREFIX}${value}`
-      }
+      throw new Error(
+        'Secure storage is unavailable on this system. Storing keys in plaintext is disabled for security.'
+      )
+    }
+
+    try {
+      const encryptedBuffer = safeStorage.encryptString(value)
+      secrets[key] = `${ENCRYPTED_PREFIX}${encryptedBuffer.toString('hex')}`
+    } catch (error) {
+      throw new Error(
+        `Failed to encrypt key securely using safeStorage: ${error instanceof Error ? error.message : String(error)}`
+      )
     }
 
     await this.writeSecretsFile(secrets)

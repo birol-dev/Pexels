@@ -34,6 +34,7 @@ const api = {
     rerun: (jobId: string): Promise<string> => ipcRenderer.invoke('jobs:rerun', jobId),
     get: (jobId: string): Promise<Record<string, unknown>> => ipcRenderer.invoke('jobs:get', jobId),
     list: (): Promise<Record<string, unknown>[]> => ipcRenderer.invoke('jobs:list'),
+    delete: (jobId: string): Promise<void> => ipcRenderer.invoke('jobs:delete', jobId),
     onEvent: (callback: (event: Record<string, unknown>) => void): (() => void) => {
       const listener = (_event: unknown, data: Record<string, unknown>): void => callback(data)
       ipcRenderer.on('jobs:event', listener)
@@ -50,7 +51,9 @@ const api = {
     deleteLocal: (projectId: string, assetId: string): Promise<void> =>
       ipcRenderer.invoke('assets:deleteLocal', projectId, assetId),
     exportManifest: (projectId: string): Promise<string> =>
-      ipcRenderer.invoke('assets:exportManifest', projectId)
+      ipcRenderer.invoke('assets:exportManifest', projectId),
+    openProjectFolder: (projectId: string): Promise<void> =>
+      ipcRenderer.invoke('assets:openProjectFolder', projectId)
   }
 }
 

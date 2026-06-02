@@ -273,8 +273,8 @@ export default function SettingsView(): React.JSX.Element {
                   onClick={() => handleProviderChange('openai')}
                   className={`grow py-2.5 rounded-lg border-2 flex items-center justify-center transition-all ${
                     localSettings.llmProvider === 'openai'
-                      ? 'border-primary bg-white/70 shadow-sm'
-                      : 'border-white/40 bg-white/30 hover:bg-white/50'
+                      ? 'border-primary bg-primary/15 shadow-sm'
+                      : 'border-white/5 bg-white/5 hover:bg-white/10'
                   }`}
                 >
                   <OpenAIIcon />
@@ -284,8 +284,8 @@ export default function SettingsView(): React.JSX.Element {
                   onClick={() => handleProviderChange('gemini')}
                   className={`grow py-2.5 rounded-lg border-2 flex items-center justify-center transition-all ${
                     localSettings.llmProvider === 'gemini'
-                      ? 'border-primary bg-white/70 shadow-sm'
-                      : 'border-white/40 bg-white/30 hover:bg-white/50'
+                      ? 'border-primary bg-primary/15 shadow-sm'
+                      : 'border-white/5 bg-white/5 hover:bg-white/10'
                   }`}
                 >
                   <GeminiIcon />
@@ -295,8 +295,8 @@ export default function SettingsView(): React.JSX.Element {
                   onClick={() => handleProviderChange('openrouter')}
                   className={`grow py-2.5 rounded-lg border-2 flex items-center justify-center transition-all ${
                     localSettings.llmProvider === 'openrouter'
-                      ? 'border-primary bg-white/70 shadow-sm'
-                      : 'border-white/40 bg-white/30 hover:bg-white/50'
+                      ? 'border-primary bg-primary/15 shadow-sm'
+                      : 'border-white/5 bg-white/5 hover:bg-white/10'
                   }`}
                 >
                   <OpenRouterIcon />
@@ -352,7 +352,7 @@ export default function SettingsView(): React.JSX.Element {
                   type="button"
                   disabled={testingLlm}
                   onClick={testLlmConnection}
-                  className="btn-interactive px-5 bg-white/80 border border-outline-variant hover:bg-white text-on-surface rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 shrink-0 shadow-sm"
+                  className="btn-interactive px-5 bg-white/5 border border-white/10 hover:bg-white/10 text-on-surface rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 shrink-0 shadow-sm"
                 >
                   <span
                     className={`material-symbols-outlined text-[16px] ${
@@ -392,7 +392,7 @@ export default function SettingsView(): React.JSX.Element {
               type="button"
               disabled={testingPexels}
               onClick={testPexelsConnection}
-              className="btn-interactive w-full py-3 bg-white/80 border border-outline-variant hover:bg-white text-on-surface rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+              className="btn-interactive w-full py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-on-surface rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm"
             >
               <span
                 className={`material-symbols-outlined text-[16px] ${
@@ -529,14 +529,14 @@ export default function SettingsView(): React.JSX.Element {
               <label className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider pl-0.5">
                 Download Folder
               </label>
-              <div className="bg-white/50 border border-outline-variant/40 rounded-lg p-3 flex items-center justify-between group hover:border-primary/50 transition-colors">
+              <div className="bg-white/5 border border-white/10 rounded-lg p-3 flex items-center justify-between group hover:border-primary/40 transition-colors">
                 <span className="font-mono text-xs text-on-surface truncate pr-4 max-w-[170px]">
                   {localSettings.downloadFolder}
                 </span>
                 <button
                   type="button"
                   onClick={handleChooseFolder}
-                  className="text-primary hover:text-primary-container transition-colors shrink-0"
+                  className="text-primary hover:text-primary/75 transition-colors shrink-0"
                   aria-label="Choose Folder"
                 >
                   <span className="material-symbols-outlined text-[20px]">edit_square</span>
@@ -640,8 +640,8 @@ export default function SettingsView(): React.JSX.Element {
           <div
             className={`p-4 rounded-xl flex items-start gap-3 border ${
               saveResult.success
-                ? 'bg-secondary-container/20 border-secondary/30 text-secondary'
-                : 'bg-error-container/20 border-error/30 text-on-error-container'
+                ? 'bg-secondary/10 border-secondary/25 text-secondary'
+                : 'bg-error/10 border-error/25 text-error'
             }`}
           >
             <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
@@ -660,8 +660,8 @@ export default function SettingsView(): React.JSX.Element {
           <div
             className={`p-4 rounded-xl flex items-start gap-3 border ${
               llmTestResult.success
-                ? 'bg-secondary-container/20 border-secondary/30 text-secondary'
-                : 'bg-error-container/20 border-error/30 text-on-error-container'
+                ? 'bg-secondary/10 border-secondary/25 text-secondary'
+                : 'bg-error/10 border-error/25 text-error'
             }`}
           >
             <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
@@ -680,8 +680,8 @@ export default function SettingsView(): React.JSX.Element {
           <div
             className={`p-4 rounded-xl flex items-start gap-3 border ${
               pexelsTestResult.success
-                ? 'bg-secondary-container/20 border-secondary/30 text-secondary'
-                : 'bg-error-container/20 border-error/30 text-on-error-container'
+                ? 'bg-secondary/10 border-secondary/25 text-secondary'
+                : 'bg-error/10 border-error/25 text-error'
             }`}
           >
             <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
@@ -698,11 +698,11 @@ export default function SettingsView(): React.JSX.Element {
       </div>
 
       {/* Save Action Area */}
-      <div className="flex items-center justify-between border-t border-black/5 pt-5">
+      <div className="flex items-center justify-between border-t border-white/5 pt-5">
         <button
           type="button"
           onClick={handleResetOnboarding}
-          className="btn-interactive px-5 py-3 rounded-lg border border-outline-variant bg-white/50 hover:bg-white text-on-surface font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+          className="btn-interactive px-5 py-3 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-on-surface font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm"
         >
           <span className="material-symbols-outlined text-[18px] text-outline">rotate_left</span>
           Reset Onboarding Wizard
@@ -714,7 +714,7 @@ export default function SettingsView(): React.JSX.Element {
             onClick={async () => {
               await api.settings.openAppDataFolder()
             }}
-            className="btn-interactive px-5 py-3 rounded-lg border border-outline-variant bg-white/50 hover:bg-white text-on-surface font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+            className="btn-interactive px-5 py-3 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-on-surface font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm"
           >
             Show Sandbox Files
           </button>
