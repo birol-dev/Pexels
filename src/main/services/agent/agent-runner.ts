@@ -111,6 +111,7 @@ export class AgentRunner extends EventEmitter {
 
   private downloader!: PexelsDownloader
   private abortController: AbortController | null = null
+  private activePromise: Promise<void> | null = null
   private projectDir = ''
   private modelId = 'gpt-4o'
   private providerId: 'openai' | 'gemini' | 'openrouter' = 'openai'
@@ -148,6 +149,41 @@ export class AgentRunner extends EventEmitter {
     super()
     this.jobId = jobId
     this.input = input
+  }
+
+  private async runBackground(fn: () => Promise<void>): Promise<void> {
+    AgentRunner.activeRunners.set(this.jobId, this)
+    this.abortController = new AbortController()
+
+    try {
+      await fn()
+    } catch (error) {
+      if (this.status !== 'cancelled' && this.status !== 'paused') {
+        this.status = 'failed'
+        const errMsg = error instanceof Error ? error.message : String(error)
+        this.log('error', `Agent execution failed: ${errMsg}`)
+        this.updateProgress('Error', 100)
+      }
+    } finally {
+      this.activePromise = null
+      AgentRunner.activeRunners.delete(this.jobId)
+      await this.saveRegistry()
+      await this.writeManifest()
+      this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
+    }
+  }
+
+  public async waitForShutdown(): Promise<void> {
+    if (this.activePromise) {
+      try {
+        await this.activePromise
+      } catch {
+        // Ignore errors during shutdown await
+      }
+    }
+    if (this.downloader) {
+      await this.downloader.waitForIdle()
+    }
   }
 
   private getCombinedSignal(timeoutSeconds: number): { signal: AbortSignal; cleanup: () => void } {
@@ -340,10 +376,7 @@ export class AgentRunner extends EventEmitter {
   }
 
   public async start(): Promise<void> {
-    AgentRunner.activeRunners.set(this.jobId, this)
-    this.abortController = new AbortController()
-
-    try {
+    const task = async (): Promise<void> => {
       this.log('info', `Starting project: ${this.input.title}`)
       this.updateProgress('Resolving credentials and settings', 5)
 
@@ -395,19 +428,10 @@ export class AgentRunner extends EventEmitter {
         this.log('info', 'Agent execution completed successfully!')
         this.updateProgress('Finished', 100)
       }
-    } catch (error) {
-      if (this.status !== 'cancelled' && this.status !== 'paused') {
-        this.status = 'failed'
-        const errMsg = error instanceof Error ? error.message : String(error)
-        this.log('error', `Agent execution failed: ${errMsg}`)
-        this.updateProgress('Error', 100)
-      }
-    } finally {
-      AgentRunner.activeRunners.delete(this.jobId)
-      await this.saveRegistry()
-      await this.writeManifest()
-      this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
     }
+
+    this.activePromise = this.runBackground(task)
+    await this.activePromise
   }
 
   public async pause(): Promise<void> {
@@ -417,8 +441,10 @@ export class AgentRunner extends EventEmitter {
     if (this.abortController) {
       this.abortController.abort()
     }
-    await this.saveRegistry()
-    await this.writeManifest()
+    if (!this.activePromise) {
+      await this.saveRegistry()
+      await this.writeManifest()
+    }
     this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
   }
 
@@ -439,8 +465,10 @@ export class AgentRunner extends EventEmitter {
     if (this.abortController) {
       this.abortController.abort()
     }
-    await this.saveRegistry()
-    await this.writeManifest()
+    if (!this.activePromise) {
+      await this.saveRegistry()
+      await this.writeManifest()
+    }
     this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
   }
 
@@ -1323,102 +1351,65 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       ({ asset }) => approvedSet.has(asset.id) && !rejectedSet.has(asset.id)
     )
 
-    if (approvedPendingAssets.length === 0) {
-      this.status = 'running'
-      this.abortController = new AbortController()
-      if (rejectedSet.size > 0) {
-        this.log('info', `User rejected ${rejectedSet.size} pending assets. Resuming agent loop.`)
-        this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
-        await this.writeManifest()
-      }
-      this.runAgentLoop()
-        .then(async () => {
-          if (this.status === 'running') {
-            await this.waitForDownloadsToSettle()
-          }
-          if (this.status === 'running') {
-            this.status = 'completed'
-            this.log('info', 'Agent execution completed successfully!')
-            this.updateProgress('Finished', 100)
-          }
-        })
-        .catch((error) => {
-          if (this.status !== 'cancelled' && this.status !== 'paused') {
-            this.status = 'failed'
-            const errMsg = error instanceof Error ? error.message : String(error)
-            this.log('error', `Agent execution failed: ${errMsg}`)
-            this.updateProgress('Error', 100)
-          }
-        })
-        .finally(async () => {
-          AgentRunner.activeRunners.delete(this.jobId)
-          await this.saveRegistry()
+    const task = async (): Promise<void> => {
+      if (approvedPendingAssets.length === 0) {
+        this.status = 'running'
+        if (rejectedSet.size > 0) {
+          this.log('info', `User rejected ${rejectedSet.size} pending assets. Resuming agent loop.`)
+          this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
           await this.writeManifest()
-          this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
+        }
+      } else {
+        this.log(
+          'info',
+          `User approved ${approvedPendingAssets.length} assets${
+            rejectedSet.size > 0 ? ` and rejected ${rejectedSet.size}` : ''
+          }. Starting downloads.`
+        )
+
+        // Start downloads and mark them as downloading
+        for (const { asset, beat } of approvedPendingAssets) {
+          asset.status = 'downloading'
+          beat.status = 'downloading'
+
+          this.downloader.enqueue(
+            asset.pexelsId,
+            asset.type,
+            asset.downloadUrl,
+            asset.width,
+            asset.height,
+            asset.query,
+            this.projectDir
+          )
+        }
+
+        this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
+
+        this.messages.push({
+          role: 'user',
+          content: `User has approved the selections: ${approvedPendingAssets.map((p) => `${p.asset.type} ${p.asset.pexelsId}`).join(', ')}.${
+            rejectedSet.size > 0 ? ` User rejected: ${Array.from(rejectedSet).join(', ')}.` : ''
+          } The approved downloads are now in progress.`
         })
-      return
+
+        this.status = 'running'
+      }
+
+      await this.runAgentLoop()
+
+      if (this.status === 'running') {
+        await this.waitForDownloadsToSettle()
+      }
+
+      if (this.status === 'running') {
+        this.status = 'completed'
+        this.log('info', 'Agent execution completed successfully!')
+        this.updateProgress('Finished', 100)
+      }
     }
 
-    this.log(
-      'info',
-      `User approved ${approvedPendingAssets.length} assets${
-        rejectedSet.size > 0 ? ` and rejected ${rejectedSet.size}` : ''
-      }. Starting downloads.`
-    )
-
-    // Start downloads and mark them as downloading
-    for (const { asset, beat } of approvedPendingAssets) {
-      asset.status = 'downloading'
-      beat.status = 'downloading'
-
-      this.downloader.enqueue(
-        asset.pexelsId,
-        asset.type,
-        asset.downloadUrl,
-        asset.width,
-        asset.height,
-        asset.query,
-        this.projectDir
-      )
-    }
-
-    this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
-
-    this.messages.push({
-      role: 'user',
-      content: `User has approved the selections: ${approvedPendingAssets.map((p) => `${p.asset.type} ${p.asset.pexelsId}`).join(', ')}.${
-        rejectedSet.size > 0 ? ` User rejected: ${Array.from(rejectedSet).join(', ')}.` : ''
-      } The approved downloads are now in progress.`
-    })
-
-    this.status = 'running'
-    this.abortController = new AbortController()
-
-    this.runAgentLoop()
-      .then(async () => {
-        if (this.status === 'running') {
-          await this.waitForDownloadsToSettle()
-        }
-        if (this.status === 'running') {
-          this.status = 'completed'
-          this.log('info', 'Agent execution completed successfully!')
-          this.updateProgress('Finished', 100)
-        }
-      })
-      .catch((error) => {
-        if (this.status !== 'cancelled' && this.status !== 'paused') {
-          this.status = 'failed'
-          const errMsg = error instanceof Error ? error.message : String(error)
-          this.log('error', `Agent execution failed: ${errMsg}`)
-          this.updateProgress('Error', 100)
-        }
-      })
-      .finally(async () => {
-        AgentRunner.activeRunners.delete(this.jobId)
-        await this.saveRegistry()
-        await this.writeManifest()
-        this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
-      })
+    this.activePromise = this.runBackground(task)
+    await this.activePromise
   }
 
   private validateDownloadUrl(urlStr: string): void {

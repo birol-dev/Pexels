@@ -156,6 +156,7 @@ export class PexelsDownloader {
           const delay = Math.pow(2, nextTask.retries) * 1000
           if (this.onTaskUpdate) this.onTaskUpdate(nextTask)
           setTimeout(() => {
+            if (nextTask.status !== 'pending') return
             nextTask.backingOff = false
             if (this.onTaskUpdate) this.onTaskUpdate(nextTask)
             this.processNext()

@@ -243,6 +243,7 @@ export function registerJobsHandlers(): void {
     const runner = AgentRunner.getActive(jobId)
     if (runner) {
       await runner.cancel()
+      await runner.waitForShutdown()
     }
     const summary = await ProjectStore.get(jobId)
     if (summary && summary.downloadPath) {
