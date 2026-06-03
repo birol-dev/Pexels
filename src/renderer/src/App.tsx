@@ -7,7 +7,8 @@ import SettingsView from '@renderer/routes/settings'
 import OnboardingView from '@renderer/routes/onboarding'
 
 export default function App(): React.JSX.Element {
-  const { currentRoute, navigate, activeJobId, settings, loadSettings } = useAppStore()
+  const { currentRoute, navigate, activeJobId, settings, loadSettings, modal, closeModal } =
+    useAppStore()
 
   useEffect(() => {
     loadSettings()
@@ -174,6 +175,48 @@ export default function App(): React.JSX.Element {
       <main className="flex-1 min-w-0 flex flex-col z-10 relative">
         <div className="grow overflow-y-auto p-8 lg:p-10">{renderActiveView()}</div>
       </main>
+
+      {/* Custom Glassmorphic Alert/Confirm Dialog */}
+      {modal.isOpen && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-[#121216]/80 backdrop-blur-xl border border-white/10 shadow-[0px_20px_40px_rgba(0,0,0,0.4)] rounded-2xl max-w-md w-full p-6 flex flex-col gap-4 animate-scale-up">
+            {/* Title */}
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-8 h-8 rounded-lg flex items-center justify-center ${modal.isConfirm ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-tertiary/10 text-tertiary border border-tertiary/20'}`}
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  {modal.isConfirm ? 'help_outline' : 'info'}
+                </span>
+              </div>
+              <h3 className="font-bold text-base text-on-surface tracking-tight">{modal.title}</h3>
+            </div>
+
+            {/* Message */}
+            <p className="text-xs font-semibold text-on-surface-variant leading-relaxed">
+              {modal.message}
+            </p>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 mt-2 border-t border-white/5 pt-4">
+              {modal.isConfirm && (
+                <button
+                  onClick={() => closeModal(false)}
+                  className="px-4 py-2 bg-white/5 border border-white/15 hover:bg-white/10 text-on-surface rounded-lg font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  {modal.cancelText}
+                </button>
+              )}
+              <button
+                onClick={() => closeModal(true)}
+                className="px-5 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer shadow-md shadow-primary/20"
+              >
+                {modal.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

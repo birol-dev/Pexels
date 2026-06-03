@@ -11,7 +11,9 @@ export default function ScriptInputView(): React.JSX.Element {
     rerunJob,
     settings,
     loadSettings,
-    deleteJob
+    deleteJob,
+    alert,
+    confirm
   } = useAppStore()
 
   // Form State
@@ -36,7 +38,7 @@ export default function ScriptInputView(): React.JSX.Element {
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     if (!title.trim() || !script.trim()) {
-      alert('Please fill out both the title and the script.')
+      await alert('Validation Error', 'Please fill out both the title and the script.')
       return
     }
 
@@ -54,7 +56,7 @@ export default function ScriptInputView(): React.JSX.Element {
       } else {
         missingMsg = `Active LLM Provider (${activeProvider.toUpperCase()}) API Key is missing.`
       }
-      alert(`Warning: ${missingMsg} Please set it in Settings first.`)
+      await alert('Credentials Required', `${missingMsg} Please set it in Settings first.`)
       navigate('settings')
       return
     }
@@ -76,15 +78,15 @@ export default function ScriptInputView(): React.JSX.Element {
   }
 
   const handleDeleteJob = async (jobId: string, jobTitle: string): Promise<void> => {
-    if (
-      confirm(
-        `Are you sure you want to delete the project "${jobTitle}"?\n\nThis will permanently delete all downloaded photos, videos, and settings logs associated with this project from your hard drive.`
-      )
-    ) {
+    const isConfirmed = await confirm(
+      'Delete Project',
+      `Are you sure you want to delete the project "${jobTitle}"?\n\nThis will permanently delete all downloaded photos, videos, and settings logs associated with this project from your hard drive.`
+    )
+    if (isConfirmed) {
       try {
         await deleteJob(jobId)
       } catch (err) {
-        alert('Failed to delete project: ' + err)
+        await alert('Error Deleting Project', 'Failed to delete project: ' + err)
       }
     }
   }

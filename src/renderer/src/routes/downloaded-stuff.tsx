@@ -23,7 +23,7 @@ interface FlatAsset {
 }
 
 export default function DownloadedStuffView(): React.JSX.Element {
-  const { activeJobId, activeJob, navigate, loadActiveJob } = useAppStore()
+  const { activeJobId, activeJob, navigate, loadActiveJob, alert, confirm } = useAppStore()
   const [assets, setAssets] = useState<FlatAsset[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -78,7 +78,11 @@ export default function DownloadedStuffView(): React.JSX.Element {
   }
 
   const handleDelete = async (assetId: string): Promise<void> => {
-    if (confirm('Are you sure you want to delete this file from local storage?')) {
+    const isConfirmed = await confirm(
+      'Delete Asset',
+      'Are you sure you want to delete this file from local storage?'
+    )
+    if (isConfirmed) {
       await api.assets.deleteLocal(activeJobId, assetId)
       await loadAssets()
       await loadActiveJob(activeJobId)
@@ -98,7 +102,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch (err) {
-      alert('Failed to export manifest: ' + err)
+      await alert('Export Error', 'Failed to export manifest: ' + err)
     }
   }
 
@@ -107,7 +111,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
     try {
       await api.assets.openProjectFolder(activeJobId)
     } catch (err) {
-      alert('Failed to open project folder: ' + err)
+      await alert('Navigation Error', 'Failed to open project folder: ' + err)
     }
   }
 

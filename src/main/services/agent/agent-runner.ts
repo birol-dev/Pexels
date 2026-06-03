@@ -150,7 +150,7 @@ export class AgentRunner extends EventEmitter {
     this.input = input
   }
 
-  private getCombinedSignal(timeoutSeconds: number): AbortSignal {
+  private getCombinedSignal(timeoutSeconds: number): { signal: AbortSignal; cleanup: () => void } {
     const controller = new AbortController()
 
     const onAbort = (): void => {
@@ -166,15 +166,26 @@ export class AgentRunner extends EventEmitter {
       this.log('error', `Request timed out after ${timeoutSeconds} seconds.`)
     }, timeoutSeconds * 1000)
 
-    // Clean up
-    controller.signal.addEventListener('abort', () => {
+    const cleanup = (): void => {
       clearTimeout(timeoutId)
       if (this.abortController?.signal) {
         this.abortController.signal.removeEventListener('abort', onAbort)
       }
-    })
+    }
 
-    return controller.signal
+    return { signal: controller.signal, cleanup }
+  }
+
+  private async executeWithTimeout<T>(
+    timeoutSeconds: number,
+    fn: (signal: AbortSignal) => Promise<T>
+  ): Promise<T> {
+    const { signal, cleanup } = this.getCombinedSignal(timeoutSeconds)
+    try {
+      return await fn(signal)
+    } finally {
+      cleanup()
+    }
   }
 
   public getSnapshot(): JobSnapshot {
@@ -521,18 +532,20 @@ Output ONLY a raw JSON array matching this format (no markdown blocks, no wrappe
 ]
 `
 
-    const response = await provider.createToolTurn(
-      {
-        model: this.modelId,
-        systemPrompt,
-        messages: [{ role: 'user', content: this.input.script }],
-        tools: [],
-        toolChoice: 'none',
-        temperature: 0.2,
-        maxOutputTokens: 2000,
-        abortSignal: this.getCombinedSignal(this.requestTimeoutSeconds)
-      },
-      { apiKey: providerKey }
+    const response = await this.executeWithTimeout(this.requestTimeoutSeconds, (signal) =>
+      provider.createToolTurn(
+        {
+          model: this.modelId,
+          systemPrompt,
+          messages: [{ role: 'user', content: this.input.script }],
+          tools: [],
+          toolChoice: 'none',
+          temperature: 0.2,
+          maxOutputTokens: 2000,
+          abortSignal: signal
+        },
+        { apiKey: providerKey }
+      )
     )
 
     if (response.usage) {
@@ -785,18 +798,20 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
         loopProgressVal
       )
 
-      const turnResult = await provider.createToolTurn(
-        {
-          model: this.modelId,
-          systemPrompt,
-          messages: this.messages,
-          tools,
-          toolChoice: 'auto',
-          temperature: 0.3,
-          maxOutputTokens: 2000,
-          abortSignal: this.getCombinedSignal(this.requestTimeoutSeconds)
-        },
-        { apiKey: providerKey! }
+      const turnResult = await this.executeWithTimeout(this.requestTimeoutSeconds, (signal) =>
+        provider.createToolTurn(
+          {
+            model: this.modelId,
+            systemPrompt,
+            messages: this.messages,
+            tools,
+            toolChoice: 'auto',
+            temperature: 0.3,
+            maxOutputTokens: 2000,
+            abortSignal: signal
+          },
+          { apiKey: providerKey! }
+        )
       )
 
       if (turnResult.usage) {

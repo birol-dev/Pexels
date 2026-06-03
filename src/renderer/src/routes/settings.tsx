@@ -51,7 +51,7 @@ const OpenRouterIcon = (): React.JSX.Element => (
 )
 
 export default function SettingsView(): React.JSX.Element {
-  const { settings, loadSettings, updateSettings } = useAppStore()
+  const { settings, loadSettings, updateSettings, confirm } = useAppStore()
 
   // Buffers settings in local state
   const [localSettings, setLocalSettings] = useState<PublicSettings | null>(null)
@@ -187,11 +187,11 @@ export default function SettingsView(): React.JSX.Element {
   }
 
   const handleResetOnboarding = async (): Promise<void> => {
-    if (
-      confirm(
-        'Are you sure you want to reset onboarding? This will route you back to the initial setup wizard.'
-      )
-    ) {
+    const isConfirmed = await confirm(
+      'Reset Onboarding',
+      'Are you sure you want to reset onboarding? This will route you back to the initial setup wizard.'
+    )
+    if (isConfirmed) {
       await updateSettings({ isOnboarded: false })
       window.location.reload()
     }

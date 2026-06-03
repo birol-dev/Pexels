@@ -86,6 +86,16 @@ export interface PublicSettings {
   pexelsKey?: string
 }
 
+export interface ModalState {
+  isOpen: boolean
+  title: string
+  message: string
+  isConfirm: boolean
+  confirmText: string
+  cancelText: string
+  resolve: ((value: boolean) => void) | null
+}
+
 interface AppStore {
   currentRoute: 'input' | 'run' | 'stuff' | 'settings'
   activeJobId: string | null
@@ -94,6 +104,7 @@ interface AppStore {
   settings: PublicSettings | null
   loading: boolean
   pendingEvents: Record<string, unknown>[]
+  modal: ModalState
 
   navigate: (route: 'input' | 'run' | 'stuff' | 'settings') => void
   setActiveJobId: (id: string | null) => void
@@ -120,6 +131,14 @@ interface AppStore {
   cancelJob: (id: string) => Promise<void>
   rerunJob: (id: string) => Promise<void>
   deleteJob: (id: string) => Promise<void>
+
+  alert: (title: string, message: string, options?: { confirmText?: string }) => Promise<void>
+  confirm: (
+    title: string,
+    message: string,
+    options?: { confirmText?: string; cancelText?: string }
+  ) => Promise<boolean>
+  closeModal: (result: boolean) => void
 }
 
 let eventUnsubscribe: (() => void) | null = null
@@ -132,6 +151,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
   settings: null,
   loading: false,
   pendingEvents: [],
+  modal: {
+    isOpen: false,
+    title: '',
+    message: '',
+    isConfirm: false,
+    confirmText: 'OK',
+    cancelText: 'Cancel',
+    resolve: null
+  },
 
   navigate: (route) => set({ currentRoute: route }),
 
@@ -325,5 +353,51 @@ export const useAppStore = create<AppStore>((set, get) => ({
     } finally {
       set({ loading: false })
     }
+  },
+
+  alert: (title, message, options) => {
+    return new Promise<void>((resolve) => {
+      set({
+        modal: {
+          isOpen: true,
+          title,
+          message,
+          isConfirm: false,
+          confirmText: options?.confirmText || 'OK',
+          cancelText: '',
+          resolve: () => resolve()
+        }
+      })
+    })
+  },
+
+  confirm: (title, message, options) => {
+    return new Promise<boolean>((resolve) => {
+      set({
+        modal: {
+          isOpen: true,
+          title,
+          message,
+          isConfirm: true,
+          confirmText: options?.confirmText || 'Confirm',
+          cancelText: options?.cancelText || 'Cancel',
+          resolve
+        }
+      })
+    })
+  },
+
+  closeModal: (result) => {
+    const { resolve } = get().modal
+    if (resolve) {
+      resolve(result)
+    }
+    set((state) => ({
+      modal: {
+        ...state.modal,
+        isOpen: false,
+        resolve: null
+      }
+    }))
   }
 }))
