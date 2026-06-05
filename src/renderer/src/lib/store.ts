@@ -97,6 +97,13 @@ export interface ModalState {
   resolve: ((value: boolean) => void) | null
 }
 
+export interface TabItem {
+  id: string
+  type: 'input' | 'run' | 'stuff' | 'settings'
+  title: string
+  jobId?: string
+}
+
 interface AppStore {
   currentRoute: 'input' | 'run' | 'stuff' | 'settings'
   activeJobId: string | null
@@ -106,6 +113,15 @@ interface AppStore {
   loading: boolean
   pendingEvents: Record<string, unknown>[]
   modal: ModalState
+
+  // Tab State
+  tabs: TabItem[]
+  activeTabId: string
+
+  // Tab Actions
+  openTab: (type: 'input' | 'run' | 'stuff' | 'settings', jobId?: string) => void
+  closeTab: (tabId: string) => void
+  selectTab: (tabId: string) => void
 
   navigate: (route: 'input' | 'run' | 'stuff' | 'settings') => void
   setActiveJobId: (id: string | null) => void
@@ -162,7 +178,99 @@ export const useAppStore = create<AppStore>((set, get) => ({
     resolve: null
   },
 
-  navigate: (route) => set({ currentRoute: route }),
+  // Tab State Initializers
+  tabs: [{ id: 'input', type: 'input', title: 'Create Pack' }],
+  activeTabId: 'input',
+
+  // Tab Action Implementations
+  openTab: (type, jobId) => {
+    const { tabs, jobs } = get()
+    let tabId = type as string
+    let title = ''
+
+    if (type === 'input') {
+      title = 'Create Pack'
+    } else if (type === 'settings') {
+      title = 'Settings'
+    } else if (type === 'run' && jobId) {
+      tabId = `run_${jobId}`
+      const job = jobs.find((j) => j.jobId === jobId)
+      title = `Run: ${job ? job.title : 'Project'}`
+    } else if (type === 'stuff' && jobId) {
+      tabId = `stuff_${jobId}`
+      const job = jobs.find((j) => j.jobId === jobId)
+      title = `Library: ${job ? job.title : 'Project'}`
+    }
+
+    const tabExists = tabs.some((t) => t.id === tabId)
+    const newTabs = tabExists ? tabs : [...tabs, { id: tabId, type, title, jobId }]
+
+    set({
+      tabs: newTabs,
+      activeTabId: tabId,
+      currentRoute: type,
+      activeJobId: jobId || null
+    })
+
+    if (jobId) {
+      get().loadActiveJob(jobId)
+    }
+  },
+
+  closeTab: (tabId) => {
+    const { tabs, activeTabId } = get()
+    const newTabs = tabs.filter((t) => t.id !== tabId)
+
+    if (newTabs.length === 0) {
+      const defaultTab: TabItem = { id: 'input', type: 'input', title: 'Create Pack' }
+      set({
+        tabs: [defaultTab],
+        activeTabId: 'input',
+        currentRoute: 'input',
+        activeJobId: null
+      })
+      return
+    }
+
+    if (activeTabId === tabId) {
+      const closedIndex = tabs.findIndex((t) => t.id === tabId)
+      const nextActiveTab = newTabs[Math.max(0, closedIndex - 1)]
+
+      set({
+        tabs: newTabs,
+        activeTabId: nextActiveTab.id,
+        currentRoute: nextActiveTab.type,
+        activeJobId: nextActiveTab.jobId || null
+      })
+
+      if (nextActiveTab.jobId) {
+        get().loadActiveJob(nextActiveTab.jobId)
+      }
+    } else {
+      set({ tabs: newTabs })
+    }
+  },
+
+  selectTab: (tabId) => {
+    const { tabs } = get()
+    const targetTab = tabs.find((t) => t.id === tabId)
+    if (!targetTab) return
+
+    set({
+      activeTabId: tabId,
+      currentRoute: targetTab.type,
+      activeJobId: targetTab.jobId || null
+    })
+
+    if (targetTab.jobId) {
+      get().loadActiveJob(targetTab.jobId)
+    }
+  },
+
+  navigate: (route) => {
+    const activeJobId = get().activeJobId
+    get().openTab(route, activeJobId || undefined)
+  },
 
   setActiveJobId: (id) => {
     set({ activeJobId: id, pendingEvents: [] })
@@ -275,7 +383,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
             }
           }
         }
-        set({ activeJob: snapshot, pendingEvents: [] })
+        const currentTabs = get().tabs
+        const updatedTabs = currentTabs.map((t) => {
+          if (t.jobId === id) {
+            if (t.type === 'run') {
+              return { ...t, title: `Run: ${snapshot.title}` }
+            } else if (t.type === 'stuff') {
+              return { ...t, title: `Library: ${snapshot.title}` }
+            }
+          }
+          return t
+        })
+        set({ activeJob: snapshot, pendingEvents: [], tabs: updatedTabs })
       } else {
         set({ activeJob: null, pendingEvents: [] })
       }
@@ -347,9 +466,32 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ loading: true })
     try {
       await api.jobs.delete(id)
-      if (get().activeJobId === id) {
-        get().setActiveJobId(null)
+
+      const { tabs, activeTabId } = get()
+      const remainingTabs = tabs.filter((t) => t.jobId !== id)
+      const activeTabWasDeleted = tabs.some((t) => t.jobId === id && t.id === activeTabId)
+
+      if (remainingTabs.length === 0) {
+        const defaultTab: TabItem = { id: 'input', type: 'input', title: 'Create Pack' }
+        set({
+          tabs: [defaultTab],
+          activeTabId: 'input',
+          currentRoute: 'input',
+          activeJobId: null
+        })
+      } else if (activeTabWasDeleted) {
+        const defaultTab: TabItem = { id: 'input', type: 'input', title: 'Create Pack' }
+        const nextActive = remainingTabs.length > 0 ? remainingTabs[0] : defaultTab
+        set({
+          tabs: remainingTabs,
+          activeTabId: nextActive.id,
+          currentRoute: nextActive.type,
+          activeJobId: nextActive.jobId || null
+        })
+      } else {
+        set({ tabs: remainingTabs })
       }
+
       await get().loadJobs()
     } finally {
       set({ loading: false })

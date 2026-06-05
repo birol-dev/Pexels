@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useAppStore } from '../lib/store'
 
 export default function ScriptInputView(): React.JSX.Element {
@@ -29,6 +29,25 @@ export default function ScriptInputView(): React.JSX.Element {
   )
   const [maxAssetsPerBeat, setMaxAssetsPerBeat] = useState(3)
   const [maxTotalDownloads, setMaxTotalDownloads] = useState(15)
+
+  // Custom Dropdown State & Ref
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent): void {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  const currentOption =
+    PLATFORM_OPTIONS.find((opt) => opt.value === platform) || PLATFORM_OPTIONS[0]
 
   useEffect(() => {
     loadJobs()
@@ -222,7 +241,7 @@ export default function ScriptInputView(): React.JSX.Element {
             </div>
             <textarea
               id="video-script"
-              rows={8}
+              rows={4}
               placeholder="Paste your video script narrative here. The AI will segment this script into beats and search matching assets..."
               value={script}
               onChange={(e) => setScript(e.target.value)}
@@ -241,25 +260,53 @@ export default function ScriptInputView(): React.JSX.Element {
               >
                 Platform Layout
               </label>
-              <div className="relative">
-                <select
+              <div className="relative" ref={dropdownRef}>
+                <button
                   id="platform-layout"
-                  value={platform}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                    setPlatform(
-                      e.target.value as 'YouTube' | 'Shorts' | 'TikTok' | 'Instagram Reels'
-                    )
-                  }
-                  className="w-full glass-input rounded-lg px-4 py-3 text-sm text-on-surface appearance-none pr-10 font-semibold cursor-pointer"
+                  type="button"
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="w-full glass-input rounded-lg px-4 py-3 text-sm text-on-surface font-semibold flex items-center justify-between cursor-pointer focus:outline-none"
                 >
-                  <option value="YouTube">YouTube (16:9)</option>
-                  <option value="Shorts">YouTube Shorts (9:16)</option>
-                  <option value="TikTok">TikTok (9:16)</option>
-                  <option value="Instagram Reels">Instagram Reels (9:16)</option>
-                </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
-                  expand_more
-                </span>
+                  <span className="flex items-center gap-2.5">
+                    {currentOption.icon}
+                    <span>{currentOption.label}</span>
+                  </span>
+                  <span
+                    className={`material-symbols-outlined text-outline transition-transform duration-200 pointer-events-none ${dropdownOpen ? 'rotate-180' : ''}`}
+                  >
+                    expand_more
+                  </span>
+                </button>
+
+                {dropdownOpen && (
+                  <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl overflow-hidden glass-panel border border-outline-variant/30 py-1.5 shadow-2xl animate-scale-up">
+                    {PLATFORM_OPTIONS.map((item) => (
+                      <button
+                        key={item.value}
+                        type="button"
+                        onClick={() => {
+                          setPlatform(item.value)
+                          setDropdownOpen(false)
+                        }}
+                        className={`w-full text-left px-4 py-3 text-sm font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                          platform === item.value
+                            ? 'bg-primary/15 text-primary'
+                            : 'text-on-surface hover:bg-white/5'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2.5">
+                          {item.icon}
+                          <span>{item.label}</span>
+                        </span>
+                        {platform === item.value && (
+                          <span className="material-symbols-outlined text-[18px] text-primary">
+                            check
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -420,8 +467,8 @@ export default function ScriptInputView(): React.JSX.Element {
               type="submit"
               className="tactile-button text-white font-semibold text-xs px-8 py-4 rounded-lg flex items-center gap-2 group tracking-wider uppercase cursor-pointer shadow-md"
             >
-              <span className="material-symbols-outlined text-[18px] group-hover:rotate-12 transition-transform">
-                model_training
+              <span className="group-hover:rotate-12 transition-transform duration-300">
+                <AnalyzeFetchIcon />
               </span>
               Analyze & Fetch Visual Assets
             </button>
@@ -515,3 +562,94 @@ export default function ScriptInputView(): React.JSX.Element {
     </div>
   )
 }
+
+// --- Platform Icons and Selection Options ---
+
+const YouTubeIcon = (): React.JSX.Element => (
+  <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" fill="none">
+    <rect x="2" y="4" width="20" height="16" rx="5" fill="#FF0000" />
+    <polygon points="10,8 16,12 10,16" fill="#FFFFFF" />
+  </svg>
+)
+
+const ShortsIcon = (): React.JSX.Element => (
+  <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0">
+    <path
+      d="m18.931 9.99-1.441-.601 1.717-.913a4.48 4.48 0 0 0 1.874-6.078 4.506 4.506 0 0 0-6.09-1.874L4.792 5.929a4.504 4.504 0 0 0-2.402 4.193 4.521 4.521 0 0 0 2.666 3.904c.036.012 1.442.6 1.442.6l-1.706.901a4.51 4.51 0 0 0-2.369 3.967A4.528 4.528 0 0 0 6.93 24c.725 0 1.437-.174 2.08-.508l10.21-5.406a4.494 4.494 0 0 0 2.39-4.192 4.525 4.525 0 0 0-2.678-3.904Z"
+      fill="#FF0000"
+    />
+    <polygon points="9.6,8.8 9.6,15.2 15.6,12" fill="#FFFFFF" />
+  </svg>
+)
+
+const TikTokIcon = (): React.JSX.Element => (
+  <svg viewBox="0 0 24 24" className="w-5 h-5 text-on-surface fill-current shrink-0">
+    <path d="M12.525.02c1.31.03 2.612.35 3.82.956V4.96c-1.362-.43-2.8-.45-4.17-.06V11.23c-.023 2.37-1.728 4.417-4.088 4.79-2.58.41-5.01-1.323-5.45-3.89-.44-2.568 1.27-5.013 3.847-5.462.628-.11 1.272-.092 1.892.052v4.06c-.34-.14-.7-.215-1.07-.22-1.29-.02-2.36 1.012-2.38 2.302-.02 1.29 1.012 2.36 2.302 2.38 1.25.02 2.29-.95 2.35-2.2v-13.43c2.4-.047 4.7.773 6.55 2.3v-4.06c-1.35-.85-2.9-1.31-4.48-1.32V.02Z" />
+  </svg>
+)
+
+const ReelsIcon = (): React.JSX.Element => (
+  <svg viewBox="0 0 122.14 122.88" className="w-5 h-5 text-on-surface fill-current shrink-0">
+    <path d="M35.14,0H87c9.65,0,18.43,3.96,24.8,10.32c6.38,6.37,10.34,15.16,10.34,24.82v52.61c0,9.64-3.96,18.42-10.32,24.79 l-0.02,0.02c-6.38,6.37-15.16,10.32-24.79,10.32H35.14c-9.66,0-18.45-3.96-24.82-10.32l-0.24-0.27C3.86,105.95,0,97.27,0,87.74 V35.14c0-9.67,3.95-18.45,10.32-24.82S25.47,0,35.14,0L35.14,0z M91.51,31.02l0.07,0.11h21.6c-0.87-5.68-3.58-10.78-7.48-14.69 C100.9,11.64,94.28,8.66,87,8.66h-8.87L91.51,31.02L91.51,31.02z M81.52,31.13L68.07,8.66H38.57l13.61,22.47H81.52L81.52,31.13z M42.11,31.13L28.95,9.39c-4.81,1.16-9.12,3.65-12.51,7.05c-3.9,3.9-6.6,9.01-7.48,14.69H42.11L42.11,31.13z M113.48,39.79H8.66 v47.96c0,7.17,2.89,13.7,7.56,18.48l0.22,0.21c4.8,4.8,11.43,7.79,18.7,7.79H87c7.28,0,13.9-2.98,18.69-7.77l0.02-0.02 c4.79-4.79,7.77-11.41,7.77-18.69V39.79L113.48,39.79z M50.95,54.95l26.83,17.45c0.43,0.28,0.82,0.64,1.13,1.08 c1.22,1.77,0.77,4.2-1,5.42L51.19,94.67c-0.67,0.55-1.53,0.88-2.48,0.88c-2.16,0-3.91-1.75-3.91-3.91V58.15h0.02 c0-0.77,0.23-1.55,0.7-2.23C46.76,54.15,49.19,53.72,50.95,54.95L50.95,54.95L50.95,54.95z" />
+  </svg>
+)
+
+const AnalyzeFetchIcon = (): React.JSX.Element => (
+  <svg
+    viewBox="0 0 24 24"
+    className="w-4.5 h-4.5 shrink-0"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    {/* Image Card */}
+    <rect x="2" y="6" width="15" height="12" rx="2" />
+    <path d="M2 14l3.5-3.5 3.5 3.5 4-4 4 4" />
+    <circle cx="6" cy="9.5" r="1" fill="currentColor" />
+    {/* Sparkle 1 */}
+    <path
+      d="M19.5 2c0 2.2-1.8 4-4 4 2.2 0 4 1.8 4 4 0-2.2 1.8-4 4-4-2.2 0-4-1.8-4-4z"
+      fill="currentColor"
+      stroke="none"
+    />
+    {/* Sparkle 2 */}
+    <path
+      d="M13.5 19c0 1.1-.9 2-2 2 1.1 0 2 .9 2 2 0-1.1 .9-2 2-2-1.1 0-2-.9-2-2z"
+      fill="currentColor"
+      stroke="none"
+    />
+  </svg>
+)
+
+type PlatformType = 'YouTube' | 'Shorts' | 'TikTok' | 'Instagram Reels'
+
+interface PlatformOption {
+  value: PlatformType
+  label: string
+  icon: React.JSX.Element
+}
+
+const PLATFORM_OPTIONS: PlatformOption[] = [
+  {
+    value: 'YouTube',
+    label: 'YouTube (16:9)',
+    icon: <YouTubeIcon />
+  },
+  {
+    value: 'Shorts',
+    label: 'YouTube Shorts (9:16)',
+    icon: <ShortsIcon />
+  },
+  {
+    value: 'TikTok',
+    label: 'TikTok (9:16)',
+    icon: <TikTokIcon />
+  },
+  {
+    value: 'Instagram Reels',
+    label: 'Instagram Reels (9:16)',
+    icon: <ReelsIcon />
+  }
+]
