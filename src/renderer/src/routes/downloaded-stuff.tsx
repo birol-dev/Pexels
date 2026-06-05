@@ -20,15 +20,35 @@ interface FlatAsset {
   error?: string
   beatId: string
   beatText: string
+  jobId?: string
+}
+
+interface GroupedProject {
+  jobId: string
+  title: string
+  assets: FlatAsset[]
 }
 
 export default function DownloadedStuffView(): React.JSX.Element {
-  const { activeJobId, activeJob, navigate, loadActiveJob, alert, confirm } = useAppStore()
+  const {
+    activeJobId,
+    activeJob,
+    navigate,
+    loadActiveJob,
+    alert,
+    confirm,
+    loadJobs,
+    setActiveJobId,
+    openTab
+  } = useAppStore()
   const [assets, setAssets] = useState<FlatAsset[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'video' | 'photo' | 'completed' | 'failed'>('all')
   const [selectedAsset, setSelectedAsset] = useState<FlatAsset | null>(null)
+
+  const [groupedProjects, setGroupedProjects] = useState<GroupedProject[]>([])
+  const [groupedLoading, setGroupedLoading] = useState(false)
 
   const loadAssets = useCallback(async (): Promise<void> => {
     if (!activeJobId) return
@@ -47,49 +67,88 @@ export default function DownloadedStuffView(): React.JSX.Element {
     }
   }, [activeJobId, selectedAsset])
 
+  const loadGroupedAssets = useCallback(async (): Promise<void> => {
+    setGroupedLoading(true)
+    try {
+      await loadJobs()
+      const currentJobs = useAppStore.getState().jobs
+      const results: GroupedProject[] = []
+
+      await Promise.all(
+        currentJobs.map(async (job) => {
+          try {
+            const list = (await api.assets.list(job.jobId)) as unknown as FlatAsset[]
+            const completed = list
+              .filter((a) => a.status === 'completed')
+              .map((a) => ({ ...a, jobId: job.jobId }))
+            if (completed.length > 0) {
+              results.push({
+                jobId: job.jobId,
+                title: job.title,
+                assets: completed
+              })
+            }
+          } catch (err) {
+            console.error(`Failed to load assets for job ${job.jobId}:`, err)
+          }
+        })
+      )
+
+      results.sort((a, b) => {
+        const indexA = currentJobs.findIndex((j) => j.jobId === a.jobId)
+        const indexB = currentJobs.findIndex((j) => j.jobId === b.jobId)
+        return indexA - indexB
+      })
+
+      setGroupedProjects(results)
+    } catch (err) {
+      console.error('Failed to load grouped assets:', err)
+    } finally {
+      setGroupedLoading(false)
+    }
+  }, [loadJobs])
+
   useEffect(() => {
     Promise.resolve().then(() => {
       loadAssets()
     })
   }, [activeJobId, activeJob?.downloadedCount, activeJob?.failedCount, loadAssets])
 
-  if (!activeJobId) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[400px] text-center space-y-4 animate-fade-in-up">
-        <span className="material-symbols-outlined text-[48px] text-outline">perm_media</span>
-        <div>
-          <h2 className="text-xl font-bold">No Workspace Active</h2>
-          <p className="text-sm text-on-surface-variant mt-1">
-            Select a running or completed project from history to inspect downloaded files.
-          </p>
-        </div>
-        <button
-          onClick={() => navigate('input')}
-          className="tactile-button px-6 py-2.5 rounded-lg text-xs font-semibold shadow-md cursor-pointer"
-        >
-          Back to Dashboard
-        </button>
-      </div>
-    )
-  }
+  useEffect(() => {
+    if (!activeJobId) {
+      Promise.resolve().then(() => {
+        loadGroupedAssets()
+      })
+    }
+  }, [activeJobId, loadGroupedAssets])
 
   const handleOpenFolder = async (assetId: string): Promise<void> => {
-    await api.assets.openInFolder(activeJobId, assetId)
+    const targetJobId = activeJobId || selectedAsset?.jobId
+    if (!targetJobId) return
+    await api.assets.openInFolder(targetJobId, assetId)
   }
 
   const handleDelete = async (assetId: string): Promise<void> => {
+    const targetJobId = activeJobId || selectedAsset?.jobId
+    if (!targetJobId) return
     const isConfirmed = await confirm(
       'Delete Asset',
       'Are you sure you want to delete this file from local storage?'
     )
     if (isConfirmed) {
-      await api.assets.deleteLocal(activeJobId, assetId)
-      await loadAssets()
-      await loadActiveJob(activeJobId)
+      await api.assets.deleteLocal(targetJobId, assetId)
+      if (activeJobId) {
+        await loadAssets()
+        await loadActiveJob(activeJobId)
+      } else {
+        await loadGroupedAssets()
+      }
+      setSelectedAsset(null)
     }
   }
 
   const handleExportManifest = async (): Promise<void> => {
+    if (!activeJobId) return
     try {
       const manifestStr = await api.assets.exportManifest(activeJobId)
       const blob = new Blob([manifestStr], { type: 'application/json' })
@@ -115,6 +174,83 @@ export default function DownloadedStuffView(): React.JSX.Element {
     }
   }
 
+  const renderAssetCard = (asset: FlatAsset): React.JSX.Element => {
+    const isSelected = selectedAsset?.id === asset.id
+    return (
+      <div
+        key={asset.id}
+        onClick={() => setSelectedAsset(asset)}
+        className={`glass-panel rounded-xl overflow-hidden cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg relative aspect-video group ${
+          isSelected
+            ? 'ring-2 ring-primary border-primary shadow-lg shadow-primary/10'
+            : 'border-white/50'
+        }`}
+      >
+        <img
+          src={asset.imageUrl}
+          className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+          alt="Asset thumbnail"
+        />
+
+        {/* Play icon overlay for videos */}
+        {asset.type === 'video' && asset.status === 'completed' && (
+          <div className="absolute inset-0 bg-black/10 flex items-center justify-center transition-opacity hover:bg-black/25">
+            <div className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center border border-white/50 text-white shadow-md">
+              <span
+                className="material-symbols-outlined text-[24px] ml-0.5"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                play_arrow
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Type badge on thumbnail top-left */}
+        <div className="absolute top-2.5 left-2.5">
+          <span className="px-2 py-0.5 bg-surface-container-lowest/80 backdrop-blur-md border border-outline-variant/30 rounded font-mono text-[9px] text-on-surface shadow-sm flex items-center gap-1">
+            <span className="material-symbols-outlined text-[12px]">
+              {asset.type === 'video' ? 'videocam' : 'image'}
+            </span>
+            {asset.type === 'video' ? '4K' : 'IMG'}
+          </span>
+        </div>
+
+        {/* Status badge top-right */}
+        <div className="absolute top-2.5 right-2.5">
+          {asset.status === 'completed' ? (
+            <span className="px-1.5 py-0.5 bg-secondary-container border border-secondary/20 rounded font-mono text-[9px] text-on-secondary-container uppercase shadow-sm">
+              Ready
+            </span>
+          ) : asset.status === 'failed' ? (
+            <span className="px-1.5 py-0.5 bg-error-container border border-error/20 rounded font-mono text-[9px] text-on-error-container uppercase shadow-sm">
+              Failed
+            </span>
+          ) : (
+            <span className="px-1.5 py-0.5 bg-primary-fixed border border-primary/20 rounded font-mono text-[9px] text-primary uppercase shadow-sm animate-pulse-glow">
+              Active
+            </span>
+          )}
+        </div>
+
+        {/* Info Hover details */}
+        <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 via-black/30 to-transparent p-2 text-[9px]">
+          <h4 className="text-white font-semibold truncate leading-tight">
+            {asset.filePath
+              ? asset.filePath.split(/[\\/]/).pop()
+              : `${asset.type}_${asset.pexelsId}`}
+          </h4>
+          <div className="flex justify-between items-center text-neutral-300 font-mono text-[8px] mt-0.5 leading-none">
+            <span>
+              Pexels • {asset.width}x{asset.height}
+            </span>
+            <span>By {asset.photographer}</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const filteredAssets = assets.filter((asset) => {
     // Search filter
     const matchesSearch =
@@ -132,6 +268,318 @@ export default function DownloadedStuffView(): React.JSX.Element {
     if (filter === 'failed') return asset.status === 'failed'
     return true
   })
+
+  const filteredGroupedProjects = groupedProjects
+    .map((project) => {
+      const filtered = project.assets.filter((asset) => {
+        const matchesSearch =
+          (asset.photographer || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (asset.query || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (asset.beatText || '').toLowerCase().includes(searchQuery.toLowerCase())
+
+        if (!matchesSearch) return false
+
+        if (filter === 'all') return true
+        if (filter === 'video') return asset.type === 'video'
+        if (filter === 'photo') return asset.type === 'photo'
+        return true
+      })
+      return {
+        ...project,
+        assets: filtered
+      }
+    })
+    .filter((project) => project.assets.length > 0)
+
+  if (!activeJobId) {
+    if (groupedProjects.length === 0 && !groupedLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center h-[400px] text-center space-y-4 animate-fade-in-up">
+          <span className="material-symbols-outlined text-[48px] text-outline">perm_media</span>
+          <div>
+            <h2 className="text-xl font-bold">No Workspace Active</h2>
+            <p className="text-sm text-on-surface-variant mt-1">
+              Select a running or completed project from history to inspect downloaded files.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('input')}
+            className="tactile-button px-6 py-2.5 rounded-lg text-xs font-semibold shadow-md cursor-pointer"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      )
+    }
+
+    return (
+      <div className="w-full space-y-6 pb-12 animate-fade-in-up">
+        {/* Top Header Filter Bar */}
+        <header className="glass-panel w-full px-6 py-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sticky top-0 z-40">
+          <div>
+            <h2 className="text-2xl font-extrabold text-on-surface">Media Library</h2>
+            <p className="text-xs text-on-surface-variant mt-0.5">All Projects Downloads</p>
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            {/* Search bar */}
+            <div className="relative grow sm:grow-0">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">
+                search
+              </span>
+              <input
+                type="text"
+                placeholder="Search assets..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="glass-input pl-10 pr-4 py-2 rounded-full text-xs font-semibold w-full sm:w-56"
+              />
+            </div>
+
+            {/* Type Filter Buttons */}
+            <div className="flex bg-white/5 p-1 rounded-lg border border-white/10 shadow-sm backdrop-blur-sm">
+              <button
+                onClick={() => setFilter('all')}
+                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all border ${
+                  filter === 'all'
+                    ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_2px_8px_rgba(139,92,246,0.15)]'
+                    : 'text-on-surface-variant hover:text-on-surface border-transparent'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setFilter('video')}
+                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all border ${
+                  filter === 'video'
+                    ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_2px_8px_rgba(139,92,246,0.15)]'
+                    : 'text-on-surface-variant hover:text-on-surface border-transparent'
+                }`}
+              >
+                Videos
+              </button>
+              <button
+                onClick={() => setFilter('photo')}
+                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all border ${
+                  filter === 'photo'
+                    ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_2px_8px_rgba(139,92,246,0.15)]'
+                    : 'text-on-surface-variant hover:text-on-surface border-transparent'
+                }`}
+              >
+                Photos
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Grid & Details Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {/* Grouped Assets List */}
+          <div className="lg:col-span-2 space-y-6">
+            {groupedLoading ? (
+              <div className="flex h-[300px] items-center justify-center bg-transparent">
+                <span className="material-symbols-outlined text-[48px] text-primary animate-spin">
+                  sync
+                </span>
+              </div>
+            ) : filteredGroupedProjects.length === 0 ? (
+              <div className="glass-panel rounded-2xl p-12 text-center text-xs text-on-surface-variant font-medium">
+                No matching assets found in any project workspace.
+              </div>
+            ) : (
+              filteredGroupedProjects.map((project) => (
+                <div
+                  key={project.jobId}
+                  className="glass-panel p-6 rounded-2xl space-y-4 border border-white/5"
+                >
+                  <div className="flex justify-between items-center border-b border-white/5 pb-3">
+                    <div>
+                      <h3 className="font-bold text-base text-on-surface">{project.title}</h3>
+                      <p className="text-[10px] text-outline mt-0.5">Project ID: {project.jobId}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setActiveJobId(project.jobId)
+                          openTab('stuff', project.jobId)
+                        }}
+                        className="btn-interactive px-3 py-1.5 bg-primary/20 text-primary border border-primary/30 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-primary/30"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">visibility</span>
+                        Inspect Project
+                      </button>
+                      <button
+                        onClick={() => api.assets.openProjectFolder(project.jobId)}
+                        className="btn-interactive px-3 py-1.5 bg-white/5 text-on-surface border border-white/10 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-white/10"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">folder</span>
+                        Open Folder
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {project.assets.map((asset) => renderAssetCard(asset))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Details Panel (Inspector) */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2 pb-2">
+              <span className="material-symbols-outlined text-outline text-[20px]">info</span>
+              <h2 className="text-xl font-bold tracking-tight text-on-surface">Asset Inspector</h2>
+            </div>
+
+            {!selectedAsset ? (
+              <div className="glass-panel rounded-2xl p-6 text-center text-xs text-on-surface-variant font-medium">
+                Select any asset in the library grid to inspect file coordinates, creator licensing,
+                and run local playback.
+              </div>
+            ) : (
+              <div className="glass-panel-elevated rounded-2xl overflow-hidden flex flex-col relative animate-fade-in-up">
+                {/* Media Preview Player */}
+                <div className="w-full aspect-video bg-black flex items-center justify-center relative group">
+                  {selectedAsset.status === 'completed' && selectedAsset.filePath ? (
+                    selectedAsset.type === 'video' ? (
+                      <video
+                        key={selectedAsset.filePath}
+                        src={`media://${selectedAsset.filePath}`}
+                        controls
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <img
+                        src={`media://${selectedAsset.filePath}`}
+                        className="w-full h-full object-contain"
+                        alt="Local Stock Preview"
+                      />
+                    )
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-surface-container opacity-60">
+                      <span className="material-symbols-outlined text-[36px] text-outline">
+                        broken_image
+                      </span>
+                      <span className="text-[10px] font-mono mt-1 text-on-surface-variant">
+                        Local file missing
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Metadata content */}
+                <div className="p-5 space-y-4 text-xs font-semibold text-on-surface-variant">
+                  <div>
+                    <span className="text-outline uppercase text-[9px] font-mono block mb-0.5">
+                      Original Source
+                    </span>
+                    <a
+                      href={selectedAsset.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary hover:underline flex items-center gap-1 mt-0.5"
+                    >
+                      View on Pexels
+                      <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                    </a>
+                  </div>
+
+                  <div className="h-px w-full bg-white/5" />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-outline uppercase text-[9px] font-mono block">
+                        Creator
+                      </span>
+                      <p className="text-on-surface mt-0.5 truncate">
+                        {selectedAsset.photographer}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-outline uppercase text-[9px] font-mono block">
+                        Resolution
+                      </span>
+                      <p className="text-on-surface mt-0.5">
+                        {selectedAsset.width} × {selectedAsset.height}
+                      </p>
+                    </div>
+                    {selectedAsset.duration !== undefined && (
+                      <div>
+                        <span className="text-outline uppercase text-[9px] font-mono block">
+                          Duration
+                        </span>
+                        <p className="text-on-surface mt-0.5">{selectedAsset.duration}s</p>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-outline uppercase text-[9px] font-mono block">
+                        Type
+                      </span>
+                      <p className="text-on-surface mt-0.5 capitalize">{selectedAsset.type}</p>
+                    </div>
+                  </div>
+
+                  <div className="h-px w-full bg-white/5" />
+
+                  <div>
+                    <span className="text-outline uppercase text-[9px] font-mono block">
+                      Search Query Context
+                    </span>
+                    <p className="text-on-surface font-mono mt-1 italic text-[11px]">
+                      &ldquo;{selectedAsset.query}&rdquo;
+                    </p>
+                  </div>
+
+                  <div>
+                    <span className="text-outline uppercase text-[9px] font-mono block">
+                      Script beat segment
+                    </span>
+                    <p className="text-on-surface italic leading-relaxed mt-1 bg-white/5 border border-white/5 p-2.5 rounded text-[11px]">
+                      &ldquo;{selectedAsset.beatText}&rdquo;
+                    </p>
+                  </div>
+
+                  {selectedAsset.filePath && (
+                    <div>
+                      <span className="text-outline uppercase text-[9px] font-mono block">
+                        Local Disk Path
+                      </span>
+                      <p className="text-on-surface-variant font-mono select-all break-all leading-normal mt-1 text-[10px] bg-white/5 p-2.5 rounded border border-white/5">
+                        {selectedAsset.filePath}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action buttons pinned */}
+                {selectedAsset.status === 'completed' && (
+                  <div className="p-4 border-t border-white/5 bg-white/5 flex gap-2">
+                    <button
+                      onClick={() => handleOpenFolder(selectedAsset.id)}
+                      className="btn-interactive grow py-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 font-semibold text-xs text-on-surface transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">folder_open</span>{' '}
+                      Reveal in Folder
+                    </button>
+                    <button
+                      onClick={() => handleDelete(selectedAsset.id)}
+                      className="btn-interactive py-2.5 px-3 rounded-lg hover:bg-error/20 hover:text-error text-on-surface-variant font-semibold text-xs flex items-center justify-center transition-colors"
+                      title="Delete Asset"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="w-full space-y-6 pb-12 animate-fade-in-up">
@@ -243,79 +691,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {filteredAssets.map((asset) => (
-                <div
-                  key={asset.id}
-                  onClick={() => setSelectedAsset(asset)}
-                  className={`glass-panel rounded-xl overflow-hidden cursor-pointer transition-all hover:-translate-y-1 hover:shadow-lg relative aspect-video group ${
-                    selectedAsset?.id === asset.id
-                      ? 'ring-2 ring-primary border-primary'
-                      : 'border-white/50'
-                  }`}
-                >
-                  <img
-                    src={asset.imageUrl}
-                    className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
-                    alt="Asset thumbnail"
-                  />
-
-                  {/* Play icon overlay for videos */}
-                  {asset.type === 'video' && asset.status === 'completed' && (
-                    <div className="absolute inset-0 bg-black/10 flex items-center justify-center transition-opacity hover:bg-black/25">
-                      <div className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center border border-white/50 text-white shadow-md">
-                        <span
-                          className="material-symbols-outlined text-[24px] ml-0.5"
-                          style={{ fontVariationSettings: "'FILL' 1" }}
-                        >
-                          play_arrow
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Type badge on thumbnail top-left */}
-                  <div className="absolute top-2.5 left-2.5">
-                    <span className="px-2 py-0.5 bg-surface-container-lowest/80 backdrop-blur-md border border-outline-variant/30 rounded font-mono text-[9px] text-on-surface shadow-sm flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[12px]">
-                        {asset.type === 'video' ? 'videocam' : 'image'}
-                      </span>
-                      {asset.type === 'video' ? '4K' : 'IMG'}
-                    </span>
-                  </div>
-
-                  {/* Status badge top-right */}
-                  <div className="absolute top-2.5 right-2.5">
-                    {asset.status === 'completed' ? (
-                      <span className="px-1.5 py-0.5 bg-secondary-container border border-secondary/20 rounded font-mono text-[9px] text-on-secondary-container uppercase shadow-sm">
-                        Ready
-                      </span>
-                    ) : asset.status === 'failed' ? (
-                      <span className="px-1.5 py-0.5 bg-error-container border border-error/20 rounded font-mono text-[9px] text-on-error-container uppercase shadow-sm">
-                        Failed
-                      </span>
-                    ) : (
-                      <span className="px-1.5 py-0.5 bg-primary-fixed border border-primary/20 rounded font-mono text-[9px] text-primary uppercase shadow-sm animate-pulse-glow">
-                        Active
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Info Hover details */}
-                  <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 via-black/30 to-transparent p-2 text-[9px]">
-                    <h4 className="text-white font-semibold truncate leading-tight">
-                      {asset.filePath
-                        ? asset.filePath.split(/[\\/]/).pop()
-                        : `${asset.type}_${asset.pexelsId}`}
-                    </h4>
-                    <div className="flex justify-between items-center text-neutral-300 font-mono text-[8px] mt-0.5 leading-none">
-                      <span>
-                        Pexels • {asset.width}x{asset.height}
-                      </span>
-                      <span>By {asset.photographer}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {filteredAssets.map((asset) => renderAssetCard(asset))}
             </div>
           )}
         </div>

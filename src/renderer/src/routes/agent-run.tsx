@@ -5,6 +5,8 @@ export default function AgentRunView(): React.JSX.Element {
   const {
     activeJob,
     activeJobId,
+    setActiveJobId,
+    loadJobs,
     pauseJob,
     resumeJob,
     approveAndResumeJob,
@@ -14,6 +16,17 @@ export default function AgentRunView(): React.JSX.Element {
   } = useAppStore()
   const logEndRef = useRef<HTMLDivElement>(null)
   const [approvalSelection, setApprovalSelection] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    if (!activeJobId) {
+      loadJobs().then(() => {
+        const currentJobs = useAppStore.getState().jobs
+        if (currentJobs.length > 0) {
+          setActiveJobId(currentJobs[0].jobId)
+        }
+      })
+    }
+  }, [activeJobId, loadJobs, setActiveJobId])
 
   const formatCost = (input: number, output: number): string => {
     const cost = ((input || 0) * 0.0025 + (output || 0) * 0.01) / 1000

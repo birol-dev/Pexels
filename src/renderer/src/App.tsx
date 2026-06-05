@@ -18,14 +18,18 @@ export default function App(): React.JSX.Element {
     tabs,
     activeTabId,
     selectTab,
-    closeTab
+    closeTab,
+    jobs,
+    loadJobs,
+    setActiveJobId
   } = useAppStore()
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   useEffect(() => {
     loadSettings()
-  }, [loadSettings])
+    loadJobs()
+  }, [loadSettings, loadJobs])
 
   if (!settings) {
     return (
@@ -143,18 +147,20 @@ export default function App(): React.JSX.Element {
             </button>
 
             <button
-              onClick={() => navigate('run')}
-              disabled={!activeJobId}
+              onClick={() => {
+                if (!activeJobId && jobs.length > 0) {
+                  setActiveJobId(jobs[0].jobId)
+                }
+                navigate('run')
+              }}
               className={`flex items-center transition-all ${
                 sidebarCollapsed
                   ? 'p-3 justify-center rounded-xl'
                   : 'w-full space-x-3 px-4 py-3 rounded-lg text-sm font-medium'
               } ${
-                !activeJobId
-                  ? 'opacity-40 cursor-not-allowed'
-                  : currentRoute === 'run'
-                    ? 'bg-white/10 text-on-surface font-semibold'
-                    : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
+                currentRoute === 'run'
+                  ? 'bg-white/10 text-on-surface font-semibold'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
               }`}
               title={sidebarCollapsed ? 'Run Progress' : undefined}
             >
@@ -169,17 +175,14 @@ export default function App(): React.JSX.Element {
 
             <button
               onClick={() => navigate('stuff')}
-              disabled={!activeJobId}
               className={`flex items-center transition-all ${
                 sidebarCollapsed
                   ? 'p-3 justify-center rounded-xl'
                   : 'w-full space-x-3 px-4 py-3 rounded-lg text-sm font-medium'
               } ${
-                !activeJobId
-                  ? 'opacity-40 cursor-not-allowed'
-                  : currentRoute === 'stuff'
-                    ? 'bg-white/10 text-on-surface font-semibold'
-                    : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
+                currentRoute === 'stuff'
+                  ? 'bg-white/10 text-on-surface font-semibold'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
               }`}
               title={sidebarCollapsed ? 'Media Library' : undefined}
             >
