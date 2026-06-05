@@ -16,7 +16,7 @@ export default function App(): React.JSX.Element {
 
   if (!settings) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#09090b]">
+      <div className="flex h-screen items-center justify-center bg-black">
         <div className="flex flex-col items-center gap-3">
           <span className="material-symbols-outlined text-[48px] text-primary animate-spin">
             sync
@@ -48,26 +48,32 @@ export default function App(): React.JSX.Element {
   }
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-on-surface flex font-sans antialiased overflow-x-hidden relative">
-      {/* Luminous Natural Aero backgrounds */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/10 blur-[150px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-secondary-container/10 blur-[150px]" />
-      </div>
-
+    <div
+      className={`min-h-screen ${
+        settings.theme === 'flat-white'
+          ? 'theme-flat-white bg-white text-[#09090b]'
+          : 'theme-flat-black bg-black text-white'
+      } flex font-sans antialiased overflow-x-hidden relative`}
+    >
       {/* Sidebar Navigation */}
-      <aside className="w-64 border-r border-white/5 bg-[#121216]/65 backdrop-blur-md flex flex-col justify-between shrink-0 select-none z-10 relative">
+      <aside
+        className={`w-64 border-r ${
+          settings.theme === 'flat-white'
+            ? 'border-black/5 bg-[#fafafa]'
+            : 'border-white/10 bg-[#080808]'
+        } flex flex-col justify-between shrink-0 select-none z-10 relative`}
+      >
         <div className="p-6">
           {/* Logo Brand */}
           <div className="flex items-center space-x-3 mb-10">
-            <div className="w-10 h-10 rounded-lg bg-linear-to-br from-primary to-primary-container shadow-inner flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-primary shadow-inner flex items-center justify-center shrink-0">
               <span className="material-symbols-outlined text-white text-[24px]">eco</span>
             </div>
             <div>
               <span className="font-bold text-sm tracking-tight text-on-surface block">
                 StockFinder AI
               </span>
-              <span className="text-[10px] text-outline block font-mono">Natural Aero Engine</span>
+              <span className="text-[10px] text-outline block font-mono">Flat Engine</span>
             </div>
           </div>
 
@@ -166,7 +172,7 @@ export default function App(): React.JSX.Element {
             <span>Chrome: {window.process?.versions?.chrome || '130.0'}</span>
           </div>
           <div className="text-[9px] opacity-60 text-center border-t border-black/5 pt-3">
-            v1.2.2 • Natural Aero Powered
+            v1.2.2 • Flat Engine Powered
           </div>
         </div>
       </aside>
@@ -179,7 +185,13 @@ export default function App(): React.JSX.Element {
       {/* Custom Glassmorphic Alert/Confirm Dialog */}
       {modal.isOpen && (
         <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="bg-[#121216]/80 backdrop-blur-xl border border-white/10 shadow-[0px_20px_40px_rgba(0,0,0,0.4)] rounded-2xl max-w-md w-full p-6 flex flex-col gap-4 animate-scale-up">
+          <div
+            className={`border shadow-[0px_20px_40px_rgba(0,0,0,0.4)] rounded-2xl max-w-md w-full p-6 flex flex-col gap-4 animate-scale-up ${
+              settings.theme === 'flat-white'
+                ? 'bg-white border-black/10'
+                : 'bg-black border-white/10'
+            }`}
+          >
             {/* Title */}
             <div className="flex items-center gap-3">
               <div

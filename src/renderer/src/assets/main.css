@@ -302,3 +302,227 @@ select.glass-input option {
 .animate-scale-up {
   animation: scaleUp 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Flat Black Theme overrides */
+.theme-flat-black {
+  --color-border: #222222;
+  --color-input: #000000;
+  --color-ring: rgba(139, 92, 246, 0.2);
+  --color-background: #000000;
+  --color-on-background: #ffffff;
+
+  --color-surface: #000000;
+  --color-surface-dim: #050505;
+  --color-surface-bright: #0c0c0c;
+  --color-surface-container-lowest: #000000;
+  --color-surface-container-low: #080808;
+  --color-surface-container: #101010;
+  --color-surface-container-high: #181818;
+  --color-surface-container-highest: #202020;
+
+  --color-on-surface: #ffffff;
+  --color-on-surface-variant: #a1a1aa;
+  --color-inverse-surface: #f4f4f5;
+  --color-inverse-on-surface: #000000;
+
+  --color-outline: #717172;
+  --color-outline-variant: #222222;
+  --color-surface-variant: #181818;
+}
+
+.theme-flat-black .glass-panel {
+  background: #000000;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid #222222;
+  box-shadow: none;
+}
+
+.theme-flat-black .glass-panel-elevated {
+  background: #080808;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid #222222;
+  box-shadow: none;
+}
+
+.theme-flat-black .glass-card {
+  background: #101010;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid #222222;
+  box-shadow: none;
+}
+
+.theme-flat-black .glass-input {
+  background: #000000;
+  border: 1px solid #222222;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.theme-flat-black select.glass-input option {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+.theme-flat-black .tactile-button {
+  background: #8b5cf6;
+  box-shadow: none;
+}
+
+.theme-flat-black .tactile-button:hover {
+  background: #7c3aed;
+  transform: none;
+  box-shadow: none;
+}
+
+.theme-flat-black .tactile-button:active {
+  transform: none;
+}
+
+.theme-flat-black .btn-interactive:hover {
+  transform: none;
+  box-shadow: none;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Flat White Theme overrides */
+.theme-flat-white {
+  --color-border: #e4e4e7;
+  --color-input: #ffffff;
+  --color-ring: rgba(139, 92, 246, 0.15);
+  --color-background: #ffffff;
+  --color-on-background: #09090b;
+
+  --color-surface: #ffffff;
+  --color-surface-dim: #fafafa;
+  --color-surface-bright: #f4f4f5;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #fafafa;
+  --color-surface-container: #f4f4f5;
+  --color-surface-container-high: #e4e4e7;
+  --color-surface-container-highest: #d4d4d8;
+
+  --color-on-surface: #09090b;
+  --color-on-surface-variant: #52525b;
+  --color-inverse-surface: #09090b;
+  --color-inverse-on-surface: #ffffff;
+
+  --color-outline: #71717a;
+  --color-outline-variant: #e4e4e7;
+  --color-surface-variant: #f4f4f5;
+
+  --color-primary-container: #c084fc;
+}
+
+.theme-flat-white .glass-panel {
+  background: #ffffff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid #e4e4e7;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.theme-flat-white .glass-panel-elevated {
+  background: #fafafa;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid #e4e4e7;
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.05),
+    0 4px 6px -2px rgba(0, 0, 0, 0.03);
+}
+
+.theme-flat-white .glass-card {
+  background: #ffffff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid #e4e4e7;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.theme-flat-white .glass-input {
+  background: #ffffff;
+  border: 1px solid #d4d4d8;
+  color: #09090b;
+  box-shadow: none;
+}
+
+.theme-flat-white .glass-input:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+.theme-flat-white select.glass-input option {
+  background-color: #ffffff;
+  color: #09090b;
+}
+
+.theme-flat-white .tactile-button {
+  background: #8b5cf6;
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+}
+
+.theme-flat-white .tactile-button:hover {
+  background: #7c3aed;
+  transform: none;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.theme-flat-white .tactile-button:active {
+  transform: none;
+}
+
+.theme-flat-white .btn-interactive:hover {
+  transform: none;
+  box-shadow: none;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Light Mode transparency / overlay overrides */
+.theme-flat-white .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.theme-flat-white .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.theme-flat-white .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.theme-flat-white .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.theme-flat-white .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.theme-flat-white .border-white\/15 {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+.theme-flat-white .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.theme-flat-white .hover\:border-white\/10:hover {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.theme-flat-white ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.theme-flat-white ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.theme-flat-white ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.22);
+}

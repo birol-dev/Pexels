@@ -13,6 +13,7 @@ export interface PublicSettings {
   requireApprovalBeforeDownload: boolean
   avoidPeopleAndFaces: boolean
   isOnboarded: boolean
+  theme: 'flat-black' | 'flat-white'
 }
 
 let settingsFile: string | null = null
@@ -36,7 +37,8 @@ export function getDefaultSettings(): PublicSettings {
       skipExplicitQueries: true,
       requireApprovalBeforeDownload: false,
       avoidPeopleAndFaces: false,
-      isOnboarded: false
+      isOnboarded: false,
+      theme: 'flat-black'
     }
   }
   return defaultSettings

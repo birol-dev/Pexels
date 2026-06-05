@@ -80,6 +80,7 @@ export interface PublicSettings {
   requireApprovalBeforeDownload: boolean
   avoidPeopleAndFaces: boolean
   isOnboarded: boolean
+  theme: 'flat-black' | 'flat-white'
   openaiKey?: string
   geminiKey?: string
   openrouterKey?: string

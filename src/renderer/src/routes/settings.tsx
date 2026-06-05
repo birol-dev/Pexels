@@ -225,6 +225,71 @@ export default function SettingsView(): React.JSX.Element {
         </div>
       </header>
 
+      {/* Diagnostics / Connection Alert Cards */}
+      {(saveResult || llmTestResult || pexelsTestResult) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {saveResult && (
+            <div
+              className={`p-4 rounded-xl flex items-start gap-3 border ${
+                saveResult.success
+                  ? 'bg-secondary/10 border-secondary/25 text-secondary'
+                  : 'bg-error/10 border-error/25 text-error'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
+                {saveResult.success ? 'check_circle' : 'error'}
+              </span>
+              <div>
+                <div className="font-semibold text-xs">Settings Status</div>
+                <div className="text-[11px] mt-0.5 leading-normal opacity-90">
+                  {saveResult.message}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {llmTestResult && (
+            <div
+              className={`p-4 rounded-xl flex items-start gap-3 border ${
+                llmTestResult.success
+                  ? 'bg-secondary/10 border-secondary/25 text-secondary'
+                  : 'bg-error/10 border-error/25 text-error'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
+                {llmTestResult.success ? 'check_circle' : 'error'}
+              </span>
+              <div>
+                <div className="font-semibold text-xs">LLM Connection Test</div>
+                <div className="text-[11px] mt-0.5 leading-normal opacity-90">
+                  {llmTestResult.message}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {pexelsTestResult && (
+            <div
+              className={`p-4 rounded-xl flex items-start gap-3 border ${
+                pexelsTestResult.success
+                  ? 'bg-secondary/10 border-secondary/25 text-secondary'
+                  : 'bg-error/10 border-error/25 text-error'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
+                {pexelsTestResult.success ? 'check_circle' : 'error'}
+              </span>
+              <div>
+                <div className="font-semibold text-xs">Pexels Connection Test</div>
+                <div className="text-[11px] mt-0.5 leading-normal opacity-90">
+                  {pexelsTestResult.message}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <form onSubmit={handleSave} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Left Side: Keys & Providers */}
         <section className="glass-panel p-6 xl:col-span-2 flex flex-col gap-6 rounded-2xl">
@@ -545,6 +610,45 @@ export default function SettingsView(): React.JSX.Element {
             </div>
           </section>
 
+          {/* Appearance Selection */}
+          <section className="glass-panel p-6 flex flex-col gap-4 rounded-2xl">
+            <div className="border-b border-black/5 pb-3">
+              <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2.5">
+                <span className="material-symbols-outlined text-primary text-[20px]">palette</span>
+                Appearance
+              </h3>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider pl-0.5">
+                App Theme
+              </label>
+              <div className="relative">
+                <select
+                  value={localSettings.theme || 'flat-black'}
+                  onChange={async (e) => {
+                    const newTheme = e.target.value as 'flat-black' | 'flat-white'
+                    setLocalSettings((prev) => {
+                      if (!prev) return null
+                      return { ...prev, theme: newTheme }
+                    })
+                    try {
+                      await updateSettings({ theme: newTheme })
+                    } catch (err) {
+                      console.error('Failed to update theme', err)
+                    }
+                  }}
+                  className="w-full glass-input rounded-lg px-3 py-2.5 text-sm font-semibold cursor-pointer appearance-none"
+                >
+                  <option value="flat-black">Flat Black</option>
+                  <option value="flat-white">Flat White</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-outline">
+                  expand_more
+                </span>
+              </div>
+            </div>
+          </section>
+
           {/* Safety Switches */}
           <section className="glass-panel p-6 flex flex-col gap-5 flex-1 rounded-2xl">
             <div className="border-b border-black/5 pb-3">
@@ -633,69 +737,6 @@ export default function SettingsView(): React.JSX.Element {
           </section>
         </div>
       </form>
-
-      {/* Diagnostics / Connection Alert Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {saveResult && (
-          <div
-            className={`p-4 rounded-xl flex items-start gap-3 border ${
-              saveResult.success
-                ? 'bg-secondary/10 border-secondary/25 text-secondary'
-                : 'bg-error/10 border-error/25 text-error'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
-              {saveResult.success ? 'check_circle' : 'error'}
-            </span>
-            <div>
-              <div className="font-semibold text-xs">Settings Status</div>
-              <div className="text-[11px] mt-0.5 leading-normal opacity-90">
-                {saveResult.message}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {llmTestResult && (
-          <div
-            className={`p-4 rounded-xl flex items-start gap-3 border ${
-              llmTestResult.success
-                ? 'bg-secondary/10 border-secondary/25 text-secondary'
-                : 'bg-error/10 border-error/25 text-error'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
-              {llmTestResult.success ? 'check_circle' : 'error'}
-            </span>
-            <div>
-              <div className="font-semibold text-xs">LLM Connection Test</div>
-              <div className="text-[11px] mt-0.5 leading-normal opacity-90">
-                {llmTestResult.message}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {pexelsTestResult && (
-          <div
-            className={`p-4 rounded-xl flex items-start gap-3 border ${
-              pexelsTestResult.success
-                ? 'bg-secondary/10 border-secondary/25 text-secondary'
-                : 'bg-error/10 border-error/25 text-error'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
-              {pexelsTestResult.success ? 'check_circle' : 'error'}
-            </span>
-            <div>
-              <div className="font-semibold text-xs">Pexels Connection Test</div>
-              <div className="text-[11px] mt-0.5 leading-normal opacity-90">
-                {pexelsTestResult.message}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Save Action Area */}
       <div className="flex items-center justify-between border-t border-white/5 pt-5">
