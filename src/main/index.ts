@@ -80,8 +80,13 @@ app.whenReady().then(() => {
 
       const projects = await ProjectStore.list()
       const isProjectMedia = projects.some((project) => {
-        const projectPath = normalize(project.downloadPath)
-        const rel = relative(projectPath, decodedPath)
+        let projectPath = normalize(project.downloadPath)
+        let targetPath = decodedPath
+        if (process.platform === 'win32') {
+          projectPath = projectPath.toLowerCase()
+          targetPath = targetPath.toLowerCase()
+        }
+        const rel = relative(projectPath, targetPath)
         return rel && !rel.startsWith('..') && !isAbsolute(rel)
       })
 

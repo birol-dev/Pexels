@@ -5,8 +5,12 @@ import { isAbsolute, join, normalize, relative } from 'path'
 import { VisualBeat } from '../services/agent/agent-runner'
 
 function isInsideProject(projectDir: string, filePath: string): boolean {
-  const normalizedProject = normalize(projectDir)
-  const normalizedFile = normalize(filePath)
+  let normalizedProject = normalize(projectDir)
+  let normalizedFile = normalize(filePath)
+  if (process.platform === 'win32') {
+    normalizedProject = normalizedProject.toLowerCase()
+    normalizedFile = normalizedFile.toLowerCase()
+  }
   const rel = relative(normalizedProject, normalizedFile)
   return isAbsolute(normalizedFile) && rel !== '' && !rel.startsWith('..') && !isAbsolute(rel)
 }

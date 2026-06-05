@@ -108,7 +108,6 @@ export default function App(): React.JSX.Element {
                   <span className="font-bold text-sm tracking-tight text-on-surface block">
                     StockFinder AI
                   </span>
-                  <span className="text-[10px] text-outline block font-mono">Flat Engine</span>
                 </div>
               </div>
             ) : (
@@ -237,28 +236,18 @@ export default function App(): React.JSX.Element {
 
         {/* Diagnostic Footer */}
         {!sidebarCollapsed ? (
-          <div className="p-6 border-t border-black/5 space-y-3 font-mono text-[10px] text-outline select-text">
-            <div className="flex items-center space-x-2">
-              <span className="material-symbols-outlined text-[14px]">terminal</span>
-              <span>Node: {window.process?.versions?.node || '22.12.0'}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="material-symbols-outlined text-[14px]">desktop_windows</span>
-              <span>Chrome: {window.process?.versions?.chrome || '130.0'}</span>
-            </div>
-            <div className="text-[9px] opacity-60 text-center border-t border-black/5 pt-3">
-              v1.2.2 • Flat Engine Powered
-            </div>
+          <div className="p-6 border-t border-black/5 font-mono text-[10px] text-outline text-center">
+            <span className="opacity-60">v1.2.5</span>
           </div>
         ) : (
           <div className="py-6 border-t border-black/5 flex flex-col items-center gap-4 text-outline select-none">
             <span
-              className="material-symbols-outlined text-[18px] cursor-help"
-              title={`Flat Engine Running\nNode: ${window.process?.versions?.node || '22.12.0'}\nChrome: ${window.process?.versions?.chrome || '130.0'}`}
+              className="material-symbols-outlined text-[18px]"
+              title="Running"
             >
               terminal
             </span>
-            <span className="text-[8px] font-mono opacity-60">v1.2.2</span>
+            <span className="text-[8px] font-mono opacity-60">v1.2.5</span>
           </div>
         )}
       </aside>
