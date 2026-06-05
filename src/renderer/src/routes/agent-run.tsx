@@ -12,12 +12,15 @@ export default function AgentRunView(): React.JSX.Element {
     approveAndResumeJob,
     cancelJob,
     rerunJob,
-    navigate
+    navigate,
+    settings,
+    loadSettings
   } = useAppStore()
   const logEndRef = useRef<HTMLDivElement>(null)
   const [approvalSelection, setApprovalSelection] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
+    loadSettings()
     if (!activeJobId) {
       loadJobs().then(() => {
         const currentJobs = useAppStore.getState().jobs
@@ -26,7 +29,7 @@ export default function AgentRunView(): React.JSX.Element {
         }
       })
     }
-  }, [activeJobId, loadJobs, setActiveJobId])
+  }, [activeJobId, loadJobs, setActiveJobId, loadSettings])
 
   const formatCost = (input: number, output: number): string => {
     const cost = ((input || 0) * 0.0025 + (output || 0) * 0.01) / 1000
@@ -91,6 +94,7 @@ export default function AgentRunView(): React.JSX.Element {
   }
 
   const getBeatStatusIcon = (status: string): React.JSX.Element => {
+    const isRunning = activeJob?.status === 'running'
     switch (status) {
       case 'completed':
         return (
@@ -103,14 +107,14 @@ export default function AgentRunView(): React.JSX.Element {
         )
       case 'searching':
         return (
-          <span className="material-symbols-outlined text-primary text-[20px] animate-spin">
+          <span className={`material-symbols-outlined text-primary text-[20px] ${isRunning ? 'animate-spin' : ''}`}>
             sync
           </span>
         )
       case 'selecting':
       case 'downloading':
         return (
-          <span className="material-symbols-outlined text-primary text-[20px] animate-spin">
+          <span className={`material-symbols-outlined text-primary text-[20px] ${isRunning ? 'animate-spin' : ''}`}>
             hourglass_empty
           </span>
         )
@@ -144,13 +148,14 @@ export default function AgentRunView(): React.JSX.Element {
   }
 
   const getBeatTextColor = (status: string): string => {
+    const isRunning = activeJob?.status === 'running'
     switch (status) {
       case 'completed':
         return 'text-secondary font-bold'
       case 'searching':
       case 'selecting':
       case 'downloading':
-        return 'text-primary font-bold animate-pulse'
+        return `text-primary font-bold ${isRunning ? 'animate-pulse' : ''}`
       case 'failed':
         return 'text-error font-bold'
       default:
@@ -364,16 +369,18 @@ export default function AgentRunView(): React.JSX.Element {
                 {activeJob.downloadedCount} active
               </span>
             </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] text-outline uppercase tracking-wider">
-                Estimated Cost
-              </span>
-              <span className="font-bold text-on-surface mt-0.5">
-                {activeJob.usage && activeJob.usage.totalTokens > 0
-                  ? `$${formatCost(activeJob.usage.inputTokens, activeJob.usage.outputTokens)}`
-                  : '$0.00'}
-              </span>
-            </div>
+            {!settings?.hideEstimatedCost && (
+              <div className="flex flex-col">
+                <span className="text-[10px] text-outline uppercase tracking-wider">
+                  Estimated Cost
+                </span>
+                <span className="font-bold text-on-surface mt-0.5">
+                  {activeJob.usage && activeJob.usage.totalTokens > 0
+                    ? `$${formatCost(activeJob.usage.inputTokens, activeJob.usage.outputTokens)}`
+                    : '$0.00'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </header>

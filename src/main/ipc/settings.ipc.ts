@@ -16,6 +16,7 @@ const SettingsUpdateSchema = z.object({
   avoidPeopleAndFaces: z.boolean().optional(),
   isOnboarded: z.boolean().optional(),
   theme: z.enum(['flat-black', 'flat-white']).optional(),
+  hideEstimatedCost: z.boolean().optional(),
   // Keys are sent in the update payload but stored securely in Keychain, not in settings.json
   openaiKey: z.string().optional(),
   geminiKey: z.string().optional(),
@@ -86,7 +87,8 @@ export function registerSettingsHandlers(): void {
         requireApprovalBeforeDownload: input.requireApprovalBeforeDownload,
         avoidPeopleAndFaces: input.avoidPeopleAndFaces,
         isOnboarded: input.isOnboarded,
-        theme: input.theme
+        theme: input.theme,
+        hideEstimatedCost: input.hideEstimatedCost
       }).filter(([, value]) => value !== undefined)
     )
     await SettingsStore.updateSettings(publicSettings)

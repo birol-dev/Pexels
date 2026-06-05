@@ -85,6 +85,7 @@ export interface PublicSettings {
   geminiKey?: string
   openrouterKey?: string
   pexelsKey?: string
+  hideEstimatedCost?: boolean
 }
 
 export interface ModalState {
@@ -104,6 +105,17 @@ export interface TabItem {
   jobId?: string
 }
 
+export interface InputFormState {
+  title: string
+  script: string
+  platform: 'YouTube' | 'Shorts' | 'TikTok' | 'Instagram Reels'
+  style: string
+  customStyleText: string
+  mix: 'videos only' | 'photos only' | 'videos + photos'
+  maxAssetsPerBeat: number
+  maxTotalDownloads: number
+}
+
 interface AppStore {
   currentRoute: 'input' | 'run' | 'stuff' | 'settings'
   activeJobId: string | null
@@ -117,11 +129,14 @@ interface AppStore {
   // Tab State
   tabs: TabItem[]
   activeTabId: string
+  inputTabStates: Record<string, InputFormState>
+  jobInputTabMap: Record<string, string>
 
   // Tab Actions
-  openTab: (type: 'input' | 'run' | 'stuff' | 'settings', jobId?: string) => void
+  openTab: (type: 'input' | 'run' | 'stuff' | 'settings', jobId?: string, createNew?: boolean) => void
   closeTab: (tabId: string) => void
   selectTab: (tabId: string) => void
+  updateInputTabState: (tabId: string, updates: Partial<InputFormState>) => void
 
   navigate: (route: 'input' | 'run' | 'stuff' | 'settings') => void
   setActiveJobId: (id: string | null) => void
@@ -158,6 +173,17 @@ interface AppStore {
   closeModal: (result: boolean) => void
 }
 
+const DEFAULT_INPUT_TAB_STATE: InputFormState = {
+  title: '',
+  script: '',
+  platform: 'YouTube',
+  style: 'cinematic',
+  customStyleText: '',
+  mix: 'videos + photos',
+  maxAssetsPerBeat: 3,
+  maxTotalDownloads: 15
+}
+
 let eventUnsubscribe: (() => void) | null = null
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -181,15 +207,53 @@ export const useAppStore = create<AppStore>((set, get) => ({
   // Tab State Initializers
   tabs: [{ id: 'input', type: 'input', title: 'Create Pack' }],
   activeTabId: 'input',
+  inputTabStates: {
+    input: { ...DEFAULT_INPUT_TAB_STATE }
+  },
+  jobInputTabMap: {},
 
   // Tab Action Implementations
-  openTab: (type, jobId) => {
+  openTab: (type, jobId, createNew) => {
     const { tabs, jobs } = get()
     let tabId = type as string
     let title = ''
 
     if (type === 'input') {
-      title = 'Create Pack'
+      if (createNew) {
+        tabId = `input_${Date.now()}`
+        const inputTabsCount = tabs.filter((t) => t.type === 'input').length
+        title = inputTabsCount > 0 ? `Create Pack ${inputTabsCount + 1}` : 'Create Pack'
+        set((state) => ({
+          inputTabStates: {
+            ...state.inputTabStates,
+            [tabId]: { ...DEFAULT_INPUT_TAB_STATE }
+          }
+        }))
+      } else {
+        const mappedInputTabId = jobId ? get().jobInputTabMap[jobId] : undefined
+        const existingInputTab = tabs.find(
+          (t) => t.type === 'input' && (mappedInputTabId ? t.id === mappedInputTabId : true)
+        )
+        if (existingInputTab) {
+          tabId = existingInputTab.id
+          title = existingInputTab.title
+        } else {
+          const fallbackInputTab = tabs.find((t) => t.type === 'input')
+          if (fallbackInputTab) {
+            tabId = fallbackInputTab.id
+            title = fallbackInputTab.title
+          } else {
+            tabId = 'input'
+            title = 'Create Pack'
+            set((state) => ({
+              inputTabStates: {
+                ...state.inputTabStates,
+                [tabId]: { ...DEFAULT_INPUT_TAB_STATE }
+              }
+            }))
+          }
+        }
+      }
     } else if (type === 'settings') {
       title = 'Settings'
     } else if (type === 'run' && jobId) {
@@ -208,18 +272,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({
       tabs: newTabs,
       activeTabId: tabId,
-      currentRoute: type,
-      activeJobId: jobId || null
+      currentRoute: type
     })
 
-    if (jobId) {
-      get().loadActiveJob(jobId)
-    }
+    get().setActiveJobId(jobId || null)
   },
 
   closeTab: (tabId) => {
     const { tabs, activeTabId } = get()
     const newTabs = tabs.filter((t) => t.id !== tabId)
+
+    // Remove input tab state if an input tab is closed
+    if (tabId.startsWith('input_') || tabId === 'input') {
+      const nextStates = { ...get().inputTabStates }
+      delete nextStates[tabId]
+      set({ inputTabStates: nextStates })
+    }
 
     if (newTabs.length === 0) {
       const defaultTab: TabItem = { id: 'input', type: 'input', title: 'Create Pack' }
@@ -227,8 +295,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
         tabs: [defaultTab],
         activeTabId: 'input',
         currentRoute: 'input',
-        activeJobId: null
+        inputTabStates: {
+          input: { ...DEFAULT_INPUT_TAB_STATE }
+        }
       })
+      get().setActiveJobId(null)
       return
     }
 
@@ -239,13 +310,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
       set({
         tabs: newTabs,
         activeTabId: nextActiveTab.id,
-        currentRoute: nextActiveTab.type,
-        activeJobId: nextActiveTab.jobId || null
+        currentRoute: nextActiveTab.type
       })
 
-      if (nextActiveTab.jobId) {
-        get().loadActiveJob(nextActiveTab.jobId)
-      }
+      get().setActiveJobId(nextActiveTab.jobId || null)
     } else {
       set({ tabs: newTabs })
     }
@@ -258,13 +326,40 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
     set({
       activeTabId: tabId,
-      currentRoute: targetTab.type,
-      activeJobId: targetTab.jobId || null
+      currentRoute: targetTab.type
     })
 
-    if (targetTab.jobId) {
-      get().loadActiveJob(targetTab.jobId)
-    }
+    get().setActiveJobId(targetTab.jobId || null)
+  },
+
+  updateInputTabState: (tabId, updates) => {
+    set((state) => {
+      const current = state.inputTabStates[tabId] || { ...DEFAULT_INPUT_TAB_STATE }
+      const updatedState = { ...current, ...updates }
+
+      // Dynamically update corresponding tab title if title input changes
+      let newTabs = state.tabs
+      const newTitle = updates.title
+      if (newTitle !== undefined) {
+        newTabs = state.tabs.map((tab) => {
+          if (tab.id === tabId) {
+            return {
+              ...tab,
+              title: newTitle.trim() ? newTitle.trim() : 'Create Pack'
+            }
+          }
+          return tab
+        })
+      }
+
+      return {
+        tabs: newTabs,
+        inputTabStates: {
+          ...state.inputTabStates,
+          [tabId]: updatedState
+        }
+      }
+    })
   },
 
   navigate: (route) => {
@@ -408,15 +503,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
   startJob: async (input) => {
     set({ loading: true })
     try {
+      const activeInputTabId = get().activeTabId
       const jobId = await api.jobs.start(input as unknown as Record<string, unknown>)
-      get().setActiveJobId(jobId)
-      set({ currentRoute: 'run' })
+      set((state) => ({
+        jobInputTabMap: {
+          ...state.jobInputTabMap,
+          [jobId]: activeInputTabId
+        }
+      }))
+      get().openTab('run', jobId)
       await get().loadJobs()
       return jobId
     } finally {
       set({ loading: false })
     }
   },
+
 
   pauseJob: async (id) => {
     await api.jobs.pause(id)
@@ -454,8 +556,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ loading: true })
     try {
       const newJobId = await api.jobs.rerun(id)
-      get().setActiveJobId(newJobId)
-      set({ currentRoute: 'run' })
+      const oldInputTabId = get().jobInputTabMap[id]
+      if (oldInputTabId) {
+        set((state) => ({
+          jobInputTabMap: {
+            ...state.jobInputTabMap,
+            [newJobId]: oldInputTabId
+          }
+        }))
+      }
+      get().openTab('run', newJobId)
       await get().loadJobs()
     } finally {
       set({ loading: false })

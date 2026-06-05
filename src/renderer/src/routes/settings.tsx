@@ -733,6 +733,31 @@ export default function SettingsView(): React.JSX.Element {
                   className="rounded text-primary border-outline-variant/60 focus:ring-primary w-4.5 h-4.5 cursor-pointer bg-white"
                 />
               </label>
+
+              <label className="flex items-center justify-between cursor-pointer group">
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-on-surface group-hover:text-primary transition-colors">
+                    Hide estimated cost
+                  </span>
+                  <span className="text-[10px] text-outline font-medium">
+                    Do not show run costs in UI
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={localSettings.hideEstimatedCost || false}
+                  onChange={(e) =>
+                    setLocalSettings((prev) => {
+                      if (!prev) return null
+                      return {
+                        ...prev,
+                        hideEstimatedCost: e.target.checked
+                      }
+                    })
+                  }
+                  className="rounded text-primary border-outline-variant/60 focus:ring-primary w-4.5 h-4.5 cursor-pointer bg-white"
+                />
+              </label>
             </div>
           </section>
         </div>

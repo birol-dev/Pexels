@@ -19,12 +19,24 @@ export default function App(): React.JSX.Element {
     activeTabId,
     selectTab,
     closeTab,
+    openTab,
     jobs,
     loadJobs,
-    setActiveJobId
+    setActiveJobId,
+    updateInputTabState
   } = useAppStore()
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [editingTabId, setEditingTabId] = useState<string | null>(null)
+  const [editingTitleValue, setEditingTitleValue] = useState('')
+
+  const handleSaveTitle = (tabId: string, newTitle: string) => {
+    const trimmed = newTitle.trim()
+    if (trimmed) {
+      updateInputTabState(tabId, { title: trimmed })
+    }
+    setEditingTabId(null)
+  }
 
   useEffect(() => {
     loadSettings()
@@ -268,6 +280,13 @@ export default function App(): React.JSX.Element {
                 <div
                   key={tab.id}
                   onClick={() => selectTab(tab.id)}
+                  onDoubleClick={(e) => {
+                    if (tab.type === 'input') {
+                      e.stopPropagation()
+                      setEditingTabId(tab.id)
+                      setEditingTitleValue(tab.title)
+                    }
+                  }}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all border ${
                     isActive
                       ? settings.theme === 'flat-white'
@@ -291,7 +310,29 @@ export default function App(): React.JSX.Element {
                           : 'perm_media'}
                   </span>
 
-                  <span className="truncate max-w-[120px]">{tab.title}</span>
+                  {editingTabId === tab.id ? (
+                    <input
+                      type="text"
+                      value={editingTitleValue}
+                      onChange={(e) => setEditingTitleValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSaveTitle(tab.id, editingTitleValue)
+                        } else if (e.key === 'Escape') {
+                          setEditingTabId(null)
+                        }
+                      }}
+                      onBlur={() => {
+                        handleSaveTitle(tab.id, editingTitleValue)
+                      }}
+                      className="bg-transparent border-b border-primary text-xs focus:outline-none w-24 py-0 pl-1"
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                      onDoubleClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span className="truncate max-w-[120px]">{tab.title}</span>
+                  )}
 
                   <button
                     onClick={(e) => {
@@ -306,6 +347,19 @@ export default function App(): React.JSX.Element {
                 </div>
               )
             })}
+
+            {/* Plus Button to spawn new Create Pack tab */}
+            <button
+              onClick={() => openTab('input', undefined, true)}
+              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all border shrink-0 cursor-pointer ${
+                settings.theme === 'flat-white'
+                  ? 'bg-black/5 border-black/10 text-on-surface-variant hover:text-[#09090b]'
+                  : 'bg-white/5 border-white/10 text-on-surface-variant hover:text-white'
+              }`}
+              title="New Create Pack Tab"
+            >
+              <span className="material-symbols-outlined text-[16px] font-bold">add</span>
+            </button>
           </div>
         )}
 

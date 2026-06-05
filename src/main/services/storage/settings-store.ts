@@ -14,6 +14,7 @@ export interface PublicSettings {
   avoidPeopleAndFaces: boolean
   isOnboarded: boolean
   theme: 'flat-black' | 'flat-white'
+  hideEstimatedCost?: boolean
 }
 
 let settingsFile: string | null = null
@@ -38,7 +39,8 @@ export function getDefaultSettings(): PublicSettings {
       requireApprovalBeforeDownload: false,
       avoidPeopleAndFaces: false,
       isOnboarded: false,
-      theme: 'flat-black'
+      theme: 'flat-black',
+      hideEstimatedCost: false
     }
   }
   return defaultSettings

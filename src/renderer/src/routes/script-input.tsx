@@ -13,22 +13,44 @@ export default function ScriptInputView(): React.JSX.Element {
     loadSettings,
     deleteJob,
     alert,
-    confirm
+    confirm,
+    activeTabId,
+    inputTabStates,
+    updateInputTabState
   } = useAppStore()
 
-  // Form State
-  const [title, setTitle] = useState('')
-  const [script, setScript] = useState('')
-  const [platform, setPlatform] = useState<'YouTube' | 'Shorts' | 'TikTok' | 'Instagram Reels'>(
-    'YouTube'
-  )
-  const [style, setStyle] = useState<string>('cinematic')
-  const [customStyleText, setCustomStyleText] = useState('')
-  const [mix, setMix] = useState<'videos only' | 'photos only' | 'videos + photos'>(
-    'videos + photos'
-  )
-  const [maxAssetsPerBeat, setMaxAssetsPerBeat] = useState(3)
-  const [maxTotalDownloads, setMaxTotalDownloads] = useState(15)
+  // Form State retrieved from Zustand store for the active tab
+  const tabState = inputTabStates[activeTabId] || {
+    title: '',
+    script: '',
+    platform: 'YouTube' as const,
+    style: 'cinematic',
+    customStyleText: '',
+    mix: 'videos + photos' as const,
+    maxAssetsPerBeat: 3,
+    maxTotalDownloads: 15
+  }
+
+  const {
+    title,
+    script,
+    platform,
+    style,
+    customStyleText,
+    mix,
+    maxAssetsPerBeat,
+    maxTotalDownloads
+  } = tabState
+
+  // Setter redirects to store actions
+  const setTitle = (val: string) => updateInputTabState(activeTabId, { title: val })
+  const setScript = (val: string) => updateInputTabState(activeTabId, { script: val })
+  const setPlatform = (val: typeof platform) => updateInputTabState(activeTabId, { platform: val })
+  const setStyle = (val: string) => updateInputTabState(activeTabId, { style: val })
+  const setCustomStyleText = (val: string) => updateInputTabState(activeTabId, { customStyleText: val })
+  const setMix = (val: typeof mix) => updateInputTabState(activeTabId, { mix: val })
+  const setMaxAssetsPerBeat = (val: number) => updateInputTabState(activeTabId, { maxAssetsPerBeat: val })
+  const setMaxTotalDownloads = (val: number) => updateInputTabState(activeTabId, { maxTotalDownloads: val })
 
   // Custom Dropdown State & Ref
   const [dropdownOpen, setDropdownOpen] = useState(false)
