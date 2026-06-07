@@ -1,4 +1,4 @@
-# StockFinder AI (v1.2.4)
+# StockFinder AI (v1.2.6)
 
 An Electron-based desktop application that helps YouTube creators, short-form editors, and visual producers turn script narratives into a curated local asset pack of stock b-roll videos and photos.
 
@@ -49,6 +49,15 @@ $ npm run build:linux
 ```
 
 ## Changelog
+
+### v1.2.6 - Bug Fixes & Stability (2026-06-07)
+
+- **Phantom Delete Fix**: `assets:list` now verifies every `completed` asset's file path exists on disk before returning it. Missing files are automatically downgraded to `failed` in both the response and the manifest, so the UI no longer shows assets as deleted when files are actually present at the save location.
+- **Media Library Flash Fix**: Clicking an asset in the Media Library no longer causes the list to momentarily blank out. Removed `selectedAsset` from `loadAssets`'s `useCallback` dependency array by tracking it via a ref, breaking the circular reload loop.
+- **Progress View No-Scroll**: Removed the `useEffect` that auto-scrolled the page to the bottom on every agent log event. The view now stays in place while the job runs.
+- **CRLF Line Endings**: Converted `App.tsx`, `script-input.tsx`, and `settings.tsx` from Windows CRLF to LF, clearing all Prettier lint warnings.
+- **TypeScript Return Types**: Added explicit `: void` return types to `handleSaveTitle` (App.tsx) and all setter arrow functions in `script-input.tsx`.
+- **Tailwind v4 Class Fixes**: Replaced deprecated `flex-shrink-0` → `shrink-0`, `bg-gradient-to-t` → `bg-linear-to-t`, and `translate-x-[-1px]` → `-translate-x-px` throughout the renderer.
 
 ### v1.2.4 - Release Hardening & Review Controls (2026-05-30)
 
