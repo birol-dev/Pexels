@@ -1,4 +1,4 @@
-# StockFinder AI (v1.2.6)
+# StockFinder AI (v1.2.8)
 
 An Electron-based desktop application that helps YouTube creators, short-form editors, and visual producers turn script narratives into a curated local asset pack of stock b-roll videos and photos.
 
@@ -49,6 +49,17 @@ $ npm run build:linux
 ```
 
 ## Changelog
+
+### v1.2.8 - API Hardening & Attribution (2026-06-07)
+
+- **Pexels API v1 Migration**: Video search and detail endpoints now use the current `/v1/videos/` paths instead of deprecated URLs.
+- **Rate Limit Awareness**: Tracks `X-Ratelimit-*` headers, warns when quota is low, and waits when monthly quota is exhausted before further searches.
+- **Search Result Caching**: Identical Pexels searches are cached for one hour to reduce redundant API calls during agent runs.
+- **Shared API Error Handling**: Central retry/backoff with jitter for transient failures (429, 5xx, timeouts) and circuit breakers for Pexels and LLM providers.
+- **Structured Beat Parsing**: Script segmentation now uses forced `submit_script_beats` tool calling instead of fragile free-text JSON extraction.
+- **Pexels Attribution**: Media Library shows required photographer and Pexels credits; exported manifests include a full attribution block.
+- **Download Safety**: URL validation runs at fetch time in the downloader; permanent errors skip wasteful retries.
+- **Resume Reliability**: Paused jobs restore state correctly after app restart before resuming the agent loop.
 
 ### v1.2.6 - Bug Fixes & Stability (2026-06-07)
 
