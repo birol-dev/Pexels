@@ -54,6 +54,8 @@ export interface ProviderTestResult {
   message: string
 }
 
+import { llmFetch } from './llm-fetch'
+
 export interface LlmProvider {
   id: 'openai' | 'openrouter' | 'gemini'
   createToolTurn(
@@ -174,17 +176,16 @@ class OpenAiProvider implements LlmProvider {
       }
     }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-      signal: input.abortSignal
+    const response = await llmFetch({
+      url,
+      label: 'OpenAI chat completions',
+      init: {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+        signal: input.abortSignal
+      }
     })
-
-    if (!response.ok) {
-      const errText = await response.text()
-      throw new Error(`OpenAI HTTP Error ${response.status}: ${errText}`)
-    }
 
     const data = (await response.json()) as {
       choices: Array<{
@@ -315,17 +316,16 @@ class OpenRouterProvider implements LlmProvider {
       }
     }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-      signal: input.abortSignal
+    const response = await llmFetch({
+      url,
+      label: 'OpenRouter chat completions',
+      init: {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+        signal: input.abortSignal
+      }
     })
-
-    if (!response.ok) {
-      const errText = await response.text()
-      throw new Error(`OpenRouter HTTP Error ${response.status}: ${errText}`)
-    }
 
     const data = (await response.json()) as {
       error?: {
@@ -593,17 +593,16 @@ class GeminiProvider implements LlmProvider {
       }
     }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-      signal: input.abortSignal
+    const response = await llmFetch({
+      url,
+      label: 'Gemini generateContent',
+      init: {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+        signal: input.abortSignal
+      }
     })
-
-    if (!response.ok) {
-      const errText = await response.text()
-      throw new Error(`Gemini HTTP Error ${response.status}: ${errText}`)
-    }
 
     interface GeminiResponseCandidate {
       content?: {

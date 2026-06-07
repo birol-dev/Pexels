@@ -29,6 +29,17 @@ interface GroupedProject {
   assets: FlatAsset[]
 }
 
+function pexelsAssetPageUrl(type: 'photo' | 'video', pexelsId: number): string {
+  return type === 'photo'
+    ? `https://www.pexels.com/photo/${pexelsId}/`
+    : `https://www.pexels.com/video/${pexelsId}/`
+}
+
+function buildCreditLine(asset: FlatAsset): string {
+  const label = asset.type === 'photo' ? 'Photo' : 'Video'
+  return `${label} by ${asset.photographer} on Pexels`
+}
+
 export default function DownloadedStuffView(): React.JSX.Element {
   const {
     activeJobId,
@@ -246,11 +257,19 @@ export default function DownloadedStuffView(): React.JSX.Element {
               {asset.width}x{asset.height} • {asset.type.toUpperCase()}
             </p>
           </div>
-          <div className="flex items-center justify-between mt-3 pt-3 border-t-2 border-surface-variant border-dashed">
-            <span className="font-label-sm text-[11px] text-risograph-gray uppercase tracking-wider truncate max-w-[150px]">
-              By {asset.photographer}
+          <div className="flex items-center justify-between mt-3 pt-3 border-t-2 border-surface-variant border-dashed gap-2">
+            <a
+              href={asset.photographerUrl || pexelsAssetPageUrl(asset.type, asset.pexelsId)}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="font-label-sm text-[11px] text-risograph-gray uppercase tracking-wider truncate hover:text-electric-purple hover:underline"
+            >
+              {buildCreditLine(asset)}
+            </a>
+            <span className="material-symbols-outlined text-[16px] text-ink-black shrink-0">
+              info
             </span>
-            <span className="material-symbols-outlined text-[16px] text-ink-black">info</span>
           </div>
         </div>
       </div>
@@ -387,6 +406,30 @@ export default function DownloadedStuffView(): React.JSX.Element {
           )}
         </div>
       </header>
+
+      <section className="px-6 py-4 border-2 border-ink-black bg-cyber-lime/20 rounded-DEFAULT flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="text-sm text-ink-black">
+          <span className="font-bold">Attribution required.</span> Credit photographers and link
+          back to{' '}
+          <a
+            href="https://www.pexels.com"
+            target="_blank"
+            rel="noreferrer"
+            className="underline font-semibold hover:text-electric-purple"
+          >
+            Pexels
+          </a>{' '}
+          when you publish or export these assets.
+        </div>
+        <a
+          href="https://www.pexels.com/api/documentation/"
+          target="_blank"
+          rel="noreferrer"
+          className="text-xs font-label-sm uppercase tracking-wide text-ink-black underline hover:text-electric-purple shrink-0"
+        >
+          Pexels API guidelines
+        </a>
+      </section>
 
       {/* Filter Options Bar */}
       <div className="px-6 py-4 border-2 border-ink-black bg-surface-container-low rounded-DEFAULT flex flex-wrap items-center justify-between gap-4">
@@ -579,17 +622,42 @@ export default function DownloadedStuffView(): React.JSX.Element {
               <div className="p-5 flex flex-col gap-4 text-xs font-semibold text-on-surface-variant">
                 <div>
                   <span className="text-risograph-gray uppercase text-[9px] font-mono block mb-0.5">
-                    Original Source
+                    Pexels Attribution
                   </span>
-                  <a
-                    href={selectedAsset.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-electric-purple hover:underline flex items-center gap-1 mt-0.5 font-bold"
-                  >
-                    View on Pexels
-                    <span className="material-symbols-outlined text-[12px]">open_in_new</span>
-                  </a>
+                  <p className="text-ink-black text-[11px] font-semibold mt-0.5">
+                    {buildCreditLine(selectedAsset)}
+                  </p>
+                  <div className="flex flex-col gap-1 mt-2">
+                    <a
+                      href={pexelsAssetPageUrl(selectedAsset.type, selectedAsset.pexelsId)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-electric-purple hover:underline flex items-center gap-1 text-[11px] font-bold"
+                    >
+                      View asset on Pexels
+                      <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                    </a>
+                    {selectedAsset.photographerUrl && (
+                      <a
+                        href={selectedAsset.photographerUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-electric-purple hover:underline flex items-center gap-1 text-[11px] font-bold"
+                      >
+                        View photographer profile
+                        <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                      </a>
+                    )}
+                    <a
+                      href="https://www.pexels.com"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-electric-purple hover:underline flex items-center gap-1 text-[11px] font-bold"
+                    >
+                      Photos and videos provided by Pexels
+                      <span className="material-symbols-outlined text-[12px]">open_in_new</span>
+                    </a>
+                  </div>
                 </div>
 
                 <div className="h-px w-full bg-ink-black/10 border-t border-dashed border-ink-black" />

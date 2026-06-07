@@ -3,6 +3,8 @@ import { ProjectStore } from '../services/storage/project-store'
 import { promises as fs } from 'fs'
 import { isAbsolute, join, normalize, relative } from 'path'
 import { VisualBeat } from '../services/agent/agent-runner'
+import { buildManifestAttribution } from '../services/pexels/pexels-attribution'
+import { PexelsClient } from '../services/pexels/pexels-client'
 import { z } from 'zod'
 
 const JobIdSchema = z.string().regex(/^job_\d+$/)
@@ -162,7 +164,29 @@ export function registerAssetsHandlers(): void {
     if (!summary) throw new Error('Job not found')
 
     const manifestPath = join(summary.downloadPath, 'manifest.json')
-    return await fs.readFile(manifestPath, 'utf-8')
+    const raw = await fs.readFile(manifestPath, 'utf-8')
+    const manifest = JSON.parse(raw) as {
+      beats?: VisualBeat[]
+      attribution?: unknown
+      pexelsQuotaSnapshot?: unknown
+    }
+
+    const flatAssets =
+      manifest.beats?.flatMap((beat) =>
+        (beat.assets || []).map((asset) => ({
+          id: asset.id,
+          type: asset.type,
+          pexelsId: asset.pexelsId,
+          url: asset.url,
+          photographer: asset.photographer,
+          photographerUrl: asset.photographerUrl
+        }))
+      ) || []
+
+    manifest.attribution = buildManifestAttribution(flatAssets)
+    manifest.pexelsQuotaSnapshot = PexelsClient.getQuotaSnapshot() || manifest.pexelsQuotaSnapshot
+
+    return JSON.stringify(manifest, null, 2)
   })
 
   ipcMain.handle('assets:openProjectFolder', async (_, rawJobId: unknown): Promise<void> => {

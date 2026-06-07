@@ -112,13 +112,14 @@ export function registerJobsHandlers(): void {
     if (runner) {
       await runner.resume()
     } else {
-      // If not active (e.g. process restarted), we can start a new runner
+      // If not active (e.g. process restarted), restore state then resume
       const summary = await ProjectStore.get(jobId)
-      if (summary) {
+      if (summary && summary.status === 'paused') {
         const input = await getJobInputFromManifest(summary)
         const newRunner = new AgentRunner(jobId, input)
         newRunner.on('event', (evt) => broadcastJobEvent(evt))
-        newRunner.start().catch((err) => console.error(err))
+        await newRunner.initializeAndLoadState()
+        await newRunner.resume()
       }
     }
   })

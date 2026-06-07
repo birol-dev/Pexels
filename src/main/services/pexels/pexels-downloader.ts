@@ -3,6 +3,8 @@ import { promises as fsPromises } from 'fs'
 import { join } from 'path'
 import { Readable, PassThrough } from 'stream'
 import { pipeline } from 'stream/promises'
+import { validateDownloadUrl } from './download-url-validation'
+import { ApiError, classifyFetchError } from '../http/api-errors'
 
 export interface DownloadTask {
   id: string // unique job/task ID
@@ -126,7 +128,13 @@ export class PexelsDownloader {
         this.processNext()
       })
       .catch(async (err) => {
-        if (!nextTask.cancelled && nextTask.retries < 2) {
+        const apiError = classifyFetchError(err)
+        const canRetry =
+          !nextTask.cancelled &&
+          nextTask.retries < 2 &&
+          (apiError.isRetryable || !(err instanceof ApiError))
+
+        if (canRetry) {
           nextTask.retries++
 
           if (this.refreshUrl) {
@@ -158,9 +166,7 @@ export class PexelsDownloader {
           nextTask.status = 'failed'
           nextTask.error = nextTask.cancelled
             ? nextTask.error || 'Download cancelled'
-            : err instanceof Error
-              ? err.message
-              : String(err)
+            : apiError.message
           this.activeCount--
           if (this.onTaskUpdate) this.onTaskUpdate(nextTask)
           this.resolveIdleIfNeeded()
@@ -186,6 +192,8 @@ export class PexelsDownloader {
   }
 
   private async runDownload(task: DownloadTask): Promise<string> {
+    validateDownloadUrl(task.url)
+
     let slugifiedQuery =
       task.query
         .toLowerCase()
@@ -210,13 +218,17 @@ export class PexelsDownloader {
     } catch (err) {
       clearTimeout(timeoutId)
       this.activeControllers.delete(task.id)
-      throw err
+      throw classifyFetchError(err)
     }
 
     if (!response.ok) {
       clearTimeout(timeoutId)
       this.activeControllers.delete(task.id)
-      throw new Error(`HTTP Error: ${response.status} ${response.statusText}`)
+      throw new ApiError(
+        `HTTP Error: ${response.status} ${response.statusText}`,
+        response.status === 429 || response.status >= 500 ? 'transient' : 'permanent',
+        response.status
+      )
     }
     if (!response.body) {
       clearTimeout(timeoutId)

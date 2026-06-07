@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
+import { PexelsManifestAttribution } from '../pexels/pexels-attribution'
 
 export interface ManifestData {
   schemaVersion: 1
@@ -23,6 +24,13 @@ export interface ManifestData {
   messages?: unknown[]
   pexelsCandidates?: Array<[string, unknown]>
   sourceDocsCheckedAt?: string
+  attribution?: PexelsManifestAttribution
+  pexelsQuotaSnapshot?: {
+    limit: number
+    remaining: number
+    resetAt: number
+    updatedAt: string
+  }
 }
 
 export class ManifestWriter {

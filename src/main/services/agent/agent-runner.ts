@@ -9,6 +9,10 @@ import {
 } from '../llm/llm-provider'
 import { PexelsClient } from '../pexels/pexels-client'
 import { PexelsDownloader, DownloadTask } from '../pexels/pexels-downloader'
+import { validateDownloadUrl } from '../pexels/download-url-validation'
+import { buildManifestAttribution } from '../pexels/pexels-attribution'
+import { SUBMIT_SCRIPT_BEATS_TOOL, parseBeatsFromToolCall } from '../llm/beat-parse-tool'
+import { ApiError } from '../http/api-errors'
 import { ManifestWriter, ManifestData } from '../files/manifest-writer'
 import { ProjectStore, JobSummary } from '../storage/project-store'
 import { SecureSecrets } from '../storage/secure-secrets'
@@ -449,9 +453,7 @@ export class AgentRunner extends EventEmitter {
     this.status = 'running'
     this.log('info', 'Agent run resumed by user')
     this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
-    this.start().catch((err) => {
-      console.error('Failed to resume agent runner:', err)
-    })
+    await this.start()
   }
 
   public async cancel(): Promise<void> {
@@ -521,7 +523,20 @@ export class AgentRunner extends EventEmitter {
         : [],
       messages: this.messages,
       pexelsCandidates: Array.from(this.pexelsCandidates.entries()),
-      sourceDocsCheckedAt: new Date().toISOString()
+      sourceDocsCheckedAt: new Date().toISOString(),
+      attribution: buildManifestAttribution(
+        this.beats.flatMap((beat) =>
+          (beat.assets || []).map((asset) => ({
+            id: asset.id,
+            type: asset.type,
+            pexelsId: asset.pexelsId,
+            url: asset.url,
+            photographer: asset.photographer,
+            photographerUrl: asset.photographerUrl
+          }))
+        )
+      ),
+      pexelsQuotaSnapshot: PexelsClient.getQuotaSnapshot() || undefined
     }
     await ManifestWriter.writeManifest(this.projectDir, manifest)
   }
@@ -542,19 +557,12 @@ export class AgentRunner extends EventEmitter {
 
     const provider = LlmProviderFactory.getProvider(this.providerId)
     const systemPrompt = `You are a professional video editor and script analyzer.
-Your task is to break down the provided video script into logical visual beats (scenes or moments of visual focus).
-For each beat, provide:
-1. The script text (matching the source exactly, do not omit or rewrite words).
-2. A description of the visual scene/b-roll that should accompany this script fragment.
+Break the provided script into logical visual beats (scenes or moments of visual focus).
+For each beat:
+1. Preserve the script text exactly — do not omit or rewrite words.
+2. Write a concrete Pexels-friendly visualPrompt for stock photo/video search.
 
-Output ONLY a raw JSON array matching this format (no markdown blocks, no wrappers):
-[
-  {
-    "text": "The exact script text for this scene.",
-    "visualPrompt": "A highly descriptive prompt for stock asset discovery (e.g. 'cinematic close up of glowing mechanical keyboard typing in dark room')"
-  }
-]
-`
+Call the submit_script_beats tool once with the complete ordered beats array.`
 
     const response = await this.executeWithTimeout(this.requestTimeoutSeconds, (signal) =>
       provider.createToolTurn(
@@ -562,10 +570,10 @@ Output ONLY a raw JSON array matching this format (no markdown blocks, no wrappe
           model: this.modelId,
           systemPrompt,
           messages: [{ role: 'user', content: this.input.script }],
-          tools: [],
-          toolChoice: 'none',
+          tools: [SUBMIT_SCRIPT_BEATS_TOOL],
+          toolChoice: { name: 'submit_script_beats' },
           temperature: 0.2,
-          maxOutputTokens: 2000,
+          maxOutputTokens: 4000,
           abortSignal: signal
         },
         { apiKey: providerKey }
@@ -578,35 +586,19 @@ Output ONLY a raw JSON array matching this format (no markdown blocks, no wrappe
       this.usage.totalTokens += response.usage.totalTokens || 0
     }
 
-    let parsedBeats: Array<{ text?: string; visualPrompt?: string }> = []
-    const content = response.assistantMessage.content || ''
-    try {
-      const startIndex = content.indexOf('[')
-      const endIndex = content.lastIndexOf(']')
-      if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
-        throw new Error('No JSON array structure found in LLM response.')
-      }
-      const cleanJson = content.substring(startIndex, endIndex + 1).trim()
-      parsedBeats = JSON.parse(cleanJson) as Array<{ text?: string; visualPrompt?: string }>
-    } catch (err) {
-      this.log('error', `Failed to parse beats JSON. Raw content: ${content}`)
-      throw new Error(
-        `Script parsing returned invalid JSON format: ${err instanceof Error ? err.message : String(err)}`
-      )
+    const beatToolCall = response.toolCalls.find((tc) => tc.name === 'submit_script_beats')
+    if (!beatToolCall) {
+      const fallbackContent = response.assistantMessage.content || ''
+      this.log('error', `Model did not call submit_script_beats. Raw content: ${fallbackContent}`)
+      throw new Error('Script parsing failed: model did not return structured beats.')
     }
 
-    if (!Array.isArray(parsedBeats)) {
-      throw new Error('Script parsing did not return a JSON array.')
-    }
+    const parsedBeats = parseBeatsFromToolCall(beatToolCall.arguments)
 
-    if (parsedBeats.length === 0) {
-      throw new Error('Script parsing returned no visual beats.')
-    }
-
-    this.beats = parsedBeats.map((b: { text?: string; visualPrompt?: string }, index: number) => ({
+    this.beats = parsedBeats.map((beat, index) => ({
       id: `beat_${index + 1}`,
-      text: b.text || '',
-      visualPrompt: b.visualPrompt || '',
+      text: beat.text,
+      visualPrompt: beat.visualPrompt,
       searchQueries: [],
       assets: [],
       status: 'pending'
@@ -620,6 +612,9 @@ Output ONLY a raw JSON array matching this format (no markdown blocks, no wrappe
     this.updateProgress('Executing agent search and downloads', 30)
 
     const providerKey = await SecureSecrets.getSecret(`${this.providerId}Key`)
+    if (!providerKey) {
+      throw new Error(`Missing API Key for LLM provider: ${this.providerId}`)
+    }
     const provider = LlmProviderFactory.getProvider(this.providerId)
 
     const systemPrompt = `You are StockScout, a careful stock-media research agent for YouTube creators.
@@ -834,7 +829,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
             maxOutputTokens: 2000,
             abortSignal: signal
           },
-          { apiKey: providerKey! }
+          { apiKey: providerKey }
         )
       )
 
@@ -902,6 +897,19 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     await this.downloader.waitForIdle()
   }
 
+  private logPexelsQuotaIfNeeded(): void {
+    const quota = PexelsClient.getQuotaSnapshot()
+    if (!quota) return
+
+    if (PexelsClient.isQuotaLow()) {
+      const resetDate = new Date(quota.resetAt * 1000).toLocaleString()
+      this.log(
+        'info',
+        `Pexels API quota low: ${quota.remaining}/${quota.limit} requests remaining (resets ${resetDate}).`
+      )
+    }
+  }
+
   private async executeToolCall(tc: NormalizedToolCall): Promise<void> {
     this.log('tool_call', `Executing tool call: ${tc.name}`, tc.arguments)
     let result: unknown = {}
@@ -910,6 +918,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       const args = JSON.parse(tc.arguments)
 
       if (tc.name === 'search_pexels_photos') {
+        this.logPexelsQuotaIfNeeded()
         if (!this.canUseAssetType('photo')) {
           throw new Error(`Photo search is disabled because asset mix is "${this.input.mix}".`)
         }
@@ -974,6 +983,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           }))
         }
       } else if (tc.name === 'search_pexels_videos') {
+        this.logPexelsQuotaIfNeeded()
         if (!this.canUseAssetType('video')) {
           throw new Error(`Video search is disabled because asset mix is "${this.input.mix}".`)
         }
@@ -1087,7 +1097,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
             )
           }
 
-          this.validateDownloadUrl(sel.variantUrl)
+          validateDownloadUrl(sel.variantUrl)
 
           const beat = this.beats.find((b) => b.id === sel.beatId)
           if (!beat) {
@@ -1292,9 +1302,17 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
         }
       }
     } catch (error) {
-      const errMsg = error instanceof Error ? error.message : String(error)
+      const errMsg =
+        error instanceof ApiError
+          ? `${error.message}${error.isRetryable ? ' (retryable)' : ''}`
+          : error instanceof Error
+            ? error.message
+            : String(error)
       this.log('error', `Tool execution ${tc.name} failed: ${errMsg}`)
-      result = { error: errMsg }
+      result = {
+        error: errMsg,
+        retryable: error instanceof ApiError ? error.isRetryable : false
+      }
     }
 
     this.log('tool_result', `Result for ${tc.name}`, result)
@@ -1408,68 +1426,6 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     await this.activePromise
   }
 
-  private validateDownloadUrl(urlStr: string): void {
-    let url: URL
-    try {
-      url = new URL(urlStr)
-    } catch {
-      throw new Error(`Invalid URL format: ${urlStr}`)
-    }
-
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      throw new Error(`Unauthorized protocol: ${url.protocol}`)
-    }
-
-    const hostname = url.hostname.toLowerCase()
-
-    // 1. Block common local and multicast/DNS-SD host suffixes
-    if (hostname === 'localhost' || hostname.endsWith('.local') || hostname.endsWith('.internal')) {
-      throw new Error(`Security Check Failed: Download URL cannot reference private network hosts.`)
-    }
-
-    // 2. Block private IPv4 and loopbacks
-    const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/
-    const match = hostname.match(ipv4Regex)
-    if (match) {
-      const parts = match.slice(1).map(Number)
-      if (parts.some((p) => p < 0 || p > 255)) {
-        throw new Error(`Invalid IP address format.`)
-      }
-
-      const [p1, p2] = parts
-      // 127.0.0.0/8 (loopback)
-      // 10.0.0.0/8 (private Class A)
-      // 172.16.0.0/12 (private Class B: 172.16.x.x - 172.31.x.x)
-      // 192.168.0.0/16 (private Class C)
-      // 169.254.0.0/16 (link-local)
-      // 0.0.0.0 (any)
-      if (
-        p1 === 127 ||
-        p1 === 10 ||
-        (p1 === 172 && p2 >= 16 && p2 <= 31) ||
-        (p1 === 192 && p2 === 168) ||
-        (p1 === 169 && p2 === 254) ||
-        p1 === 0
-      ) {
-        throw new Error(
-          `Security Check Failed: Download URL cannot reference private network hosts.`
-        )
-      }
-    }
-
-    // 3. Block IPv6 loopback, link-local, unique-local, and multicast addresses
-    if (
-      hostname === '[::1]' ||
-      hostname === '[::]' ||
-      hostname.startsWith('[fe80:') ||
-      hostname.startsWith('[fc00:') ||
-      hostname.startsWith('[fd00:') ||
-      hostname.startsWith('[ff00:')
-    ) {
-      throw new Error(`Security Check Failed: Download URL cannot reference private network hosts.`)
-    }
-  }
-
   private handleDownloadProgress(task: DownloadTask): void {
     // Find the beat that owns this download task
     let assetRecord: AssetRecord | undefined
@@ -1570,7 +1526,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
         const newUrlObj = new URL(newBaseUrl)
         newUrlObj.search = params
         const freshUrl = newUrlObj.toString()
-        this.validateDownloadUrl(freshUrl)
+        validateDownloadUrl(freshUrl)
         this.log('info', `Successfully refreshed photo URL: ${freshUrl}`)
         return freshUrl
       } else {
@@ -1594,7 +1550,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
 
         const freshUrl = matchedFile?.link || ''
         if (freshUrl) {
-          this.validateDownloadUrl(freshUrl)
+          validateDownloadUrl(freshUrl)
           this.log('info', `Successfully refreshed video URL: ${freshUrl}`)
           return freshUrl
         }
