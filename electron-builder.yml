@@ -1,5 +1,11 @@
 appId: com.eact6.stockfinder-ai
 productName: StockFinder AI
+
+# --- Auto-Publish Configuration ---
+publish:
+  provider: github
+  releaseType: draft
+
 directories:
   buildResources: build
 files:

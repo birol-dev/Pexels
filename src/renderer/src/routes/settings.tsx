@@ -305,7 +305,7 @@ export default function SettingsView(): React.JSX.Element {
                 type="password"
                 placeholder={
                   localSettings[`${localSettings.llmProvider}Key`]
-                    ? 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢'
+                    ? '••••••••••••••••'
                     : 'Enter provider key...'
                 }
                 value={
@@ -352,11 +352,7 @@ export default function SettingsView(): React.JSX.Element {
             </label>
             <input
               type="password"
-              placeholder={
-                localSettings.pexelsKey
-                  ? 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢'
-                  : 'Enter Pexels key...'
-              }
+              placeholder={localSettings.pexelsKey ? '••••••••••••••••' : 'Enter Pexels key...'}
               value={pexelsKey}
               onChange={(e) => setPexelsKey(e.target.value)}
               className="neo-input rounded-DEFAULT w-full px-4 py-3 font-body-md text-body-md outline-none focus:border-cyber-lime transition-colors font-mono text-ink-black bg-surface"

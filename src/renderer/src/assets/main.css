@@ -811,6 +811,10 @@ select.glass-input option {
   --risograph-gray-color: #8e9379;
 }
 
+.theme-flat-black .text-ink-black {
+  color: #ffffff;
+}
+
 /* Light mode overrides */
 .theme-flat-white {
   --paper-white-color: #f9fafb;
