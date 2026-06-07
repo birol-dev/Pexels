@@ -30,7 +30,7 @@ export default function App(): React.JSX.Element {
   const [editingTabId, setEditingTabId] = useState<string | null>(null)
   const [editingTitleValue, setEditingTitleValue] = useState('')
 
-  const handleSaveTitle = (tabId: string, newTitle: string) => {
+  const handleSaveTitle = (tabId: string, newTitle: string): void => {
     const trimmed = newTitle.trim()
     if (trimmed) {
       updateInputTabState(tabId, { title: trimmed })
@@ -42,6 +42,14 @@ export default function App(): React.JSX.Element {
     loadSettings()
     loadJobs()
   }, [loadSettings, loadJobs])
+
+  useEffect(() => {
+    if (settings?.theme === 'flat-black') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [settings?.theme])
 
   if (!settings) {
     return (
@@ -80,35 +88,33 @@ export default function App(): React.JSX.Element {
     <div
       className={`min-h-screen ${
         settings.theme === 'flat-white'
-          ? 'theme-flat-white bg-white text-[#09090b]'
-          : 'theme-flat-black bg-black text-white'
-      } flex font-sans antialiased overflow-x-hidden relative`}
+          ? 'theme-flat-white bg-background text-on-background'
+          : 'theme-flat-black bg-background text-on-background'
+      } flex font-body-md h-screen overflow-hidden selection:bg-primary-container selection:text-on-primary-container relative`}
     >
+      <div className="riso-grain"></div>
+
       {/* Sidebar Navigation */}
       <aside
-        className={`${sidebarCollapsed ? 'w-20' : 'w-64'} border-r ${
-          settings.theme === 'flat-white'
-            ? 'border-black/5 bg-[#fafafa]'
-            : 'border-white/10 bg-[#080808]'
-        } flex flex-col justify-between shrink-0 select-none z-10 relative transition-all duration-300`}
+        className={`${sidebarCollapsed ? 'w-20' : 'w-[280px]'} border-r-2 border-border bg-surface-container-low flex flex-col justify-between shrink-0 select-none z-20 relative transition-all duration-300 shadow-[inset_6px_6px_12px_rgba(0,0,0,0.1)] dark:shadow-[inset_6px_6px_12px_rgba(0,0,0,0.5)]`}
       >
-        <div className={sidebarCollapsed ? 'p-4 flex flex-col items-center' : 'p-6'}>
+        <div
+          className={sidebarCollapsed ? 'p-4 flex flex-col items-center' : 'p-component-padding'}
+        >
           {/* Logo Brand / Collapse Toggle Row */}
           <div
             className={`flex items-center ${
               sidebarCollapsed ? 'flex-col gap-4 mb-8' : 'justify-between mb-10'
-            }`}
+            } border-b-2 border-border pb-6`}
           >
             {!sidebarCollapsed ? (
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-lg bg-primary shadow-inner flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-white text-[24px]">eco</span>
-                </div>
-                <div>
-                  <span className="font-bold text-sm tracking-tight text-on-surface block">
-                    StockFinder AI
-                  </span>
-                </div>
+              <div className="flex flex-col">
+                <h1 className="font-headline-lg-mobile text-headline-lg-mobile font-black text-ink-black tracking-tighter">
+                  StockFinder AI
+                </h1>
+                <p className="font-label-sm text-label-sm text-outline dark:text-steel-secondary mt-2">
+                  AI Video Asset Engine
+                </p>
               </div>
             ) : (
               <div className="w-10 h-10 rounded-lg bg-primary shadow-inner flex items-center justify-center shrink-0">
@@ -118,7 +124,7 @@ export default function App(): React.JSX.Element {
 
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className={`w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 text-outline hover:text-on-surface transition-colors cursor-pointer ${
+              className={`w-8 h-8 rounded-lg flex items-center justify-center hover:bg-surface-variant text-outline hover:text-on-surface transition-colors cursor-pointer ${
                 sidebarCollapsed ? 'mt-1' : ''
               }`}
               title={sidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
@@ -131,23 +137,23 @@ export default function App(): React.JSX.Element {
 
           {/* Nav List */}
           <nav
-            className={`space-y-1.5 ${sidebarCollapsed ? 'w-full flex flex-col items-center' : ''}`}
+            className={`space-y-2.5 ${sidebarCollapsed ? 'w-full flex flex-col items-center' : ''}`}
           >
             <button
               onClick={() => navigate('input')}
               className={`flex items-center transition-all ${
                 sidebarCollapsed
                   ? 'p-3 justify-center rounded-xl'
-                  : 'w-full space-x-3 px-4 py-3 rounded-lg text-sm font-medium'
+                  : 'w-full gap-4 px-component-padding py-3 font-label-sm text-label-sm rounded'
               } ${
                 currentRoute === 'input'
-                  ? 'bg-white/10 text-on-surface font-semibold'
-                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
+                  ? 'bg-primary-container text-on-primary-container border-2 border-ink-black shadow-[4px_4px_0px_var(--color-ink-black)] dark:shadow-[4px_4px_0px_var(--color-cyber-lime)] translate-x-[-2px] translate-y-[-2px]'
+                  : 'text-outline dark:text-steel-secondary hover:bg-surface-variant hover:text-on-surface'
               }`}
               title={sidebarCollapsed ? 'Create Pack' : undefined}
             >
               <span
-                className={`material-symbols-outlined text-[20px] ${currentRoute === 'input' ? 'text-primary' : ''}`}
+                className="material-symbols-outlined"
                 style={{
                   fontVariationSettings: currentRoute === 'input' ? "'FILL' 1" : "'FILL' 0"
                 }}
@@ -167,16 +173,16 @@ export default function App(): React.JSX.Element {
               className={`flex items-center transition-all ${
                 sidebarCollapsed
                   ? 'p-3 justify-center rounded-xl'
-                  : 'w-full space-x-3 px-4 py-3 rounded-lg text-sm font-medium'
+                  : 'w-full gap-4 px-component-padding py-3 font-label-sm text-label-sm rounded'
               } ${
                 currentRoute === 'run'
-                  ? 'bg-white/10 text-on-surface font-semibold'
-                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
+                  ? 'bg-primary-container text-on-primary-container border-2 border-ink-black shadow-[4px_4px_0px_var(--color-ink-black)] dark:shadow-[4px_4px_0px_var(--color-cyber-lime)] translate-x-[-2px] translate-y-[-2px]'
+                  : 'text-outline dark:text-steel-secondary hover:bg-surface-variant hover:text-on-surface'
               }`}
               title={sidebarCollapsed ? 'Run Progress' : undefined}
             >
               <span
-                className={`material-symbols-outlined text-[20px] ${currentRoute === 'run' ? 'text-primary' : ''}`}
+                className="material-symbols-outlined"
                 style={{ fontVariationSettings: currentRoute === 'run' ? "'FILL' 1" : "'FILL' 0" }}
               >
                 analytics
@@ -189,21 +195,21 @@ export default function App(): React.JSX.Element {
               className={`flex items-center transition-all ${
                 sidebarCollapsed
                   ? 'p-3 justify-center rounded-xl'
-                  : 'w-full space-x-3 px-4 py-3 rounded-lg text-sm font-medium'
+                  : 'w-full gap-4 px-component-padding py-3 font-label-sm text-label-sm rounded'
               } ${
                 currentRoute === 'stuff'
-                  ? 'bg-white/10 text-on-surface font-semibold'
-                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
+                  ? 'bg-primary-container text-on-primary-container border-2 border-ink-black shadow-[4px_4px_0px_var(--color-ink-black)] dark:shadow-[4px_4px_0px_var(--color-cyber-lime)] translate-x-[-2px] translate-y-[-2px]'
+                  : 'text-outline dark:text-steel-secondary hover:bg-surface-variant hover:text-on-surface'
               }`}
               title={sidebarCollapsed ? 'Media Library' : undefined}
             >
               <span
-                className={`material-symbols-outlined text-[20px] ${currentRoute === 'stuff' ? 'text-primary' : ''}`}
+                className="material-symbols-outlined"
                 style={{
                   fontVariationSettings: currentRoute === 'stuff' ? "'FILL' 1" : "'FILL' 0"
                 }}
               >
-                perm_media
+                folder_special
               </span>
               {!sidebarCollapsed && <span>Media Library</span>}
             </button>
@@ -213,16 +219,16 @@ export default function App(): React.JSX.Element {
               className={`flex items-center transition-all ${
                 sidebarCollapsed
                   ? 'p-3 justify-center rounded-xl'
-                  : 'w-full space-x-3 px-4 py-3 rounded-lg text-sm font-medium'
+                  : 'w-full gap-4 px-component-padding py-3 font-label-sm text-label-sm rounded'
               } ${
                 currentRoute === 'settings'
-                  ? 'bg-white/10 text-on-surface font-semibold'
-                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
+                  ? 'bg-primary-container text-on-primary-container border-2 border-ink-black shadow-[4px_4px_0px_var(--color-ink-black)] dark:shadow-[4px_4px_0px_var(--color-cyber-lime)] translate-x-[-2px] translate-y-[-2px]'
+                  : 'text-outline dark:text-steel-secondary hover:bg-surface-variant hover:text-on-surface'
               }`}
               title={sidebarCollapsed ? 'Settings' : undefined}
             >
               <span
-                className={`material-symbols-outlined text-[20px] ${currentRoute === 'settings' ? 'text-primary' : ''}`}
+                className="material-symbols-outlined"
                 style={{
                   fontVariationSettings: currentRoute === 'settings' ? "'FILL' 1" : "'FILL' 0"
                 }}
@@ -234,35 +240,35 @@ export default function App(): React.JSX.Element {
           </nav>
         </div>
 
-        {/* Diagnostic Footer */}
-        {!sidebarCollapsed ? (
-          <div className="p-6 border-t border-black/5 font-mono text-[10px] text-outline text-center">
-            <span className="opacity-60">v1.2.5</span>
-          </div>
-        ) : (
-          <div className="py-6 border-t border-black/5 flex flex-col items-center gap-4 text-outline select-none">
-            <span
-              className="material-symbols-outlined text-[18px]"
-              title="Running"
-            >
-              terminal
-            </span>
-            <span className="text-[8px] font-mono opacity-60">v1.2.5</span>
-          </div>
-        )}
+        {/* Action Button and Version footer */}
+        <div className="p-4 border-t-2 border-border bg-surface-container flex flex-col gap-3">
+          <button
+            onClick={() => openTab('input', undefined, true)}
+            className={`w-full bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black text-ink-black dark:text-paper-white py-3 px-4 font-label-sm text-label-sm flex justify-center items-center gap-2 rounded hover:bg-surface-variant transition-all duration-200 shadow-[2px_2px_0px_var(--color-ink-black)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] ${
+              sidebarCollapsed ? 'p-2' : ''
+            }`}
+          >
+            <span className="material-symbols-outlined">add</span>
+            {!sidebarCollapsed && <span>New Project</span>}
+          </button>
+          {!sidebarCollapsed ? (
+            <div className="font-mono text-[10px] text-outline dark:text-steel-secondary text-center pt-2 opacity-60">
+              v1.0 Industrial
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-1 text-outline dark:text-steel-secondary select-none opacity-60">
+              <span className="material-symbols-outlined text-[18px]">terminal</span>
+              <span className="text-[8px] font-mono">v1.0</span>
+            </div>
+          )}
+        </div>
       </aside>
 
       {/* Main Workspace Content Area */}
-      <main className="flex-1 min-w-0 flex flex-col z-10 relative">
+      <main className="flex-1 min-w-0 flex flex-col z-10 relative bg-background">
         {/* Closable Project Tabs Bar */}
         {tabs.length > 0 && (
-          <div
-            className={`flex items-center border-b ${
-              settings.theme === 'flat-white'
-                ? 'border-black/5 bg-[#fafafa]'
-                : 'border-white/10 bg-[#080808]'
-            } px-6 py-2.5 overflow-x-auto gap-2 select-none scrollbar-none`}
-          >
+          <div className="flex items-center border-b-2 border-border bg-surface-container px-6 py-2.5 overflow-x-auto gap-3 select-none scrollbar-none">
             {tabs.map((tab) => {
               const isActive = tab.id === activeTabId
               return (
@@ -276,12 +282,10 @@ export default function App(): React.JSX.Element {
                       setEditingTitleValue(tab.title)
                     }
                   }}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all border ${
+                  className={`flex items-center gap-2 px-3 py-1.5 border-2 rounded font-label-sm text-xs transition-all cursor-pointer ${
                     isActive
-                      ? settings.theme === 'flat-white'
-                        ? 'bg-black/5 border-black/10 text-[#09090b]'
-                        : 'bg-white/10 border-white/10 text-white shadow-sm'
-                      : 'border-transparent text-on-surface-variant hover:text-on-surface hover:bg-white/5'
+                      ? 'bg-primary-container text-on-primary-container border-ink-black shadow-[2px_2px_0px_var(--color-ink-black)] dark:shadow-[2px_2px_0px_var(--color-cyber-lime)] -translate-x-px -translate-y-px'
+                      : 'bg-paper-white dark:bg-surface-container-lowest border-border text-outline dark:text-steel-secondary hover:bg-surface-variant hover:text-on-surface'
                   }`}
                 >
                   <span
@@ -328,7 +332,7 @@ export default function App(): React.JSX.Element {
                       e.stopPropagation()
                       closeTab(tab.id)
                     }}
-                    className="w-4.5 h-4.5 rounded-full flex items-center justify-center hover:bg-white/20 hover:text-error transition-colors text-outline cursor-pointer"
+                    className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-white/20 hover:text-error transition-colors text-outline cursor-pointer"
                     title="Close Tab"
                   >
                     <span className="material-symbols-outlined text-[12px] font-bold">close</span>
@@ -340,11 +344,7 @@ export default function App(): React.JSX.Element {
             {/* Plus Button to spawn new Create Pack tab */}
             <button
               onClick={() => openTab('input', undefined, true)}
-              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all border shrink-0 cursor-pointer ${
-                settings.theme === 'flat-white'
-                  ? 'bg-black/5 border-black/10 text-on-surface-variant hover:text-[#09090b]'
-                  : 'bg-white/5 border-white/10 text-on-surface-variant hover:text-white'
-              }`}
+              className="w-7 h-7 rounded border-2 border-border bg-paper-white dark:bg-surface-container-lowest text-outline hover:text-on-surface flex items-center justify-center transition-all shrink-0 cursor-pointer shadow-[1px_1px_0px_var(--color-ink-black)]"
               title="New Create Pack Tab"
             >
               <span className="material-symbols-outlined text-[16px] font-bold">add</span>
@@ -352,7 +352,7 @@ export default function App(): React.JSX.Element {
           </div>
         )}
 
-        <div className="grow overflow-y-auto p-8 lg:p-10">{renderActiveView()}</div>
+        <div className="grow overflow-y-auto">{renderActiveView()}</div>
       </main>
 
       {/* Custom Glassmorphic Alert/Confirm Dialog */}

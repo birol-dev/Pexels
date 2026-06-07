@@ -25,11 +25,30 @@ export function registerAssetsHandlers(): void {
       const data = await fs.readFile(manifestPath, 'utf-8')
       const manifest = JSON.parse(data) as { beats?: VisualBeat[] }
 
+      let manifestDirty = false
       const assets: unknown[] = []
+
       if (manifest.beats) {
         for (const beat of manifest.beats) {
           if (beat.assets) {
             for (const asset of beat.assets) {
+              // If manifest says completed but file is gone from disk, correct it
+              if (asset.status === 'completed' && asset.filePath) {
+                let exists = false
+                try {
+                  await fs.access(asset.filePath)
+                  exists = true
+                } catch {
+                  exists = false
+                }
+                if (!exists) {
+                  asset.status = 'failed'
+                  asset.error = 'File not found on disk'
+                  asset.filePath = undefined
+                  manifestDirty = true
+                }
+              }
+
               assets.push({
                 ...asset,
                 beatId: beat.id,
@@ -39,6 +58,14 @@ export function registerAssetsHandlers(): void {
           }
         }
       }
+
+      // Persist corrections so manifest stays in sync (fire-and-forget)
+      if (manifestDirty) {
+        fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8').catch((err) =>
+          console.error('Failed to update manifest after file-existence check:', err)
+        )
+      }
+
       return assets
     } catch {
       return []

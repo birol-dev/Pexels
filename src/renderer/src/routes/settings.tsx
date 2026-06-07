@@ -1,54 +1,6 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import { useAppStore, PublicSettings } from '../lib/store'
 import { api } from '../lib/api-client'
-
-// SVGs for the Providers
-const OpenAIIcon = (): React.JSX.Element => (
-  <svg
-    viewBox="-0.17090198558635983 0.482230148717937 41.14235318283891 40.0339509076386"
-    className="h-5 w-5 text-primary"
-  >
-    <title>OpenAI</title>
-    <path
-      d="M37.532 16.87a9.963 9.963 0 0 0-.856-8.184 10.078 10.078 0 0 0-10.855-4.835A9.964 9.964 0 0 0 18.306.5a10.079 10.079 0 0 0-9.614 6.977 9.967 9.967 0 0 0-6.664 4.834 10.08 10.08 0 0 0 1.24 11.817 9.965 9.965 0 0 0 .856 8.185 10.079 10.079 0 0 0 10.855 4.835 9.965 9.965 0 0 0 7.516 3.35 10.078 10.078 0 0 0 9.617-6.981 9.967 9.967 0 0 0 6.663-4.834 10.079 10.079 0 0 0-1.243-11.813zM22.498 37.886a7.474 7.474 0 0 1-4.799-1.735c.061-.033.168-.091.237-.134l7.964-4.6a1.294 1.294 0 0 0 .655-1.134V19.054l3.366 1.944a.12.12 0 0 1 .066.092v9.299a7.505 7.505 0 0 1-7.49 7.496zM6.392 31.006a7.471 7.471 0 0 1-.894-5.023c.06.036.162.099.237.141l7.964 4.6a1.297 1.297 0 0 0 1.308 0l9.724-5.614v3.888a.12.12 0 0 1-.048.103l-8.051 4.649a7.504 7.504 0 0 1-10.24-2.744zM4.297 13.62a7.469 7.469 0 0 1 3.903-3.287c0 .068-.004.19-.004.274v9.201a1.294 1.294 0 0 0 .654 1.132l9.723 5.614-3.366 1.944a.12.12 0 0 1-.114.01L7.04 23.856a7.504 7.504 0 0 1-2.743-10.237zm27.658 6.437l-9.724-5.615 3.367-1.943a.121.121 0 0 1 .113-.01l8.052 4.648a7.498 7.498 0 0 1-1.158 13.528v-9.476a1.293 1.293 0 0 0-.65-1.132zm3.35-5.043c-.059-.037-.162-.099-.236-.141l-7.965-4.6a1.298 1.298 0 0 0-1.308 0l-9.723 5.614v-3.888a.12.12 0 0 1 .048-.103l8.05-4.645a7.497 7.497 0 0 1 11.135 7.763zm-21.063 6.929l-3.367-1.944a.12.12 0 0 1-.065-.092v-9.299a7.497 7.497 0 0 1 12.293-5.756 6.94 6.94 0 0 0-.236.134l-7.965 4.6a1.294 1.294 0 0 0-.654 1.132l-.006 11.225zm1.829-3.943l4.33-2.501 4.332 2.5v5l-4.331 2.5-4.331-2.5V18z"
-      fill="currentColor"
-    ></path>
-  </svg>
-)
-
-const GeminiIcon = (): React.JSX.Element => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#3186FF] shrink-0">
-    <title>Gemini</title>
-    <path
-      d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z"
-      fill="#3186FF"
-    ></path>
-    <path
-      d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z"
-      fill="url(#lobe-icons-gemini-0-_R_0_)"
-    ></path>
-    <path
-      d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z"
-      fill="url(#lobe-icons-gemini-1-_R_0_)"
-    ></path>
-    <path
-      d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z"
-      fill="url(#lobe-icons-gemini-2-_R_0_)"
-    ></path>
-  </svg>
-)
-
-const OpenRouterIcon = (): React.JSX.Element => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    fillRule="evenodd"
-    className="h-5 w-5 text-on-surface-variant shrink-0"
-  >
-    <title>OpenRouter</title>
-    <path d="M16.804 1.957l7.22 4.105v.087L16.73 10.21l.017-2.117-.821-.03c-1.059-.028-1.611.002-2.268.11-1.064.175-2.038.577-3.147 1.352L8.345 11.03c-.284.195-.495.336-.68.455l-.515.322-.397.234.385.23.53.338c.476.314 1.17.796 2.701 1.866 1.11.775 2.083 1.177 3.147 1.352l.3.045c.694.091 1.375.094 2.825.033l.022-2.159 7.22 4.105v.087L16.589 22l.014-1.862-.635.022c-1.386.042-2.137.002-3.138-.162-1.694-.28-3.26-.926-4.881-2.059l-2.158-1.5a21.997 21.997 0 00-.755-.498l-.467-.28a55.927 55.927 0 00-.76-.43C2.908 14.73.563 14.116 0 14.116V9.888l.14.004c.564-.007 2.91-.622 3.809-1.124l1.016-.58.438-.274c.428-.28 1.072-.726 2.686-1.853 1.621-1.133 3.186-1.78 4.881-2.059 1.152-.19 1.974-.213 3.814-.138l.02-1.907z"></path>
-  </svg>
-)
 
 export default function SettingsView(): React.JSX.Element {
   const { settings, loadSettings, updateSettings, confirm } = useAppStore()
@@ -92,7 +44,7 @@ export default function SettingsView(): React.JSX.Element {
   if (!localSettings) {
     return (
       <div className="flex h-[400px] items-center justify-center bg-transparent">
-        <span className="material-symbols-outlined text-[48px] text-primary animate-spin">
+        <span className="material-symbols-outlined text-[48px] text-cyber-lime animate-spin">
           sync
         </span>
       </div>
@@ -215,14 +167,15 @@ export default function SettingsView(): React.JSX.Element {
   }
 
   return (
-    <div className="w-full space-y-6 pb-12 animate-fade-in-up">
-      <header className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-extrabold text-on-surface mb-1">Settings</h2>
-          <p className="text-sm font-medium text-on-surface-variant">
-            Configure generation parameters, API keys, and safety controls.
-          </p>
-        </div>
+    <div className="w-full max-w-[1160px] mx-auto px-grid-margin py-8 flex flex-col gap-8 relative z-10 animate-fade-in-up">
+      {/* Header */}
+      <header className="col-span-12 mb-4">
+        <h2 className="font-headline-lg text-headline-lg text-ink-black uppercase leading-none">
+          Settings
+        </h2>
+        <p className="font-body-lg text-body-lg text-risograph-gray mt-3 max-w-2xl">
+          Configure generation parameters, API keys, and safety controls for the core engine.
+        </p>
       </header>
 
       {/* Diagnostics / Connection Alert Cards */}
@@ -230,18 +183,18 @@ export default function SettingsView(): React.JSX.Element {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {saveResult && (
             <div
-              className={`p-4 rounded-xl flex items-start gap-3 border ${
+              className={`p-4 border-2 border-ink-black rounded-DEFAULT shadow-[4px_4px_0px_var(--color-ink-black)] flex items-start gap-3 ${
                 saveResult.success
-                  ? 'bg-secondary/10 border-secondary/25 text-secondary'
-                  : 'bg-error/10 border-error/25 text-error'
+                  ? 'bg-cyber-lime/10 text-ink-black'
+                  : 'bg-error-container text-on-error-container'
               }`}
             >
               <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
                 {saveResult.success ? 'check_circle' : 'error'}
               </span>
               <div>
-                <div className="font-semibold text-xs">Settings Status</div>
-                <div className="text-[11px] mt-0.5 leading-normal opacity-90">
+                <div className="font-title-md text-[14px] uppercase">Settings Status</div>
+                <div className="font-body-md text-[12px] mt-0.5 leading-normal opacity-90">
                   {saveResult.message}
                 </div>
               </div>
@@ -250,18 +203,18 @@ export default function SettingsView(): React.JSX.Element {
 
           {llmTestResult && (
             <div
-              className={`p-4 rounded-xl flex items-start gap-3 border ${
+              className={`p-4 border-2 border-ink-black rounded-DEFAULT shadow-[4px_4px_0px_var(--color-ink-black)] flex items-start gap-3 ${
                 llmTestResult.success
-                  ? 'bg-secondary/10 border-secondary/25 text-secondary'
-                  : 'bg-error/10 border-error/25 text-error'
+                  ? 'bg-cyber-lime/10 text-ink-black'
+                  : 'bg-error-container text-on-error-container'
               }`}
             >
               <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
                 {llmTestResult.success ? 'check_circle' : 'error'}
               </span>
               <div>
-                <div className="font-semibold text-xs">LLM Connection Test</div>
-                <div className="text-[11px] mt-0.5 leading-normal opacity-90">
+                <div className="font-title-md text-[14px] uppercase">LLM Connection Test</div>
+                <div className="font-body-md text-[12px] mt-0.5 leading-normal opacity-90">
                   {llmTestResult.message}
                 </div>
               </div>
@@ -270,18 +223,18 @@ export default function SettingsView(): React.JSX.Element {
 
           {pexelsTestResult && (
             <div
-              className={`p-4 rounded-xl flex items-start gap-3 border ${
+              className={`p-4 border-2 border-ink-black rounded-DEFAULT shadow-[4px_4px_0px_var(--color-ink-black)] flex items-start gap-3 ${
                 pexelsTestResult.success
-                  ? 'bg-secondary/10 border-secondary/25 text-secondary'
-                  : 'bg-error/10 border-error/25 text-error'
+                  ? 'bg-cyber-lime/10 text-ink-black'
+                  : 'bg-error-container text-on-error-container'
               }`}
             >
               <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
                 {pexelsTestResult.success ? 'check_circle' : 'error'}
               </span>
               <div>
-                <div className="font-semibold text-xs">Pexels Connection Test</div>
-                <div className="text-[11px] mt-0.5 leading-normal opacity-90">
+                <div className="font-title-md text-[14px] uppercase">Pexels Connection Test</div>
+                <div className="font-body-md text-[12px] mt-0.5 leading-normal opacity-90">
                   {pexelsTestResult.message}
                 </div>
               </div>
@@ -290,87 +243,44 @@ export default function SettingsView(): React.JSX.Element {
         </div>
       )}
 
-      <form onSubmit={handleSave} className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Left Side: Keys & Providers */}
-        <section className="glass-panel p-6 xl:col-span-2 flex flex-col gap-6 rounded-2xl">
-          <div className="border-b border-black/5 pb-3">
-            <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2.5">
-              <span className="material-symbols-outlined text-primary text-[20px]">neurology</span>
+      <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+        {/* Tile 1: AI Provider Config (Span 8) */}
+        <div className="bento-card col-span-1 md:col-span-8 p-6 flex flex-col gap-6">
+          <div className="flex items-center justify-between border-b-2 border-ink-black pb-4">
+            <h3 className="font-title-md text-title-md uppercase flex items-center gap-2 text-ink-black">
+              <span className="material-symbols-outlined text-electric-purple">memory</span>
               AI Provider Configuration
             </h3>
+            <span className="bg-electric-purple text-paper-white px-2 py-1 font-label-sm text-label-sm uppercase rounded-DEFAULT border-2 border-ink-black">
+              Active
+            </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex flex-col gap-2">
-              <label className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider pl-0.5">
+              <label className="font-label-sm text-label-sm text-ink-black uppercase">
                 Provider
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center pointer-events-none">
-                  {localSettings.llmProvider === 'openai' ? (
-                    <OpenAIIcon />
-                  ) : localSettings.llmProvider === 'gemini' ? (
-                    <GeminiIcon />
-                  ) : (
-                    <OpenRouterIcon />
-                  )}
-                </span>
                 <select
                   value={localSettings.llmProvider}
                   onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                     handleProviderChange(e.target.value as 'openai' | 'gemini' | 'openrouter')
                   }
-                  className="w-full glass-input rounded-lg pl-10 pr-10 py-2.5 text-sm font-semibold cursor-pointer appearance-none"
+                  className="neo-input rounded-DEFAULT w-full px-4 py-3 font-body-md text-body-md outline-none focus:border-electric-purple transition-colors cursor-pointer bg-surface text-ink-black"
                 >
+                  <option value="openrouter">OpenRouter</option>
                   <option value="openai">OpenAI</option>
                   <option value="gemini">Google Gemini</option>
-                  <option value="openrouter">OpenRouter</option>
                 </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-outline">
+                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-ink-black">
                   expand_more
                 </span>
-              </div>
-
-              {/* Provider Quick Click Tabs */}
-              <div className="flex gap-2 mt-1">
-                <button
-                  type="button"
-                  onClick={() => handleProviderChange('openai')}
-                  className={`grow py-2.5 rounded-lg border-2 flex items-center justify-center transition-all ${
-                    localSettings.llmProvider === 'openai'
-                      ? 'border-primary bg-primary/15 shadow-sm'
-                      : 'border-white/5 bg-white/5 hover:bg-white/10'
-                  }`}
-                >
-                  <OpenAIIcon />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleProviderChange('gemini')}
-                  className={`grow py-2.5 rounded-lg border-2 flex items-center justify-center transition-all ${
-                    localSettings.llmProvider === 'gemini'
-                      ? 'border-primary bg-primary/15 shadow-sm'
-                      : 'border-white/5 bg-white/5 hover:bg-white/10'
-                  }`}
-                >
-                  <GeminiIcon />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleProviderChange('openrouter')}
-                  className={`grow py-2.5 rounded-lg border-2 flex items-center justify-center transition-all ${
-                    localSettings.llmProvider === 'openrouter'
-                      ? 'border-primary bg-primary/15 shadow-sm'
-                      : 'border-white/5 bg-white/5 hover:bg-white/10'
-                  }`}
-                >
-                  <OpenRouterIcon />
-                </button>
               </div>
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider pl-0.5">
+              <label className="font-label-sm text-label-sm text-ink-black uppercase">
                 Model ID
               </label>
               <input
@@ -383,417 +293,427 @@ export default function SettingsView(): React.JSX.Element {
                     return { ...prev, modelId: e.target.value }
                   })
                 }
-                className="w-full glass-input rounded-lg px-4 py-2.5 font-mono text-xs text-on-surface font-semibold"
+                className="neo-input rounded-DEFAULT w-full px-4 py-3 font-body-md text-body-md outline-none focus:border-electric-purple transition-colors font-mono text-ink-black bg-surface"
               />
             </div>
+          </div>
 
-            <div className="flex flex-col gap-2 md:col-span-2">
-              <label className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider pl-0.5">
-                API Key for {localSettings.llmProvider.toUpperCase()}
-              </label>
-              <div className="flex gap-3">
-                <input
-                  type="password"
-                  placeholder={
-                    localSettings[`${localSettings.llmProvider}Key`]
-                      ? '••••••••••••••••'
-                      : 'Enter provider key...'
-                  }
-                  value={
-                    localSettings.llmProvider === 'openai'
-                      ? openaiKey
-                      : localSettings.llmProvider === 'gemini'
-                        ? geminiKey
-                        : openrouterKey
-                  }
-                  onChange={(e) => {
-                    if (localSettings.llmProvider === 'openai') setOpenaiKey(e.target.value)
-                    else if (localSettings.llmProvider === 'gemini') setGeminiKey(e.target.value)
-                    else setOpenrouterKey(e.target.value)
-                  }}
-                  className="w-full glass-input rounded-lg px-4 py-2.5 font-mono text-xs text-on-surface"
-                />
-                <button
-                  type="button"
-                  disabled={testingLlm}
-                  onClick={testLlmConnection}
-                  className="btn-interactive px-5 bg-white/5 border border-white/10 hover:bg-white/10 text-on-surface rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 shrink-0 shadow-sm"
-                >
-                  <span
-                    className={`material-symbols-outlined text-[16px] ${
-                      testingLlm ? 'animate-spin' : ''
-                    }`}
-                  >
-                    {testingLlm ? 'sync' : 'network_check'}
-                  </span>
-                  Test Key
-                </button>
-              </div>
+          <div className="flex flex-col gap-2 mt-2">
+            <label className="font-label-sm text-label-sm text-ink-black uppercase">API Key</label>
+            <div className="flex gap-4">
+              <input
+                type="password"
+                placeholder={
+                  localSettings[`${localSettings.llmProvider}Key`]
+                    ? 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢'
+                    : 'Enter provider key...'
+                }
+                value={
+                  localSettings.llmProvider === 'openai'
+                    ? openaiKey
+                    : localSettings.llmProvider === 'gemini'
+                      ? geminiKey
+                      : openrouterKey
+                }
+                onChange={(e) => {
+                  if (localSettings.llmProvider === 'openai') setOpenaiKey(e.target.value)
+                  else if (localSettings.llmProvider === 'gemini') setGeminiKey(e.target.value)
+                  else setOpenrouterKey(e.target.value)
+                }}
+                className="neo-input rounded-DEFAULT flex-1 px-4 py-3 font-body-md text-body-md outline-none focus:border-electric-purple transition-colors font-mono tracking-widest text-ink-black bg-surface"
+              />
+              <button
+                type="button"
+                disabled={testingLlm}
+                onClick={testLlmConnection}
+                className="btn-secondary rounded-DEFAULT px-6 flex items-center gap-2 whitespace-nowrap"
+              >
+                <span className={`material-symbols-outlined ${testingLlm ? 'animate-spin' : ''}`}>
+                  {testingLlm ? 'sync' : 'sync_alt'}
+                </span>
+                <span className="font-label-sm text-label-sm uppercase">Test Key</span>
+              </button>
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Right Side: Pexels integration */}
-        <section className="glass-panel p-6 xl:col-span-1 flex flex-col gap-6 rounded-2xl">
-          <div className="border-b border-black/5 pb-3">
-            <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2.5">
-              <span className="material-symbols-outlined text-secondary text-[20px]">image</span>
-              Pexels Integration
-            </h3>
+        {/* Tile 2: Pexels Integration (Span 4) */}
+        <div className="bento-card col-span-1 md:col-span-4 p-6 flex flex-col gap-6 bg-surface-container-high">
+          <div className="flex items-center gap-2 border-b-2 border-ink-black pb-4">
+            <span className="material-symbols-outlined text-cyber-lime">photo_library</span>
+            <h3 className="font-title-md text-title-md uppercase text-ink-black">Pexels API</h3>
           </div>
-
-          <div className="flex flex-col gap-2 grow justify-center">
-            <label className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider pl-0.5">
-              Pexels API Key
+          <p className="font-body-md text-body-md text-risograph-gray text-sm">
+            Required for pulling high-res stock footage.
+          </p>
+          <div className="flex flex-col gap-2 mt-auto">
+            <label className="font-label-sm text-label-sm text-ink-black uppercase">
+              Access Token
             </label>
             <input
               type="password"
-              placeholder={localSettings.pexelsKey ? '••••••••••••••••' : 'Enter Pexels key...'}
+              placeholder={
+                localSettings.pexelsKey
+                  ? 'â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢'
+                  : 'Enter Pexels key...'
+              }
               value={pexelsKey}
               onChange={(e) => setPexelsKey(e.target.value)}
-              className="w-full glass-input rounded-lg px-4 py-2.5 font-mono text-xs text-on-surface mb-2"
+              className="neo-input rounded-DEFAULT w-full px-4 py-3 font-body-md text-body-md outline-none focus:border-cyber-lime transition-colors font-mono text-ink-black bg-surface"
             />
             <button
               type="button"
               disabled={testingPexels}
               onClick={testPexelsConnection}
-              className="btn-interactive w-full py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-on-surface rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+              className="btn-secondary rounded-DEFAULT w-full py-3 mt-4 flex justify-center items-center gap-2"
             >
               <span
-                className={`material-symbols-outlined text-[16px] ${
-                  testingPexels ? 'animate-spin' : ''
-                }`}
+                className={`material-symbols-outlined text-[18px] ${testingPexels ? 'animate-spin' : ''}`}
               >
-                {testingPexels ? 'sync' : 'verified'}
+                {testingPexels ? 'sync' : 'check_circle'}
               </span>
-              Test Key
+              <span className="font-label-sm text-label-sm uppercase">Verify Connection</span>
             </button>
           </div>
-        </section>
+        </div>
 
-        {/* Performance / Tuning Loop */}
-        <section className="glass-panel p-6 xl:col-span-2 flex flex-col gap-6 rounded-2xl">
-          <div className="border-b border-black/5 pb-3">
-            <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2.5">
-              <span className="material-symbols-outlined text-tertiary text-[20px]">speed</span>
-              Performance Tuning
+        {/* Tile 3: Performance Tuning (Span 7) */}
+        <div className="bento-card col-span-1 md:col-span-7 p-6 flex flex-col gap-8">
+          <h3 className="font-title-md text-title-md uppercase flex items-center gap-2 text-ink-black">
+            <span className="material-symbols-outlined text-ink-black">speed</span>
+            Performance Tuning
+          </h3>
+
+          {/* Slider 1: Max Concurrent Downloads */}
+          <div className="flex flex-col gap-3">
+            <div className="flex justify-between items-center">
+              <label className="font-label-sm text-label-sm text-ink-black uppercase">
+                Max Concurrent Downloads
+              </label>
+              <span className="font-mono text-electric-purple font-bold">
+                {localSettings.maxConcurrentDownloads}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              value={localSettings.maxConcurrentDownloads}
+              onChange={(e) =>
+                setLocalSettings((prev) => {
+                  if (!prev) return null
+                  return {
+                    ...prev,
+                    maxConcurrentDownloads: Number(e.target.value)
+                  }
+                })
+              }
+              className="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-electric-purple brutal-border"
+            />
+          </div>
+
+          {/* Slider 2: Max Agent Loop Turns */}
+          <div className="flex flex-col gap-3">
+            <div className="flex justify-between items-center">
+              <label className="font-label-sm text-label-sm text-ink-black uppercase">
+                Max Agent Loop Turns
+              </label>
+              <span className="font-mono text-electric-purple font-bold">
+                {localSettings.maxAgentIterations}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="5"
+              max="50"
+              step="5"
+              value={localSettings.maxAgentIterations}
+              onChange={(e) =>
+                setLocalSettings((prev) => {
+                  if (!prev) return null
+                  return {
+                    ...prev,
+                    maxAgentIterations: Number(e.target.value)
+                  }
+                })
+              }
+              className="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-electric-purple brutal-border"
+            />
+          </div>
+
+          {/* Slider 3: Request Timeout (Secs) */}
+          <div className="flex flex-col gap-3">
+            <div className="flex justify-between items-center">
+              <label className="font-label-sm text-label-sm text-ink-black uppercase">
+                Request Timeout (Secs)
+              </label>
+              <span className="font-mono text-electric-purple font-bold">
+                {localSettings.requestTimeoutSeconds}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="10"
+              max="180"
+              step="5"
+              value={localSettings.requestTimeoutSeconds}
+              onChange={(e) =>
+                setLocalSettings((prev) => {
+                  if (!prev) return null
+                  return {
+                    ...prev,
+                    requestTimeoutSeconds: Number(e.target.value)
+                  }
+                })
+              }
+              className="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-electric-purple brutal-border"
+            />
+          </div>
+        </div>
+
+        {/* Right Column Stack (Span 5) */}
+        <div className="col-span-1 md:col-span-5 flex flex-col gap-gutter">
+          {/* Tile 4: Storage */}
+          <div className="bento-card p-5 flex flex-col gap-4">
+            <h3 className="font-label-sm text-label-sm uppercase flex items-center gap-2 text-risograph-gray">
+              <span className="material-symbols-outlined text-[18px]">folder</span>
+              Storage Path
             </h3>
-          </div>
-
-          <div className="space-y-6">
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-between items-end mb-1">
-                <label className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider pl-0.5">
-                  Max Concurrent Downloads
-                </label>
-                <span className="font-mono text-xs font-semibold text-primary bg-primary-container/10 px-2 py-0.5 rounded">
-                  {localSettings.maxConcurrentDownloads}
-                </span>
-              </div>
-              <input
-                type="range"
-                min="1"
-                max="10"
-                value={localSettings.maxConcurrentDownloads}
-                onChange={(e) =>
-                  setLocalSettings((prev) => {
-                    if (!prev) return null
-                    return {
-                      ...prev,
-                      maxConcurrentDownloads: Number(e.target.value)
-                    }
-                  })
-                }
-                className="w-full accent-primary h-1.5 bg-surface-container-highest rounded-lg appearance-none cursor-pointer"
-              />
-              <div className="flex justify-between text-[10px] font-mono text-outline">
-                <span>1</span>
-                <span>10</span>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-between items-end mb-1">
-                <label className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider pl-0.5">
-                  Max Agent Loop Turns
-                </label>
-                <span className="font-mono text-xs font-semibold text-primary bg-primary-container/10 px-2 py-0.5 rounded">
-                  {localSettings.maxAgentIterations}
-                </span>
-              </div>
-              <input
-                type="range"
-                min="5"
-                max="50"
-                step="5"
-                value={localSettings.maxAgentIterations}
-                onChange={(e) =>
-                  setLocalSettings((prev) => {
-                    if (!prev) return null
-                    return {
-                      ...prev,
-                      maxAgentIterations: Number(e.target.value)
-                    }
-                  })
-                }
-                className="w-full accent-primary h-1.5 bg-surface-container-highest rounded-lg appearance-none cursor-pointer"
-              />
-              <div className="flex justify-between text-[10px] font-mono text-outline">
-                <span>5</span>
-                <span>50</span>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-between items-end mb-1">
-                <label className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider pl-0.5">
-                  Request Timeout (seconds)
-                </label>
-                <span className="font-mono text-xs font-semibold text-primary bg-primary-container/10 px-2 py-0.5 rounded">
-                  {localSettings.requestTimeoutSeconds}s
-                </span>
-              </div>
-              <input
-                type="range"
-                min="10"
-                max="180"
-                step="5"
-                value={localSettings.requestTimeoutSeconds}
-                onChange={(e) =>
-                  setLocalSettings((prev) => {
-                    if (!prev) return null
-                    return {
-                      ...prev,
-                      requestTimeoutSeconds: Number(e.target.value)
-                    }
-                  })
-                }
-                className="w-full accent-primary h-1.5 bg-surface-container-highest rounded-lg appearance-none cursor-pointer"
-              />
-              <div className="flex justify-between text-[10px] font-mono text-outline">
-                <span>10s</span>
-                <span>180s</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Side Panel Toggles */}
-        <div className="flex flex-col gap-6 xl:col-span-1">
-          {/* Storage config */}
-          <section className="glass-panel p-6 flex flex-col gap-4 rounded-2xl">
-            <div className="border-b border-black/5 pb-3">
-              <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-primary text-[20px]">
-                  folder_open
-                </span>
-                Storage
-              </h3>
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider pl-0.5">
-                Download Folder
-              </label>
-              <div className="bg-white/5 border border-white/10 rounded-lg p-3 flex items-center justify-between group hover:border-primary/40 transition-colors">
-                <span className="font-mono text-xs text-on-surface truncate pr-4 max-w-[170px]">
+            <div className="flex items-center gap-3 neo-input p-2 rounded-DEFAULT bg-surface-container-low">
+              <div className="flex-1 overflow-hidden">
+                <p className="font-mono text-sm truncate px-2 text-ink-black">
                   {localSettings.downloadFolder}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleChooseFolder}
-                  className="text-primary hover:text-primary/75 transition-colors shrink-0"
-                  aria-label="Choose Folder"
-                >
-                  <span className="material-symbols-outlined text-[20px]">edit_square</span>
-                </button>
+                </p>
               </div>
+              <button
+                type="button"
+                onClick={handleChooseFolder}
+                className="bg-ink-black text-paper-white p-2 rounded-sm hover:bg-electric-purple transition-colors flex items-center justify-center cursor-pointer"
+                aria-label="Choose Folder"
+              >
+                <span className="material-symbols-outlined text-[18px]">edit</span>
+              </button>
             </div>
-          </section>
+          </div>
 
-          {/* Appearance Selection */}
-          <section className="glass-panel p-6 flex flex-col gap-4 rounded-2xl">
-            <div className="border-b border-black/5 pb-3">
-              <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-primary text-[20px]">palette</span>
-                Appearance
-              </h3>
+          {/* Tile 5: Appearance */}
+          <div className="bento-card p-5 flex flex-col gap-4">
+            <h3 className="font-label-sm text-label-sm uppercase flex items-center gap-2 text-risograph-gray">
+              <span className="material-symbols-outlined text-[18px]">palette</span>
+              Appearance
+            </h3>
+            <div className="relative">
+              <select
+                value={localSettings.theme || 'flat-black'}
+                onChange={async (e) => {
+                  const newTheme = e.target.value as 'flat-black' | 'flat-white'
+                  setLocalSettings((prev) => {
+                    if (!prev) return null
+                    return { ...prev, theme: newTheme }
+                  })
+                  try {
+                    await updateSettings({ theme: newTheme })
+                  } catch (err) {
+                    console.error('Failed to update theme', err)
+                  }
+                }}
+                className="neo-input appearance-none rounded-DEFAULT w-full px-4 py-2 font-body-md text-body-md outline-none focus:border-electric-purple transition-colors cursor-pointer bg-surface text-ink-black"
+              >
+                <option value="flat-white">Light Mode (Industrial)</option>
+                <option value="flat-black">Dark Mode (Cyber)</option>
+              </select>
+              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-ink-black">
+                expand_more
+              </span>
             </div>
-            <div className="flex flex-col gap-2">
-              <label className="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider pl-0.5">
-                App Theme
-              </label>
-              <div className="relative">
-                <select
-                  value={localSettings.theme || 'flat-black'}
-                  onChange={async (e) => {
-                    const newTheme = e.target.value as 'flat-black' | 'flat-white'
-                    setLocalSettings((prev) => {
-                      if (!prev) return null
-                      return { ...prev, theme: newTheme }
-                    })
-                    try {
-                      await updateSettings({ theme: newTheme })
-                    } catch (err) {
-                      console.error('Failed to update theme', err)
+          </div>
+
+          {/* Tile 6: Safety Switches */}
+          <div className="bento-card p-5 flex flex-col gap-4 flex-1">
+            <h3 className="font-label-sm text-label-sm uppercase flex items-center gap-2 text-risograph-gray">
+              <span className="material-symbols-outlined text-[18px]">security</span>
+              Safety Controls
+            </h3>
+            <div className="flex flex-col gap-4 mt-2">
+              {/* Checkbox 1: skipExplicitQueries */}
+              <label className="flex items-center gap-4 cursor-pointer group">
+                <div className="relative w-6 h-6 border-2 border-ink-black flex items-center justify-center transition-colors bg-surface text-ink-black group-hover:border-electric-purple shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={localSettings.skipExplicitQueries}
+                    onChange={(e) =>
+                      setLocalSettings((prev) => {
+                        if (!prev) return null
+                        return {
+                          ...prev,
+                          skipExplicitQueries: e.target.checked
+                        }
+                      })
                     }
-                  }}
-                  className="w-full glass-input rounded-lg px-3 py-2.5 text-sm font-semibold cursor-pointer appearance-none"
-                >
-                  <option value="flat-black">Flat Black</option>
-                  <option value="flat-white">Flat White</option>
-                </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-outline">
-                  expand_more
-                </span>
-              </div>
-            </div>
-          </section>
-
-          {/* Safety Switches */}
-          <section className="glass-panel p-6 flex flex-col gap-5 flex-1 rounded-2xl">
-            <div className="border-b border-black/5 pb-3">
-              <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-error text-[20px]">gpp_maybe</span>
-                Safety Switches
-              </h3>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              <label className="flex items-center justify-between cursor-pointer group">
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                  />
+                  {localSettings.skipExplicitQueries ? (
+                    <div className="absolute inset-0 bg-cyber-lime flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[20px] text-ink-black font-bold">
+                        close
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-on-surface group-hover:text-primary transition-colors">
+                  <span className="font-body-md text-body-md select-none text-ink-black font-bold leading-tight">
                     Skip explicit content
                   </span>
-                  <span className="text-[10px] text-outline font-medium">
+                  <span className="text-[10px] text-risograph-gray select-none">
                     Filter sensitive results
                   </span>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={localSettings.skipExplicitQueries}
-                  onChange={(e) =>
-                    setLocalSettings((prev) => {
-                      if (!prev) return null
-                      return {
-                        ...prev,
-                        skipExplicitQueries: e.target.checked
-                      }
-                    })
-                  }
-                  className="rounded text-primary border-outline-variant/60 focus:ring-primary w-4.5 h-4.5 cursor-pointer bg-white"
-                />
               </label>
 
-              <label className="flex items-center justify-between cursor-pointer group">
+              {/* Checkbox 2: avoidPeopleAndFaces */}
+              <label className="flex items-center gap-4 cursor-pointer group">
+                <div className="relative w-6 h-6 border-2 border-ink-black flex items-center justify-center transition-colors bg-surface text-ink-black group-hover:border-electric-purple shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={localSettings.avoidPeopleAndFaces}
+                    onChange={(e) =>
+                      setLocalSettings((prev) => {
+                        if (!prev) return null
+                        return {
+                          ...prev,
+                          avoidPeopleAndFaces: e.target.checked
+                        }
+                      })
+                    }
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                  />
+                  {localSettings.avoidPeopleAndFaces ? (
+                    <div className="absolute inset-0 bg-cyber-lime flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[20px] text-ink-black font-bold">
+                        close
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-on-surface group-hover:text-primary transition-colors">
+                  <span className="font-body-md text-body-md select-none text-ink-black font-bold leading-tight">
                     Avoid people &amp; faces
                   </span>
-                  <span className="text-[10px] text-outline font-medium">
+                  <span className="text-[10px] text-risograph-gray select-none">
                     For abstract stock requests
                   </span>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={localSettings.avoidPeopleAndFaces}
-                  onChange={(e) =>
-                    setLocalSettings((prev) => {
-                      if (!prev) return null
-                      return {
-                        ...prev,
-                        avoidPeopleAndFaces: e.target.checked
-                      }
-                    })
-                  }
-                  className="rounded text-primary border-outline-variant/60 focus:ring-primary w-4.5 h-4.5 cursor-pointer bg-white"
-                />
               </label>
 
-              <label className="flex items-center justify-between cursor-pointer group">
+              {/* Checkbox 3: requireApprovalBeforeDownload */}
+              <label className="flex items-center gap-4 cursor-pointer group">
+                <div className="relative w-6 h-6 border-2 border-ink-black flex items-center justify-center transition-colors bg-surface text-ink-black group-hover:border-electric-purple shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={localSettings.requireApprovalBeforeDownload}
+                    onChange={(e) =>
+                      setLocalSettings((prev) => {
+                        if (!prev) return null
+                        return {
+                          ...prev,
+                          requireApprovalBeforeDownload: e.target.checked
+                        }
+                      })
+                    }
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                  />
+                  {localSettings.requireApprovalBeforeDownload ? (
+                    <div className="absolute inset-0 bg-cyber-lime flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[20px] text-ink-black font-bold">
+                        close
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-on-surface group-hover:text-primary transition-colors">
-                    Require approval
+                  <span className="font-body-md text-body-md select-none text-ink-black font-bold leading-tight">
+                    Require approval before download
                   </span>
-                  <span className="text-[10px] text-outline font-medium">
+                  <span className="text-[10px] text-risograph-gray select-none">
                     Pause before downloads
                   </span>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={localSettings.requireApprovalBeforeDownload}
-                  onChange={(e) =>
-                    setLocalSettings((prev) => {
-                      if (!prev) return null
-                      return {
-                        ...prev,
-                        requireApprovalBeforeDownload: e.target.checked
-                      }
-                    })
-                  }
-                  className="rounded text-primary border-outline-variant/60 focus:ring-primary w-4.5 h-4.5 cursor-pointer bg-white"
-                />
               </label>
 
-              <label className="flex items-center justify-between cursor-pointer group">
+              {/* Checkbox 4: hideEstimatedCost */}
+              <label className="flex items-center gap-4 cursor-pointer group">
+                <div className="relative w-6 h-6 border-2 border-ink-black flex items-center justify-center transition-colors bg-surface text-ink-black group-hover:border-electric-purple shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={localSettings.hideEstimatedCost || false}
+                    onChange={(e) =>
+                      setLocalSettings((prev) => {
+                        if (!prev) return null
+                        return {
+                          ...prev,
+                          hideEstimatedCost: e.target.checked
+                        }
+                      })
+                    }
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                  />
+                  {localSettings.hideEstimatedCost ? (
+                    <div className="absolute inset-0 bg-cyber-lime flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[20px] text-ink-black font-bold">
+                        close
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
                 <div className="flex flex-col">
-                  <span className="text-xs font-semibold text-on-surface group-hover:text-primary transition-colors">
+                  <span className="font-body-md text-body-md select-none text-ink-black font-bold leading-tight">
                     Hide estimated cost
                   </span>
-                  <span className="text-[10px] text-outline font-medium">
+                  <span className="text-[10px] text-risograph-gray select-none">
                     Do not show run costs in UI
                   </span>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={localSettings.hideEstimatedCost || false}
-                  onChange={(e) =>
-                    setLocalSettings((prev) => {
-                      if (!prev) return null
-                      return {
-                        ...prev,
-                        hideEstimatedCost: e.target.checked
-                      }
-                    })
-                  }
-                  className="rounded text-primary border-outline-variant/60 focus:ring-primary w-4.5 h-4.5 cursor-pointer bg-white"
-                />
               </label>
             </div>
-          </section>
+          </div>
+        </div>
+
+        {/* Save Action */}
+        <div className="col-span-12 flex flex-wrap items-center justify-between gap-4 mt-4 pt-8 border-t-2 border-ink-black border-dashed">
+          <button
+            type="button"
+            onClick={handleResetOnboarding}
+            className="btn-secondary rounded-DEFAULT px-6 py-3 flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined">rotate_left</span>
+            <span className="font-label-sm text-label-sm uppercase">Reset Onboarding</span>
+          </button>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={async () => {
+                await api.settings.openAppDataFolder()
+              }}
+              className="btn-secondary rounded-DEFAULT px-6 py-3 flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined">folder_open</span>
+              <span className="font-label-sm text-label-sm uppercase">Show Sandbox Files</span>
+            </button>
+
+            <button
+              type="submit"
+              disabled={savingSettings}
+              className="btn-secondary rounded-DEFAULT px-8 py-3.5 flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined">save</span>
+              <span className="font-title-md text-[18px] uppercase tracking-wider">
+                {savingSettings ? 'Saving...' : 'Save Configuration'}
+              </span>
+            </button>
+          </div>
         </div>
       </form>
-
-      {/* Save Action Area */}
-      <div className="flex items-center justify-between border-t border-white/5 pt-5">
-        <button
-          type="button"
-          onClick={handleResetOnboarding}
-          className="btn-interactive px-5 py-3 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-on-surface font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm"
-        >
-          <span className="material-symbols-outlined text-[18px] text-outline">rotate_left</span>
-          Reset Onboarding Wizard
-        </button>
-
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={async () => {
-              await api.settings.openAppDataFolder()
-            }}
-            className="btn-interactive px-5 py-3 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-on-surface font-semibold text-xs flex items-center justify-center gap-1.5 shadow-sm"
-          >
-            Show Sandbox Files
-          </button>
-          <button
-            type="button"
-            disabled={savingSettings}
-            onClick={handleSave}
-            className="tactile-button px-7 py-3 rounded-lg text-xs font-semibold shadow-md"
-          >
-            {savingSettings ? 'Saving...' : 'Save Settings'}
-          </button>
-        </div>
-      </div>
     </div>
   )
 }

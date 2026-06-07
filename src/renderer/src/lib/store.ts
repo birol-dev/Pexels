@@ -133,7 +133,11 @@ interface AppStore {
   jobInputTabMap: Record<string, string>
 
   // Tab Actions
-  openTab: (type: 'input' | 'run' | 'stuff' | 'settings', jobId?: string, createNew?: boolean) => void
+  openTab: (
+    type: 'input' | 'run' | 'stuff' | 'settings',
+    jobId?: string,
+    createNew?: boolean
+  ) => void
   closeTab: (tabId: string) => void
   selectTab: (tabId: string) => void
   updateInputTabState: (tabId: string, updates: Partial<InputFormState>) => void
@@ -518,7 +522,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
       set({ loading: false })
     }
   },
-
 
   pauseJob: async (id) => {
     await api.jobs.pause(id)

@@ -7,7 +7,6 @@ This project publishes releases from git tags. A pushed tag matching `v*` trigge
 - Work from `main`.
 - Keep unrelated user changes out of the release commit.
 - Use Node.js 20 or newer.
-- Make sure `origin` points to `https://github.com/eact6/Pexels.git`.
 
 ## Release Steps
 
@@ -70,6 +69,5 @@ git push origin v1.2.4
 ## Notes For AI Agents
 
 - Do not use `git reset --hard` or revert unrelated worktree changes.
-- If there are pre-existing unrelated changes, leave them unstaged.
 - If the build workflow changes, follow the workflow file over this document.
 - If the release tag already exists, stop and inspect before deleting or retagging.

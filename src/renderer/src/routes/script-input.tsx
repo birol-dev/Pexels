@@ -43,14 +43,18 @@ export default function ScriptInputView(): React.JSX.Element {
   } = tabState
 
   // Setter redirects to store actions
-  const setTitle = (val: string) => updateInputTabState(activeTabId, { title: val })
-  const setScript = (val: string) => updateInputTabState(activeTabId, { script: val })
-  const setPlatform = (val: typeof platform) => updateInputTabState(activeTabId, { platform: val })
-  const setStyle = (val: string) => updateInputTabState(activeTabId, { style: val })
-  const setCustomStyleText = (val: string) => updateInputTabState(activeTabId, { customStyleText: val })
-  const setMix = (val: typeof mix) => updateInputTabState(activeTabId, { mix: val })
-  const setMaxAssetsPerBeat = (val: number) => updateInputTabState(activeTabId, { maxAssetsPerBeat: val })
-  const setMaxTotalDownloads = (val: number) => updateInputTabState(activeTabId, { maxTotalDownloads: val })
+  const setTitle = (val: string): void => updateInputTabState(activeTabId, { title: val })
+  const setScript = (val: string): void => updateInputTabState(activeTabId, { script: val })
+  const setPlatform = (val: typeof platform): void =>
+    updateInputTabState(activeTabId, { platform: val })
+  const setStyle = (val: string): void => updateInputTabState(activeTabId, { style: val })
+  const setCustomStyleText = (val: string): void =>
+    updateInputTabState(activeTabId, { customStyleText: val })
+  const setMix = (val: typeof mix): void => updateInputTabState(activeTabId, { mix: val })
+  const setMaxAssetsPerBeat = (val: number): void =>
+    updateInputTabState(activeTabId, { maxAssetsPerBeat: val })
+  const setMaxTotalDownloads = (val: number): void =>
+    updateInputTabState(activeTabId, { maxTotalDownloads: val })
 
   // Custom Dropdown State & Ref
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -136,35 +140,35 @@ export default function ScriptInputView(): React.JSX.Element {
     switch (status) {
       case 'running':
         return (
-          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-primary-fixed border border-[#adc6ff] text-on-primary-fixed-variant px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 animate-pulse-glow">
-            <span className="w-1.5 h-1.5 rounded-full bg-on-primary-fixed-variant"></span>
+          <span className="font-label-sm text-[11px] px-2.5 py-1 bg-primary-container border-2 border-ink-black text-on-primary-container rounded shadow-[2px_2px_0px_var(--color-ink-black)] inline-flex items-center gap-1.5 animate-pulse">
+            <span className="w-1.5 h-1.5 rounded-full bg-on-primary-container animate-ping"></span>
             Running
           </span>
         )
       case 'paused':
         return (
-          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-tertiary-fixed border border-tertiary-fixed-dim text-on-tertiary-fixed-variant px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-on-tertiary-fixed-variant"></span>
+          <span className="font-label-sm text-[11px] px-2.5 py-1 bg-tertiary-container border-2 border-ink-black text-on-tertiary-container rounded shadow-[2px_2px_0px_var(--color-ink-black)] inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-on-tertiary-container"></span>
             Paused
           </span>
         )
       case 'completed':
         return (
-          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-secondary-fixed border border-secondary-fixed-dim text-on-secondary-fixed-variant px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+          <span className="font-label-sm text-[11px] px-2.5 py-1 bg-cyber-lime border-2 border-ink-black text-ink-black rounded shadow-[2px_2px_0px_var(--color-ink-black)] inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-ink-black"></span>
             Completed
           </span>
         )
       case 'failed':
         return (
-          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-error-container border border-[#ffb4ab] text-on-error-container px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
+          <span className="font-label-sm text-[11px] px-2.5 py-1 bg-error-container border-2 border-ink-black text-on-error-container rounded shadow-[2px_2px_0px_var(--color-ink-black)] inline-flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-error"></span>
             Failed
           </span>
         )
       default:
         return (
-          <span className="font-mono text-[10px] font-semibold tracking-wider uppercase bg-surface-container-high border border-outline-variant/30 text-outline px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
+          <span className="font-label-sm text-[11px] px-2.5 py-1 bg-surface-container-high border-2 border-ink-black text-outline rounded shadow-[2px_2px_0px_var(--color-ink-black)] inline-flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-outline"></span>
             Cancelled
           </span>
@@ -173,31 +177,34 @@ export default function ScriptInputView(): React.JSX.Element {
   }
 
   return (
-    <div className="w-full space-y-8 pb-12 animate-fade-in-up">
+    <div className="w-full space-y-8 p-8 lg:p-10 pb-12 animate-fade-in-up relative risograph-overlay">
       {/* Header Area */}
-      <header className="flex justify-between items-end">
+      <header className="mb-section-gap flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-extrabold text-on-surface mb-2">Create New Pack</h2>
-          <p className="text-sm font-medium text-on-surface-variant">
+          <h2 className="font-headline-lg text-headline-lg text-ink-black dark:text-paper-white">
+            Create New Pack
+          </h2>
+          <p className="font-body-lg text-body-lg text-outline dark:text-steel-secondary mt-2">
             Analyze your script to fetch cohesive visual assets automatically.
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate('settings')}
-            className="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors shadow-sm"
-            title="Help & Settings"
-          >
-            <span className="material-symbols-outlined text-[20px]">help_outline</span>
-          </button>
-        </div>
+        <button
+          onClick={() => navigate('settings')}
+          className="w-12 h-12 rounded-full border-2 border-ink-black dark:border-surface-variant flex items-center justify-center bg-paper-white dark:bg-surface-container-lowest text-ink-black dark:text-paper-white shadow-[2px_2px_0px_rgba(0,0,0,0.5)] hover:shadow-[4px_4px_0px_#CCFF00] hover:-translate-y-1 hover:-translate-x-1 transition-all active:shadow-none active:translate-x-0 active:translate-y-0 cursor-pointer"
+          title="Help & Settings"
+        >
+          <span className="material-symbols-outlined">help</span>
+        </button>
       </header>
 
       {/* Warning Panel */}
       {(!settings?.pexelsKey || !settings?.[`${settings?.llmProvider || 'openai'}Key`]) && (
-        <div className="p-4 rounded-xl flex items-center justify-between bg-tertiary/10 border border-tertiary/20 text-tertiary text-xs font-semibold shadow-sm animate-pulse-glow">
+        <div className="p-4 border-2 border-ink-black rounded-xl flex items-center justify-between bg-tertiary-container text-on-tertiary-container font-label-sm text-xs shadow-[4px_4px_0px_var(--color-ink-black)] animate-pulse">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-tertiary text-[22px] shrink-0">
+            <span
+              className="material-symbols-outlined text-[22px] shrink-0"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
               warning
             </span>
             <div>
@@ -224,7 +231,7 @@ export default function ScriptInputView(): React.JSX.Element {
           </div>
           <button
             onClick={() => navigate('settings')}
-            className="bg-tertiary/20 hover:bg-tertiary/30 text-tertiary border-none shrink-0 font-bold px-3 py-1.5 rounded-lg transition-colors"
+            className="bg-ink-black text-cyber-lime border-2 border-ink-black hover:bg-surface-variant shrink-0 font-bold px-3 py-1.5 rounded transition-all cursor-pointer shadow-[2px_2px_0px_var(--color-cyber-lime)] active:shadow-none active:translate-x-0.5 active:translate-y-0.5"
           >
             Configure
           </button>
@@ -232,12 +239,12 @@ export default function ScriptInputView(): React.JSX.Element {
       )}
 
       {/* Main Form Panel */}
-      <section className="glass-panel p-6 lg:p-8 rounded-2xl">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <section className="max-w-5xl bg-surface border-2 border-ink-black dark:border-surface-variant rounded-xl p-component-padding shadow-[inset_6px_6px_12px_rgba(0,0,0,0.05)] dark:shadow-[inset_6px_6px_12px_rgba(0,0,0,0.3)] relative">
+        <form onSubmit={handleSubmit} className="space-y-8">
           {/* Project Title */}
           <div>
             <label
-              className="block font-semibold text-sm text-on-surface mb-2.5"
+              className="block font-title-md text-title-md text-ink-black dark:text-paper-white mb-2 uppercase tracking-wide text-xs"
               htmlFor="project-title"
             >
               Project Title
@@ -248,36 +255,41 @@ export default function ScriptInputView(): React.JSX.Element {
               placeholder="e.g. Q3 Marketing Explainer, AI Office Hacks"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full glass-input rounded-lg px-4 py-3 text-sm text-on-surface placeholder:text-outline/70 font-medium"
+              className="w-full bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-lg px-4 py-3 font-body-md text-body-md text-ink-black dark:text-paper-white placeholder:text-risograph-gray dark:placeholder:text-steel-secondary focus:outline-none focus:ring-0 neo-brutalist-input transition-all duration-200"
               required
             />
           </div>
 
           {/* Video Script */}
           <div>
-            <div className="flex justify-between items-baseline mb-2.5">
-              <label className="block font-semibold text-sm text-on-surface" htmlFor="video-script">
+            <div className="flex justify-between items-baseline mb-2">
+              <label
+                className="block font-title-md text-title-md text-ink-black dark:text-paper-white uppercase tracking-wide text-xs"
+                htmlFor="video-script"
+              >
                 Video Script
               </label>
-              <span className="font-mono text-[10px] text-outline">Markdown Supported</span>
+              <span className="font-label-sm text-xs text-outline dark:text-steel-secondary">
+                Markdown Supported
+              </span>
             </div>
             <textarea
               id="video-script"
-              rows={4}
+              rows={6}
               placeholder="Paste your video script narrative here. The AI will segment this script into beats and search matching assets..."
               value={script}
               onChange={(e) => setScript(e.target.value)}
-              className="w-full glass-input rounded-lg px-4 py-3 text-sm text-on-surface placeholder:text-outline/70 font-medium leading-relaxed resize-y"
+              className="w-full bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-lg px-4 py-3 font-body-md text-body-md text-ink-black dark:text-paper-white placeholder:text-risograph-gray dark:placeholder:text-steel-secondary focus:outline-none focus:ring-0 neo-brutalist-input transition-all duration-200 resize-y"
               required
             />
           </div>
 
           {/* Grid Configurations */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
             {/* Platform Layout */}
             <div>
               <label
-                className="block font-semibold text-sm text-on-surface mb-2.5"
+                className="block font-title-md text-title-md text-ink-black dark:text-paper-white mb-2 uppercase tracking-wide text-xs"
                 htmlFor="platform-layout"
               >
                 Platform Layout
@@ -287,21 +299,21 @@ export default function ScriptInputView(): React.JSX.Element {
                   id="platform-layout"
                   type="button"
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="w-full glass-input rounded-lg px-4 py-3 text-sm text-on-surface font-semibold flex items-center justify-between cursor-pointer focus:outline-none"
+                  className="w-full bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-lg px-4 py-3 font-body-md text-body-md text-ink-black dark:text-paper-white flex items-center justify-between cursor-pointer focus:outline-none focus:ring-0 neo-brutalist-input transition-all duration-200"
                 >
                   <span className="flex items-center gap-2.5">
                     {currentOption.icon}
                     <span>{currentOption.label}</span>
                   </span>
                   <span
-                    className={`material-symbols-outlined text-outline transition-transform duration-200 pointer-events-none ${dropdownOpen ? 'rotate-180' : ''}`}
+                    className={`material-symbols-outlined text-outline dark:text-steel-secondary transition-transform duration-200 pointer-events-none ${dropdownOpen ? 'rotate-180' : ''}`}
                   >
                     expand_more
                   </span>
                 </button>
 
                 {dropdownOpen && (
-                  <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl overflow-hidden glass-panel border border-outline-variant/30 py-1.5 shadow-2xl animate-scale-up">
+                  <div className="absolute left-0 right-0 mt-2 z-50 rounded-xl overflow-hidden bg-surface border-2 border-ink-black dark:border-surface-variant py-1.5 shadow-2xl animate-scale-up">
                     {PLATFORM_OPTIONS.map((item) => (
                       <button
                         key={item.value}
@@ -312,8 +324,8 @@ export default function ScriptInputView(): React.JSX.Element {
                         }}
                         className={`w-full text-left px-4 py-3 text-sm font-semibold flex items-center justify-between transition-colors cursor-pointer ${
                           platform === item.value
-                            ? 'bg-primary/15 text-primary'
-                            : 'text-on-surface hover:bg-white/5'
+                            ? 'bg-primary-container text-on-primary-container border-2 border-ink-black'
+                            : 'text-on-surface hover:bg-surface-variant'
                         }`}
                       >
                         <span className="flex items-center gap-2.5">
@@ -335,12 +347,12 @@ export default function ScriptInputView(): React.JSX.Element {
             {/* Visual Mood */}
             <div>
               <label
-                className="block font-semibold text-sm text-on-surface mb-2.5"
+                className="block font-title-md text-title-md text-ink-black dark:text-paper-white mb-2 uppercase tracking-wide text-xs"
                 htmlFor="visual-mood"
               >
                 Visual Mood
               </label>
-              <div className="relative mb-2.5">
+              <div className="relative mb-2">
                 <select
                   id="visual-mood"
                   value={
@@ -358,18 +370,15 @@ export default function ScriptInputView(): React.JSX.Element {
                     const val = e.target.value
                     setStyle(val === 'custom' ? customStyleText || 'custom style' : val)
                   }}
-                  className="w-full glass-input rounded-lg px-4 py-3 text-sm text-on-surface appearance-none pr-10 font-semibold cursor-pointer"
+                  className="w-full bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-lg px-4 py-3 font-body-md text-body-md text-ink-black dark:text-paper-white appearance-none focus:outline-none focus:ring-0 neo-brutalist-input transition-all duration-200 cursor-pointer"
                 >
                   <option value="cinematic">Cinematic</option>
-                  <option value="documentary">Documentary</option>
-                  <option value="business">Business / Office</option>
-                  <option value="tech">Technology / Futuristic</option>
-                  <option value="nature">Nature / Slow-mo</option>
-                  <option value="lifestyle">Lifestyle / Real-life</option>
-                  <option value="abstract">Abstract / Artistic</option>
+                  <option value="documentary">Corporate Clean</option>
+                  <option value="business">Vlog / Handheld</option>
+                  <option value="tech">Vintage Film</option>
                   <option value="custom">Custom Style...</option>
                 </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">
+                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline dark:text-steel-secondary pointer-events-none">
                   expand_more
                 </span>
               </div>
@@ -377,10 +386,7 @@ export default function ScriptInputView(): React.JSX.Element {
                 style === 'cinematic' ||
                 style === 'documentary' ||
                 style === 'business' ||
-                style === 'tech' ||
-                style === 'nature' ||
-                style === 'lifestyle' ||
-                style === 'abstract'
+                style === 'tech'
               ) && (
                 <input
                   type="text"
@@ -390,25 +396,25 @@ export default function ScriptInputView(): React.JSX.Element {
                     setCustomStyleText(e.target.value)
                     setStyle(e.target.value || 'custom style')
                   }}
-                  className="w-full glass-input rounded-lg px-4 py-2.5 text-xs text-on-surface font-semibold animate-fade-in-up"
+                  className="w-full bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-lg px-4 py-2.5 text-xs text-ink-black dark:text-paper-white focus:outline-none focus:ring-0 neo-brutalist-input transition-all duration-200 font-semibold animate-fade-in-up"
                   required
                 />
               )}
             </div>
 
-            {/* Asset Mix Toggle */}
+            {/* Asset Mix Segmented Control */}
             <div>
-              <label className="block font-semibold text-sm text-on-surface mb-2.5">
+              <label className="block font-title-md text-title-md text-ink-black dark:text-paper-white mb-2 uppercase tracking-wide text-xs">
                 Asset Mix
               </label>
-              <div className="flex bg-white/5 rounded-lg p-1 border border-white/10 h-[46px]">
+              <div className="flex border-2 border-ink-black dark:border-surface-variant rounded-lg overflow-hidden bg-paper-white dark:bg-surface-container-lowest neo-brutalist-input">
                 <button
                   type="button"
                   onClick={() => setMix('videos only')}
-                  className={`flex-1 text-center font-bold text-xs rounded-md transition-all shadow-sm border ${
+                  className={`flex-1 py-3 text-center border-r-2 border-ink-black dark:border-surface-variant font-label-sm text-label-sm transition-colors ${
                     mix === 'videos only'
-                      ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_2px_8px_rgba(139,92,246,0.15)]'
-                      : 'text-on-surface-variant hover:text-on-surface border-transparent'
+                      ? 'bg-ink-black dark:bg-surface-variant text-cyber-lime border-l-2 border-primary font-bold'
+                      : 'text-outline dark:text-steel-secondary hover:bg-surface-variant dark:hover:text-paper-white'
                   }`}
                 >
                   Videos
@@ -416,10 +422,10 @@ export default function ScriptInputView(): React.JSX.Element {
                 <button
                   type="button"
                   onClick={() => setMix('photos only')}
-                  className={`flex-1 text-center font-bold text-xs rounded-md transition-all shadow-sm border ${
+                  className={`flex-1 py-3 text-center border-r-2 border-ink-black dark:border-surface-variant font-label-sm text-label-sm transition-colors ${
                     mix === 'photos only'
-                      ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_2px_8px_rgba(139,92,246,0.15)]'
-                      : 'text-on-surface-variant hover:text-on-surface border-transparent'
+                      ? 'bg-ink-black dark:bg-surface-variant text-cyber-lime border-l-2 border-primary font-bold'
+                      : 'text-outline dark:text-steel-secondary hover:bg-surface-variant dark:hover:text-paper-white'
                   }`}
                 >
                   Photos
@@ -427,10 +433,10 @@ export default function ScriptInputView(): React.JSX.Element {
                 <button
                   type="button"
                   onClick={() => setMix('videos + photos')}
-                  className={`flex-1 text-center font-bold text-xs rounded-md transition-all shadow-sm border ${
+                  className={`flex-1 py-3 text-center font-label-sm text-label-sm transition-colors ${
                     mix === 'videos + photos'
-                      ? 'bg-primary/20 border-primary/30 text-primary shadow-[0_2px_8px_rgba(139,92,246,0.15)]'
-                      : 'text-on-surface-variant hover:text-on-surface border-transparent'
+                      ? 'bg-ink-black dark:bg-surface-variant text-cyber-lime border-l-2 border-primary font-bold'
+                      : 'text-outline dark:text-steel-secondary hover:bg-surface-variant dark:hover:text-paper-white'
                   }`}
                 >
                   Both
@@ -440,10 +446,10 @@ export default function ScriptInputView(): React.JSX.Element {
           </div>
 
           {/* Limits Config Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter pt-8 border-t-2 border-border border-dashed">
             <div>
               <label
-                className="block font-semibold text-sm text-on-surface mb-2.5"
+                className="block font-title-md text-title-md text-ink-black dark:text-paper-white mb-2 uppercase tracking-wide text-xs"
                 htmlFor="max-assets"
               >
                 Max Assets per Beat
@@ -455,15 +461,15 @@ export default function ScriptInputView(): React.JSX.Element {
                 max="5"
                 value={maxAssetsPerBeat}
                 onChange={(e) => setMaxAssetsPerBeat(Number(e.target.value))}
-                className="w-full glass-input rounded-lg px-4 py-3 font-mono text-sm text-on-surface"
+                className="w-full bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-lg px-4 py-3 font-body-md text-body-md text-ink-black dark:text-paper-white focus:outline-none focus:ring-0 neo-brutalist-input transition-all duration-200"
               />
-              <p className="mt-1.5 text-xs text-outline font-medium">
+              <p className="font-label-sm text-xs text-outline dark:text-steel-secondary mt-1">
                 Assets downloaded for each script segment.
               </p>
             </div>
             <div>
               <label
-                className="block font-semibold text-sm text-on-surface mb-2.5"
+                className="block font-title-md text-title-md text-ink-black dark:text-paper-white mb-2 uppercase tracking-wide text-xs"
                 htmlFor="max-total"
               >
                 Max Total Downloads
@@ -475,23 +481,21 @@ export default function ScriptInputView(): React.JSX.Element {
                 max="100"
                 value={maxTotalDownloads}
                 onChange={(e) => setMaxTotalDownloads(Number(e.target.value))}
-                className="w-full glass-input rounded-lg px-4 py-3 font-mono text-sm text-on-surface"
+                className="w-full bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-lg px-4 py-3 font-body-md text-body-md text-ink-black dark:text-paper-white focus:outline-none focus:ring-0 neo-brutalist-input transition-all duration-200"
               />
-              <p className="mt-1.5 text-xs text-outline font-medium">
+              <p className="font-label-sm text-xs text-outline dark:text-steel-secondary mt-1">
                 Safety threshold to conserve API request limits.
               </p>
             </div>
           </div>
 
           {/* CTA Action Area */}
-          <div className="pt-4 flex justify-end">
+          <div className="mt-section-gap flex justify-end pt-8 border-t-2 border-ink-black border-dashed">
             <button
               type="submit"
-              className="tactile-button text-white font-semibold text-xs px-8 py-4 rounded-lg flex items-center gap-2 group tracking-wider uppercase cursor-pointer shadow-md"
+              className="bg-cyber-lime text-surface-container-lowest border-2 border-primary-container px-8 py-4 rounded-lg font-label-sm text-label-sm tracking-wider uppercase flex items-center gap-3 shadow-[4px_4px_0px_#CCFF00] hover:bg-primary-fixed-dim transition-all duration-200 active:shadow-none active:translate-x-[4px] active:translate-y-[4px] cursor-pointer"
             >
-              <span className="group-hover:rotate-12 transition-transform duration-300">
-                <AnalyzeFetchIcon />
-              </span>
+              <span className="material-symbols-outlined">auto_awesome</span>
               Analyze & Fetch Visual Assets
             </button>
           </div>
@@ -499,13 +503,20 @@ export default function ScriptInputView(): React.JSX.Element {
       </section>
 
       {/* Run History Section */}
-      <section className="glass-panel overflow-hidden flex flex-col rounded-2xl">
-        <div className="p-5 border-b border-white/5 flex justify-between items-center bg-white/5">
-          <h3 className="font-semibold text-sm text-on-surface flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-[20px]">history</span>
+      <section className="bg-surface border-2 border-ink-black dark:border-surface-variant rounded-xl overflow-hidden flex flex-col shadow-[inset_6px_6px_12px_rgba(0,0,0,0.05)] dark:shadow-[inset_6px_6px_12px_rgba(0,0,0,0.3)]">
+        <div className="p-5 border-b-2 border-ink-black dark:border-surface-variant flex justify-between items-center bg-paper-white dark:bg-surface-container-lowest">
+          <h3 className="font-title-md text-title-md text-ink-black dark:text-paper-white flex items-center gap-2">
+            <span
+              className="material-symbols-outlined text-cyber-lime bg-ink-black p-1.5 rounded brutal-border"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              history
+            </span>
             Recent Pack Generations
           </h3>
-          <span className="font-mono text-[10px] text-outline">Sorted by Newest</span>
+          <span className="font-label-sm text-label-sm text-outline dark:text-steel-secondary">
+            Sorted by Newest
+          </span>
         </div>
 
         <div className="overflow-x-auto">
@@ -516,20 +527,20 @@ export default function ScriptInputView(): React.JSX.Element {
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-white/5 border-b border-white/5">
-                  <th className="py-3.5 px-6 font-mono text-[10px] text-outline uppercase tracking-wider font-semibold">
+                <tr className="bg-surface-container-low border-b-2 border-ink-black dark:border-surface-variant">
+                  <th className="py-3.5 px-6 font-title-md text-xs text-ink-black dark:text-paper-white uppercase tracking-wider font-bold">
                     Project Title
                   </th>
-                  <th className="py-3.5 px-6 font-mono text-[10px] text-outline uppercase tracking-wider font-semibold">
+                  <th className="py-3.5 px-6 font-title-md text-xs text-ink-black dark:text-paper-white uppercase tracking-wider font-bold">
                     Status
                   </th>
-                  <th className="py-3.5 px-6 font-mono text-[10px] text-outline uppercase tracking-wider font-semibold">
+                  <th className="py-3.5 px-6 font-title-md text-xs text-ink-black dark:text-paper-white uppercase tracking-wider font-bold">
                     Assets
                   </th>
-                  <th className="py-3.5 px-6 font-mono text-[10px] text-outline uppercase tracking-wider font-semibold">
+                  <th className="py-3.5 px-6 font-title-md text-xs text-ink-black dark:text-paper-white uppercase tracking-wider font-bold">
                     Date
                   </th>
-                  <th className="py-3.5 px-6 font-mono text-[10px] text-outline uppercase tracking-wider font-semibold text-right">
+                  <th className="py-3.5 px-6 font-title-md text-xs text-ink-black dark:text-paper-white uppercase tracking-wider font-bold text-right">
                     Actions
                   </th>
                 </tr>
@@ -539,35 +550,37 @@ export default function ScriptInputView(): React.JSX.Element {
                   <tr
                     key={job.jobId}
                     onClick={() => handleSelectJob(job.jobId)}
-                    className="list-row border-b border-white/5 hover:bg-white/5 cursor-pointer transition-colors duration-150"
+                    className="border-b border-outline-variant/30 hover:bg-surface-variant cursor-pointer transition-colors duration-150"
                   >
-                    <td className="py-4 px-6 font-semibold">{job.title}</td>
-                    <td className="py-4 px-6">{getStatusBadge(job.status)}</td>
-                    <td className="py-4 px-6 font-mono text-on-surface-variant">
-                      {job.status === 'running' ? '--' : job.assetCount} assets
+                    <td className="py-4 px-6 font-bold text-sm text-ink-black dark:text-paper-white">
+                      {job.title}
                     </td>
-                    <td className="py-4 px-6 font-mono text-on-surface-variant">
+                    <td className="py-4 px-6">{getStatusBadge(job.status)}</td>
+                    <td className="py-4 px-6 font-mono text-outline dark:text-steel-secondary">
+                      {job.status === 'running' ? '--' : `${job.assetCount} assets`}
+                    </td>
+                    <td className="py-4 px-6 font-mono text-outline dark:text-steel-secondary">
                       {new Date(job.createdAt).toLocaleDateString()}
                     </td>
                     <td className="py-4 px-6 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => handleSelectJob(job.jobId)}
-                          className="text-on-surface-variant hover:text-primary transition-colors p-1.5 rounded hover:bg-white/10"
+                          className="bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black text-ink-black dark:text-paper-white p-2 rounded hover:bg-surface-variant shadow-[1px_1px_0px_rgba(0,0,0,0.5)] active:translate-y-0.5 active:translate-x-0.5"
                           title="Open View"
                         >
                           <span className="material-symbols-outlined text-[18px]">visibility</span>
                         </button>
                         <button
                           onClick={() => rerunJob(job.jobId)}
-                          className="text-on-surface-variant hover:text-primary transition-colors p-1.5 rounded hover:bg-white/10"
+                          className="bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black text-ink-black dark:text-paper-white p-2 rounded hover:bg-surface-variant shadow-[1px_1px_0px_rgba(0,0,0,0.5)] active:translate-y-0.5 active:translate-x-0.5"
                           title="Rerun Project"
                         >
                           <span className="material-symbols-outlined text-[18px]">replay</span>
                         </button>
                         <button
                           onClick={() => handleDeleteJob(job.jobId, job.title)}
-                          className="text-on-surface-variant hover:text-error transition-colors p-1.5 rounded hover:bg-white/10"
+                          className="bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black text-ink-black dark:text-paper-white p-2 hover:text-error hover:bg-surface-variant shadow-[1px_1px_0px_rgba(0,0,0,0.5)] active:translate-y-0.5 active:translate-x-0.5"
                           title="Delete Project & Files"
                         >
                           <span className="material-symbols-outlined text-[18px]">delete</span>
@@ -613,35 +626,6 @@ const TikTokIcon = (): React.JSX.Element => (
 const ReelsIcon = (): React.JSX.Element => (
   <svg viewBox="0 0 122.14 122.88" className="w-5 h-5 text-on-surface fill-current shrink-0">
     <path d="M35.14,0H87c9.65,0,18.43,3.96,24.8,10.32c6.38,6.37,10.34,15.16,10.34,24.82v52.61c0,9.64-3.96,18.42-10.32,24.79 l-0.02,0.02c-6.38,6.37-15.16,10.32-24.79,10.32H35.14c-9.66,0-18.45-3.96-24.82-10.32l-0.24-0.27C3.86,105.95,0,97.27,0,87.74 V35.14c0-9.67,3.95-18.45,10.32-24.82S25.47,0,35.14,0L35.14,0z M91.51,31.02l0.07,0.11h21.6c-0.87-5.68-3.58-10.78-7.48-14.69 C100.9,11.64,94.28,8.66,87,8.66h-8.87L91.51,31.02L91.51,31.02z M81.52,31.13L68.07,8.66H38.57l13.61,22.47H81.52L81.52,31.13z M42.11,31.13L28.95,9.39c-4.81,1.16-9.12,3.65-12.51,7.05c-3.9,3.9-6.6,9.01-7.48,14.69H42.11L42.11,31.13z M113.48,39.79H8.66 v47.96c0,7.17,2.89,13.7,7.56,18.48l0.22,0.21c4.8,4.8,11.43,7.79,18.7,7.79H87c7.28,0,13.9-2.98,18.69-7.77l0.02-0.02 c4.79-4.79,7.77-11.41,7.77-18.69V39.79L113.48,39.79z M50.95,54.95l26.83,17.45c0.43,0.28,0.82,0.64,1.13,1.08 c1.22,1.77,0.77,4.2-1,5.42L51.19,94.67c-0.67,0.55-1.53,0.88-2.48,0.88c-2.16,0-3.91-1.75-3.91-3.91V58.15h0.02 c0-0.77,0.23-1.55,0.7-2.23C46.76,54.15,49.19,53.72,50.95,54.95L50.95,54.95L50.95,54.95z" />
-  </svg>
-)
-
-const AnalyzeFetchIcon = (): React.JSX.Element => (
-  <svg
-    viewBox="0 0 24 24"
-    className="w-4.5 h-4.5 shrink-0"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    {/* Image Card */}
-    <rect x="2" y="6" width="15" height="12" rx="2" />
-    <path d="M2 14l3.5-3.5 3.5 3.5 4-4 4 4" />
-    <circle cx="6" cy="9.5" r="1" fill="currentColor" />
-    {/* Sparkle 1 */}
-    <path
-      d="M19.5 2c0 2.2-1.8 4-4 4 2.2 0 4 1.8 4 4 0-2.2 1.8-4 4-4-2.2 0-4-1.8-4-4z"
-      fill="currentColor"
-      stroke="none"
-    />
-    {/* Sparkle 2 */}
-    <path
-      d="M13.5 19c0 1.1-.9 2-2 2 1.1 0 2 .9 2 2 0-1.1 .9-2 2-2-1.1 0-2-.9-2-2z"
-      fill="currentColor"
-      stroke="none"
-    />
   </svg>
 )
 
