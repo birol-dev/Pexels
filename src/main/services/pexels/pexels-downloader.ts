@@ -48,15 +48,6 @@ export class PexelsDownloader {
     this.refreshUrl = refreshUrl
   }
 
-  public setConcurrency(limit: number): void {
-    this.maxConcurrency = limit
-    this.processNext()
-  }
-
-  public setOnTaskUpdate(callback: (task: DownloadTask) => void): void {
-    this.onTaskUpdate = callback
-  }
-
   public getTasks(): DownloadTask[] {
     return this.queue
   }

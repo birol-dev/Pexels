@@ -290,7 +290,7 @@ class OpenRouterProvider implements LlmProvider {
     const headers = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${credentials.apiKey}`,
-      'HTTP-Referer': 'https://github.com/google-demind/antigravity',
+      'HTTP-Referer': 'https://github.com/eact6/Pexels',
       'X-Title': 'AI Stock Asset Finder'
     }
 

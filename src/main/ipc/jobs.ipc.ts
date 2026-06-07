@@ -15,6 +15,7 @@ const StartJobInputSchema = z.object({
   maxTotalDownloads: z.number().min(1).max(100)
 })
 
+const JobIdSchema = z.string().regex(/^job_\d+$/)
 const ApprovalDecisionSchema = z
   .object({
     approvedAssetIds: z.array(z.string()).optional(),
@@ -97,14 +98,16 @@ export function registerJobsHandlers(): void {
     return jobId
   })
 
-  ipcMain.handle('jobs:pause', async (_, jobId: string): Promise<void> => {
+  ipcMain.handle('jobs:pause', async (_, rawJobId: unknown): Promise<void> => {
+    const jobId = JobIdSchema.parse(rawJobId)
     const runner = AgentRunner.getActive(jobId)
     if (runner) {
       await runner.pause()
     }
   })
 
-  ipcMain.handle('jobs:resume', async (_, jobId: string): Promise<void> => {
+  ipcMain.handle('jobs:resume', async (_, rawJobId: unknown): Promise<void> => {
+    const jobId = JobIdSchema.parse(rawJobId)
     const runner = AgentRunner.getActive(jobId)
     if (runner) {
       await runner.resume()
@@ -120,26 +123,31 @@ export function registerJobsHandlers(): void {
     }
   })
 
-  ipcMain.handle('jobs:approveAndResume', async (_, jobId: string, rawDecision): Promise<void> => {
-    const decision = ApprovalDecisionSchema.parse(rawDecision) || {}
-    let runner = AgentRunner.getActive(jobId)
-    if (!runner) {
-      const summary = await ProjectStore.get(jobId)
-      if (summary) {
-        const input = await getJobInputFromManifest(summary)
-        const newRunner = new AgentRunner(jobId, input)
-        newRunner.on('event', (evt) => broadcastJobEvent(evt))
-        await newRunner.initializeAndLoadState()
-        runner = newRunner
+  ipcMain.handle(
+    'jobs:approveAndResume',
+    async (_, rawJobId: unknown, rawDecision): Promise<void> => {
+      const jobId = JobIdSchema.parse(rawJobId)
+      const decision = ApprovalDecisionSchema.parse(rawDecision) || {}
+      let runner = AgentRunner.getActive(jobId)
+      if (!runner) {
+        const summary = await ProjectStore.get(jobId)
+        if (summary) {
+          const input = await getJobInputFromManifest(summary)
+          const newRunner = new AgentRunner(jobId, input)
+          newRunner.on('event', (evt) => broadcastJobEvent(evt))
+          await newRunner.initializeAndLoadState()
+          runner = newRunner
+        }
+      }
+
+      if (runner) {
+        await runner.approveAndResume(decision)
       }
     }
+  )
 
-    if (runner) {
-      await runner.approveAndResume(decision)
-    }
-  })
-
-  ipcMain.handle('jobs:cancel', async (_, jobId: string): Promise<void> => {
+  ipcMain.handle('jobs:cancel', async (_, rawJobId: unknown): Promise<void> => {
+    const jobId = JobIdSchema.parse(rawJobId)
     const runner = AgentRunner.getActive(jobId)
     if (runner) {
       await runner.cancel()
@@ -152,7 +160,8 @@ export function registerJobsHandlers(): void {
     }
   })
 
-  ipcMain.handle('jobs:rerun', async (_, jobId: string): Promise<string> => {
+  ipcMain.handle('jobs:rerun', async (_, rawJobId: unknown): Promise<string> => {
+    const jobId = JobIdSchema.parse(rawJobId)
     const summary = await ProjectStore.get(jobId)
     if (!summary) throw new Error('Job not found')
 
@@ -167,7 +176,8 @@ export function registerJobsHandlers(): void {
     return newJobId
   })
 
-  ipcMain.handle('jobs:get', async (_, jobId: string): Promise<JobSnapshot> => {
+  ipcMain.handle('jobs:get', async (_, rawJobId: unknown): Promise<JobSnapshot> => {
+    const jobId = JobIdSchema.parse(rawJobId)
     const active = AgentRunner.getActive(jobId)
     if (active) {
       return active.getSnapshot()
@@ -239,7 +249,8 @@ export function registerJobsHandlers(): void {
     return await ProjectStore.list()
   })
 
-  ipcMain.handle('jobs:delete', async (_, jobId: string): Promise<void> => {
+  ipcMain.handle('jobs:delete', async (_, rawJobId: unknown): Promise<void> => {
+    const jobId = JobIdSchema.parse(rawJobId)
     const runner = AgentRunner.getActive(jobId)
     if (runner) {
       await runner.cancel()

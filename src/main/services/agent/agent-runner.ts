@@ -89,10 +89,6 @@ export class AgentRunner extends EventEmitter {
     return this.activeRunners.get(jobId)
   }
 
-  public static listActiveIds(): string[] {
-    return Array.from(this.activeRunners.keys())
-  }
-
   private jobId: string
   private input: StartJobInput
   private status: JobSnapshot['status'] = 'running'

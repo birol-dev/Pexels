@@ -9,8 +9,8 @@ const SettingsUpdateSchema = z.object({
   modelId: z.string().optional(),
   downloadFolder: z.string().optional(),
   maxConcurrentDownloads: z.number().min(1).max(10).optional(),
-  maxAgentIterations: z.number().min(5).max(100).optional(),
-  requestTimeoutSeconds: z.number().min(5).max(300).optional(),
+  maxAgentIterations: z.number().min(5).max(50).optional(),
+  requestTimeoutSeconds: z.number().min(10).max(180).optional(),
   skipExplicitQueries: z.boolean().optional(),
   requireApprovalBeforeDownload: z.boolean().optional(),
   avoidPeopleAndFaces: z.boolean().optional(),
@@ -30,10 +30,12 @@ const ProviderTestRequestSchema = z.object({
   modelId: z.string()
 })
 
+const PexelsKeySchema = z.string().max(512).optional()
+
 const MASKED_SECRET = '••••••••••••••••'
 
 function isMaskedSecret(value: string): boolean {
-  return value.includes('•') || value.includes('â€¢')
+  return value === MASKED_SECRET
 }
 
 async function getPublicSettingsWithSecretStatus(): Promise<Record<string, unknown>> {
@@ -106,8 +108,9 @@ export function registerSettingsHandlers(): void {
     return await client.testConnection({ apiKey }, modelId)
   })
 
-  ipcMain.handle('settings:testPexelsKey', async (_, apiKey: string) => {
+  ipcMain.handle('settings:testPexelsKey', async (_, rawKey: unknown) => {
     try {
+      const apiKey = PexelsKeySchema.parse(rawKey) ?? ''
       let activeKey = apiKey
       if (activeKey === 'CURRENT_KEY_ON_DISK') {
         activeKey = await SecureSecrets.getSecret('pexelsKey')

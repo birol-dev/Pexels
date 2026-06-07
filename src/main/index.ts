@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, protocol, net } from 'electron'
+import { app, shell, BrowserWindow, protocol, net, session } from 'electron'
 import { join, normalize, relative, isAbsolute } from 'path'
 import { pathToFileURL } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -10,13 +10,14 @@ import { registerAssetsHandlers } from './ipc/assets.ipc'
 import { ProjectStore } from './services/storage/project-store'
 
 // Register schemes as privileged before app is ready
+// NOTE: bypassCSP is intentionally omitted — the handler restricts paths to
+// project directories, so CSP enforcement must remain active.
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'media',
     privileges: {
       standard: true,
       secure: true,
-      bypassCSP: true,
       supportFetchAPI: true,
       stream: true
     }
@@ -101,7 +102,27 @@ app.whenReady().then(() => {
   })
 
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('com.eact6.stockfinder-ai')
+
+  // Set authoritative Content-Security-Policy headers at the session level.
+  // This is the recommended approach for Electron — the meta-tag CSP in index.html
+  // is a defence-in-depth layer but session-level headers take precedence.
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; " +
+            "script-src 'self'; " +
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com; " +
+            "font-src 'self' data: https://fonts.gstatic.com https://cdn.fontshare.com; " +
+            "img-src 'self' data: media: https://images.pexels.com https://lh3.googleusercontent.com; " +
+            "media-src 'self' media:; " +
+            "connect-src 'none';"
+        ]
+      }
+    })
+  })
 
   // Register IPC Handlers
   registerSettingsHandlers()
