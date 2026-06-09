@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAppStore, PublicSettings } from '../lib/store'
 import { api } from '../lib/api-client'
+import { BrandLogo } from '../components/BrandLogo'
 
 // SVGs for the Providers
 const OpenAIIcon = (): React.JSX.Element => (
@@ -207,13 +208,8 @@ export default function OnboardingView(): React.JSX.Element {
         {step === 1 && (
           <div className="bg-[#121216]/65 backdrop-blur-lg border border-white/5 shadow-[0px_20px_40px_rgba(0,0,0,0.25),0px_4px_8px_rgba(0,0,0,0.15)] rounded-2xl p-12 flex flex-col items-center text-center">
             {/* App Branding */}
-            <div className="flex items-center gap-3 mb-12">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20 shadow-sm">
-                <span className="material-symbols-outlined text-primary text-[24px]">
-                  movie_filter
-                </span>
-              </div>
-              <h1 className="font-bold text-lg text-on-surface tracking-tight">StockFinder AI</h1>
+            <div className="mb-12 flex justify-center">
+              <BrandLogo variant="lockup" size="xl" />
             </div>
 
             {/* Content */}

@@ -161,7 +161,7 @@ export default function AgentRunView(): React.JSX.Element {
             <h2 className="font-display-xl text-display-xl text-ink-black dark:text-paper-white">
               {activeJob.title}
             </h2>
-            <span className="px-3 py-1 bg-cyber-lime border-2 border-ink-black dark:border-primary-container font-label-sm text-label-sm text-ink-black dark:text-surface-container-lowest tracking-widest uppercase inline-block brutal-shadow translate-y-[-2px]">
+            <span className="px-3 py-1 bg-cyber-lime border-2 border-ink-black dark:border-primary-container font-label-sm text-label-sm text-on-lime tracking-widest uppercase inline-block brutal-shadow translate-y-[-2px]">
               {activeJob.status}
             </span>
           </div>
@@ -192,7 +192,7 @@ export default function AgentRunView(): React.JSX.Element {
                   resumeJob(activeJob.jobId)
                 }
               }}
-              className="bg-cyber-lime text-ink-black font-label-sm text-label-sm py-3 px-6 brutal-border brutal-shadow brutal-shadow-hover transition-all flex items-center gap-2 cursor-pointer"
+              className="bg-cyber-lime text-on-lime font-label-sm text-label-sm py-3 px-6 brutal-border brutal-shadow brutal-shadow-hover transition-all flex items-center gap-2 cursor-pointer"
             >
               <span className="material-symbols-outlined">
                 {hasPendingAssets ? 'verified' : 'play_arrow'}
@@ -213,7 +213,7 @@ export default function AgentRunView(): React.JSX.Element {
             activeJob.status === 'cancelled') && (
             <button
               onClick={() => rerunJob(activeJob.jobId)}
-              className="bg-cyber-lime text-ink-black font-label-sm text-label-sm py-3 px-6 brutal-border brutal-shadow brutal-shadow-hover transition-all flex items-center gap-2 cursor-pointer"
+              className="bg-cyber-lime text-on-lime font-label-sm text-label-sm py-3 px-6 brutal-border brutal-shadow brutal-shadow-hover transition-all flex items-center gap-2 cursor-pointer"
             >
               <span
                 className="material-symbols-outlined"
@@ -227,7 +227,7 @@ export default function AgentRunView(): React.JSX.Element {
           {activeJob.status === 'completed' && (
             <button
               onClick={handleInspectAssets}
-              className="bg-paper-white dark:bg-surface-container-lowest text-ink-black dark:text-paper-white font-label-sm text-label-sm py-3 px-6 brutal-border hover:bg-surface-variant transition-colors flex items-center gap-2 neumorphic-inset active:scale-95 cursor-pointer"
+              className="bg-paper-white dark:bg-surface-container-lowest text-ink-black dark:text-paper-white btn-dark-surface-label font-label-sm text-label-sm py-3 px-6 brutal-border hover:bg-surface-variant transition-colors flex items-center gap-2 neumorphic-inset active:scale-95 cursor-pointer"
             >
               <span className="material-symbols-outlined">visibility</span>
               Inspect Assets

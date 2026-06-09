@@ -5,6 +5,7 @@ import AgentRunView from '@renderer/routes/agent-run'
 import DownloadedStuffView from '@renderer/routes/downloaded-stuff'
 import SettingsView from '@renderer/routes/settings'
 import OnboardingView from '@renderer/routes/onboarding'
+import { BrandLogo } from '@renderer/components/BrandLogo'
 
 export default function App(): React.JSX.Element {
   const {
@@ -108,18 +109,14 @@ export default function App(): React.JSX.Element {
             } border-b-2 border-border pb-6`}
           >
             {!sidebarCollapsed ? (
-              <div className="flex flex-col">
-                <h1 className="font-headline-lg-mobile text-headline-lg-mobile font-black text-ink-black tracking-tighter">
-                  StockFinder AI
-                </h1>
-                <p className="font-label-sm text-label-sm text-outline dark:text-steel-secondary mt-2">
+              <div className="flex flex-col gap-2 min-w-0 flex-1">
+                <BrandLogo variant="lockup" size="lg" />
+                <p className="font-label-sm text-label-sm text-outline dark:text-steel-secondary">
                   AI Video Asset Engine
                 </p>
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-lg bg-primary shadow-inner flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-white text-[24px]">eco</span>
-              </div>
+              <BrandLogo variant="icon" size="lg" className="rounded-lg" />
             )}
 
             <button
