@@ -2,6 +2,8 @@
 import { useAppStore, PublicSettings } from '../lib/store'
 import { api } from '../lib/api-client'
 
+const GITHUB_REPO_URL = 'https://github.com/birol-dev/Pexels'
+
 export default function SettingsView(): React.JSX.Element {
   const { settings, loadSettings, updateSettings, confirm } = useAppStore()
 
@@ -710,6 +712,32 @@ export default function SettingsView(): React.JSX.Element {
           </div>
         </div>
       </form>
+
+      <section className="bento-card p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+        <div className="flex gap-4">
+          <div className="w-11 h-11 rounded-DEFAULT border-2 border-ink-black bg-surface-container-high flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-[22px] text-ink-black">code</span>
+          </div>
+          <div>
+            <h3 className="font-title-md text-[16px] uppercase text-ink-black font-bold tracking-wide">
+              Open source on GitHub
+            </h3>
+            <p className="font-body-md text-sm text-risograph-gray mt-1.5 max-w-xl leading-relaxed">
+              StockFinder AI is built in public. Star the repo if it saves you a run, report a bug,
+              or suggest a feature — your feedback shapes what ships next.
+            </p>
+          </div>
+        </div>
+        <a
+          href={GITHUB_REPO_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="btn-secondary rounded-DEFAULT px-6 py-3 flex items-center gap-2 shrink-0 self-start sm:self-center"
+        >
+          <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+          <span className="font-label-sm text-label-sm uppercase">View on GitHub</span>
+        </a>
+      </section>
     </div>
   )
 }

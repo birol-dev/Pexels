@@ -291,7 +291,7 @@ class OpenRouterProvider implements LlmProvider {
     const headers = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${credentials.apiKey}`,
-      'HTTP-Referer': 'https://github.com/eact6/Pexels',
+      'HTTP-Referer': 'https://github.com/birol-dev/Pexels',
       'X-Title': 'AI Stock Asset Finder'
     }
 

@@ -40,6 +40,8 @@ function buildCreditLine(asset: FlatAsset): string {
   return `${label} by ${asset.photographer} on Pexels`
 }
 
+const ATTRIBUTION_BANNER_KEY = 'stockfinder:attribution-banner-dismissed'
+
 export default function DownloadedStuffView(): React.JSX.Element {
   const {
     activeJobId,
@@ -65,6 +67,14 @@ export default function DownloadedStuffView(): React.JSX.Element {
 
   const [groupedProjects, setGroupedProjects] = useState<GroupedProject[]>([])
   const [groupedLoading, setGroupedLoading] = useState(false)
+  const [attributionBannerVisible, setAttributionBannerVisible] = useState(
+    () => localStorage.getItem(ATTRIBUTION_BANNER_KEY) !== 'true'
+  )
+
+  const dismissAttributionBanner = (): void => {
+    localStorage.setItem(ATTRIBUTION_BANNER_KEY, 'true')
+    setAttributionBannerVisible(false)
+  }
 
   const loadAssets = useCallback(async (): Promise<void> => {
     if (!activeJobId) return
@@ -407,29 +417,42 @@ export default function DownloadedStuffView(): React.JSX.Element {
         </div>
       </header>
 
-      <section className="px-6 py-4 border-2 border-ink-black bg-cyber-lime/20 rounded-DEFAULT flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="text-sm text-ink-black">
-          <span className="font-bold">Attribution required.</span> Credit photographers and link
-          back to{' '}
-          <a
-            href="https://www.pexels.com"
-            target="_blank"
-            rel="noreferrer"
-            className="underline font-semibold hover:text-electric-purple"
-          >
-            Pexels
-          </a>{' '}
-          when you publish or export these assets.
-        </div>
-        <a
-          href="https://www.pexels.com/api/documentation/"
-          target="_blank"
-          rel="noreferrer"
-          className="text-xs font-label-sm uppercase tracking-wide text-ink-black underline hover:text-electric-purple shrink-0"
-        >
-          Pexels API guidelines
-        </a>
-      </section>
+      {attributionBannerVisible && (
+        <section className="px-6 py-4 border-2 border-ink-black bg-cyber-lime/20 rounded-DEFAULT flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="text-sm text-ink-black">
+            <span className="font-bold">Attribution required.</span> Credit photographers and link
+            back to{' '}
+            <a
+              href="https://www.pexels.com"
+              target="_blank"
+              rel="noreferrer"
+              className="underline font-semibold hover:text-electric-purple"
+            >
+              Pexels
+            </a>{' '}
+            when you publish or export these assets.
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <a
+              href="https://www.pexels.com/api/documentation/"
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs font-label-sm uppercase tracking-wide text-ink-black underline hover:text-electric-purple"
+            >
+              Pexels API guidelines
+            </a>
+            <button
+              type="button"
+              onClick={dismissAttributionBanner}
+              className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-ink-black/10 hover:text-error transition-colors text-ink-black cursor-pointer"
+              title="Dismiss reminder"
+              aria-label="Dismiss attribution reminder"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* Filter Options Bar */}
       <div className="px-6 py-4 border-2 border-ink-black bg-surface-container-low rounded-DEFAULT flex flex-wrap items-center justify-between gap-4">

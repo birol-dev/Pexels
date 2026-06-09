@@ -1,54 +1,170 @@
-# StockFinder AI (v1.2.8)
+# StockFinder AI
 
-An Electron-based desktop application that helps YouTube creators, short-form editors, and visual producers turn script narratives into a curated local asset pack of stock b-roll videos and photos.
+**Paste your script. Get a curated Pexels b-roll pack on your desktop — organized, downloaded, and ready for your editor.**
 
-## Core Features
+StockFinder AI is a free, open-source desktop app for YouTube creators, short-form editors, and video producers who are tired of tab-hopping through stock sites. It reads your video script, splits it into visual beats, searches [Pexels](https://www.pexels.com) with AI-driven keywords, and downloads matching stock photos and videos to a local folder — so you spend less time hunting footage and more time cutting.
 
-- **Script Parsing**: Analyzes YouTube video scripts into individual visual beats.
-- **AI Stock Media Finding**: Uses Pexels search and detail APIs to discover stock b-roll photos/videos.
-- **Secure Download Sandbox**: Enforces strict URL safety guidelines preventing local or unauthorized network lookups.
-- **Human Approval Option**: Restricts the agent from downloading assets without explicit approval in the UI.
-- **Diagnostics Controls**: Allows connection testing for OpenAI, Gemini, and OpenRouter, as well as testing Pexels API credentials.
+[![Version](https://img.shields.io/badge/version-1.2.9-cyber)](https://github.com/birol-dev/Pexels/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](#download)
+[![License](https://img.shields.io/badge/license-Open%20Source-blue)](https://github.com/birol-dev/Pexels)
 
-## Recommended Setup
+---
 
-- **IDE**: [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
-- **Node**: version 20 or higher.
+## Why creators use StockFinder AI
 
-## Getting Started
+Most editing time disappears into stock footage searches — not the edit itself. You write the script, then lose an hour opening Pexels, typing slightly wrong keywords, and downloading clips one by one.
 
-### 1. Installation
+StockFinder AI automates that loop:
 
-Install all node dependencies:
+| Without StockFinder AI | With StockFinder AI |
+| --- | --- |
+| Manual keyword guessing per scene | AI breaks your script into visual beats |
+| Dozens of browser tabs | One agent run, one organized folder |
+| Clips scattered across Downloads | Assets named, grouped, and export-ready |
+| Easy to miss Pexels attribution | Built-in credits and manifest export |
+
+---
+
+## How it works
+
+1. **Paste your script** — Drop in your YouTube voiceover, narration, or scene list.
+2. **Let the agent run** — StockFinder AI parses beats, searches Pexels photos and videos, and queues downloads (with optional approval before each batch).
+3. **Open your asset pack** — Clips land in a local project folder with a media library, attribution info, and an exportable manifest for your workflow.
+
+Works with **OpenAI**, **Google Gemini**, or **OpenRouter** for the AI layer, plus a free **Pexels API key** for stock media.
+
+---
+
+## Features
+
+### Script-to-stock automation
+Turns long-form scripts into scene-by-scene visual directions and Pexels search queries — no manual beat mapping.
+
+### AI-powered Pexels search
+Finds relevant stock b-roll videos and photos per beat, with caching and rate-limit handling so agent runs stay efficient.
+
+### Local asset library
+Browse, filter, and inspect everything the agent downloaded. Export a manifest with photographer credits for Pexels compliance.
+
+### Human-in-the-loop controls
+Pause before downloads, approve or reject individual assets, and rerun failed jobs without starting from scratch.
+
+### Built for production workflows
+- Encrypted API key storage (Electron `safeStorage`)
+- Configurable download limits, timeouts, and content filters
+- Dark and light themes
+- Real-time run progress and agent console logs
+
+### Open source
+Inspect the code, report bugs, or contribute on [GitHub](https://github.com/birol-dev/Pexels).
+
+---
+
+## Who it's for
+
+- **YouTube creators** building documentary, explainer, or talking-head videos with heavy b-roll
+- **Short-form editors** who need fast stock pulls matched to a script structure
+- **Video producers** who want a repeatable, local-first stock workflow — not another SaaS subscription
+- **Developers** interested in Electron, AI agents, and media tooling
+
+---
+
+## Download
+
+Pre-built installers are on the [Releases page](https://github.com/birol-dev/Pexels/releases).
+
+| Platform | Command (build from source) |
+| --- | --- |
+| Windows | `npm run build:win` |
+| macOS | `npm run build:mac` |
+| Linux | `npm run build:linux` |
+
+### What you need before your first run
+
+1. A [Pexels API key](https://www.pexels.com/api/) (free)
+2. An API key from **OpenAI**, **Gemini**, or **OpenRouter**
+3. A folder on your machine for downloaded assets
+
+The in-app onboarding wizard walks you through setup.
+
+---
+
+## Development
+
+### Requirements
+
+- **Node.js** 20+
+- **npm** 11+
+- Recommended: [VS Code](https://code.visualstudio.com/) with [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) and [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+
+### Install
 
 ```bash
-$ npm install
+npm install
 ```
 
-### 2. Development Mode
-
-Launch the Electron Vite development server:
+### Run locally (hot reload)
 
 ```bash
-$ npm run dev
+npm start
+# or
+npm run dev
 ```
 
-### 3. Build & Packaging
+Renderer changes hot reload. Main process changes (`src/main/`, `src/preload/`) require a restart.
 
-To package the production desktop application for your system platform:
+### Production preview (no hot reload)
 
 ```bash
-# For Windows
-$ npm run build:win
-
-# For macOS
-$ npm run build:mac
-
-# For Linux
-$ npm run build:linux
+npm run preview
 ```
+
+### Build
+
+```bash
+npm run build        # typecheck + compile
+npm run build:win    # Windows installer
+npm run build:mac    # macOS app
+npm run build:linux  # Linux package
+```
+
+---
+
+## Tech stack
+
+- **Desktop**: [Electron](https://www.electronjs.org/) + [electron-vite](https://electron-vite.org/)
+- **UI**: React 19, Tailwind CSS 4, Zustand
+- **AI**: OpenAI / Gemini / OpenRouter with tool-calling agent loop
+- **Stock media**: [Pexels API v1](https://www.pexels.com/api/documentation/)
+- **Language**: TypeScript throughout
+
+---
+
+## Keywords
+
+StockFinder AI helps with: AI stock footage search, Pexels video downloader, YouTube b-roll finder, script to stock assets, free stock video for editing, AI video asset pack, desktop stock media tool, automated b-roll workflow, Pexels attribution export, open-source video production tool.
+
+---
+
+## Contributing
+
+Found a bug or want to add a feature?
+
+1. [Open an issue](https://github.com/birol-dev/Pexels/issues) — describe the problem or idea
+2. Fork the repo and open a pull request
+3. Star the repo if it saves you a run — it helps other creators find the tool
+
+---
 
 ## Changelog
+
+### v1.2.9 - Website, Branding & Open Source (2026-06-09)
+
+- **Marketing Website**: Added a static landing page in `website/` with product copy, open-source messaging, and GitHub download links.
+- **Brand Identity**: New logo assets and a shared `BrandLogo` component across the app sidebar, onboarding, and website.
+- **MIT License**: Added `LICENSE` and declared MIT in `package.json`.
+- **Open Source UX**: Settings GitHub card, dismissible Pexels attribution banner, and improved contrast on lime action buttons.
+- **Repository Links**: Updated homepage and in-app links to `github.com/birol-dev/Pexels`.
 
 ### v1.2.8 - API Hardening & Attribution (2026-06-07)
 

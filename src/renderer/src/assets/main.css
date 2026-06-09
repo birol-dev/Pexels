@@ -815,6 +815,43 @@ select.glass-input option {
   color: #ffffff;
 }
 
+/* High-contrast labels on cyber-lime (dark mode overrides text-ink-black to white) */
+.text-on-lime {
+  color: #161e00;
+}
+
+.theme-flat-black .text-on-lime {
+  color: #161e00;
+  -webkit-text-stroke: 0.2px #161e00;
+  paint-order: stroke fill;
+  text-shadow:
+    -0.25px -0.25px 0 rgba(22, 30, 0, 0.6),
+    0.25px -0.25px 0 rgba(22, 30, 0, 0.6),
+    -0.25px 0.25px 0 rgba(22, 30, 0, 0.6),
+    0.25px 0.25px 0 rgba(22, 30, 0, 0.6);
+}
+
+.theme-flat-black .text-on-lime .material-symbols-outlined {
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
+/* Neumorphic dark buttons — white text needs outline to stay legible */
+.theme-flat-black .btn-dark-surface-label {
+  -webkit-text-stroke: 0.2px #18181b;
+  paint-order: stroke fill;
+  text-shadow:
+    -0.25px -0.25px 0 rgba(0, 0, 0, 0.7),
+    0.25px -0.25px 0 rgba(0, 0, 0, 0.7),
+    -0.25px 0.25px 0 rgba(0, 0, 0, 0.7),
+    0.25px 0.25px 0 rgba(0, 0, 0, 0.7);
+}
+
+.theme-flat-black .btn-dark-surface-label .material-symbols-outlined {
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
 /* Light mode overrides */
 .theme-flat-white {
   --paper-white-color: #f9fafb;
@@ -942,14 +979,19 @@ select.glass-input option {
   box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.1);
 }
 .theme-flat-black .btn-secondary {
-  background-color: var(--color-surface-container-highest);
-  border-color: var(--color-secondary-container);
-  color: var(--color-primary);
+  background-color: var(--color-surface-container-low);
+  border-color: var(--color-surface-variant);
+  color: var(--color-paper-white);
   box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 0.5);
 }
 .theme-flat-black .btn-secondary:hover {
-  color: var(--color-primary-fixed);
-  border-color: var(--color-primary-fixed);
+  color: var(--color-cyber-lime);
+  border-color: var(--color-cyber-lime);
+  background-color: var(--color-surface-container-high);
+}
+.theme-flat-black .btn-secondary .material-symbols-outlined,
+.theme-flat-black .btn-secondary span {
+  color: inherit;
 }
 .theme-flat-black .btn-secondary:active {
   transform: translateY(2px);

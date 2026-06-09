@@ -24,6 +24,30 @@ protocol.registerSchemesAsPrivileged([
   }
 ])
 
+function getContentSecurityPolicy(): string {
+  if (is.dev) {
+    return (
+      "default-src 'self'; " +
+      "script-src 'self' 'unsafe-inline'; " +
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com; " +
+      "font-src 'self' data: https://fonts.gstatic.com https://cdn.fontshare.com; " +
+      "img-src 'self' data: media: https://images.pexels.com https://lh3.googleusercontent.com; " +
+      "media-src 'self' media:; " +
+      "connect-src 'self' ws://127.0.0.1:* ws://localhost:* http://127.0.0.1:* http://localhost:*;"
+    )
+  }
+
+  return (
+    "default-src 'self'; " +
+    "script-src 'self'; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com; " +
+    "font-src 'self' data: https://fonts.gstatic.com https://cdn.fontshare.com; " +
+    "img-src 'self' data: media: https://images.pexels.com https://lh3.googleusercontent.com; " +
+    "media-src 'self' media:; " +
+    "connect-src 'none';"
+  )
+}
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -31,7 +55,7 @@ function createWindow(): void {
     height: 800,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true,
@@ -111,15 +135,7 @@ app.whenReady().then(() => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
-        'Content-Security-Policy': [
-          "default-src 'self'; " +
-            "script-src 'self'; " +
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com; " +
-            "font-src 'self' data: https://fonts.gstatic.com https://cdn.fontshare.com; " +
-            "img-src 'self' data: media: https://images.pexels.com https://lh3.googleusercontent.com; " +
-            "media-src 'self' media:; " +
-            "connect-src 'none';"
-        ]
+        'Content-Security-Policy': [getContentSecurityPolicy()]
       }
     })
   })
