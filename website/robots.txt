@@ -1,0 +1,31 @@
+# StockFinder AI — allow search engines and AI citation bots
+User-agent: *
+Allow: /
+
+# OpenAI (ChatGPT search & citations)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+# Anthropic (Claude)
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+# Perplexity
+User-agent: PerplexityBot
+Allow: /
+
+# Google Gemini & AI Overviews
+User-agent: Google-Extended
+Allow: /
+
+# Microsoft Copilot (Bing)
+User-agent: Bingbot
+Allow: /
+
+Sitemap: https://birol-dev.github.io/Pexels/sitemap.xml

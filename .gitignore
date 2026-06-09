@@ -16,6 +16,7 @@ release/
 .vite/
 coverage/
 .nyc_output/
+*.tsbuildinfo
 
 # Logs
 *.log
@@ -24,14 +25,31 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+electron-runtime*.log
 
-# OS and editor noise
+# OS noise
 .DS_Store
 Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
 
-# Design files (except SVGs)
-stitch_stockfinder_ai/
+# Editor and local IDE
+.idea/
+.cursor/
+.vscode/*.local.json
+*.swp
+*.swo
+*~
 
-
-stitch_pexels_final/
+# Cursor agent skills (local installs — not part of the app)
 .agents/
+skills-lock.json
+
+# Design scratch / mockup exports
+stitch_stockfinder_ai/
+stitch_pexels_final/
+
+# Local temp / backup files
+*.tmp
+*.temp
+*.bak

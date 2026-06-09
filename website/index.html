@@ -3,10 +3,41 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>StockFinder AI — Paste a script. Get your b-roll pack.</title>
+    <title>StockFinder AI — Free Open-Source AI B-Roll Finder for YouTube Creators</title>
     <meta
       name="description"
-      content="Free, open-source desktop app for YouTube creators. Paste your script, get a curated Pexels b-roll pack on your machine — no subscription, no black box."
+      content="StockFinder AI is a free, open-source desktop app that turns your YouTube script into a curated Pexels b-roll pack. AI beat mapping, organized downloads, and built-in attribution — Windows, macOS, and Linux."
+    />
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
+    <meta name="author" content="StockFinder AI" />
+    <meta name="theme-color" content="#ccff00" />
+    <link rel="canonical" href="https://birol-dev.github.io/Pexels/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="StockFinder AI" />
+    <meta property="og:title" content="StockFinder AI — Free AI B-Roll Finder for YouTube Creators" />
+    <meta
+      property="og:description"
+      content="Paste your script. Get a curated Pexels b-roll pack on your desktop — free, open source, runs locally. No subscription."
+    />
+    <meta property="og:url" content="https://birol-dev.github.io/Pexels/" />
+    <meta
+      property="og:image"
+      content="https://birol-dev.github.io/Pexels/logos/stockfinder-logo-horizontal.png"
+    />
+    <meta property="og:image:alt" content="StockFinder AI logo" />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="StockFinder AI — Free AI B-Roll Finder for YouTube Creators" />
+    <meta
+      name="twitter:description"
+      content="Free, open-source desktop app. Paste your script, get organized Pexels stock footage with AI — ready for Premiere, DaVinci, or CapCut."
+    />
+    <meta
+      name="twitter:image"
+      content="https://birol-dev.github.io/Pexels/logos/stockfinder-logo-horizontal.png"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -25,8 +56,144 @@
     <link rel="icon" type="image/png" href="logos/stockfinder-icon.png" />
     <link rel="apple-touch-icon" href="logos/stockfinder-icon.png" />
     <link rel="stylesheet" href="styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://birol-dev.github.io/Pexels/#website",
+            "url": "https://birol-dev.github.io/Pexels/",
+            "name": "StockFinder AI",
+            "description": "Free, open-source AI b-roll finder for YouTube creators. Paste a script, get a curated Pexels asset pack on your desktop.",
+            "inLanguage": "en-US"
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://birol-dev.github.io/Pexels/#organization",
+            "name": "StockFinder AI",
+            "url": "https://birol-dev.github.io/Pexels/",
+            "logo": "https://birol-dev.github.io/Pexels/logos/stockfinder-icon.png",
+            "sameAs": ["https://github.com/birol-dev/Pexels"]
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://birol-dev.github.io/Pexels/#software",
+            "name": "StockFinder AI",
+            "applicationCategory": "MultimediaApplication",
+            "applicationSubCategory": "Video Production Tool",
+            "operatingSystem": "Windows, macOS, Linux",
+            "softwareVersion": "1.2.9",
+            "description": "Free, open-source desktop app that uses AI to map video scripts into visual beats, search Pexels stock footage, and download organized b-roll packs with attribution.",
+            "downloadUrl": "https://github.com/birol-dev/Pexels/releases",
+            "installUrl": "https://github.com/birol-dev/Pexels/releases",
+            "license": "https://opensource.org/licenses/MIT",
+            "isAccessibleForFree": true,
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD",
+              "availability": "https://schema.org/InStock"
+            },
+            "featureList": [
+              "AI script-to-beat mapping",
+              "Pexels photo and video search",
+              "Organized local downloads",
+              "Pexels attribution export",
+              "Human approval mode",
+              "OpenAI, Gemini, and OpenRouter support"
+            ]
+          },
+          {
+            "@type": "HowTo",
+            "name": "How to get b-roll from your script with StockFinder AI",
+            "description": "Four steps to turn a YouTube script into a curated Pexels stock footage pack on your desktop.",
+            "step": [
+              {
+                "@type": "HowToStep",
+                "position": 1,
+                "name": "Paste your script",
+                "text": "Drop in your full YouTube narration, title the project, and choose your target platform and visual mood."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 2,
+                "name": "Agent maps visual beats",
+                "text": "Your LLM breaks the script into beats, each with a visual direction and targeted search queries."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 3,
+                "name": "Pexels search and select",
+                "text": "The agent searches photos and videos, rejects off-topic results, and queues downloads."
+              },
+              {
+                "@type": "HowToStep",
+                "position": 4,
+                "name": "Edit from a real folder",
+                "text": "Open your project folder with photos, videos, manifest.json, and Pexels attribution ready for your editor."
+              }
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Is StockFinder AI a video editor?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. It finds, downloads, and organizes stock assets. You still edit in Premiere, DaVinci Resolve, Final Cut, or CapCut."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Do I need a Pexels API key?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Pexels offers free API access for developers. StockFinder uses your key to search and download on your behalf. The key stays encrypted in your local system keychain."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Which AI models are supported?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "OpenAI, Google Gemini, and OpenRouter (which unlocks Claude, Qwen, and many others). You provide your own API key and model ID."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is my script uploaded anywhere?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Your script is sent to whichever LLM provider you configure. It is not sent to StockFinder servers because there are no StockFinder servers. The app runs entirely on your desktop."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How much does StockFinder AI cost?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The app is free and open source under the MIT license. You pay only for your own LLM API usage, typically cents per script run. Pexels API access is free within their rate limits."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does StockFinder AI work on Mac and Linux?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Build targets include Windows, macOS, and Linux. Check the GitHub releases page for installers for your platform."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
     <div class="grain" aria-hidden="true"></div>
 
     <!-- Navigation -->
@@ -35,7 +202,7 @@
         <a href="#" class="brand" aria-label="StockFinder AI home">
           <img
             src="logos/stockfinder-icon.png"
-            alt=""
+            alt="StockFinder AI logo"
             class="brand-mark"
             width="40"
             height="40"
@@ -49,6 +216,7 @@
           <li><a href="#opensource">Open source</a></li>
           <li><a href="#creators">Who it's for</a></li>
           <li><a href="#faq">FAQ</a></li>
+          <li><a href="#guides">Guides</a></li>
         </ul>
         <div class="nav-actions">
           <a
@@ -68,13 +236,13 @@
       </div>
     </header>
 
-    <main>
+    <main id="main-content">
       <!-- HERO -->
-      <section class="hero">
+      <section class="hero" aria-labelledby="hero-heading">
         <div class="container hero-grid">
           <div class="hero-copy reveal">
             <span class="eyebrow">Free &amp; open source · Desktop app for YouTube creators</span>
-            <h1 class="display-xl">
+            <h1 class="display-xl" id="hero-heading">
               Your script is done.<br />
               <span class="highlight-lime">Your b-roll hunt</span> shouldn't take all night.
             </h1>
@@ -181,6 +349,27 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- DEFINITION (AI-extractable) -->
+      <section class="section definition-section" id="about" aria-labelledby="about-heading">
+        <div class="container">
+          <div class="definition-block reveal">
+            <h2 class="display-md" id="about-heading">What is StockFinder AI?</h2>
+            <p>
+              StockFinder AI is a free, open-source desktop application for YouTube creators and
+              video editors. It reads your narration script, splits it into visual beats with
+              AI-driven search queries, finds matching Pexels stock photos and videos, and downloads
+              an organized asset pack to your machine — with manifest.json and photographer
+              attribution included.
+            </p>
+            <p class="body-sm definition-meta">
+              Last updated: June 9, 2026 · Version 1.2.9 ·
+              <a href="pricing.md">Pricing details</a> ·
+              <a href="llms.txt">AI context file (llms.txt)</a>
+            </p>
           </div>
         </div>
       </section>
@@ -363,7 +552,7 @@
           <div class="stats-row reveal">
             <div class="stat-box">
               <div class="proof-value">2–4 hrs</div>
-              <div class="proof-label">Typical manual b-roll time per video</div>
+              <div class="proof-label">Typical manual b-roll time per video (creator workflow estimates)</div>
             </div>
             <div class="stat-box">
               <div class="proof-value">12+</div>
@@ -459,6 +648,55 @@
                 <span>~10 minutes</span>
               </div>
             </div>
+          </div>
+
+          <div class="compare-table-wrap reveal">
+            <h3 class="compare-table-heading">StockFinder AI vs manual Pexels search</h3>
+            <table class="compare-table">
+              <caption class="sr-only">
+                Comparison of manual Pexels stock footage workflow versus StockFinder AI automated
+                workflow for YouTube creators
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Factor</th>
+                  <th scope="col">Manual Pexels workflow</th>
+                  <th scope="col">StockFinder AI</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Time per video</th>
+                  <td>2–4 hours of active searching</td>
+                  <td>~10 minutes active review time</td>
+                </tr>
+                <tr>
+                  <th scope="row">Search method</th>
+                  <td>Manual keyword guessing per line</td>
+                  <td>AI beat mapping with intent-based queries</td>
+                </tr>
+                <tr>
+                  <th scope="row">File organization</th>
+                  <td>Scattered downloads, unclear naming</td>
+                  <td>Project folders with manifest.json</td>
+                </tr>
+                <tr>
+                  <th scope="row">Pexels attribution</th>
+                  <td>Copied manually, easy to miss</td>
+                  <td>Built into Media Library and exports</td>
+                </tr>
+                <tr>
+                  <th scope="row">Cost</th>
+                  <td>Free Pexels + your time</td>
+                  <td>Free app + cents per LLM API run</td>
+                </tr>
+                <tr>
+                  <th scope="row">Privacy</th>
+                  <td>Browser-based tab workflow</td>
+                  <td>Runs 100% locally on your machine</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -804,8 +1042,63 @@
         </div>
       </section>
 
+      <!-- QUERY FAN-OUT: common search intents -->
+      <section class="section section-alt" id="guides" aria-labelledby="guides-heading">
+        <div class="container">
+          <div class="section-header reveal">
+            <span class="eyebrow">Common questions</span>
+            <h2 class="display-lg" id="guides-heading">How creators find b-roll faster</h2>
+            <p class="lead">
+              StockFinder AI addresses the stock-footage problems YouTube editors search for most
+              often — from keyword guessing to attribution and platform-specific crops.
+            </p>
+          </div>
+
+          <div class="guide-grid">
+            <article class="guide-card reveal">
+              <h3>How to find b-roll for YouTube videos</h3>
+              <p>
+                Start from your script, not from generic stock keywords. StockFinder AI parses each
+                narration beat, generates visual search queries that match story intent, and
+                downloads Pexels clips organized by scene — so you edit from a folder that mirrors
+                your timeline structure.
+              </p>
+            </article>
+
+            <article class="guide-card reveal">
+              <h3>Best free stock footage workflow for editors</h3>
+              <p>
+                Pexels offers free stock photos and videos, but manual searching costs hours per
+                upload. StockFinder AI automates Pexels API searches locally on your desktop,
+                exports attribution in manifest.json, and keeps assets named and grouped per
+                project — no SaaS subscription required.
+              </p>
+            </article>
+
+            <article class="guide-card reveal">
+              <h3>AI tools for YouTube b-roll (without cloud lock-in)</h3>
+              <p>
+                Most AI video tools run in the browser and charge monthly fees. StockFinder AI is
+                MIT-licensed open source: bring your own OpenAI, Gemini, or OpenRouter key, keep
+                scripts on your machine, and audit every line of the agent on GitHub.
+              </p>
+            </article>
+
+            <article class="guide-card reveal">
+              <h3>Pexels attribution for YouTube descriptions</h3>
+              <p>
+                Pexels requires crediting photographers and linking back to Pexels. StockFinder
+                includes attribution in the Media Library and exports a complete credits block in
+                manifest.json — so you paste accurate credits into your YouTube description instead
+                of reconstructing them at 1 AM.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <!-- FAQ -->
-      <section class="section section-alt" id="faq">
+      <section class="section" id="faq">
         <div class="container">
           <div class="section-header centered reveal">
             <span class="eyebrow">Questions</span>
@@ -939,7 +1232,7 @@
             <a href="#" class="brand" aria-label="StockFinder AI home">
               <img
                 src="logos/stockfinder-icon.png"
-                alt=""
+                alt="StockFinder AI logo"
                 class="brand-mark brand-mark--footer"
                 width="36"
                 height="36"
@@ -969,6 +1262,7 @@
               <li><a href="#features">Features</a></li>
           <li><a href="#opensource">Open source</a></li>
               <li><a href="#creators">Who it's for</a></li>
+              <li><a href="#guides">Guides</a></li>
               <li><a href="#faq">FAQ</a></li>
             </ul>
           </div>
@@ -985,6 +1279,8 @@
                   >Downloads</a
                 >
               </li>
+              <li><a href="pricing.md">Pricing (free)</a></li>
+              <li><a href="llms.txt">llms.txt</a></li>
               <li>
                 <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer"
                   >Pexels API</a
@@ -994,7 +1290,7 @@
           </div>
         </div>
         <div class="footer-bottom">
-          <span>StockFinder AI v1.2.9 — Free &amp; open source</span>
+          <span>StockFinder AI v1.2.9 — Free &amp; open source · Last updated June 9, 2026</span>
           <span>Pexels media used under the Pexels License</span>
         </div>
       </div>

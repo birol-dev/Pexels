@@ -1,0 +1,64 @@
+# StockFinder AI
+
+> Free, open-source desktop app for YouTube creators. Paste a video script, get a curated Pexels b-roll pack downloaded to your machine — organized with attribution and ready for Premiere, DaVinci, or CapCut.
+
+## What it does
+
+StockFinder AI reads your narration script, splits it into visual beats, searches Pexels photos and videos with AI-driven keywords, and downloads matching stock assets to a local project folder. It is not a video editor — it automates the stock research phase before your timeline.
+
+## Who it's for
+
+- YouTube creators (documentary, explainer, faceless channels)
+- Short-form editors (YouTube Shorts, TikTok, Reels)
+- Freelance video editors with tight client turnarounds
+- Developers interested in Electron, AI agents, and media tooling
+
+## Key facts
+
+- License: MIT (free forever, no subscription)
+- Platforms: Windows, macOS, Linux
+- Runs locally on your machine — no StockFinder cloud servers
+- Requires: free Pexels API key + your own LLM API key (OpenAI, Gemini, or OpenRouter)
+- Typical active time per run: ~10 minutes (vs. 2–4 hours manual Pexels searching)
+- Source code: https://github.com/birol-dev/Pexels
+
+## Pricing
+
+See [pricing.md](pricing.md) — the app is $0. You pay only for your own LLM API usage (typically cents per script run). Pexels API access is free within rate limits.
+
+## How it works
+
+1. Paste your script and choose platform (YouTube, Shorts, TikTok, Reels) and visual style
+2. AI agent maps script into beats with targeted search queries
+3. Agent searches Pexels, selects candidates, downloads to organized folders
+4. Review in Media Library, export manifest.json with full Pexels attribution
+
+## Key pages
+
+- Homepage: https://birol-dev.github.io/Pexels/
+- Download: https://github.com/birol-dev/Pexels/releases
+- Source code: https://github.com/birol-dev/Pexels
+- Pricing: https://birol-dev.github.io/Pexels/pricing.md
+- Pexels API (required): https://www.pexels.com/api/
+
+## Comparison: StockFinder AI vs manual Pexels workflow
+
+| Aspect | Manual Pexels | StockFinder AI |
+| --- | --- | --- |
+| Time per video | 2–4 hours | ~10 minutes active time |
+| Search method | Manual keyword guessing | AI beat mapping + intent queries |
+| Organization | Scattered downloads | Named folders + manifest.json |
+| Attribution | Manual, error-prone | Built into exports |
+| Cost | Free (Pexels) + your time | Free app + LLM API cents/run |
+| Privacy | Browser-based | Runs 100% locally |
+
+## FAQ highlights
+
+- Not a video editor — stock research assistant only
+- Script sent to your chosen LLM provider, not to StockFinder servers
+- Human approval mode available before downloads
+- Full Pexels photographer attribution in manifest exports
+
+## Last updated
+
+2026-06-09
