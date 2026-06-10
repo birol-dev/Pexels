@@ -209,29 +209,60 @@
           />
           <span class="brand-wordmark">StockFinder <span class="brand-accent">AI</span></span>
         </a>
-        <ul class="nav-links">
-          <li><a href="#pain">The problem</a></li>
-          <li><a href="#how">How it works</a></li>
-          <li><a href="#features">Features</a></li>
-          <li><a href="#opensource">Open source</a></li>
-          <li><a href="#creators">Who it's for</a></li>
-          <li><a href="#faq">FAQ</a></li>
-          <li><a href="#guides">Guides</a></li>
-        </ul>
+        <nav
+          class="site-nav-menu"
+          id="site-nav-menu"
+          aria-label="Main navigation"
+          aria-hidden="true"
+          inert
+        >
+          <ul class="nav-links">
+            <li><a href="#pain">The problem</a></li>
+            <li><a href="#how">How it works</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#opensource">Open source</a></li>
+            <li><a href="#creators">Who it's for</a></li>
+            <li><a href="#faq">FAQ</a></li>
+            <li><a href="#guides">Guides</a></li>
+            <li class="nav-links-mobile-cta">
+              <a
+                href="https://github.com/birol-dev/Pexels"
+                class="btn btn-secondary"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Star on GitHub
+                <span class="material-symbols-outlined" style="font-size: 1rem">star</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
         <div class="nav-actions">
           <a
             href="https://github.com/birol-dev/Pexels"
-            class="btn btn-ghost"
+            class="btn btn-ghost nav-github-btn"
             target="_blank"
             rel="noreferrer"
           >
             Star on GitHub
             <span class="material-symbols-outlined" style="font-size: 1rem">star</span>
           </a>
-          <a href="https://github.com/birol-dev/Pexels/releases" class="btn btn-primary">
-            Download free
+          <a href="https://github.com/birol-dev/Pexels/releases" class="btn btn-primary nav-download-btn">
+            <span class="nav-download-label">Download free</span>
             <span class="material-symbols-outlined" style="font-size: 1rem">download</span>
           </a>
+          <button
+            type="button"
+            class="nav-toggle"
+            id="nav-toggle"
+            aria-expanded="false"
+            aria-controls="site-nav-menu"
+            aria-label="Open menu"
+          >
+            <span class="nav-toggle-bar" aria-hidden="true"></span>
+            <span class="nav-toggle-bar" aria-hidden="true"></span>
+            <span class="nav-toggle-bar" aria-hidden="true"></span>
+          </button>
         </div>
       </div>
     </header>
@@ -1309,6 +1340,41 @@
         { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
       )
       reveals.forEach((el) => observer.observe(el))
+
+      const navToggle = document.getElementById('nav-toggle')
+      const navMenu = document.getElementById('site-nav-menu')
+
+      function setNavOpen(open) {
+        navMenu.classList.toggle('is-open', open)
+        navToggle.setAttribute('aria-expanded', String(open))
+        navToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu')
+        navMenu.setAttribute('aria-hidden', String(!open))
+        if (open) {
+          navMenu.removeAttribute('inert')
+        } else {
+          navMenu.setAttribute('inert', '')
+        }
+        document.body.classList.toggle('nav-open', open)
+      }
+
+      navToggle.addEventListener('click', () => {
+        setNavOpen(!navMenu.classList.contains('is-open'))
+      })
+
+      navMenu.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', () => setNavOpen(false))
+      })
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && navMenu.classList.contains('is-open')) {
+          setNavOpen(false)
+          navToggle.focus()
+        }
+      })
+
+      window.matchMedia('(min-width: 900px)').addEventListener('change', (e) => {
+        if (e.matches) setNavOpen(false)
+      })
     </script>
   </body>
 </html>
