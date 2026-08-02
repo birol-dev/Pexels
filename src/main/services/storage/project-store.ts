@@ -33,23 +33,34 @@ export class ProjectStore {
       const data = await fs.readFile(filePath, 'utf-8')
       const parsed = JSON.parse(data)
       this.cachedProjects = Array.isArray(parsed) ? parsed : []
-    } catch {
-      this.cachedProjects = []
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      // Missing file is a normal first-run state. Any other I/O or parse
+      // failure must surface — treating it as [] would overwrite real data
+      // on the next successful save.
+      if (code === 'ENOENT') {
+        this.cachedProjects = []
+      } else {
+        throw error
+      }
     }
     return this.cachedProjects!
   }
 
   private static async writeProjectsFile(projects: JobSummary[]): Promise<void> {
-    this.cachedProjects = projects
     const filePath = getProjectsFile()
-    this.writeQueue = this.writeQueue.then(async () => {
-      try {
+    const snapshot = projects.map((p) => ({ ...p }))
+    this.writeQueue = this.writeQueue
+      .catch(() => {
+        // Keep the queue alive after a prior failure.
+      })
+      .then(async () => {
         await fs.mkdir(dirname(filePath), { recursive: true })
-        await fs.writeFile(filePath, JSON.stringify(projects, null, 2), 'utf-8')
-      } catch (error) {
-        console.error('Failed to write projects file:', error)
-      }
-    })
+        const tempPath = `${filePath}.tmp`
+        await fs.writeFile(tempPath, JSON.stringify(snapshot, null, 2), 'utf-8')
+        await fs.rename(tempPath, filePath)
+        this.cachedProjects = snapshot
+      })
     await this.writeQueue
   }
 
@@ -63,7 +74,7 @@ export class ProjectStore {
   }
 
   public static async save(project: JobSummary): Promise<void> {
-    const list = await this.list()
+    const list = [...(await this.list())]
     const index = list.findIndex((p) => p.jobId === project.jobId)
     if (index !== -1) {
       list[index] = project

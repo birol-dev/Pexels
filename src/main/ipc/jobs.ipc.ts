@@ -1,9 +1,15 @@
 import { ipcMain, BrowserWindow } from 'electron'
+import { randomInt } from 'crypto'
 import { AgentRunner, StartJobInput, JobSnapshot } from '../services/agent/agent-runner'
 import { ProjectStore, JobSummary } from '../services/storage/project-store'
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { z } from 'zod'
+
+function createJobId(): string {
+  // Millisecond timestamps alone can collide under rapid start/rerun clicks.
+  return `job_${Date.now()}${randomInt(100000, 999999)}`
+}
 
 const StartJobInputSchema = z.object({
   title: z.string().min(1),
@@ -83,7 +89,7 @@ async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInp
 export function registerJobsHandlers(): void {
   ipcMain.handle('jobs:start', async (_, rawInput): Promise<string> => {
     const input = StartJobInputSchema.parse(rawInput) as StartJobInput
-    const jobId = `job_${Date.now()}`
+    const jobId = createJobId()
 
     const runner = new AgentRunner(jobId, input)
     runner.on('event', (evt) => {
@@ -166,7 +172,7 @@ export function registerJobsHandlers(): void {
     const summary = await ProjectStore.get(jobId)
     if (!summary) throw new Error('Job not found')
 
-    const newJobId = `job_${Date.now()}`
+    const newJobId = createJobId()
     const input = await getJobInputFromManifest(summary)
     input.title = `${input.title} (Rerun)`
 
@@ -218,6 +224,14 @@ export function registerJobsHandlers(): void {
         // Logs file may be missing, which is fine
       }
 
+      const beatAssets = (manifest.beats || []).flatMap(
+        (beat) => (beat as { assets?: Array<{ status?: string }> }).assets || []
+      )
+      // Prefer beat-level asset status — top-level assets/failures arrays can
+      // be empty or partial after resume (fresh downloader task list).
+      const downloadedCount = beatAssets.filter((a) => a.status === 'completed').length
+      const failedCount = beatAssets.filter((a) => a.status === 'failed').length
+
       return {
         jobId: manifest.projectId || jobId,
         title: manifest.title || summary.title,
@@ -227,8 +241,8 @@ export function registerJobsHandlers(): void {
         currentStep: summary.status === 'completed' ? 'Finished' : 'Stopped',
         beats: (manifest.beats || []) as JobSnapshot['beats'],
         logs: logs as JobSnapshot['logs'],
-        downloadedCount: manifest.assets?.length || 0,
-        failedCount: manifest.failures?.length || 0
+        downloadedCount,
+        failedCount
       }
     } catch {
       return {
@@ -262,7 +276,12 @@ export function registerJobsHandlers(): void {
       try {
         await fs.rm(summary.downloadPath, { recursive: true, force: true })
       } catch (err) {
-        console.error(`Failed to delete local project files at ${summary.downloadPath}:`, err)
+        // Keep the registry entry so the user can retry — otherwise files
+        // remain on disk while the project becomes unreachable in-app.
+        const message = err instanceof Error ? err.message : String(err)
+        throw new Error(
+          `Failed to delete local project files at ${summary.downloadPath}: ${message}`
+        )
       }
     }
     await ProjectStore.delete(jobId)

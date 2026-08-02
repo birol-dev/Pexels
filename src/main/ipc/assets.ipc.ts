@@ -5,6 +5,7 @@ import { isAbsolute, join, normalize, relative } from 'path'
 import { VisualBeat } from '../services/agent/agent-runner'
 import { buildManifestAttribution } from '../services/pexels/pexels-attribution'
 import { PexelsClient } from '../services/pexels/pexels-client'
+import { ManifestWriter } from '../services/files/manifest-writer'
 import { z } from 'zod'
 
 const JobIdSchema = z.string().regex(/^job_\d+$/)
@@ -66,9 +67,9 @@ export function registerAssetsHandlers(): void {
         }
       }
 
-      // Persist corrections so manifest stays in sync (fire-and-forget)
+      // Persist corrections so manifest stays in sync (queued + atomic)
       if (manifestDirty) {
-        fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8').catch((err) =>
+        ManifestWriter.writeJsonFile(summary.downloadPath, 'manifest.json', manifest).catch((err) =>
           console.error('Failed to update manifest after file-existence check:', err)
         )
       }
@@ -129,7 +130,12 @@ export function registerAssetsHandlers(): void {
                 try {
                   await fs.unlink(asset.filePath)
                 } catch (unlinkErr) {
-                  console.warn('File already deleted or unreachable:', unlinkErr)
+                  const code = (unlinkErr as NodeJS.ErrnoException).code
+                  // Only treat missing files as already-deleted. Permission or
+                  // lock errors must abort so the manifest keeps the real path.
+                  if (code !== 'ENOENT') {
+                    throw unlinkErr
+                  }
                 }
               }
               asset.status = 'failed'
@@ -141,8 +147,8 @@ export function registerAssetsHandlers(): void {
         }
 
         if (manifestModified) {
-          // Save manifest changes
-          await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8')
+          // Save manifest changes through the shared write queue
+          await ManifestWriter.writeJsonFile(summary.downloadPath, 'manifest.json', manifest)
 
           // Recalculate downloaded asset count in project registry
           const activeCount =
@@ -194,10 +200,9 @@ export function registerAssetsHandlers(): void {
     const summary = await ProjectStore.get(jobId)
     if (!summary || !summary.downloadPath) return
 
-    try {
-      await shell.openPath(summary.downloadPath)
-    } catch (err) {
-      console.error('Failed to open project folder:', err)
+    const openError = await shell.openPath(summary.downloadPath)
+    if (openError) {
+      throw new Error(`Failed to open project folder: ${openError}`)
     }
   })
 }
