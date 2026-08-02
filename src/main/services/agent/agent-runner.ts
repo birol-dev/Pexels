@@ -112,7 +112,10 @@ export class AgentRunner extends EventEmitter {
   private downloader!: PexelsDownloader
   private abortController: AbortController | null = null
   private activePromise: Promise<void> | null = null
+  private runGeneration = 0
   private projectDir = ''
+  private createdAt = new Date().toISOString()
+  private hitIterationLimit = false
   private modelId = 'gpt-4o'
   private providerId: 'openai' | 'gemini' | 'openrouter' = 'openai'
   private maxIterations = 30
@@ -154,6 +157,7 @@ export class AgentRunner extends EventEmitter {
   private async runBackground(fn: () => Promise<void>): Promise<void> {
     AgentRunner.activeRunners.set(this.jobId, this)
     this.abortController = new AbortController()
+    const generation = ++this.runGeneration
 
     try {
       await fn()
@@ -165,8 +169,16 @@ export class AgentRunner extends EventEmitter {
         this.updateProgress('Error', 100)
       }
     } finally {
-      this.activePromise = null
-      AgentRunner.activeRunners.delete(this.jobId)
+      // Only the active generation may clear promise/registry ownership —
+      // a rapid resume can start a newer run before this finally executes.
+      if (generation === this.runGeneration) {
+        this.activePromise = null
+        // Keep paused runners registered so resume uses the same instance
+        // (and does not re-queue in-flight downloads from a reconstructed runner).
+        if (this.status !== 'paused') {
+          AgentRunner.activeRunners.delete(this.jobId)
+        }
+      }
       await this.saveRegistry()
       await this.writeManifest()
       this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
@@ -301,6 +313,9 @@ export class AgentRunner extends EventEmitter {
       const manifestPath = join(this.projectDir, 'manifest.json')
       const data = await fs.readFile(manifestPath, 'utf-8')
       const manifest = JSON.parse(data)
+      if (typeof manifest.createdAt === 'string' && manifest.createdAt) {
+        this.createdAt = manifest.createdAt
+      }
       if (manifest.pexelsCandidates) {
         this.pexelsCandidates = new Map(manifest.pexelsCandidates)
       }
@@ -375,7 +390,41 @@ export class AgentRunner extends EventEmitter {
     return await ManifestWriter.initializeProjectFolder(downloadRoot, this.input.title, this.jobId)
   }
 
+  private finalizeSuccessfulRun(): void {
+    if (this.hitIterationLimit) {
+      this.status = 'failed'
+      this.log(
+        'error',
+        `Agent stopped after reaching the maximum iteration limit (${this.maxIterations}).`
+      )
+      this.updateProgress('Failed — iteration limit', 100)
+      return
+    }
+
+    const unfinishedAssets = this.beats
+      .flatMap((b) => b.assets || [])
+      .filter((a) => a.status === 'pending' || a.status === 'downloading')
+    if (unfinishedAssets.length > 0) {
+      this.status = 'failed'
+      this.log(
+        'error',
+        `Agent finished with ${unfinishedAssets.length} unfinished download(s); marking job failed.`
+      )
+      this.updateProgress('Failed — unfinished downloads', 100)
+      return
+    }
+
+    this.status = 'completed'
+    this.log('info', 'Agent execution completed successfully!')
+    this.updateProgress('Finished', 100)
+  }
+
   public async start(): Promise<void> {
+    if (this.activePromise) {
+      await this.activePromise
+      return
+    }
+
     const task = async (): Promise<void> => {
       this.log('info', `Starting project: ${this.input.title}`)
       this.updateProgress('Resolving credentials and settings', 5)
@@ -424,9 +473,7 @@ export class AgentRunner extends EventEmitter {
       }
 
       if (this.status === 'running') {
-        this.status = 'completed'
-        this.log('info', 'Agent execution completed successfully!')
-        this.updateProgress('Finished', 100)
+        this.finalizeSuccessfulRun()
       }
     }
 
@@ -450,6 +497,14 @@ export class AgentRunner extends EventEmitter {
 
   public async resume(): Promise<void> {
     if (this.status !== 'paused') return
+    // Wait for the aborted run's finally to finish before starting another.
+    if (this.activePromise) {
+      try {
+        await this.activePromise
+      } catch {
+        // Ignore abort-driven rejections while shutting down the prior run.
+      }
+    }
     this.status = 'running'
     this.log('info', 'Agent run resumed by user')
     this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
@@ -473,13 +528,16 @@ export class AgentRunner extends EventEmitter {
   private async saveRegistry(): Promise<void> {
     const existingSummary = await ProjectStore.get(this.jobId)
     const now = new Date().toISOString()
+    if (existingSummary?.createdAt) {
+      this.createdAt = existingSummary.createdAt
+    }
     const summary: JobSummary = {
       jobId: this.jobId,
       projectName: ManifestWriter.cleanFolderName(this.input.title),
       title: this.input.title,
       script: this.input.script,
       status: this.status,
-      createdAt: existingSummary?.createdAt || now,
+      createdAt: existingSummary?.createdAt || this.createdAt,
       updatedAt: now,
       downloadPath: this.projectDir,
       assetCount: this.downloadedCount
@@ -498,11 +556,18 @@ export class AgentRunner extends EventEmitter {
       return 'videos_and_photos'
     }
 
+    const completedAssets = this.beats
+      .flatMap((b) => b.assets || [])
+      .filter((a) => a.status === 'completed')
+    const failedAssets = this.beats
+      .flatMap((b) => b.assets || [])
+      .filter((a) => a.status === 'failed')
+
     const manifest: ManifestData = {
       schemaVersion: 1,
       projectId: this.jobId,
       title: this.input.title,
-      createdAt: new Date().toISOString(), // In real app, track original start time
+      createdAt: this.createdAt,
       finishedAt: this.status === 'completed' ? new Date().toISOString() : undefined,
       script: this.input.script,
       settingsSnapshot: {
@@ -515,12 +580,9 @@ export class AgentRunner extends EventEmitter {
         maxTotalDownloads: this.input.maxTotalDownloads
       },
       beats: this.beats,
-      assets: this.downloader
-        ? this.downloader.getTasks().filter((t) => t.status === 'completed')
-        : [],
-      failures: this.downloader
-        ? this.downloader.getTasks().filter((t) => t.status === 'failed')
-        : [],
+      // Prefer beat-level records so counts survive resume with a fresh downloader.
+      assets: completedAssets,
+      failures: failedAssets,
       messages: this.messages,
       pexelsCandidates: Array.from(this.pexelsCandidates.entries()),
       sourceDocsCheckedAt: new Date().toISOString(),
@@ -869,6 +931,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     }
 
     if (iteration >= this.maxIterations) {
+      this.hitIterationLimit = true
       this.log('error', `Agent reached maximum iterations limit (${this.maxIterations})`)
     }
   }
@@ -1327,6 +1390,14 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
   public async approveAndResume(decision: ApprovalDecision = {}): Promise<void> {
     if (this.status !== 'paused') return
 
+    if (this.activePromise) {
+      try {
+        await this.activePromise
+      } catch {
+        // Ignore abort-driven rejections while shutting down the prior run.
+      }
+    }
+
     // Find all pending assets in beats
     const pendingAssets: { asset: AssetRecord; beat: VisualBeat }[] = []
     for (const beat of this.beats) {
@@ -1416,9 +1487,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       }
 
       if (this.status === 'running') {
-        this.status = 'completed'
-        this.log('info', 'Agent execution completed successfully!')
-        this.updateProgress('Finished', 100)
+        this.finalizeSuccessfulRun()
       }
     }
 

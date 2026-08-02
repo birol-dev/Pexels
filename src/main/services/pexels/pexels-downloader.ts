@@ -207,6 +207,11 @@ export class PexelsDownloader {
     this.activeControllers.set(task.id, controller)
     let timeoutId = setTimeout(() => controller.abort(), this.requestTimeoutSeconds * 1000)
 
+    const cleanupController = (): void => {
+      clearTimeout(timeoutId)
+      this.activeControllers.delete(task.id)
+    }
+
     const resetTimeout = (): void => {
       clearTimeout(timeoutId)
       timeoutId = setTimeout(() => controller.abort(), this.requestTimeoutSeconds * 1000)
@@ -215,89 +220,80 @@ export class PexelsDownloader {
     let response: Response
     try {
       response = await fetch(task.url, { signal: controller.signal })
-    } catch (err) {
-      clearTimeout(timeoutId)
-      this.activeControllers.delete(task.id)
-      throw classifyFetchError(err)
-    }
 
-    if (!response.ok) {
-      clearTimeout(timeoutId)
-      this.activeControllers.delete(task.id)
-      throw new ApiError(
-        `HTTP Error: ${response.status} ${response.statusText}`,
-        response.status === 429 || response.status >= 500 ? 'transient' : 'permanent',
-        response.status
-      )
-    }
-    if (!response.body) {
-      clearTimeout(timeoutId)
-      this.activeControllers.delete(task.id)
-      throw new Error('Response body is empty')
-    }
+      if (!response.ok) {
+        throw new ApiError(
+          `HTTP Error: ${response.status} ${response.statusText}`,
+          response.status === 429 || response.status >= 500 ? 'transient' : 'permanent',
+          response.status
+        )
+      }
+      if (!response.body) {
+        throw new Error('Response body is empty')
+      }
 
-    const contentType = (response.headers.get('content-type') || '').toLowerCase()
-    let ext = task.type === 'photo' ? '.jpeg' : '.mp4'
-    if (task.type === 'photo') {
-      if (contentType.includes('png')) ext = '.png'
-      else if (contentType.includes('webp')) ext = '.webp'
-    } else {
-      if (contentType.includes('quicktime')) ext = '.mov'
-      else if (contentType.includes('webm')) ext = '.webm'
-    }
+      const contentType = (response.headers.get('content-type') || '').toLowerCase()
+      let ext = task.type === 'photo' ? '.jpeg' : '.mp4'
+      if (task.type === 'photo') {
+        if (contentType.includes('png')) ext = '.png'
+        else if (contentType.includes('webp')) ext = '.webp'
+      } else {
+        if (contentType.includes('quicktime')) ext = '.mov'
+        else if (contentType.includes('webm')) ext = '.webm'
+      }
 
-    // Ensure target folder exists
-    const subfolder = task.type === 'photo' ? 'photos' : 'videos'
-    const targetFolder = join(task.downloadDir, subfolder)
-    await fsPromises.mkdir(targetFolder, { recursive: true })
+      // Ensure target folder exists
+      const subfolder = task.type === 'photo' ? 'photos' : 'videos'
+      const targetFolder = join(task.downloadDir, subfolder)
+      await fsPromises.mkdir(targetFolder, { recursive: true })
 
-    const fileName = `${task.type}_${task.assetId}_${task.width}x${task.height}_${slugifiedQuery}${ext}`
-    const finalPath = join(targetFolder, fileName)
+      const fileName = `${task.type}_${task.assetId}_${task.width}x${task.height}_${slugifiedQuery}${ext}`
+      const finalPath = join(targetFolder, fileName)
 
-    // Stream download
-    const tempPath = finalPath + '.tmp'
-    const fileStream = fs.createWriteStream(tempPath)
+      // Stream download
+      const tempPath = finalPath + '.tmp'
+      const fileStream = fs.createWriteStream(tempPath)
 
-    const contentLength = Number(response.headers.get('content-length') || 0)
-    let downloadedBytes = 0
+      const contentLength = Number(response.headers.get('content-length') || 0)
+      let downloadedBytes = 0
 
-    // PassThrough stream taps into the data flow to update progress and reset the request timeout
-    const progressStream = new PassThrough()
-    progressStream.on('data', (chunk: Buffer) => {
-      resetTimeout()
-      downloadedBytes += chunk.length
-      if (contentLength > 0) {
-        const newProgress = Math.round((downloadedBytes / contentLength) * 100)
-        if (newProgress !== task.progress) {
-          task.progress = newProgress
-          if (this.onTaskUpdate) this.onTaskUpdate(task)
+      // PassThrough stream taps into the data flow to update progress and reset the request timeout
+      const progressStream = new PassThrough()
+      progressStream.on('data', (chunk: Buffer) => {
+        resetTimeout()
+        downloadedBytes += chunk.length
+        if (contentLength > 0) {
+          const newProgress = Math.round((downloadedBytes / contentLength) * 100)
+          if (newProgress !== task.progress) {
+            task.progress = newProgress
+            if (this.onTaskUpdate) this.onTaskUpdate(task)
+          }
         }
-      }
-    })
+      })
 
-    try {
-      const nodeReadable = Readable.fromWeb(
-        response.body as unknown as Parameters<typeof Readable.fromWeb>[0]
-      )
-      await pipeline(nodeReadable, progressStream, fileStream, { signal: controller.signal })
-
-      clearTimeout(timeoutId)
-
-      // Rename temp file to final destination path
-      await fsPromises.rename(tempPath, finalPath)
-      this.activeControllers.delete(task.id)
-      return finalPath
-    } catch (error) {
-      clearTimeout(timeoutId)
-      this.activeControllers.delete(task.id)
-      fileStream.destroy()
-      progressStream.destroy()
       try {
-        await fsPromises.unlink(tempPath)
-      } catch {
-        // Ignore unlink errors
+        const nodeReadable = Readable.fromWeb(
+          response.body as unknown as Parameters<typeof Readable.fromWeb>[0]
+        )
+        await pipeline(nodeReadable, progressStream, fileStream, { signal: controller.signal })
+
+        // Rename temp file to final destination path
+        await fsPromises.rename(tempPath, finalPath)
+        return finalPath
+      } catch (error) {
+        fileStream.destroy()
+        progressStream.destroy()
+        try {
+          await fsPromises.unlink(tempPath)
+        } catch {
+          // Ignore unlink errors
+        }
+        throw error
       }
-      throw error
+    } catch (err) {
+      throw err instanceof ApiError ? err : classifyFetchError(err)
+    } finally {
+      cleanupController()
     }
   }
 }
