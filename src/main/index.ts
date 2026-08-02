@@ -80,6 +80,41 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
+  // Block in-window navigation away from the app origin. Without this, a
+  // compromised or navigated page would retain the preload bridge (window.api).
+  const allowedOrigins = new Set<string>()
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    try {
+      allowedOrigins.add(new URL(process.env['ELECTRON_RENDERER_URL']).origin)
+    } catch {
+      // Fall through — production file:// path still applies below.
+    }
+  }
+
+  const isAllowedNavigation = (url: string): boolean => {
+    try {
+      const target = new URL(url)
+      if (target.protocol === 'file:') {
+        return true
+      }
+      return allowedOrigins.has(target.origin)
+    } catch {
+      return false
+    }
+  }
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!isAllowedNavigation(url)) {
+      event.preventDefault()
+    }
+  })
+
+  mainWindow.webContents.on('will-redirect', (event, url) => {
+    if (!isAllowedNavigation(url)) {
+      event.preventDefault()
+    }
+  })
+
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {

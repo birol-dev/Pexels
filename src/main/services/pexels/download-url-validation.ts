@@ -1,6 +1,15 @@
 /**
- * Validates that a download URL is safe to fetch (HTTPS/HTTP only, no private-network targets).
+ * Validates that a download URL is safe to fetch (HTTPS only, Pexels CDN hosts).
+ * Hostname allowlisting closes the DNS-rebinding / private-IP SSRF gap left by
+ * textual private-range checks alone.
  */
+const ALLOWED_DOWNLOAD_HOST_SUFFIXES = ['.pexels.com']
+const ALLOWED_DOWNLOAD_HOSTS = new Set([
+  'images.pexels.com',
+  'videos.pexels.com',
+  'player.vimeo.com'
+])
+
 export function validateDownloadUrl(urlStr: string): void {
   let url: URL
   try {
@@ -9,11 +18,21 @@ export function validateDownloadUrl(urlStr: string): void {
     throw new Error(`Invalid URL format: ${urlStr}`)
   }
 
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    throw new Error(`Unauthorized protocol: ${url.protocol}`)
+  if (url.protocol !== 'https:') {
+    throw new Error(`Unauthorized protocol: ${url.protocol} (HTTPS required)`)
   }
 
   const hostname = url.hostname.toLowerCase()
+
+  const isAllowedHost =
+    ALLOWED_DOWNLOAD_HOSTS.has(hostname) ||
+    ALLOWED_DOWNLOAD_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix))
+
+  if (!isAllowedHost) {
+    throw new Error(
+      `Security Check Failed: Download host is not an allowed Pexels CDN: ${hostname}`
+    )
+  }
 
   if (hostname === 'localhost' || hostname.endsWith('.local') || hostname.endsWith('.internal')) {
     throw new Error(`Security Check Failed: Download URL cannot reference private network hosts.`)
@@ -22,32 +41,10 @@ export function validateDownloadUrl(urlStr: string): void {
   const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/
   const match = hostname.match(ipv4Regex)
   if (match) {
-    const parts = match.slice(1).map(Number)
-    if (parts.some((p) => p < 0 || p > 255)) {
-      throw new Error(`Invalid IP address format.`)
-    }
-
-    const [p1, p2] = parts
-    if (
-      p1 === 127 ||
-      p1 === 10 ||
-      (p1 === 172 && p2 >= 16 && p2 <= 31) ||
-      (p1 === 192 && p2 === 168) ||
-      (p1 === 169 && p2 === 254) ||
-      p1 === 0
-    ) {
-      throw new Error(`Security Check Failed: Download URL cannot reference private network hosts.`)
-    }
+    throw new Error(`Security Check Failed: Direct IP download URLs are not allowed.`)
   }
 
-  if (
-    hostname === '[::1]' ||
-    hostname === '[::]' ||
-    hostname.startsWith('[fe80:') ||
-    hostname.startsWith('[fc00:') ||
-    hostname.startsWith('[fd00:') ||
-    hostname.startsWith('[ff00:')
-  ) {
-    throw new Error(`Security Check Failed: Download URL cannot reference private network hosts.`)
+  if (hostname.startsWith('[')) {
+    throw new Error(`Security Check Failed: Direct IP download URLs are not allowed.`)
   }
 }
