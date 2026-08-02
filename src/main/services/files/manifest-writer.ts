@@ -34,6 +34,8 @@ export interface ManifestData {
 }
 
 export class ManifestWriter {
+  private static writeQueues = new Map<string, Promise<void>>()
+
   public static cleanFolderName(title: string): string {
     let cleaned =
       title
@@ -68,8 +70,27 @@ export class ManifestWriter {
   }
 
   public static async writeManifest(projectDir: string, manifest: ManifestData): Promise<void> {
-    const manifestPath = join(projectDir, 'manifest.json')
-    await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8')
+    await this.writeJsonFile(projectDir, 'manifest.json', manifest)
+  }
+
+  public static async writeJsonFile(
+    projectDir: string,
+    fileName: string,
+    data: unknown
+  ): Promise<void> {
+    const filePath = join(projectDir, fileName)
+    const previous = this.writeQueues.get(projectDir) || Promise.resolve()
+    const next = previous
+      .catch(() => {
+        // Keep the queue alive after a prior failure.
+      })
+      .then(async () => {
+        const tempPath = `${filePath}.tmp`
+        await fs.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf-8')
+        await fs.rename(tempPath, filePath)
+      })
+    this.writeQueues.set(projectDir, next)
+    await next
   }
 
   public static async appendLog(projectDir: string, event: Record<string, unknown>): Promise<void> {
