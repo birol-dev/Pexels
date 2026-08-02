@@ -78,9 +78,13 @@ export default function DownloadedStuffView(): React.JSX.Element {
 
   const loadAssets = useCallback(async (): Promise<void> => {
     if (!activeJobId) return
+    const requestedJobId = activeJobId
     setLoading(true)
     try {
-      const list = (await api.assets.list(activeJobId)) as unknown as FlatAsset[]
+      const list = (await api.assets.list(requestedJobId)) as unknown as FlatAsset[]
+      if (useAppStore.getState().activeJobId !== requestedJobId) {
+        return
+      }
       setAssets(list)
       if (selectedAssetRef.current) {
         const updated = list.find((a: FlatAsset) => a.id === selectedAssetRef.current!.id)
@@ -89,7 +93,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
     } catch (err) {
       console.error('Failed to load assets:', err)
     } finally {
-      setLoading(false)
+      if (useAppStore.getState().activeJobId === requestedJobId) {
+        setLoading(false)
+      }
     }
   }, [activeJobId])
 
@@ -136,6 +142,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
 
   useEffect(() => {
     Promise.resolve().then(() => {
+      setSelectedAsset(null)
+      selectedAssetRef.current = null
+      setAssets([])
       loadAssets()
     })
   }, [activeJobId, activeJob?.downloadedCount, activeJob?.failedCount, loadAssets])
@@ -149,13 +158,13 @@ export default function DownloadedStuffView(): React.JSX.Element {
   }, [activeJobId, loadGroupedAssets])
 
   const handleOpenFolder = async (assetId: string): Promise<void> => {
-    const targetJobId = activeJobId || selectedAsset?.jobId
+    const targetJobId = selectedAsset?.jobId || activeJobId
     if (!targetJobId) return
     await api.assets.openInFolder(targetJobId, assetId)
   }
 
   const handleDelete = async (assetId: string): Promise<void> => {
-    const targetJobId = activeJobId || selectedAsset?.jobId
+    const targetJobId = selectedAsset?.jobId || activeJobId
     if (!targetJobId) return
     const isConfirmed = await confirm(
       'Delete Asset',

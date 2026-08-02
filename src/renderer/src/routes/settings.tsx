@@ -7,8 +7,8 @@ const GITHUB_REPO_URL = 'https://github.com/birol-dev/Pexels'
 export default function SettingsView(): React.JSX.Element {
   const { settings, loadSettings, updateSettings, confirm } = useAppStore()
 
-  // Buffers settings in local state
   const [localSettings, setLocalSettings] = useState<PublicSettings | null>(null)
+  const [localSettingsInitialized, setLocalSettingsInitialized] = useState(false)
 
   // API keys state
   const [openaiKey, setOpenaiKey] = useState('')
@@ -36,12 +36,30 @@ export default function SettingsView(): React.JSX.Element {
   }, [loadSettings])
 
   useEffect(() => {
-    if (settings) {
+    if (settings && !localSettingsInitialized) {
       Promise.resolve().then(() => {
         setLocalSettings({ ...settings })
+        setLocalSettingsInitialized(true)
+      })
+    } else if (settings && localSettingsInitialized) {
+      // Theme (and other immediate saves) update global settings — merge only
+      // those fields so unsaved local form edits are not discarded.
+      Promise.resolve().then(() => {
+        setLocalSettings((prev) => {
+          if (!prev) return { ...settings }
+          return {
+            ...prev,
+            theme: settings.theme,
+            isOnboarded: settings.isOnboarded,
+            openaiKey: settings.openaiKey,
+            geminiKey: settings.geminiKey,
+            openrouterKey: settings.openrouterKey,
+            pexelsKey: settings.pexelsKey
+          }
+        })
       })
     }
-  }, [settings])
+  }, [settings, localSettingsInitialized])
 
   if (!localSettings) {
     return (

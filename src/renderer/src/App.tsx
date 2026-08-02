@@ -30,6 +30,7 @@ export default function App(): React.JSX.Element {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [editingTabId, setEditingTabId] = useState<string | null>(null)
   const [editingTitleValue, setEditingTitleValue] = useState('')
+  const [settingsError, setSettingsError] = useState<string | null>(null)
 
   const handleSaveTitle = (tabId: string, newTitle: string): void => {
     const trimmed = newTitle.trim()
@@ -40,8 +41,13 @@ export default function App(): React.JSX.Element {
   }
 
   useEffect(() => {
-    loadSettings()
-    loadJobs()
+    loadSettings().catch((err) => {
+      console.error('Failed to load settings:', err)
+      setSettingsError(err instanceof Error ? err.message : String(err))
+    })
+    loadJobs().catch((err) => {
+      console.error('Failed to load jobs:', err)
+    })
   }, [loadSettings, loadJobs])
 
   useEffect(() => {
@@ -51,6 +57,30 @@ export default function App(): React.JSX.Element {
       document.documentElement.classList.remove('dark')
     }
   }, [settings?.theme])
+
+  if (settingsError && !settings) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-black">
+        <div className="flex flex-col items-center gap-3 max-w-md px-6 text-center">
+          <span className="material-symbols-outlined text-[48px] text-error">error</span>
+          <span className="text-sm font-medium text-outline">Failed to load settings</span>
+          <span className="text-xs text-outline/80">{settingsError}</span>
+          <button
+            type="button"
+            className="tactile-button px-4 py-2 rounded-lg text-xs font-semibold cursor-pointer"
+            onClick={() => {
+              setSettingsError(null)
+              loadSettings().catch((err) => {
+                setSettingsError(err instanceof Error ? err.message : String(err))
+              })
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (!settings) {
     return (

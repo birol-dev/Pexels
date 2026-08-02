@@ -13,10 +13,17 @@ export default function AgentRunView(): React.JSX.Element {
     cancelJob,
     rerunJob,
     navigate,
-    loadSettings
+    loadSettings,
+    loading
   } = useAppStore()
   const logEndRef = useRef<HTMLDivElement>(null)
   const [approvalSelection, setApprovalSelection] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      setApprovalSelection({})
+    })
+  }, [activeJobId])
 
   useEffect(() => {
     loadSettings()
@@ -213,7 +220,8 @@ export default function AgentRunView(): React.JSX.Element {
             activeJob.status === 'cancelled') && (
             <button
               onClick={() => rerunJob(activeJob.jobId)}
-              className="bg-cyber-lime text-on-lime font-label-sm text-label-sm py-3 px-6 brutal-border brutal-shadow brutal-shadow-hover transition-all flex items-center gap-2 cursor-pointer"
+              disabled={loading}
+              className="bg-cyber-lime text-on-lime font-label-sm text-label-sm py-3 px-6 brutal-border brutal-shadow brutal-shadow-hover transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <span
                 className="material-symbols-outlined"
