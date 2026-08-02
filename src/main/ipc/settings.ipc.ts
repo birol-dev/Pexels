@@ -116,7 +116,8 @@ export function registerSettingsHandlers(): void {
         activeKey = await SecureSecrets.getSecret('pexelsKey')
       }
       const response = await fetch('https://api.pexels.com/v1/search?query=test&per_page=1', {
-        headers: { Authorization: activeKey }
+        headers: { Authorization: activeKey },
+        signal: AbortSignal.timeout(15_000)
       })
       if (response.ok) {
         return { success: true, message: 'Pexels API key is valid!' }
@@ -136,6 +137,9 @@ export function registerSettingsHandlers(): void {
 
   ipcMain.handle('settings:openAppDataFolder', async () => {
     const appDataPath = app.getPath('userData')
-    await shell.openPath(appDataPath)
+    const openError = await shell.openPath(appDataPath)
+    if (openError) {
+      throw new Error(`Failed to open app data folder: ${openError}`)
+    }
   })
 }

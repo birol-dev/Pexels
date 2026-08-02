@@ -61,7 +61,9 @@ export function buildManifestAttribution(
     usageNote:
       'Per Pexels API guidelines, credit photographers when possible and link back to Pexels.',
     assets: Array.from(uniqueAssets.values()).map((asset) => {
-      const pexelsUrl = asset.url || buildPexelsAssetUrl(asset.type, asset.pexelsId)
+      // Always use the public Pexels page URL — asset.url is often a CDN
+      // download variant and does not satisfy attribution linking guidelines.
+      const pexelsUrl = buildPexelsAssetUrl(asset.type, asset.pexelsId)
       return {
         assetId: asset.id,
         type: asset.type,
