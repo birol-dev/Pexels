@@ -221,6 +221,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const { tabs, jobs } = get()
     let tabId = type as string
     let title = ''
+    // Settings/input tabs are global — never retain a job association that
+    // would reactivate a project when the tab is reselected later.
+    const associatedJobId = type === 'run' || type === 'stuff' ? jobId : undefined
 
     if (type === 'input') {
       if (createNew) {
@@ -271,7 +274,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
 
     const tabExists = tabs.some((t) => t.id === tabId)
-    const newTabs = tabExists ? tabs : [...tabs, { id: tabId, type, title, jobId }]
+    const newTabs = tabExists ? tabs : [...tabs, { id: tabId, type, title, jobId: associatedJobId }]
 
     set({
       tabs: newTabs,
@@ -279,7 +282,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       currentRoute: type
     })
 
-    get().setActiveJobId(jobId || null)
+    get().setActiveJobId(associatedJobId || null)
   },
 
   closeTab: (tabId) => {
@@ -372,7 +375,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   setActiveJobId: (id) => {
-    set({ activeJobId: id, pendingEvents: [] })
+    // Clear the previous snapshot immediately so events/UI cannot mix jobs
+    // while the replacement request is in flight.
+    set({ activeJobId: id, activeJob: null, pendingEvents: [] })
     if (id) {
       get().loadActiveJob(id)
 
@@ -382,7 +387,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       }
 
       eventUnsubscribe = api.jobs.onEvent((event: Record<string, unknown>) => {
-        if (event.jobId === id) {
+        if (event.jobId === id && get().activeJobId === id) {
           const currentActive = get().activeJob
 
           if (event.type === 'snapshot') {
@@ -466,6 +471,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({ loading: true })
     try {
       const activeJob = await api.jobs.get(id)
+      // Ignore stale responses after the user switched jobs.
+      if (get().activeJobId !== id) {
+        return
+      }
       const snapshot = activeJob as unknown as JobSnapshot | null
       if (snapshot) {
         const state = get()
@@ -500,7 +509,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
     } catch (err) {
       console.error('Failed to load active job:', err)
     } finally {
-      set({ loading: false })
+      if (get().activeJobId === id) {
+        set({ loading: false })
+      }
     }
   },
 
@@ -589,20 +600,23 @@ export const useAppStore = create<AppStore>((set, get) => ({
         set({
           tabs: [defaultTab],
           activeTabId: 'input',
-          currentRoute: 'input',
-          activeJobId: null
+          currentRoute: 'input'
         })
+        get().setActiveJobId(null)
       } else if (activeTabWasDeleted) {
         const defaultTab: TabItem = { id: 'input', type: 'input', title: 'Create Pack' }
         const nextActive = remainingTabs.length > 0 ? remainingTabs[0] : defaultTab
         set({
           tabs: remainingTabs,
           activeTabId: nextActive.id,
-          currentRoute: nextActive.type,
-          activeJobId: nextActive.jobId || null
+          currentRoute: nextActive.type
         })
+        get().setActiveJobId(nextActive.jobId || null)
       } else {
         set({ tabs: remainingTabs })
+        if (get().activeJobId === id) {
+          get().setActiveJobId(null)
+        }
       }
 
       await get().loadJobs()

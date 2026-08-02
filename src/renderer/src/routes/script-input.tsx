@@ -16,7 +16,8 @@ export default function ScriptInputView(): React.JSX.Element {
     confirm,
     activeTabId,
     inputTabStates,
-    updateInputTabState
+    updateInputTabState,
+    loading
   } = useAppStore()
 
   // Form State retrieved from Zustand store for the active tab
@@ -373,9 +374,9 @@ export default function ScriptInputView(): React.JSX.Element {
                   className="w-full bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-lg px-4 py-3 font-body-md text-body-md text-ink-black dark:text-paper-white appearance-none focus:outline-none focus:ring-0 neo-brutalist-input transition-all duration-200 cursor-pointer"
                 >
                   <option value="cinematic">Cinematic</option>
-                  <option value="documentary">Corporate Clean</option>
-                  <option value="business">Vlog / Handheld</option>
-                  <option value="tech">Vintage Film</option>
+                  <option value="documentary">Documentary</option>
+                  <option value="business">Business / Corporate</option>
+                  <option value="tech">Tech</option>
                   <option value="custom">Custom Style...</option>
                 </select>
                 <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline dark:text-steel-secondary pointer-events-none">
@@ -493,10 +494,11 @@ export default function ScriptInputView(): React.JSX.Element {
           <div className="mt-section-gap flex justify-end pt-8 border-t-2 border-ink-black border-dashed">
             <button
               type="submit"
-              className="bg-cyber-lime text-surface-container-lowest border-2 border-primary-container px-8 py-4 rounded-lg font-label-sm text-label-sm tracking-wider uppercase flex items-center gap-3 shadow-[4px_4px_0px_#CCFF00] hover:bg-primary-fixed-dim transition-all duration-200 active:shadow-none active:translate-x-[4px] active:translate-y-[4px] cursor-pointer"
+              disabled={loading}
+              className="bg-cyber-lime text-surface-container-lowest border-2 border-primary-container px-8 py-4 rounded-lg font-label-sm text-label-sm tracking-wider uppercase flex items-center gap-3 shadow-[4px_4px_0px_#CCFF00] hover:bg-primary-fixed-dim transition-all duration-200 active:shadow-none active:translate-x-[4px] active:translate-y-[4px] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:active:shadow-[4px_4px_0px_#CCFF00] disabled:active:translate-x-0 disabled:active:translate-y-0"
             >
               <span className="material-symbols-outlined">auto_awesome</span>
-              Analyze & Fetch Visual Assets
+              {loading ? 'Starting…' : 'Analyze & Fetch Visual Assets'}
             </button>
           </div>
         </form>
@@ -573,7 +575,8 @@ export default function ScriptInputView(): React.JSX.Element {
                         </button>
                         <button
                           onClick={() => rerunJob(job.jobId)}
-                          className="bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black text-ink-black dark:text-paper-white p-2 rounded hover:bg-surface-variant shadow-[1px_1px_0px_rgba(0,0,0,0.5)] active:translate-y-0.5 active:translate-x-0.5"
+                          disabled={loading}
+                          className="bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black text-ink-black dark:text-paper-white p-2 rounded hover:bg-surface-variant shadow-[1px_1px_0px_rgba(0,0,0,0.5)] active:translate-y-0.5 active:translate-x-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
                           title="Rerun Project"
                         >
                           <span className="material-symbols-outlined text-[18px]">replay</span>
