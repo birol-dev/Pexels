@@ -13,6 +13,8 @@ function getSecretsFile(): string {
 }
 
 export class SecureSecrets {
+  private static writeQueue: Promise<void> = Promise.resolve()
+
   private static async readSecretsFile(): Promise<Record<string, string>> {
     const filePath = getSecretsFile()
     try {
@@ -74,28 +76,35 @@ export class SecureSecrets {
   }
 
   public static async setSecret(key: string, value: string): Promise<void> {
-    const secrets = await this.readSecretsFile()
-    if (!value) {
-      delete secrets[key]
-      await this.writeSecretsFile(secrets)
-      return
-    }
+    this.writeQueue = this.writeQueue
+      .catch(() => {
+        // Keep the queue alive after a prior failure.
+      })
+      .then(async () => {
+        const secrets = await this.readSecretsFile()
+        if (!value) {
+          delete secrets[key]
+          await this.writeSecretsFile(secrets)
+          return
+        }
 
-    if (!safeStorage.isEncryptionAvailable()) {
-      throw new Error(
-        'Secure storage is unavailable on this system. Storing keys in plaintext is disabled for security.'
-      )
-    }
+        if (!safeStorage.isEncryptionAvailable()) {
+          throw new Error(
+            'Secure storage is unavailable on this system. Storing keys in plaintext is disabled for security.'
+          )
+        }
 
-    try {
-      const encryptedBuffer = safeStorage.encryptString(value)
-      secrets[key] = `${ENCRYPTED_PREFIX}${encryptedBuffer.toString('hex')}`
-    } catch (error) {
-      throw new Error(
-        `Failed to encrypt key securely using safeStorage: ${error instanceof Error ? error.message : String(error)}`
-      )
-    }
+        try {
+          const encryptedBuffer = safeStorage.encryptString(value)
+          secrets[key] = `${ENCRYPTED_PREFIX}${encryptedBuffer.toString('hex')}`
+        } catch (error) {
+          throw new Error(
+            `Failed to encrypt key securely using safeStorage: ${error instanceof Error ? error.message : String(error)}`
+          )
+        }
 
-    await this.writeSecretsFile(secrets)
+        await this.writeSecretsFile(secrets)
+      })
+    await this.writeQueue
   }
 }
