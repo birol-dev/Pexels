@@ -4,6 +4,7 @@ import { join } from 'path'
 import { Readable, PassThrough } from 'stream'
 import { pipeline } from 'stream/promises'
 import { validateDownloadUrl } from './download-url-validation'
+import { findInFlightDownload, isRetryableDownloadStatus } from './download-task-utils'
 import { ApiError, classifyFetchError } from '../http/api-errors'
 
 export interface DownloadTask {
@@ -86,6 +87,11 @@ export class PexelsDownloader {
     query: string,
     downloadDir: string
   ): string {
+    const existing = findInFlightDownload(this.queue, assetId, type)
+    if (existing) {
+      return existing.id
+    }
+
     const id = `${type}_${assetId}_${Date.now()}`
     const task: DownloadTask = {
       id,
@@ -224,7 +230,7 @@ export class PexelsDownloader {
       if (!response.ok) {
         throw new ApiError(
           `HTTP Error: ${response.status} ${response.statusText}`,
-          response.status === 429 || response.status >= 500 ? 'transient' : 'permanent',
+          isRetryableDownloadStatus(response.status) ? 'transient' : 'permanent',
           response.status
         )
       }
