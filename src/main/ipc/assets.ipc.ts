@@ -150,6 +150,7 @@ export function registerAssetsHandlers(): void {
         }
       } catch (err) {
         console.error('Failed to delete asset locally:', err)
+        throw err
       }
     }
   )

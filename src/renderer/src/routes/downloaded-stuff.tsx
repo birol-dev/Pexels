@@ -58,7 +58,8 @@ export default function DownloadedStuffView(): React.JSX.Element {
   const [assets, setAssets] = useState<FlatAsset[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [filter, setFilter] = useState<'all' | 'video' | 'photo' | 'completed' | 'failed'>('all')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'video' | 'photo'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'failed'>('all')
   const [selectedAsset, setSelectedAsset] = useState<FlatAsset | null>(null)
   const selectedAssetRef = useRef<FlatAsset | null>(null)
   // Keep ref in sync so loadAssets can read latest without being a render dependency
@@ -172,14 +173,21 @@ export default function DownloadedStuffView(): React.JSX.Element {
       'Are you sure you want to delete this file from local storage?'
     )
     if (isConfirmed) {
-      await api.assets.deleteLocal(targetJobId, assetId)
-      if (activeJobId) {
-        await loadAssets()
-        await loadActiveJob(activeJobId)
-      } else {
-        await loadGroupedAssets()
+      try {
+        await api.assets.deleteLocal(targetJobId, assetId)
+        if (activeJobId) {
+          await loadAssets()
+          await loadActiveJob(activeJobId)
+        } else {
+          await loadGroupedAssets()
+        }
+        setSelectedAsset(null)
+      } catch (err) {
+        await alert(
+          'Delete Failed',
+          err instanceof Error ? err.message : 'Could not delete the asset from disk.'
+        )
       }
-      setSelectedAsset(null)
     }
   }
 
@@ -305,12 +313,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
 
     if (!matchesSearch) return false
 
-    // Tabs filter
-    if (filter === 'all') return true
-    if (filter === 'video') return asset.type === 'video'
-    if (filter === 'photo') return asset.type === 'photo'
-    if (filter === 'completed') return asset.status === 'completed'
-    if (filter === 'failed') return asset.status === 'failed'
+    if (typeFilter !== 'all' && asset.type !== typeFilter) return false
+    if (statusFilter === 'completed') return asset.status === 'completed'
+    if (statusFilter === 'failed') return asset.status === 'failed'
     return true
   })
 
@@ -324,9 +329,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
 
         if (!matchesSearch) return false
 
-        if (filter === 'all') return true
-        if (filter === 'video') return asset.type === 'video'
-        if (filter === 'photo') return asset.type === 'photo'
+        if (typeFilter !== 'all' && asset.type !== typeFilter) return false
+        if (statusFilter === 'completed') return asset.status === 'completed'
+        if (statusFilter === 'failed') return asset.status === 'failed'
         return true
       })
       return {
@@ -470,9 +475,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
           {/* Segmented Control */}
           <div className="flex p-1 bg-surface shadow-inset-soft border-2 border-ink-black rounded-DEFAULT">
             <button
-              onClick={() => setFilter('all')}
+              onClick={() => setTypeFilter('all')}
               className={`px-4 py-1.5 rounded-sm font-label-sm text-xs uppercase transition-all cursor-pointer ${
-                filter === 'all'
+                typeFilter === 'all'
                   ? 'bg-ink-black text-cyber-lime font-bold shadow-hard'
                   : 'text-on-surface-variant hover:text-ink-black'
               }`}
@@ -480,9 +485,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
               All
             </button>
             <button
-              onClick={() => setFilter('video')}
+              onClick={() => setTypeFilter('video')}
               className={`px-4 py-1.5 rounded-sm font-label-sm text-xs uppercase transition-all cursor-pointer ${
-                filter === 'video'
+                typeFilter === 'video'
                   ? 'bg-ink-black text-cyber-lime font-bold shadow-hard'
                   : 'text-on-surface-variant hover:text-ink-black'
               }`}
@@ -490,9 +495,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
               Videos
             </button>
             <button
-              onClick={() => setFilter('photo')}
+              onClick={() => setTypeFilter('photo')}
               className={`px-4 py-1.5 rounded-sm font-label-sm text-xs uppercase transition-all cursor-pointer ${
-                filter === 'photo'
+                typeFilter === 'photo'
                   ? 'bg-ink-black text-cyber-lime font-bold shadow-hard'
                   : 'text-on-surface-variant hover:text-ink-black'
               }`}
@@ -505,9 +510,9 @@ export default function DownloadedStuffView(): React.JSX.Element {
           {activeJobId && (
             <div className="relative">
               <select
-                value={filter}
+                value={statusFilter}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                  setFilter(e.target.value as 'all' | 'video' | 'photo' | 'completed' | 'failed')
+                  setStatusFilter(e.target.value as 'all' | 'completed' | 'failed')
                 }
                 className="neo-input appearance-none rounded-DEFAULT px-4 py-2 pr-10 font-body-md text-sm outline-none focus:border-electric-purple transition-colors cursor-pointer bg-surface text-ink-black"
               >
