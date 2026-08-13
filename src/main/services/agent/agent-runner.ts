@@ -13,6 +13,7 @@ import { validateDownloadUrl } from '../pexels/download-url-validation'
 import { buildManifestAttribution } from '../pexels/pexels-attribution'
 import { SUBMIT_SCRIPT_BEATS_TOOL, parseBeatsFromToolCall } from '../llm/beat-parse-tool'
 import { ApiError } from '../http/api-errors'
+import { createTimeoutLinkedSignal } from '../http/abort-signal'
 import { ManifestWriter, ManifestData } from '../files/manifest-writer'
 import { ProjectStore, JobSummary } from '../storage/project-store'
 import { SecureSecrets } from '../storage/secure-secrets'
@@ -231,29 +232,9 @@ export class AgentRunner extends EventEmitter {
   }
 
   private getCombinedSignal(timeoutSeconds: number): { signal: AbortSignal; cleanup: () => void } {
-    const controller = new AbortController()
-
-    const onAbort = (): void => {
-      controller.abort()
-    }
-
-    if (this.abortController?.signal) {
-      this.abortController.signal.addEventListener('abort', onAbort)
-    }
-
-    const timeoutId = setTimeout(() => {
-      controller.abort()
+    return createTimeoutLinkedSignal(timeoutSeconds * 1000, this.abortController?.signal, () =>
       this.log('error', `Request timed out after ${timeoutSeconds} seconds.`)
-    }, timeoutSeconds * 1000)
-
-    const cleanup = (): void => {
-      clearTimeout(timeoutId)
-      if (this.abortController?.signal) {
-        this.abortController.signal.removeEventListener('abort', onAbort)
-      }
-    }
-
-    return { signal: controller.signal, cleanup }
+    )
   }
 
   private async executeWithTimeout<T>(
@@ -458,13 +439,19 @@ export class AgentRunner extends EventEmitter {
     }
 
     const task = async (): Promise<void> => {
+      // Resume / in-memory restart already has beats. Reloading the manifest
+      // would reset in-flight downloads to pending and enqueue duplicates.
+      const restoreFromDisk = this.beats.length === 0
+
       this.log('info', `Starting project: ${this.input.title}`)
       this.updateProgress('Resolving credentials and settings', 5)
 
       await this.ensureRegistered()
       this.log('info', `Created project workspace directory at: ${this.projectDir}`)
 
-      await this.loadStateFromManifest()
+      if (restoreFromDisk) {
+        await this.loadStateFromManifest()
+      }
       this.status = 'running'
       await this.saveRegistry()
 
@@ -1516,8 +1503,13 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
 
     const prevStatus = assetRecord.status
 
-    // Update asset record details
-    assetRecord.status = task.status
+    // Backoff leaves the queue task as pending; the download is still in flight.
+    // Keep the asset "downloading" so the agent will not enqueue a duplicate.
+    if (task.backingOff && (task.status === 'pending' || task.status === 'downloading')) {
+      assetRecord.status = 'downloading'
+    } else {
+      assetRecord.status = task.status
+    }
     assetRecord.progress = task.progress
 
     // Log download transitions
