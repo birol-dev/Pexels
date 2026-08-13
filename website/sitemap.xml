@@ -1,21 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+>
   <url>
-    <loc>https://birol-dev.github.io/Pexels/</loc>
-    <lastmod>2026-06-09</lastmod>
-    <changefreq>monthly</changefreq>
+    <loc>https://stockfinderai.birol.tech/</loc>
+    <lastmod>2026-08-13</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://stockfinderai.birol.tech/logos/og-image.png</image:loc>
+      <image:title>StockFinder AI — free AI b-roll finder for YouTube</image:title>
+    </image:image>
   </url>
   <url>
-    <loc>https://birol-dev.github.io/Pexels/pricing.md</loc>
-    <lastmod>2026-06-09</lastmod>
+    <loc>https://stockfinderai.birol.tech/how-to-find-b-roll/</loc>
+    <lastmod>2026-08-13</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://birol-dev.github.io/Pexels/llms.txt</loc>
-    <lastmod>2026-06-09</lastmod>
+    <loc>https://stockfinderai.birol.tech/pricing/</loc>
+    <lastmod>2026-08-13</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://stockfinderai.birol.tech/privacy/</loc>
+    <lastmod>2026-08-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
   </url>
 </urlset>

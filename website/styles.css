@@ -32,6 +32,7 @@
 
 html {
   scroll-behavior: smooth;
+  color-scheme: dark;
 }
 
 body {
@@ -180,7 +181,8 @@ img {
   align-items: center;
   justify-content: space-between;
   height: 4rem;
-  gap: 1rem;
+  gap: 0.75rem;
+  flex-wrap: nowrap;
 }
 
 .brand {
@@ -234,6 +236,7 @@ img {
   font-weight: 600;
   color: var(--text-muted);
   transition: color 0.15s;
+  white-space: nowrap;
 }
 
 .nav-links a:hover {
@@ -292,7 +295,7 @@ img {
   transform: translateY(-7px) rotate(-45deg);
 }
 
-@media (max-width: 899px) {
+@media (max-width: 1099px) {
   .nav-toggle {
     display: flex;
   }
@@ -360,7 +363,7 @@ img {
   }
 }
 
-@media (min-width: 900px) {
+@media (min-width: 1100px) {
   .site-nav-menu {
     display: block;
     flex: 1;
@@ -371,7 +374,8 @@ img {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 2rem;
+    flex-wrap: nowrap;
+    gap: 1.25rem;
   }
 
   .nav-toggle {
@@ -871,10 +875,25 @@ img {
   letter-spacing: -0.02em;
 }
 
+.guide-card h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.guide-card h3 a:hover {
+  color: var(--lime);
+}
+
 .guide-card p {
   font-size: 0.875rem;
   color: var(--text-muted);
   line-height: 1.65;
+}
+
+.section-header .lead a {
+  color: var(--lime);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* Section spacing */
@@ -1441,9 +1460,10 @@ img {
   font-size: 1rem;
 }
 
-.footer-col h4 {
+.footer-col .footer-heading {
   font-family: var(--font-mono);
   font-size: 0.625rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--text-dim);
@@ -1513,18 +1533,21 @@ img {
   background: var(--surface-raised);
 }
 
-/* Reveal animation */
+/* Reveal animation — content stays visible for crawlers and no-JS visitors */
 .reveal {
-  opacity: 0;
-  transform: translateY(1.5rem);
-  transition:
-    opacity 0.6s ease,
-    transform 0.6s ease;
+  opacity: 1;
+  transform: none;
 }
 
-.reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
+@media (prefers-reduced-motion: no-preference) {
+  html.js .reveal {
+    transform: translateY(0.75rem);
+    transition: transform 0.6s ease;
+  }
+
+  html.js .reveal.visible {
+    transform: none;
+  }
 }
 
 /* ── Mobile & small-screen refinements ── */
@@ -1725,6 +1748,7 @@ img {
     animation: none;
   }
 
+  html.js .reveal,
   .reveal {
     opacity: 1;
     transform: none;
@@ -1736,8 +1760,188 @@ img {
   }
 }
 
-@media (max-width: 899px) {
+@media (max-width: 1099px) {
   .nav-actions .nav-github-btn {
     display: none;
   }
+}
+
+@media (min-width: 1100px) and (max-width: 1279px) {
+  .nav-actions .nav-github-btn {
+    display: none;
+  }
+
+  .nav-links {
+    gap: 1rem;
+  }
+}
+
+/* Inner pages (guide, pricing, privacy) */
+.subpage-hero {
+  padding-block: 3.5rem 2.5rem;
+  border-bottom: 2px solid var(--border);
+}
+
+.subpage-hero .lead {
+  margin-top: 1rem;
+}
+
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  font-size: 0.8125rem;
+  color: var(--text-dim);
+  margin-bottom: 1.25rem;
+}
+
+.breadcrumb a {
+  color: var(--text-muted);
+}
+
+.breadcrumb a:hover {
+  color: var(--lime);
+}
+
+.breadcrumb-sep {
+  opacity: 0.5;
+}
+
+.prose {
+  max-width: 46rem;
+}
+
+.prose h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 2.5rem 0 0.85rem;
+}
+
+.prose h3 {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 800;
+  margin: 1.75rem 0 0.6rem;
+}
+
+.prose p,
+.prose li {
+  color: var(--text-muted);
+  font-size: 1.0625rem;
+  line-height: 1.75;
+}
+
+.prose p + p {
+  margin-top: 1rem;
+}
+
+.prose ul,
+.prose ol {
+  margin: 1rem 0 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.prose a {
+  color: var(--lime);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose a:hover {
+  color: var(--text);
+}
+
+.prose strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  color: var(--lime);
+  background: var(--surface-raised);
+  padding: 0.1em 0.35em;
+  border-radius: 0.2rem;
+}
+
+.prose .callout {
+  margin: 1.5rem 0;
+  padding: 1.25rem 1.5rem;
+  border: 2px solid var(--border);
+  border-radius: 0.25rem;
+  background: var(--surface-card);
+}
+
+.prose .callout p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.updated-meta {
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--text-dim);
+}
+
+.price-card {
+  border: 2px solid var(--lime);
+  border-radius: 0.25rem;
+  padding: 1.75rem;
+  background: rgba(204, 255, 0, 0.04);
+  margin-bottom: 1.5rem;
+}
+
+.price-card .price-amount {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--lime);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.price-card .price-label {
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.toc {
+  margin: 1.5rem 0 0;
+  padding: 1.25rem 1.5rem;
+  border: 2px solid var(--border);
+  border-radius: 0.25rem;
+  background: var(--surface-card);
+}
+
+.toc p {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.75rem;
+}
+
+.toc ol {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.toc a {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+.toc a:hover {
+  color: var(--lime);
 }

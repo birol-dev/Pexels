@@ -1,0 +1,26 @@
+{
+  "name": "StockFinder AI",
+  "short_name": "StockFinder",
+  "description": "Free open-source AI b-roll finder. Paste a YouTube script and download a curated Pexels asset pack to your desktop.",
+  "start_url": "./",
+  "scope": "./",
+  "id": "/",
+  "display": "browser",
+  "background_color": "#0a0a0b",
+  "theme_color": "#ccff00",
+  "lang": "en-US",
+  "icons": [
+    {
+      "src": "logos/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "logos/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

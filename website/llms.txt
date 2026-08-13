@@ -24,7 +24,7 @@ StockFinder AI reads your narration script, splits it into visual beats, searche
 
 ## Pricing
 
-See [pricing.md](pricing.md) — the app is $0. You pay only for your own LLM API usage (typically cents per script run). Pexels API access is free within rate limits.
+See [pricing](https://stockfinderai.birol.tech/pricing/) or [pricing.md](pricing.md) — the app is $0. You pay only for your own LLM API usage (typically cents per script run). Pexels API access is free within rate limits.
 
 ## How it works
 
@@ -35,10 +35,12 @@ See [pricing.md](pricing.md) — the app is $0. You pay only for your own LLM AP
 
 ## Key pages
 
-- Homepage: https://birol-dev.github.io/Pexels/
+- Homepage: https://stockfinderai.birol.tech/
+- How to find b-roll: https://stockfinderai.birol.tech/how-to-find-b-roll/
+- Pricing: https://stockfinderai.birol.tech/pricing/
+- Privacy: https://stockfinderai.birol.tech/privacy/
 - Download: https://github.com/birol-dev/Pexels/releases
 - Source code: https://github.com/birol-dev/Pexels
-- Pricing: https://birol-dev.github.io/Pexels/pricing.md
 - Pexels API (required): https://www.pexels.com/api/
 
 ## Comparison: StockFinder AI vs manual Pexels workflow
@@ -61,4 +63,4 @@ See [pricing.md](pricing.md) — the app is $0. You pay only for your own LLM AP
 
 ## Last updated
 
-2026-06-09
+2026-08-13

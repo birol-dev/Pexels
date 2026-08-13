@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>StockFinder AI — Free Open-Source AI B-Roll Finder for YouTube Creators</title>
+    <title>Free AI B-Roll Finder for YouTube | StockFinder AI</title>
     <meta
       name="description"
-      content="StockFinder AI is a free, open-source desktop app that turns your YouTube script into a curated Pexels b-roll pack. AI beat mapping, organized downloads, and built-in attribution — Windows, macOS, and Linux."
+      content="Paste a YouTube script and download a curated Pexels b-roll pack. Free open-source desktop app for Windows, macOS, and Linux. No subscription."
     />
     <meta
       name="robots"
@@ -14,42 +14,57 @@
     />
     <meta name="google-site-verification" content="zZ6Sy1zeW7PBjEKTaSsA5ATKeM9rL7q1hvDoGTvQ48c" />
     <meta name="author" content="StockFinder AI" />
+    <meta name="application-name" content="StockFinder AI" />
     <meta name="theme-color" content="#ccff00" />
-    <link rel="canonical" href="https://birol-dev.github.io/Pexels/" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="canonical" href="https://stockfinderai.birol.tech/" />
+    <link rel="sitemap" type="application/xml" href="https://stockfinderai.birol.tech/sitemap.xml" />
+    <link rel="alternate" type="text/plain" href="https://stockfinderai.birol.tech/llms.txt" title="LLM context" />
+    <link rel="me" href="https://github.com/birol-dev/Pexels" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="StockFinder AI" />
     <meta
       property="og:title"
-      content="StockFinder AI — Free AI B-Roll Finder for YouTube Creators"
+      content="Free AI B-Roll Finder for YouTube | StockFinder AI"
     />
     <meta
       property="og:description"
-      content="Paste your script. Get a curated Pexels b-roll pack on your desktop — free, open source, runs locally. No subscription."
+      content="Paste your YouTube script. Get a curated Pexels b-roll pack on your desktop — free, open source, runs locally. No subscription."
     />
-    <meta property="og:url" content="https://birol-dev.github.io/Pexels/" />
+    <meta property="og:url" content="https://stockfinderai.birol.tech/" />
     <meta
       property="og:image"
-      content="https://birol-dev.github.io/Pexels/logos/stockfinder-logo-horizontal.png"
+      content="https://stockfinderai.birol.tech/logos/og-image.png"
     />
-    <meta property="og:image:alt" content="StockFinder AI logo" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="StockFinder AI — paste a YouTube script and get a curated Pexels b-roll pack"
+    />
     <meta property="og:locale" content="en_US" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta
       name="twitter:title"
-      content="StockFinder AI — Free AI B-Roll Finder for YouTube Creators"
+      content="Free AI B-Roll Finder for YouTube | StockFinder AI"
     />
     <meta
       name="twitter:description"
-      content="Free, open-source desktop app. Paste your script, get organized Pexels stock footage with AI — ready for Premiere, DaVinci, or CapCut."
+      content="Paste a script, get organized Pexels stock footage with AI. Free, open source, ready for Premiere, DaVinci, or CapCut."
     />
     <meta
       name="twitter:image"
-      content="https://birol-dev.github.io/Pexels/logos/stockfinder-logo-horizontal.png"
+      content="https://stockfinderai.birol.tech/logos/og-image.png"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="StockFinder AI — paste a YouTube script and get a curated Pexels b-roll pack"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;600&display=swap"
       rel="stylesheet"
     />
     <link
@@ -60,47 +75,96 @@
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
       rel="stylesheet"
     />
-    <link rel="icon" type="image/png" href="logos/stockfinder-icon.png" />
-    <link rel="apple-touch-icon" href="logos/stockfinder-icon.png" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="logos/icon-32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="48x48"
+      href="logos/icon-48.png"
+    />
+    <link rel="icon" type="image/png" sizes="256x256" href="logos/stockfinder-icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="logos/apple-touch-icon.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
+    <script>
+      document.documentElement.classList.add('js')
+    </script>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@graph": [
           {
             "@type": "WebSite",
-            "@id": "https://birol-dev.github.io/Pexels/#website",
-            "url": "https://birol-dev.github.io/Pexels/",
+            "@id": "https://stockfinderai.birol.tech/#website",
+            "url": "https://stockfinderai.birol.tech/",
             "name": "StockFinder AI",
             "description": "Free, open-source AI b-roll finder for YouTube creators. Paste a script, get a curated Pexels asset pack on your desktop.",
+            "inLanguage": "en-US",
+            "publisher": { "@id": "https://stockfinderai.birol.tech/#organization" }
+          },
+          {
+            "@type": "WebPage",
+            "@id": "https://stockfinderai.birol.tech/#webpage",
+            "url": "https://stockfinderai.birol.tech/",
+            "name": "Free AI B-Roll Finder for YouTube | StockFinder AI",
+            "isPartOf": { "@id": "https://stockfinderai.birol.tech/#website" },
+            "about": { "@id": "https://stockfinderai.birol.tech/#software" },
+            "primaryImageOfPage": {
+              "@type": "ImageObject",
+              "url": "https://stockfinderai.birol.tech/logos/og-image.png",
+              "width": 1200,
+              "height": 630
+            },
+            "dateModified": "2026-08-13",
             "inLanguage": "en-US"
           },
           {
             "@type": "Organization",
-            "@id": "https://birol-dev.github.io/Pexels/#organization",
+            "@id": "https://stockfinderai.birol.tech/#organization",
             "name": "StockFinder AI",
-            "url": "https://birol-dev.github.io/Pexels/",
-            "logo": "https://birol-dev.github.io/Pexels/logos/stockfinder-icon.png",
+            "url": "https://stockfinderai.birol.tech/",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://stockfinderai.birol.tech/logos/icon-512.png",
+              "width": 512,
+              "height": 512
+            },
             "sameAs": ["https://github.com/birol-dev/Pexels"]
           },
           {
             "@type": "SoftwareApplication",
-            "@id": "https://birol-dev.github.io/Pexels/#software",
+            "@id": "https://stockfinderai.birol.tech/#software",
             "name": "StockFinder AI",
+            "url": "https://stockfinderai.birol.tech/",
+            "image": "https://stockfinderai.birol.tech/logos/og-image.png",
             "applicationCategory": "MultimediaApplication",
             "applicationSubCategory": "Video Production Tool",
             "operatingSystem": "Windows, macOS, Linux",
             "softwareVersion": "1.2.9",
+            "datePublished": "2026-06-09",
+            "dateModified": "2026-08-13",
             "description": "Free, open-source desktop app that uses AI to map video scripts into visual beats, search Pexels stock footage, and download organized b-roll packs with attribution.",
             "downloadUrl": "https://github.com/birol-dev/Pexels/releases",
             "installUrl": "https://github.com/birol-dev/Pexels/releases",
-            "license": "https://opensource.org/licenses/MIT",
+            "license": "https://github.com/birol-dev/Pexels/blob/main/LICENSE",
             "isAccessibleForFree": true,
+            "author": { "@id": "https://stockfinderai.birol.tech/#organization" },
+            "publisher": { "@id": "https://stockfinderai.birol.tech/#organization" },
             "offers": {
               "@type": "Offer",
+              "url": "https://stockfinderai.birol.tech/pricing/",
               "price": "0",
               "priceCurrency": "USD",
               "availability": "https://schema.org/InStock"
+            },
+            "potentialAction": {
+              "@type": "DownloadAction",
+              "target": "https://github.com/birol-dev/Pexels/releases"
             },
             "featureList": [
               "AI script-to-beat mapping",
@@ -113,8 +177,15 @@
           },
           {
             "@type": "HowTo",
+            "@id": "https://stockfinderai.birol.tech/#howto",
             "name": "How to get b-roll from your script with StockFinder AI",
             "description": "Four steps to turn a YouTube script into a curated Pexels stock footage pack on your desktop.",
+            "url": "https://stockfinderai.birol.tech/#how",
+            "totalTime": "PT10M",
+            "tool": {
+              "@type": "HowToTool",
+              "name": "StockFinder AI"
+            },
             "step": [
               {
                 "@type": "HowToStep",
@@ -192,6 +263,30 @@
                   "@type": "Answer",
                   "text": "Yes. Build targets include Windows, macOS, and Linux. Check the GitHub releases page for installers for your platform."
                 }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I review assets before they download?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Enable require approval before download in Settings. The agent pauses, shows candidates per beat, and you approve or reject each one before anything hits your disk."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What about Pexels attribution?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Pexels requires crediting photographers and linking back to Pexels. StockFinder includes attribution in the Media Library and exports a full attribution block in manifest.json."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What does open source mean for me?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Every line of code is public on GitHub. You can verify the app never uploads your script to StockFinder servers, build it yourself, or fork it for a custom workflow."
+                }
               }
             ]
           }
@@ -213,13 +308,15 @@
     <!-- Navigation -->
     <header class="site-nav">
       <div class="container site-nav-inner">
-        <a href="#" class="brand" aria-label="StockFinder AI home">
+        <a href="./" class="brand" aria-label="StockFinder AI home">
           <img
             src="logos/stockfinder-icon.png"
-            alt="StockFinder AI logo"
+            alt="StockFinder AI logo — AI b-roll finder"
             class="brand-mark"
             width="40"
             height="40"
+            fetchpriority="high"
+            decoding="async"
           />
           <span class="brand-wordmark">StockFinder <span class="brand-accent">AI</span></span>
         </a>
@@ -231,13 +328,12 @@
           inert
         >
           <ul class="nav-links">
-            <li><a href="#pain">The problem</a></li>
-            <li><a href="#how">How it works</a></li>
+            <li><a href="#pain">Problem</a></li>
+            <li><a href="#how">How</a></li>
             <li><a href="#features">Features</a></li>
-            <li><a href="#opensource">Open source</a></li>
-            <li><a href="#creators">Who it's for</a></li>
+            <li><a href="how-to-find-b-roll/">Guide</a></li>
+            <li><a href="pricing/">Pricing</a></li>
             <li><a href="#faq">FAQ</a></li>
-            <li><a href="#guides">Guides</a></li>
             <li class="nav-links-mobile-cta">
               <a
                 href="https://github.com/birol-dev/Pexels"
@@ -258,14 +354,13 @@
             target="_blank"
             rel="noreferrer"
           >
-            Star on GitHub
-            <span class="material-symbols-outlined" style="font-size: 1rem">star</span>
+            GitHub
           </a>
           <a
             href="https://github.com/birol-dev/Pexels/releases"
             class="btn btn-primary nav-download-btn"
           >
-            <span class="nav-download-label">Download free</span>
+            <span class="nav-download-label">Download</span>
             <span class="material-symbols-outlined" style="font-size: 1rem">download</span>
           </a>
           <button
@@ -288,11 +383,11 @@
       <!-- HERO -->
       <section class="hero" aria-labelledby="hero-heading">
         <div class="container hero-grid">
-          <div class="hero-copy reveal">
+          <div class="hero-copy">
             <span class="eyebrow">Free &amp; open source · Desktop app for YouTube creators</span>
             <h1 class="display-xl" id="hero-heading">
-              Your script is done.<br />
-              <span class="highlight-lime">Your b-roll hunt</span> shouldn't take all night.
+              Paste your YouTube script.<br />
+              Get matching <span class="highlight-lime">Pexels b-roll</span>.
             </h1>
             <p class="lead">
               StockFinder AI is a free, open-source desktop app. Paste your script, and it breaks
@@ -302,7 +397,7 @@
             </p>
             <div class="hero-ctas">
               <a href="https://github.com/birol-dev/Pexels/releases" class="btn btn-primary">
-                Download for Windows
+                Download free
                 <span class="material-symbols-outlined" style="font-size: 1rem">download</span>
               </a>
               <a
@@ -345,7 +440,7 @@
             </div>
           </div>
 
-          <div class="hero-visual reveal">
+          <div class="hero-visual">
             <div class="mock-window">
               <div class="mock-titlebar">
                 <span class="mock-dot"></span>
@@ -363,24 +458,33 @@
                     <div class="mock-thumb">
                       <img
                         src="https://images.pexels.com/photos/847393/pexels-photo-847393.jpeg?auto=compress&cs=tinysrgb&w=200"
-                        alt="Deep ocean stock footage"
+                        alt="Deep ocean stock footage thumbnail"
+                        width="200"
+                        height="113"
                         loading="lazy"
+                        decoding="async"
                       />
                       <span class="mock-thumb-badge">video</span>
                     </div>
                     <div class="mock-thumb">
                       <img
                         src="https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=200"
-                        alt="Underwater research stock photo"
+                        alt="Underwater research stock photo thumbnail"
+                        width="200"
+                        height="113"
                         loading="lazy"
+                        decoding="async"
                       />
                       <span class="mock-thumb-badge">photo</span>
                     </div>
                     <div class="mock-thumb">
                       <img
                         src="https://images.pexels.com/photos/335406/pexels-photo-335406.jpeg?auto=compress&cs=tinysrgb&w=200"
-                        alt="Marine biology stock footage"
+                        alt="Marine biology stock footage thumbnail"
+                        width="200"
+                        height="113"
                         loading="lazy"
+                        decoding="async"
                       />
                       <span class="mock-thumb-badge">video</span>
                     </div>
@@ -414,8 +518,9 @@
               attribution included.
             </p>
             <p class="body-sm definition-meta">
-              Last updated: June 9, 2026 · Version 1.2.9 ·
-              <a href="pricing.md">Pricing details</a> ·
+              Last updated: August 13, 2026 · Version 1.2.9 ·
+              <a href="pricing/">Pricing details</a> ·
+              <a href="how-to-find-b-roll/">How to find b-roll</a> ·
               <a href="llms.txt">AI context file (llms.txt)</a>
             </p>
           </div>
@@ -600,7 +705,7 @@
               "I can write a 12-minute script in an afternoon. Finding stock that actually matches
               it? That's the part that makes me dread publishing."
             </blockquote>
-            <cite>— Every solo creator who's ever had 38 Pexels tabs open at midnight</cite>
+            <cite>A familiar Tuesday for solo YouTube creators still hunting stock at midnight.</cite>
           </div>
 
           <div class="stats-row reveal">
@@ -1114,13 +1219,17 @@
             <h2 class="display-lg" id="guides-heading">How creators find b-roll faster</h2>
             <p class="lead">
               StockFinder AI addresses the stock-footage problems YouTube editors search for most
-              often — from keyword guessing to attribution and platform-specific crops.
+              often — from keyword guessing to attribution and platform-specific crops. Read the
+              full walkthrough in
+              <a href="how-to-find-b-roll/">How to find b-roll for YouTube videos</a>.
             </p>
           </div>
 
           <div class="guide-grid">
             <article class="guide-card reveal">
-              <h3>How to find b-roll for YouTube videos</h3>
+              <h3>
+                <a href="how-to-find-b-roll/">How to find b-roll for YouTube videos</a>
+              </h3>
               <p>
                 Start from your script, not from generic stock keywords. StockFinder AI parses each
                 narration beat, generates visual search queries that match story intent, and
@@ -1130,7 +1239,9 @@
             </article>
 
             <article class="guide-card reveal">
-              <h3>Best free stock footage workflow for editors</h3>
+              <h3>
+                <a href="how-to-find-b-roll/#workflow">Best free stock footage workflow for editors</a>
+              </h3>
               <p>
                 Pexels offers free stock photos and videos, but manual searching costs hours per
                 upload. StockFinder AI automates Pexels API searches locally on your desktop,
@@ -1140,7 +1251,9 @@
             </article>
 
             <article class="guide-card reveal">
-              <h3>AI tools for YouTube b-roll (without cloud lock-in)</h3>
+              <h3>
+                <a href="how-to-find-b-roll/#ai-tools">AI tools for YouTube b-roll (without cloud lock-in)</a>
+              </h3>
               <p>
                 Most AI video tools run in the browser and charge monthly fees. StockFinder AI is
                 MIT-licensed open source: bring your own OpenAI, Gemini, or OpenRouter key, keep
@@ -1149,7 +1262,9 @@
             </article>
 
             <article class="guide-card reveal">
-              <h3>Pexels attribution for YouTube descriptions</h3>
+              <h3>
+                <a href="how-to-find-b-roll/#attribution">Pexels attribution for YouTube descriptions</a>
+              </h3>
               <p>
                 Pexels requires crediting photographers and linking back to Pexels. StockFinder
                 includes attribution in the Media Library and exports a complete credits block in
@@ -1293,13 +1408,14 @@
       <div class="container">
         <div class="footer-grid">
           <div class="footer-brand">
-            <a href="#" class="brand" aria-label="StockFinder AI home">
+            <a href="./" class="brand" aria-label="StockFinder AI home">
               <img
                 src="logos/stockfinder-icon.png"
-                alt="StockFinder AI logo"
+                alt="StockFinder AI logo — AI b-roll finder"
                 class="brand-mark brand-mark--footer"
                 width="36"
                 height="36"
+                decoding="async"
               />
               <span class="brand-wordmark brand-wordmark--footer"
                 >StockFinder <span class="brand-accent">AI</span></span
@@ -1320,18 +1436,18 @@
             </a>
           </div>
           <div class="footer-col">
-            <h4>Product</h4>
+            <p class="footer-heading">Product</p>
             <ul>
               <li><a href="#how">How it works</a></li>
               <li><a href="#features">Features</a></li>
-              <li><a href="#opensource">Open source</a></li>
+              <li><a href="how-to-find-b-roll/">How to find b-roll</a></li>
               <li><a href="#creators">Who it's for</a></li>
-              <li><a href="#guides">Guides</a></li>
+              <li><a href="pricing/">Pricing</a></li>
               <li><a href="#faq">FAQ</a></li>
             </ul>
           </div>
           <div class="footer-col">
-            <h4>Resources</h4>
+            <p class="footer-heading">Resources</p>
             <ul>
               <li>
                 <a href="https://github.com/birol-dev/Pexels" target="_blank" rel="noreferrer"
@@ -1346,7 +1462,7 @@
                   >Downloads</a
                 >
               </li>
-              <li><a href="pricing.md">Pricing (free)</a></li>
+              <li><a href="privacy/">Privacy</a></li>
               <li><a href="llms.txt">llms.txt</a></li>
               <li>
                 <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer"
@@ -1357,60 +1473,12 @@
           </div>
         </div>
         <div class="footer-bottom">
-          <span>StockFinder AI v1.2.9 — Free &amp; open source · Last updated June 9, 2026</span>
+          <span>StockFinder AI v1.2.9 — Free &amp; open source · Last updated August 13, 2026</span>
           <span>Pexels media used under the Pexels License</span>
         </div>
       </div>
     </footer>
 
-    <script>
-      const reveals = document.querySelectorAll('.reveal')
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('visible')
-            }
-          })
-        },
-        { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
-      )
-      reveals.forEach((el) => observer.observe(el))
-
-      const navToggle = document.getElementById('nav-toggle')
-      const navMenu = document.getElementById('site-nav-menu')
-
-      function setNavOpen(open) {
-        navMenu.classList.toggle('is-open', open)
-        navToggle.setAttribute('aria-expanded', String(open))
-        navToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu')
-        navMenu.setAttribute('aria-hidden', String(!open))
-        if (open) {
-          navMenu.removeAttribute('inert')
-        } else {
-          navMenu.setAttribute('inert', '')
-        }
-        document.body.classList.toggle('nav-open', open)
-      }
-
-      navToggle.addEventListener('click', () => {
-        setNavOpen(!navMenu.classList.contains('is-open'))
-      })
-
-      navMenu.querySelectorAll('a').forEach((link) => {
-        link.addEventListener('click', () => setNavOpen(false))
-      })
-
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && navMenu.classList.contains('is-open')) {
-          setNavOpen(false)
-          navToggle.focus()
-        }
-      })
-
-      window.matchMedia('(min-width: 900px)').addEventListener('change', (e) => {
-        if (e.matches) setNavOpen(false)
-      })
-    </script>
+    <script src="site.js" defer></script>
   </body>
 </html>
