@@ -45,7 +45,5 @@ export function BrandLogo({
     )
   }
 
-  return (
-    <img src={brandIcon} alt={alt} className={`${iconClass} ${className}`} draggable={false} />
-  )
+  return <img src={brandIcon} alt={alt} className={`${iconClass} ${className}`} draggable={false} />
 }
