@@ -1,26 +1,16 @@
 import { ipcMain, shell } from 'electron'
 import { ProjectStore } from '../services/storage/project-store'
 import { promises as fs } from 'fs'
-import { isAbsolute, join, normalize, relative } from 'path'
+import { join } from 'path'
 import { VisualBeat } from '../services/agent/agent-runner'
 import { buildManifestAttribution } from '../services/pexels/pexels-attribution'
 import { PexelsClient } from '../services/pexels/pexels-client'
 import { ManifestWriter } from '../services/files/manifest-writer'
+import { isPathInside } from '../services/files/path-safety'
 import { z } from 'zod'
 
 const JobIdSchema = z.string().regex(/^job_\d+$/)
 const AssetIdSchema = z.string().regex(/^(photo|video)_\d+$/)
-
-function isInsideProject(projectDir: string, filePath: string): boolean {
-  let normalizedProject = normalize(projectDir)
-  let normalizedFile = normalize(filePath)
-  if (process.platform === 'win32') {
-    normalizedProject = normalizedProject.toLowerCase()
-    normalizedFile = normalizedFile.toLowerCase()
-  }
-  const rel = relative(normalizedProject, normalizedFile)
-  return isAbsolute(normalizedFile) && rel !== '' && !rel.startsWith('..') && !isAbsolute(rel)
-}
 
 export function registerAssetsHandlers(): void {
   ipcMain.handle('assets:list', async (_, rawJobId: unknown): Promise<unknown[]> => {
@@ -96,7 +86,7 @@ export function registerAssetsHandlers(): void {
         if (manifest.beats) {
           for (const beat of manifest.beats) {
             const asset = beat.assets?.find((a) => a.id === assetId)
-            if (asset && asset.filePath && isInsideProject(summary.downloadPath, asset.filePath)) {
+            if (asset && asset.filePath && isPathInside(summary.downloadPath, asset.filePath)) {
               shell.showItemInFolder(asset.filePath)
               return
             }
@@ -126,7 +116,7 @@ export function registerAssetsHandlers(): void {
           for (const beat of manifest.beats) {
             const asset = beat.assets?.find((a) => a.id === assetId)
             if (asset) {
-              if (asset.filePath && isInsideProject(summary.downloadPath, asset.filePath)) {
+              if (asset.filePath && isPathInside(summary.downloadPath, asset.filePath)) {
                 try {
                   await fs.unlink(asset.filePath)
                 } catch (unlinkErr) {

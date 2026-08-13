@@ -1,9 +1,12 @@
 # StockFinder AI
 
+**Website:** [https://stockfinderai.birol.tech](https://stockfinderai.birol.tech)
+
 **Paste your script. Get a curated Pexels b-roll pack on your desktop — organized, downloaded, and ready for your editor.**
 
 StockFinder AI is a free, open-source desktop app for YouTube creators, short-form editors, and video producers who are tired of tab-hopping through stock sites. It reads your video script, splits it into visual beats, searches [Pexels](https://www.pexels.com) with AI-driven keywords, and downloads matching stock photos and videos to a local folder — so you spend less time hunting footage and more time cutting.
 
+[![Website](https://img.shields.io/badge/website-stockfinderai.birol.tech-05df72)](https://stockfinderai.birol.tech)
 [![Version](https://img.shields.io/badge/version-1.2.9-cyber)](https://github.com/birol-dev/Pexels/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](#download)
 [![License](https://img.shields.io/badge/license-Open%20Source-blue)](https://github.com/birol-dev/Pexels)
@@ -71,7 +74,9 @@ Inspect the code, report bugs, or contribute on [GitHub](https://github.com/biro
 
 ## Download
 
-Pre-built installers are on the [Releases page](https://github.com/birol-dev/Pexels/releases).
+Product site and installers: **[stockfinderai.birol.tech](https://stockfinderai.birol.tech)**
+
+Pre-built GitHub installers are also on the [Releases page](https://github.com/birol-dev/Pexels/releases).
 
 | Platform | Command (build from source) |
 | --- | --- |

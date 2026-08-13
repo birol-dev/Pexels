@@ -19,8 +19,12 @@ export class SecureSecrets {
       const data = await fs.readFile(filePath, 'utf-8')
       const parsed = JSON.parse(data)
       return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
-    } catch {
-      return {}
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      if (code === 'ENOENT') {
+        return {}
+      }
+      throw error
     }
   }
 

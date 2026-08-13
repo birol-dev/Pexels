@@ -154,6 +154,38 @@ export class AgentRunner extends EventEmitter {
     this.input = input
   }
 
+  public async ensureRegistered(): Promise<void> {
+    AgentRunner.activeRunners.set(this.jobId, this)
+
+    const { SettingsStore } = await import('../storage/settings-store')
+    const settings = await SettingsStore.getSettings()
+    this.modelId = settings.modelId
+    this.providerId = settings.llmProvider
+    this.maxIterations = settings.maxAgentIterations
+    this.requestTimeoutSeconds = settings.requestTimeoutSeconds
+    this.safetySettings = {
+      skipExplicit: settings.skipExplicitQueries,
+      avoidPeople: settings.avoidPeopleAndFaces
+    }
+
+    if (!this.projectDir) {
+      this.projectDir = await this.resolveProjectDirectory(settings.downloadFolder)
+    }
+
+    if (!this.downloader) {
+      this.downloader = new PexelsDownloader(
+        settings.maxConcurrentDownloads,
+        (task) => {
+          this.handleDownloadProgress(task)
+        },
+        settings.requestTimeoutSeconds,
+        (type, assetId, currentUrl) => this.refreshDownloadUrl(type, assetId, currentUrl)
+      )
+    }
+
+    await this.saveRegistry()
+  }
+
   private async runBackground(fn: () => Promise<void>): Promise<void> {
     AgentRunner.activeRunners.set(this.jobId, this)
     this.abortController = new AbortController()
@@ -429,43 +461,14 @@ export class AgentRunner extends EventEmitter {
       this.log('info', `Starting project: ${this.input.title}`)
       this.updateProgress('Resolving credentials and settings', 5)
 
-      // Fetch LLM settings
-      const { SettingsStore } = await import('../storage/settings-store')
-      const settings = await SettingsStore.getSettings()
-      this.modelId = settings.modelId
-      this.providerId = settings.llmProvider
-      this.maxIterations = settings.maxAgentIterations
-      this.requestTimeoutSeconds = settings.requestTimeoutSeconds
-      this.safetySettings = {
-        skipExplicit: settings.skipExplicitQueries,
-        avoidPeople: settings.avoidPeopleAndFaces
-      }
-
-      // Initialize project directories
-      this.projectDir = await this.resolveProjectDirectory(settings.downloadFolder)
+      await this.ensureRegistered()
       this.log('info', `Created project workspace directory at: ${this.projectDir}`)
 
-      // Load existing state if it exists
       await this.loadStateFromManifest()
       this.status = 'running'
       await this.saveRegistry()
 
-      // Init downloader
-      if (!this.downloader) {
-        this.downloader = new PexelsDownloader(
-          settings.maxConcurrentDownloads,
-          (task) => {
-            this.handleDownloadProgress(task)
-          },
-          settings.requestTimeoutSeconds,
-          (type, assetId, currentUrl) => this.refreshDownloadUrl(type, assetId, currentUrl)
-        )
-      }
-
-      // Phase 1: Script Parsing
       await this.parseScriptIntoBeats()
-
-      // Phase 2: Run agent loop
       await this.runAgentLoop()
 
       if (this.status === 'running') {

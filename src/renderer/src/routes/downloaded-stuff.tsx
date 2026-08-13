@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { useAppStore } from '../lib/store'
 import { api } from '../lib/api-client'
+import { toMediaUrl } from '../lib/media-url'
 
 interface FlatAsset {
   id: string
@@ -625,13 +626,13 @@ export default function DownloadedStuffView(): React.JSX.Element {
                   selectedAsset.type === 'video' ? (
                     <video
                       key={selectedAsset.filePath}
-                      src={`media://${selectedAsset.filePath}`}
+                      src={toMediaUrl(selectedAsset.filePath)}
                       controls
                       className="w-full h-full object-contain"
                     />
                   ) : (
                     <img
-                      src={`media://${selectedAsset.filePath}`}
+                      src={toMediaUrl(selectedAsset.filePath)}
                       className="w-full h-full object-contain"
                       alt="Local Stock Preview"
                     />

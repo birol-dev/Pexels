@@ -96,7 +96,8 @@ export function registerJobsHandlers(): void {
       broadcastJobEvent(evt)
     })
 
-    // Start asynchronously in background
+    // Register before returning so jobs:list cannot miss this job.
+    await runner.ensureRegistered()
     runner.start().catch((err) => {
       console.error(`Runner ${jobId} failed during execution:`, err)
     })
@@ -178,6 +179,7 @@ export function registerJobsHandlers(): void {
 
     const runner = new AgentRunner(newJobId, input)
     runner.on('event', (evt) => broadcastJobEvent(evt))
+    await runner.ensureRegistered()
     runner.start().catch((err) => console.error(err))
 
     return newJobId
