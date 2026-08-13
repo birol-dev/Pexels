@@ -1,5 +1,7 @@
 # Pricing — StockFinder AI
 
+Canonical human-readable page: https://stockfinderai.birol.tech/pricing/
+
 ## App license
 
 - **Price:** $0 — free forever
@@ -48,4 +50,4 @@ No separate enterprise tier. Fork the MIT-licensed source on GitHub for custom t
 
 ## Last updated
 
-2026-06-09
+2026-08-13
