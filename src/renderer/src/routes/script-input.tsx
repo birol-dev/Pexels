@@ -107,15 +107,22 @@ export default function ScriptInputView(): React.JSX.Element {
       return
     }
 
-    await startJob({
-      title: title.trim(),
-      script: script.trim(),
-      platform,
-      style,
-      mix,
-      maxAssetsPerBeat,
-      maxTotalDownloads
-    })
+    try {
+      await startJob({
+        title: title.trim(),
+        script: script.trim(),
+        platform,
+        style,
+        mix,
+        maxAssetsPerBeat,
+        maxTotalDownloads
+      })
+    } catch (err) {
+      await alert(
+        'Failed to Start Project',
+        err instanceof Error ? err.message : 'Could not create the project workspace.'
+      )
+    }
   }
 
   const handleSelectJob = (jobId: string): void => {

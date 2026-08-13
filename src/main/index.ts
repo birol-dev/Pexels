@@ -1,5 +1,5 @@
 import { app, shell, BrowserWindow, protocol, net, session } from 'electron'
-import { join, normalize, relative, isAbsolute } from 'path'
+import { join } from 'path'
 import { pathToFileURL } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -8,6 +8,7 @@ import { registerSettingsHandlers } from './ipc/settings.ipc'
 import { registerJobsHandlers } from './ipc/jobs.ipc'
 import { registerAssetsHandlers } from './ipc/assets.ipc'
 import { ProjectStore } from './services/storage/project-store'
+import { filePathFromMediaUrl, isPathInside } from './services/files/path-safety'
 
 // Register schemes as privileged before app is ready
 // NOTE: bypassCSP is intentionally omitted — the handler restricts paths to
@@ -131,24 +132,15 @@ app.whenReady().then(() => {
   // Register media protocol to serve local files securely
   protocol.handle('media', async (request) => {
     try {
-      const urlPath = request.url.replace(/^media:\/\/+/i, '')
-      const decodedPath = normalize(decodeURIComponent(urlPath))
-
-      if (!isAbsolute(decodedPath)) {
+      const decodedPath = filePathFromMediaUrl(request.url)
+      if (!decodedPath) {
         return new Response('Invalid media path', { status: 400 })
       }
 
       const projects = await ProjectStore.list()
-      const isProjectMedia = projects.some((project) => {
-        let projectPath = normalize(project.downloadPath)
-        let targetPath = decodedPath
-        if (process.platform === 'win32') {
-          projectPath = projectPath.toLowerCase()
-          targetPath = targetPath.toLowerCase()
-        }
-        const rel = relative(projectPath, targetPath)
-        return rel && !rel.startsWith('..') && !isAbsolute(rel)
-      })
+      const isProjectMedia = projects.some((project) =>
+        isPathInside(project.downloadPath, decodedPath)
+      )
 
       if (!isProjectMedia) {
         return new Response('Media path is outside project folders', { status: 403 })

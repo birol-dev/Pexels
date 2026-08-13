@@ -61,8 +61,13 @@ export class SettingsStore {
         ...fallback,
         ...(parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {})
       }
-    } catch {
-      this.cachedSettings = { ...fallback }
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      if (code === 'ENOENT') {
+        this.cachedSettings = { ...fallback }
+      } else {
+        throw error
+      }
     }
 
     return this.cachedSettings!

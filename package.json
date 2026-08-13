@@ -5,13 +5,18 @@
   "main": "./out/main/index.js",
   "author": "eact6",
   "license": "MIT",
-  "homepage": "https://github.com/birol-dev/Pexels",
+  "homepage": "https://stockfinderai.birol.tech",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/birol-dev/Pexels.git"
+  },
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "test": "node --experimental-strip-types --test test/**/*.test.ts",
     "start": "electron-vite dev",
     "dev": "electron-vite dev",
     "preview": "electron-vite preview",
