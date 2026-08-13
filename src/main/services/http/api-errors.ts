@@ -78,8 +78,25 @@ export function backoffDelayMs(attempt: number, retryAfterMs?: number): number {
   return Math.round(exponential + jitter)
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new ApiError('Request aborted', 'permanent'))
+      return
+    }
+
+    const timeoutId = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, ms)
+
+    const onAbort = (): void => {
+      clearTimeout(timeoutId)
+      reject(new ApiError('Request aborted', 'permanent'))
+    }
+
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
 }
 
 export interface FetchWithRetryOptions {
@@ -123,8 +140,14 @@ export async function fetchWithRetry(
       lastError = apiError
       const delay = backoffDelayMs(attempt, apiError.retryAfterMs)
       options.onRetry?.(attempt + 1, apiError, delay)
-      await sleep(delay)
+      await sleep(delay, options.init?.signal ?? undefined)
     } catch (error) {
+      if (options.isAborted?.() || options.init?.signal?.aborted) {
+        throw error instanceof ApiError && !error.isRetryable
+          ? error
+          : new ApiError('Request aborted', 'permanent')
+      }
+
       const apiError = classifyFetchError(error)
       if (!apiError.isRetryable || attempt === maxRetries) {
         throw apiError
@@ -133,7 +156,7 @@ export async function fetchWithRetry(
       lastError = apiError
       const delay = backoffDelayMs(attempt, apiError.retryAfterMs)
       options.onRetry?.(attempt + 1, apiError, delay)
-      await sleep(delay)
+      await sleep(delay, options.init?.signal ?? undefined)
     }
   }
 
@@ -143,11 +166,13 @@ export async function fetchWithRetry(
 export class ApiCircuitBreaker {
   private failures = 0
   private openUntil = 0
+  private readonly threshold: number
+  private readonly cooldownMs: number
 
-  constructor(
-    private readonly threshold = 5,
-    private readonly cooldownMs = 60_000
-  ) {}
+  constructor(threshold = 5, cooldownMs = 60_000) {
+    this.threshold = threshold
+    this.cooldownMs = cooldownMs
+  }
 
   public recordSuccess(): void {
     this.failures = 0
