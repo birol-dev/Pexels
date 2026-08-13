@@ -48,6 +48,7 @@ export function getDefaultSettings(): PublicSettings {
 
 export class SettingsStore {
   private static cachedSettings: PublicSettings | null = null
+  private static writeQueue: Promise<void> = Promise.resolve()
 
   public static async getSettings(): Promise<PublicSettings> {
     if (this.cachedSettings) return this.cachedSettings
@@ -74,14 +75,20 @@ export class SettingsStore {
   }
 
   public static async updateSettings(updates: Partial<PublicSettings>): Promise<PublicSettings> {
-    const current = await this.getSettings()
-    const updated = { ...current, ...updates }
-    const filePath = getSettingsFile()
+    this.writeQueue = this.writeQueue
+      .catch(() => {
+        // Keep the queue alive after a prior failure.
+      })
+      .then(async () => {
+        const current = await this.getSettings()
+        const updated = { ...current, ...updates }
+        const filePath = getSettingsFile()
 
-    await fs.mkdir(dirname(filePath), { recursive: true })
-    await fs.writeFile(filePath, JSON.stringify(updated, null, 2), 'utf-8')
-    this.cachedSettings = updated
-
-    return updated
+        await fs.mkdir(dirname(filePath), { recursive: true })
+        await fs.writeFile(filePath, JSON.stringify(updated, null, 2), 'utf-8')
+        this.cachedSettings = updated
+      })
+    await this.writeQueue
+    return this.cachedSettings!
   }
 }
