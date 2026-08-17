@@ -90,11 +90,13 @@
           },
           {
             "@type": "SoftwareApplication",
+            "@id": "https://stockfinderai.birol.tech/#software",
             "name": "StockFinder AI",
             "url": "https://stockfinderai.birol.tech/",
             "applicationCategory": "MultimediaApplication",
             "operatingSystem": "Windows, macOS, Linux",
             "isAccessibleForFree": true,
+            "dateModified": "2026-08-17",
             "offers": {
               "@type": "Offer",
               "url": "https://stockfinderai.birol.tech/pricing/",
@@ -140,9 +142,9 @@
 
     <header class="site-nav">
       <div class="container site-nav-inner">
-        <a href="../" class="brand" aria-label="StockFinder AI home">
+        <a href="/" class="brand" aria-label="StockFinder AI home">
           <img
-            src="../logos/stockfinder-icon.png"
+            src="/logos/stockfinder-icon.png"
             alt="StockFinder AI logo — AI b-roll finder"
             class="brand-mark"
             width="40"
@@ -152,13 +154,13 @@
           />
           <span class="brand-wordmark">StockFinder <span class="brand-accent">AI</span></span>
         </a>
-        <nav class="site-nav-menu" id="site-nav-menu" aria-label="Main navigation" aria-hidden="true" inert>
+        <nav class="site-nav-menu" id="site-nav-menu" aria-label="Main navigation">
           <ul class="nav-links">
-            <li><a href="../#how">How</a></li>
-            <li><a href="../#features">Features</a></li>
-            <li><a href="../how-to-find-b-roll/">Guide</a></li>
-            <li><a href="./" aria-current="page">Pricing</a></li>
-            <li><a href="../#faq">FAQ</a></li>
+            <li><a href="/#how">How</a></li>
+            <li><a href="/#features">Features</a></li>
+            <li><a href="/how-to-find-b-roll/">Guide</a></li>
+            <li><a href="/pricing/" aria-current="page">Pricing</a></li>
+            <li><a href="/#faq">FAQ</a></li>
             <li class="nav-links-mobile-cta">
               <a href="https://github.com/birol-dev/Pexels" class="btn btn-secondary" target="_blank" rel="noreferrer">
                 Star on GitHub
@@ -188,7 +190,7 @@
       <header class="subpage-hero">
         <div class="container">
           <nav class="breadcrumb" aria-label="Breadcrumb">
-            <a href="../">Home</a>
+            <a href="/">Home</a>
             <span class="breadcrumb-sep" aria-hidden="true">/</span>
             <span>Pricing</span>
           </nav>
@@ -198,7 +200,7 @@
             The app is free forever under the MIT license. You bring your own API keys. There is no
             StockFinder subscription and no paid tier.
           </p>
-          <p class="updated-meta">Last updated August 13, 2026</p>
+          <p class="updated-meta">Last updated August 17, 2026</p>
         </div>
       </header>
 
@@ -222,7 +224,7 @@
             <li><strong>Google Gemini</strong> — pay per token (typically cents per script run)</li>
             <li><strong>OpenRouter</strong> — pay per token; unlocks Claude, Qwen, and other models</li>
           </ul>
-          <p>You choose the provider and model. Keys stay in your OS keychain. See the <a href="../privacy/">privacy page</a>.</p>
+          <p>You choose the provider and model. Keys stay in your OS keychain. See the <a href="/privacy/">privacy page</a>.</p>
 
           <h3>Pexels API (required for stock search)</h3>
           <ul>
@@ -247,6 +249,58 @@
             <li>Dark and light themes</li>
           </ul>
 
+          <h2>Comparison: StockFinder AI vs Alternatives</h2>
+          <div class="comparison-wrap">
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th scope="col">Feature</th>
+                  <th scope="col">Manual Pexels</th>
+                  <th scope="col">StockFinder AI</th>
+                  <th scope="col">Cloud AI Video SaaS</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Monthly subscription</th>
+                  <td>$0</td>
+                  <td>$0 (Free &amp; Open Source)</td>
+                  <td>$20 – $60 / month</td>
+                </tr>
+                <tr>
+                  <th scope="row">Usage cost</th>
+                  <td>$0</td>
+                  <td>~Cents per script (LLM API)</td>
+                  <td>Included in monthly fee</td>
+                </tr>
+                <tr>
+                  <th scope="row">Footage quality</th>
+                  <td>Pexels real stock</td>
+                  <td>Pexels real stock</td>
+                  <td>AI-generated / synthetic</td>
+                </tr>
+                <tr>
+                  <th scope="row">Workflow time</th>
+                  <td>2–4 hours</td>
+                  <td>~10 minutes</td>
+                  <td>5–15 minutes</td>
+                </tr>
+                <tr>
+                  <th scope="row">Attribution exports</th>
+                  <td>Manual copy-paste</td>
+                  <td>Automatic in manifest.json</td>
+                  <td>Varies / none</td>
+                </tr>
+                <tr>
+                  <th scope="row">Script privacy</th>
+                  <td>Manual in browser</td>
+                  <td>100% Local desktop agent</td>
+                  <td>Uploaded to cloud servers</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
           <h2>Enterprise / teams</h2>
           <p>
             No separate enterprise SKU. Fork the MIT-licensed source on
@@ -256,7 +310,7 @@
 
           <p>
             Machine-readable copy:
-            <a href="../pricing.md">pricing.md</a> (for AI agents).
+            <a href="/pricing.md">pricing.md</a> (for AI agents).
           </p>
         </div>
       </section>
@@ -270,7 +324,7 @@
               Download free
               <span class="material-symbols-outlined" style="font-size: 1rem">download</span>
             </a>
-            <a href="../how-to-find-b-roll/" class="btn btn-secondary">Read the b-roll guide</a>
+            <a href="/how-to-find-b-roll/" class="btn btn-secondary">Read the b-roll guide</a>
           </div>
         </div>
       </section>
@@ -280,9 +334,9 @@
       <div class="container">
         <div class="footer-grid">
           <div class="footer-brand">
-            <a href="../" class="brand" aria-label="StockFinder AI home">
+            <a href="/" class="brand" aria-label="StockFinder AI home">
               <img
-                src="../logos/stockfinder-icon.png"
+                src="/logos/stockfinder-icon.png"
                 alt="StockFinder AI logo — AI b-roll finder"
                 class="brand-mark brand-mark--footer"
                 width="36"
@@ -298,10 +352,10 @@
           <div class="footer-col">
             <p class="footer-heading">Product</p>
             <ul>
-              <li><a href="../#how">How it works</a></li>
-              <li><a href="../how-to-find-b-roll/">How to find b-roll</a></li>
-              <li><a href="./">Pricing</a></li>
-              <li><a href="../#faq">FAQ</a></li>
+              <li><a href="/#how">How it works</a></li>
+              <li><a href="/how-to-find-b-roll/">How to find b-roll</a></li>
+              <li><a href="/pricing/">Pricing</a></li>
+              <li><a href="/#faq">FAQ</a></li>
             </ul>
           </div>
           <div class="footer-col">
@@ -309,13 +363,13 @@
             <ul>
               <li><a href="https://github.com/birol-dev/Pexels" target="_blank" rel="noreferrer">GitHub</a></li>
               <li><a href="https://github.com/birol-dev/Pexels/releases" target="_blank" rel="noreferrer">Downloads</a></li>
-              <li><a href="../privacy/">Privacy</a></li>
-              <li><a href="../llms.txt">llms.txt</a></li>
+              <li><a href="/privacy/">Privacy</a></li>
+              <li><a href="/llms.txt">llms.txt</a></li>
             </ul>
           </div>
         </div>
         <div class="footer-bottom">
-          <span>StockFinder AI v1.2.9 — Free &amp; open source · Last updated August 13, 2026</span>
+          <span>StockFinder AI v1.2.9 — Free &amp; open source · Last updated August 17, 2026</span>
           <span>Pexels media used under the Pexels License</span>
         </div>
       </div>

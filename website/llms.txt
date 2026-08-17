@@ -63,4 +63,4 @@ See [pricing](https://stockfinderai.birol.tech/pricing/) or [pricing.md](pricing
 
 ## Last updated
 
-2026-08-13
+2026-08-17

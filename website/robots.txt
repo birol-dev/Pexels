@@ -1,8 +1,33 @@
-# StockFinder AI — allow search engines and AI citation bots
+# StockFinder AI — robots.txt
+# Sitemaps
+Sitemap: https://stockfinderai.birol.tech/sitemap.xml
+
+# Default for all search crawlers
 User-agent: *
 Allow: /
 Disallow: /404.html
 Disallow: /pricing.md
+
+# Googlebot (Search & Mobile-first indexing)
+User-agent: Googlebot
+Allow: /
+Disallow: /404.html
+Disallow: /pricing.md
+
+# Googlebot Images
+User-agent: Googlebot-Image
+Allow: /logos/
+Allow: /
+
+# Bingbot
+User-agent: Bingbot
+Allow: /
+Disallow: /404.html
+Disallow: /pricing.md
+
+# Google Gemini & AI Overviews
+User-agent: Google-Extended
+Allow: /
 
 # OpenAI (ChatGPT search & citations)
 User-agent: GPTBot
@@ -22,16 +47,6 @@ Allow: /
 User-agent: PerplexityBot
 Allow: /
 
-# Google Gemini & AI Overviews
-User-agent: Google-Extended
-Allow: /
-
-# Microsoft Copilot (Bing)
-User-agent: Bingbot
-Allow: /
-
 # Apple Intelligence / Spotlight
 User-agent: Applebot
 Allow: /
-
-Sitemap: https://stockfinderai.birol.tech/sitemap.xml

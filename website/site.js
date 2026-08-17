@@ -21,27 +21,52 @@ if ('IntersectionObserver' in window && reveals.length) {
 const navToggle = document.getElementById('nav-toggle')
 const navMenu = document.getElementById('site-nav-menu')
 
+const isMobileNav = () => window.matchMedia('(max-width: 1099px)').matches
+
+function syncNavState() {
+  if (!navToggle || !navMenu) return
+  if (!isMobileNav()) {
+    navMenu.classList.remove('is-open')
+    navMenu.removeAttribute('aria-hidden')
+    navMenu.removeAttribute('inert')
+    navToggle.setAttribute('aria-expanded', 'false')
+    navToggle.setAttribute('aria-label', 'Open menu')
+    document.body.classList.remove('nav-open')
+  }
+}
+
 function setNavOpen(open) {
   if (!navToggle || !navMenu) return
   navMenu.classList.toggle('is-open', open)
   navToggle.setAttribute('aria-expanded', String(open))
   navToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu')
-  navMenu.setAttribute('aria-hidden', String(!open))
-  if (open) {
-    navMenu.removeAttribute('inert')
+  if (isMobileNav()) {
+    navMenu.setAttribute('aria-hidden', String(!open))
+    if (open) {
+      navMenu.removeAttribute('inert')
+    } else {
+      navMenu.setAttribute('inert', '')
+    }
   } else {
-    navMenu.setAttribute('inert', '')
+    navMenu.removeAttribute('aria-hidden')
+    navMenu.removeAttribute('inert')
   }
   document.body.classList.toggle('nav-open', open)
 }
 
 if (navToggle && navMenu) {
+  syncNavState()
+
   navToggle.addEventListener('click', () => {
     setNavOpen(!navMenu.classList.contains('is-open'))
   })
 
   navMenu.querySelectorAll('a').forEach((link) => {
-    link.addEventListener('click', () => setNavOpen(false))
+    link.addEventListener('click', () => {
+      if (isMobileNav()) {
+        setNavOpen(false)
+      }
+    })
   })
 
   document.addEventListener('keydown', (e) => {
@@ -52,6 +77,8 @@ if (navToggle && navMenu) {
   })
 
   window.matchMedia('(min-width: 1100px)').addEventListener('change', (e) => {
-    if (e.matches) setNavOpen(false)
+    if (e.matches) {
+      syncNavState()
+    }
   })
 }
