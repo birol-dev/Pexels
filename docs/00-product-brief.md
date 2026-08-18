@@ -1,6 +1,10 @@
 # AI Stock Asset Finder - Product Plan
 
+- **Official Website**: [https://stockfinderai.birol.tech](https://stockfinderai.birol.tech)
+- **Developer**: [https://birol.tech](https://birol.tech)
+
 Research date: 2026-05-27
+
 
 ## Goal
 

@@ -1,6 +1,11 @@
-# StockFinder AI — Technical Project Reference (v1.2.1)
+# StockFinder AI — Technical Project Reference (v1.2.9)
+
+- **Official Product Portal**: [https://stockfinderai.birol.tech](https://stockfinderai.birol.tech)
+- **Developer Website**: [https://birol.tech](https://birol.tech)
+- **Source Code Repository**: [https://github.com/birol-dev/Pexels](https://github.com/birol-dev/Pexels)
 
 StockFinder AI (registered in `package.json` as `stockfinder-ai`) is an Electron-based desktop application designed for video producers, YouTube creators, and short-form editors. It uses an AI-powered agent to parse narrational video scripts into structured visual scenes ("beats"), generate highly contextual visual prompts, search the Pexels API for relevant stock b-roll photos/videos, and automatically download them into a structured local directory structure.
+
 
 ---
 
@@ -465,3 +470,18 @@ $ npm run build:win      # For Windows systems
 $ npm run build:mac      # For macOS platforms
 $ npm run build:linux    # For Linux systems
 ```
+
+---
+
+## 8. Official Links & Online Resources
+
+- **Official Product Portal**: [https://stockfinderai.birol.tech](https://stockfinderai.birol.tech)
+  - Documentation & User Manual: [https://stockfinderai.birol.tech/docs/](https://stockfinderai.birol.tech/docs/)
+  - Guide (How to Find B-Roll): [https://stockfinderai.birol.tech/how-to-find-b-roll/](https://stockfinderai.birol.tech/how-to-find-b-roll/)
+  - Pricing & License: [https://stockfinderai.birol.tech/pricing/](https://stockfinderai.birol.tech/pricing/)
+  - About Project: [https://stockfinderai.birol.tech/about/](https://stockfinderai.birol.tech/about/)
+  - Privacy Policy: [https://stockfinderai.birol.tech/privacy/](https://stockfinderai.birol.tech/privacy/)
+- **Developer Website**: [https://birol.tech](https://birol.tech)
+- **GitHub Repository**: [https://github.com/birol-dev/Pexels](https://github.com/birol-dev/Pexels)
+- **Releases & Installers**: [https://github.com/birol-dev/Pexels/releases](https://github.com/birol-dev/Pexels/releases)
+

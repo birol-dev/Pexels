@@ -2,6 +2,9 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { randomInt } from 'crypto'
 import { AgentRunner, StartJobInput, JobSnapshot } from '../services/agent/agent-runner'
 import { ProjectStore, JobSummary } from '../services/storage/project-store'
+import { SettingsStore } from '../services/storage/settings-store'
+import { SecureSecrets } from '../services/storage/secure-secrets'
+import { expandIdeaToScript, ExpandedScriptResult } from '../services/llm/idea-expander'
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { z } from 'zod'
@@ -11,14 +14,40 @@ function createJobId(): string {
   return `job_${Date.now()}${randomInt(100000, 999999)}`
 }
 
-const StartJobInputSchema = z.object({
-  title: z.string().min(1),
-  script: z.string().min(1),
-  platform: z.enum(['YouTube', 'Shorts', 'TikTok', 'Instagram Reels']),
-  style: z.string().min(1),
-  mix: z.enum(['videos only', 'photos only', 'videos + photos']),
-  maxAssetsPerBeat: z.number().min(1).max(10),
-  maxTotalDownloads: z.number().min(1).max(100)
+const StartJobInputSchema = z
+  .object({
+    title: z.string().min(1),
+    script: z.string(),
+    inputMode: z.enum(['script', 'idea']).optional(),
+    idea: z.string().optional(),
+    targetDuration: z.string().optional(),
+    tone: z.string().optional(),
+    visualConcept: z.string().optional(),
+    platform: z.enum(['YouTube', 'Shorts', 'TikTok', 'Instagram Reels']),
+    style: z.string().min(1),
+    mix: z.enum(['videos only', 'photos only', 'videos + photos']),
+    maxAssetsPerBeat: z.number().min(1).max(10),
+    maxTotalDownloads: z.number().min(1).max(100)
+  })
+  .refine(
+    (data) => {
+      if (data.inputMode === 'idea') {
+        return Boolean((data.idea && data.idea.trim()) || (data.script && data.script.trim()))
+      }
+      return Boolean(data.script && data.script.trim())
+    },
+    {
+      message: 'Please provide either a video script or an idea to begin.'
+    }
+  )
+
+const ExpandIdeaInputSchema = z.object({
+  idea: z.string().min(1, 'Please provide an idea or topic to expand.'),
+  platform: z.enum(['YouTube', 'Shorts', 'TikTok', 'Instagram Reels']).optional(),
+  style: z.string().optional(),
+  targetDuration: z.string().optional(),
+  tone: z.string().optional(),
+  title: z.string().optional()
 })
 
 const JobIdSchema = z.string().regex(/^job_\d+$/)
@@ -53,12 +82,18 @@ async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInp
     const manifest = JSON.parse(data) as {
       title?: string
       script?: string
+      inputMode?: 'script' | 'idea'
+      originalIdea?: string
+      visualConcept?: string
       settingsSnapshot?: {
         targetPlatform?: string
         visualStyle?: string
         assetMix?: string
         maxAssetsPerBeat?: number
         maxTotalDownloads?: number
+        inputMode?: 'script' | 'idea'
+        targetDuration?: string
+        tone?: string
       }
     }
     if (manifest.settingsSnapshot) {
@@ -73,6 +108,11 @@ async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInp
       return {
         title: manifest.title || summary.title,
         script: manifest.script || summary.script,
+        inputMode: manifest.inputMode || snap.inputMode,
+        idea: manifest.originalIdea,
+        visualConcept: manifest.visualConcept,
+        targetDuration: snap.targetDuration,
+        tone: snap.tone,
         platform: (snap.targetPlatform || 'YouTube') as StartJobInput['platform'],
         style: (snap.visualStyle || 'cinematic') as StartJobInput['style'],
         mix: mapAssetMixBack(snap.assetMix || ''),
@@ -185,6 +225,33 @@ export function registerJobsHandlers(): void {
     return newJobId
   })
 
+  ipcMain.handle('jobs:expandIdea', async (_, rawInput: unknown): Promise<ExpandedScriptResult> => {
+    const input = ExpandIdeaInputSchema.parse(rawInput)
+    const settings = await SettingsStore.getSettings()
+    const providerId = settings.llmProvider || 'openai'
+    const modelId = settings.modelId || 'gpt-4o'
+    const providerKey = await SecureSecrets.getSecret(`${providerId}Key`)
+
+    if (!providerKey) {
+      throw new Error(
+        `Missing API Key for LLM provider (${providerId.toUpperCase()}). Please configure your API key in Settings before expanding ideas.`
+      )
+    }
+
+    return await expandIdeaToScript({
+      idea: input.idea,
+      platform: input.platform,
+      style: input.style,
+      targetDuration: input.targetDuration,
+      tone: input.tone,
+      title: input.title,
+      timeoutSeconds: settings.requestTimeoutSeconds || 60,
+      providerId,
+      modelId,
+      apiKey: providerKey
+    })
+  })
+
   ipcMain.handle('jobs:get', async (_, rawJobId: unknown): Promise<JobSnapshot> => {
     const jobId = JobIdSchema.parse(rawJobId)
     const active = AgentRunner.getActive(jobId)
@@ -202,6 +269,12 @@ export function registerJobsHandlers(): void {
         projectId?: string
         title?: string
         script?: string
+        inputMode?: 'script' | 'idea'
+        originalIdea?: string
+        visualConcept?: string
+        settingsSnapshot?: {
+          inputMode?: 'script' | 'idea'
+        }
         beats?: unknown[]
         assets?: unknown[]
         failures?: unknown[]
@@ -238,6 +311,9 @@ export function registerJobsHandlers(): void {
         jobId: manifest.projectId || jobId,
         title: manifest.title || summary.title,
         script: manifest.script || summary.script,
+        inputMode: manifest.inputMode || manifest.settingsSnapshot?.inputMode,
+        idea: manifest.originalIdea,
+        visualConcept: manifest.visualConcept,
         status: summary.status,
         progress: summary.status === 'completed' ? 100 : 0,
         currentStep: summary.status === 'completed' ? 'Finished' : 'Stopped',

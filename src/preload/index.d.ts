@@ -15,6 +15,7 @@ declare global {
         openAppDataFolder(): Promise<void>
       }
       jobs: {
+        expandIdea(input: Record<string, unknown>): Promise<Record<string, unknown>>
         start(input: Record<string, unknown>): Promise<string>
         pause(jobId: string): Promise<void>
         resume(jobId: string): Promise<void>

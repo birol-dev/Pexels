@@ -22,6 +22,8 @@ const api = {
     openAppDataFolder: (): Promise<void> => ipcRenderer.invoke('settings:openAppDataFolder')
   },
   jobs: {
+    expandIdea: (input: Record<string, unknown>): Promise<Record<string, unknown>> =>
+      ipcRenderer.invoke('jobs:expandIdea', input),
     start: (input: Record<string, unknown>): Promise<string> =>
       ipcRenderer.invoke('jobs:start', input),
     pause: (jobId: string): Promise<void> => ipcRenderer.invoke('jobs:pause', jobId),

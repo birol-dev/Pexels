@@ -9,6 +9,9 @@ export interface ManifestData {
   createdAt: string
   finishedAt?: string
   script: string
+  inputMode?: 'script' | 'idea'
+  originalIdea?: string
+  visualConcept?: string
   settingsSnapshot: {
     provider: 'openai' | 'openrouter' | 'gemini'
     modelId: string
@@ -17,6 +20,9 @@ export interface ManifestData {
     assetMix: 'videos_only' | 'photos_only' | 'videos_and_photos'
     maxAssetsPerBeat: number
     maxTotalDownloads: number
+    inputMode?: 'script' | 'idea'
+    targetDuration?: string
+    tone?: string
   }
   beats: unknown[]
   assets: unknown[]

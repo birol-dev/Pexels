@@ -1,6 +1,44 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useAppStore } from '../lib/store'
 
+const QUICK_IDEA_STARTERS = [
+  {
+    label: '🔥 5 Mind-Blowing Facts',
+    prompt: '5 mind-blowing psychological facts that explain why humans procrastinate and how our brain tricks us.'
+  },
+  {
+    label: '⏳ How It Actually Works',
+    prompt: 'A step-by-step breakdown of how quantum computing works compared to regular computers, explained simply.'
+  },
+  {
+    label: '❓ Myth vs Reality',
+    prompt: 'Top 3 biggest fitness and diet myths debunked with scientific facts and practical truths.'
+  },
+  {
+    label: '🌊 Deep Ocean Wonders',
+    prompt: 'The bizarre, bioluminescent creatures living in the Mariana Trench and how they survive extreme darkness and pressure.'
+  },
+  {
+    label: '🚀 Future Tech Revolution',
+    prompt: 'How humanoid AI robots are preparing to enter factories and homes over the next decade.'
+  }
+]
+
+const TONE_OPTIONS = [
+  'Engaging & Hook-first',
+  'Cinematic Storytelling',
+  'Educational & Explainer',
+  'Dramatic & Suspenseful',
+  'Humorous & Casual',
+  'Inspiring & Motivational'
+]
+
+const DURATION_OPTIONS = [
+  { value: '30s', label: 'Short (~30s)', words: '60–85 words', icon: 'bolt' },
+  { value: '60s', label: 'Standard (~60s)', words: '120–160 words', icon: 'timer' },
+  { value: '2-3min', label: 'Deep Dive (~2-3m)', words: '300–450 words', icon: 'movie' }
+]
+
 export default function ScriptInputView(): React.JSX.Element {
   const {
     startJob,
@@ -17,6 +55,7 @@ export default function ScriptInputView(): React.JSX.Element {
     activeTabId,
     inputTabStates,
     updateInputTabState,
+    expandIdea,
     loading
   } = useAppStore()
 
@@ -24,6 +63,12 @@ export default function ScriptInputView(): React.JSX.Element {
   const tabState = inputTabStates[activeTabId] || {
     title: '',
     script: '',
+    inputMode: 'script' as const,
+    idea: '',
+    targetDuration: '60s',
+    tone: 'Engaging & Hook-first',
+    visualConcept: '',
+    isExpandingIdea: false,
     platform: 'YouTube' as const,
     style: 'cinematic',
     customStyleText: '',
@@ -35,6 +80,12 @@ export default function ScriptInputView(): React.JSX.Element {
   const {
     title,
     script,
+    inputMode = 'script',
+    idea = '',
+    targetDuration = '60s',
+    tone = 'Engaging & Hook-first',
+    visualConcept = '',
+    isExpandingIdea = false,
     platform,
     style,
     customStyleText,
@@ -46,6 +97,12 @@ export default function ScriptInputView(): React.JSX.Element {
   // Setter redirects to store actions
   const setTitle = (val: string): void => updateInputTabState(activeTabId, { title: val })
   const setScript = (val: string): void => updateInputTabState(activeTabId, { script: val })
+  const setInputMode = (val: 'script' | 'idea'): void =>
+    updateInputTabState(activeTabId, { inputMode: val })
+  const setIdea = (val: string): void => updateInputTabState(activeTabId, { idea: val })
+  const setTargetDuration = (val: string): void =>
+    updateInputTabState(activeTabId, { targetDuration: val })
+  const setTone = (val: string): void => updateInputTabState(activeTabId, { tone: val })
   const setPlatform = (val: typeof platform): void =>
     updateInputTabState(activeTabId, { platform: val })
   const setStyle = (val: string): void => updateInputTabState(activeTabId, { style: val })
@@ -81,11 +138,47 @@ export default function ScriptInputView(): React.JSX.Element {
     loadSettings()
   }, [loadJobs, loadSettings])
 
+  const handleExpandIdeaClick = async (): Promise<void> => {
+    if (!idea.trim()) {
+      await alert('Idea Required', 'Please enter a short concept, prompt, or outline for your video.')
+      return
+    }
+
+    const activeProvider = settings?.llmProvider || 'openai'
+    const activeProviderKey = settings ? settings[`${activeProvider}Key`] : ''
+    if (!activeProviderKey) {
+      await alert(
+        'Credentials Required',
+        `Active LLM Provider (${activeProvider.toUpperCase()}) API Key is missing. Please set it in Settings first.`
+      )
+      navigate('settings')
+      return
+    }
+
+    try {
+      await expandIdea(activeTabId)
+    } catch (err) {
+      await alert(
+        'AI Script Expansion Failed',
+        err instanceof Error ? err.message : 'Could not expand idea into a script.'
+      )
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
-    if (!title.trim() || !script.trim()) {
-      await alert('Validation Error', 'Please fill out both the title and the script.')
-      return
+
+    // Validation based on inputMode
+    if (inputMode === 'script') {
+      if (!title.trim() || !script.trim()) {
+        await alert('Validation Error', 'Please fill out both the project title and the video script.')
+        return
+      }
+    } else {
+      if (!idea.trim() && !script.trim()) {
+        await alert('Validation Error', 'Please enter your video idea or topic.')
+        return
+      }
     }
 
     const activeProvider = settings?.llmProvider || 'openai'
@@ -107,10 +200,17 @@ export default function ScriptInputView(): React.JSX.Element {
       return
     }
 
+    const finalTitle = title.trim() || (idea.trim().length > 40 ? `${idea.trim().slice(0, 40)}…` : idea.trim()) || 'New Video Pack'
+
     try {
       await startJob({
-        title: title.trim(),
+        title: finalTitle,
         script: script.trim(),
+        inputMode,
+        idea: idea.trim(),
+        targetDuration,
+        tone,
+        visualConcept,
         platform,
         style,
         mix,
@@ -184,6 +284,9 @@ export default function ScriptInputView(): React.JSX.Element {
     }
   }
 
+  const scriptWordCount = script.trim() ? script.trim().split(/\s+/).filter(Boolean).length : 0
+  const estimatedReadTimeSec = Math.max(1, Math.round((scriptWordCount / 140) * 60))
+
   return (
     <div className="w-full space-y-8 p-8 lg:p-10 pb-12 animate-fade-in-up relative risograph-overlay">
       {/* Header Area */}
@@ -193,7 +296,7 @@ export default function ScriptInputView(): React.JSX.Element {
             Create New Pack
           </h2>
           <p className="font-body-lg text-body-lg text-outline dark:text-steel-secondary mt-2">
-            Analyze your script to fetch cohesive visual assets automatically.
+            Paste a full script or enter a raw idea — AI will write the narrative and curate matching b-roll.
           </p>
         </div>
         <button
@@ -249,51 +352,290 @@ export default function ScriptInputView(): React.JSX.Element {
       {/* Main Form Panel */}
       <section className="max-w-5xl bg-surface border-2 border-ink-black dark:border-surface-variant rounded-xl p-component-padding shadow-[inset_6px_6px_12px_rgba(0,0,0,0.05)] dark:shadow-[inset_6px_6px_12px_rgba(0,0,0,0.3)] relative">
         <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Top Mode Lever / Segmented Control */}
+          <div>
+            <label className="block font-title-md text-title-md text-ink-black dark:text-paper-white mb-2 uppercase tracking-wide text-xs">
+              Input Mode
+            </label>
+            <div className="grid grid-cols-2 p-1.5 bg-surface-container-low dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-xl shadow-[2px_2px_0px_var(--color-ink-black)] gap-2">
+              <button
+                type="button"
+                onClick={() => setInputMode('script')}
+                className={`py-3 px-4 rounded-lg flex items-center justify-center gap-2.5 font-title-md text-xs uppercase tracking-wider transition-all cursor-pointer ${
+                  inputMode === 'script'
+                    ? 'bg-paper-white dark:bg-surface-variant text-ink-black dark:text-paper-white border-2 border-ink-black shadow-[3px_3px_0px_var(--color-ink-black)] font-bold'
+                    : 'text-outline dark:text-steel-secondary hover:text-ink-black dark:hover:text-paper-white border-2 border-transparent'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px]">description</span>
+                <span>Full Script Mode</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputMode('idea')}
+                className={`py-3 px-4 rounded-lg flex items-center justify-center gap-2.5 font-title-md text-xs uppercase tracking-wider transition-all cursor-pointer ${
+                  inputMode === 'idea'
+                    ? 'bg-cyber-lime text-ink-black border-2 border-ink-black shadow-[3px_3px_0px_var(--color-ink-black)] font-bold'
+                    : 'text-outline dark:text-steel-secondary hover:text-ink-black dark:hover:text-paper-white border-2 border-transparent'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[18px]">lightbulb</span>
+                <span className="flex items-center gap-1.5">
+                  <span>Idea / Concept Mode</span>
+                  <span className="text-[10px] bg-ink-black text-cyber-lime px-1.5 py-0.5 rounded font-mono font-bold tracking-tight">
+                    AI WRITER
+                  </span>
+                </span>
+              </button>
+            </div>
+          </div>
+
           {/* Project Title */}
           <div>
             <label
               className="block font-title-md text-title-md text-ink-black dark:text-paper-white mb-2 uppercase tracking-wide text-xs"
               htmlFor="project-title"
             >
-              Project Title
+              Project Title {inputMode === 'idea' && <span className="text-outline lowercase font-normal">(optional — AI will generate one if blank)</span>}
             </label>
             <input
               id="project-title"
               type="text"
-              placeholder="e.g. Q3 Marketing Explainer, AI Office Hacks"
+              placeholder={inputMode === 'idea' ? 'e.g. 5 Deep Sea Monsters, Why We Procrastinate (or leave blank)' : 'e.g. Q3 Marketing Explainer, AI Office Hacks'}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-lg px-4 py-3 font-body-md text-body-md text-ink-black dark:text-paper-white placeholder:text-risograph-gray dark:placeholder:text-steel-secondary focus:outline-none focus:ring-0 neo-brutalist-input transition-all duration-200"
-              required
+              required={inputMode === 'script'}
             />
           </div>
 
-          {/* Video Script */}
-          <div>
-            <div className="flex justify-between items-baseline mb-2">
-              <label
-                className="block font-title-md text-title-md text-ink-black dark:text-paper-white uppercase tracking-wide text-xs"
-                htmlFor="video-script"
-              >
-                Video Script
-              </label>
-              <span className="font-label-sm text-xs text-outline dark:text-steel-secondary">
-                Markdown Supported
-              </span>
+          {/* SCRIPT MODE CONTENT */}
+          {inputMode === 'script' && (
+            <div className="space-y-3 animate-fade-in-up">
+              <div className="flex justify-between items-baseline mb-2">
+                <label
+                  className="block font-title-md text-title-md text-ink-black dark:text-paper-white uppercase tracking-wide text-xs"
+                  htmlFor="video-script"
+                >
+                  Video Script
+                </label>
+                <div className="flex items-center gap-3">
+                  {script.trim() && (
+                    <span className="font-mono text-xs text-primary dark:text-cyber-lime font-bold">
+                      {scriptWordCount} words (~{estimatedReadTimeSec}s)
+                    </span>
+                  )}
+                  <span className="font-label-sm text-xs text-outline dark:text-steel-secondary">
+                    Markdown Supported
+                  </span>
+                </div>
+              </div>
+              <textarea
+                id="video-script"
+                rows={7}
+                placeholder="Paste your complete video script narrative here. The AI will segment this script into visual beats and find matching Pexels stock assets..."
+                value={script}
+                onChange={(e) => setScript(e.target.value)}
+                className="w-full bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-lg px-4 py-3 font-body-md text-body-md text-ink-black dark:text-paper-white placeholder:text-risograph-gray dark:placeholder:text-steel-secondary focus:outline-none focus:ring-0 neo-brutalist-input transition-all duration-200 resize-y"
+                required
+              />
             </div>
-            <textarea
-              id="video-script"
-              rows={6}
-              placeholder="Paste your video script narrative here. The AI will segment this script into beats and search matching assets..."
-              value={script}
-              onChange={(e) => setScript(e.target.value)}
-              className="w-full bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-lg px-4 py-3 font-body-md text-body-md text-ink-black dark:text-paper-white placeholder:text-risograph-gray dark:placeholder:text-steel-secondary focus:outline-none focus:ring-0 neo-brutalist-input transition-all duration-200 resize-y"
-              required
-            />
-          </div>
+          )}
+
+          {/* IDEA / CONCEPT MODE CONTENT */}
+          {inputMode === 'idea' && (
+            <div className="space-y-6 animate-fade-in-up">
+              {/* Idea Prompt Input */}
+              <div>
+                <div className="flex justify-between items-baseline mb-2">
+                  <label
+                    className="block font-title-md text-title-md text-ink-black dark:text-paper-white uppercase tracking-wide text-xs"
+                    htmlFor="video-idea"
+                  >
+                    Video Idea / Topic / Hook
+                  </label>
+                  <span className="font-label-sm text-xs text-outline dark:text-steel-secondary">
+                    Short premise, bullet points, or topic
+                  </span>
+                </div>
+                <textarea
+                  id="video-idea"
+                  rows={4}
+                  placeholder="e.g. 5 mind-blowing psychological facts that explain why we procrastinate, with dramatic hooks and everyday examples..."
+                  value={idea}
+                  onChange={(e) => setIdea(e.target.value)}
+                  className="w-full bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-lg px-4 py-3 font-body-md text-body-md text-ink-black dark:text-paper-white placeholder:text-risograph-gray dark:placeholder:text-steel-secondary focus:outline-none focus:ring-0 neo-brutalist-input transition-all duration-200 resize-y"
+                  required={!script.trim()}
+                />
+
+                {/* Quick Topic Starter Chips */}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-[11px] text-outline dark:text-steel-secondary uppercase font-bold mr-1 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
+                    Inspirations:
+                  </span>
+                  {QUICK_IDEA_STARTERS.map((starter) => (
+                    <button
+                      key={starter.label}
+                      type="button"
+                      onClick={() => {
+                        setIdea(starter.prompt)
+                        if (!title.trim()) {
+                          setTitle(starter.label.replace(/^[^a-zA-Z0-9]+/, ''))
+                        }
+                      }}
+                      className="text-xs px-2.5 py-1 rounded bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant hover:bg-cyber-lime hover:text-ink-black text-ink-black dark:text-paper-white transition-all shadow-[1px_1px_0px_var(--color-ink-black)] cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
+                    >
+                      {starter.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Creative Controls: Duration & Tone */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter p-5 bg-surface-container-low dark:bg-surface-container-lowest rounded-xl border-2 border-ink-black dark:border-surface-variant shadow-[2px_2px_0px_var(--color-ink-black)]">
+                {/* Target Duration Selector */}
+                <div>
+                  <label className="block font-title-md text-title-md text-ink-black dark:text-paper-white mb-2 uppercase tracking-wide text-xs">
+                    Target Video Duration
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {DURATION_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setTargetDuration(opt.value)}
+                        className={`p-2.5 rounded-lg border-2 border-ink-black dark:border-surface-variant flex flex-col items-center text-center transition-all cursor-pointer ${
+                          targetDuration === opt.value
+                            ? 'bg-cyber-lime text-ink-black font-bold shadow-[2px_2px_0px_var(--color-ink-black)]'
+                            : 'bg-paper-white dark:bg-surface-variant text-ink-black dark:text-paper-white hover:bg-surface-container-high'
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[18px] mb-0.5">{opt.icon}</span>
+                        <span className="text-xs font-bold leading-tight">{opt.label}</span>
+                        <span className="text-[10px] font-mono opacity-80 mt-0.5">{opt.words}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Narrative Tone Selector */}
+                <div>
+                  <label
+                    className="block font-title-md text-title-md text-ink-black dark:text-paper-white mb-2 uppercase tracking-wide text-xs"
+                    htmlFor="narrative-tone"
+                  >
+                    Narrative Tone & Hook Style
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="narrative-tone"
+                      value={tone}
+                      onChange={(e) => setTone(e.target.value)}
+                      className="w-full bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-lg px-4 py-3 font-body-md text-body-md text-ink-black dark:text-paper-white appearance-none focus:outline-none focus:ring-0 neo-brutalist-input transition-all duration-200 cursor-pointer"
+                    >
+                      {TONE_OPTIONS.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline dark:text-steel-secondary pointer-events-none">
+                      expand_more
+                    </span>
+                  </div>
+                  <p className="font-label-sm text-xs text-outline dark:text-steel-secondary mt-1.5">
+                    Defines pacing, vocabulary, and visual storytelling hooks.
+                  </p>
+                </div>
+              </div>
+
+              {/* Generate Script Action Button & Preview Box */}
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <span className="font-title-md text-xs uppercase tracking-wide text-ink-black dark:text-paper-white font-bold block">
+                      AI Scriptwriter
+                    </span>
+                    <span className="text-xs text-outline dark:text-steel-secondary">
+                      Preview and edit the AI-generated script, or proceed directly to pack generation.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleExpandIdeaClick}
+                    disabled={isExpandingIdea || !idea.trim()}
+                    className="bg-primary-container border-2 border-ink-black text-on-primary-container px-5 py-2.5 rounded-lg font-title-md text-xs uppercase tracking-wider flex items-center gap-2 shadow-[3px_3px_0px_var(--color-ink-black)] hover:bg-primary hover:text-white transition-all cursor-pointer active:shadow-none active:translate-x-0.5 active:translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className={`material-symbols-outlined text-[18px] ${isExpandingIdea ? 'animate-spin' : ''}`}>
+                      {isExpandingIdea ? 'sync' : 'auto_awesome'}
+                    </span>
+                    <span>{isExpandingIdea ? 'Expanding Idea…' : script.trim() ? 'Regenerate Script' : 'Generate Script from Idea'}</span>
+                  </button>
+                </div>
+
+                {/* Generated Script Preview & Editor */}
+                {script.trim() && (
+                  <div className="p-5 bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-xl space-y-4 shadow-[4px_4px_0px_var(--color-ink-black)] animate-fade-in-up">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-ink-black dark:border-surface-variant pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-cyber-lime bg-ink-black p-1 rounded text-[16px]">
+                          check_circle
+                        </span>
+                        <span className="font-title-md text-xs text-ink-black dark:text-paper-white uppercase font-bold">
+                          Generated Script Preview
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-xs text-primary dark:text-cyber-lime font-bold">
+                          {scriptWordCount} words (~{estimatedReadTimeSec}s read)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setScript('')}
+                          className="text-[11px] font-mono text-outline hover:text-error transition-colors cursor-pointer"
+                        >
+                          Clear Script
+                        </button>
+                      </div>
+                    </div>
+
+                    {visualConcept && (
+                      <div className="p-3 bg-surface-container-low dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-lg">
+                        <span className="font-mono text-[10px] text-primary dark:text-cyber-lime uppercase font-bold block mb-1">
+                          🎬 AI Visual & Media Direction:
+                        </span>
+                        <p className="text-xs text-ink-black dark:text-paper-white leading-relaxed">
+                          {visualConcept}
+                        </p>
+                      </div>
+                    )}
+
+                    <div>
+                      <div className="flex justify-between items-baseline mb-1.5">
+                        <label
+                          className="block font-mono text-[11px] text-outline dark:text-steel-secondary uppercase"
+                          htmlFor="generated-script-edit"
+                        >
+                          Voiceover Narration (Editable):
+                        </label>
+                      </div>
+                      <textarea
+                        id="generated-script-edit"
+                        rows={6}
+                        value={script}
+                        onChange={(e) => setScript(e.target.value)}
+                        className="w-full bg-surface-container-lowest dark:bg-surface border-2 border-ink-black dark:border-surface-variant rounded-lg px-4 py-3 font-body-md text-body-md text-ink-black dark:text-paper-white focus:outline-none focus:ring-0 neo-brutalist-input transition-all resize-y"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Grid Configurations */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter pt-2">
             {/* Platform Layout */}
             <div>
               <label
@@ -383,7 +725,10 @@ export default function ScriptInputView(): React.JSX.Element {
                   <option value="cinematic">Cinematic</option>
                   <option value="documentary">Documentary</option>
                   <option value="business">Business / Corporate</option>
-                  <option value="tech">Tech</option>
+                  <option value="tech">Tech & Modern</option>
+                  <option value="nature">Nature & Organic</option>
+                  <option value="lifestyle">Lifestyle & Authentic</option>
+                  <option value="abstract">Abstract & Artistic</option>
                   <option value="custom">Custom Style...</option>
                 </select>
                 <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline dark:text-steel-secondary pointer-events-none">
@@ -394,7 +739,10 @@ export default function ScriptInputView(): React.JSX.Element {
                 style === 'cinematic' ||
                 style === 'documentary' ||
                 style === 'business' ||
-                style === 'tech'
+                style === 'tech' ||
+                style === 'nature' ||
+                style === 'lifestyle' ||
+                style === 'abstract'
               ) && (
                 <input
                   type="text"
@@ -419,7 +767,7 @@ export default function ScriptInputView(): React.JSX.Element {
                 <button
                   type="button"
                   onClick={() => setMix('videos only')}
-                  className={`flex-1 py-3 text-center border-r-2 border-ink-black dark:border-surface-variant font-label-sm text-label-sm transition-colors ${
+                  className={`flex-1 py-3 text-center border-r-2 border-ink-black dark:border-surface-variant font-label-sm text-label-sm transition-colors cursor-pointer ${
                     mix === 'videos only'
                       ? 'bg-ink-black dark:bg-surface-variant text-cyber-lime border-l-2 border-primary font-bold'
                       : 'text-outline dark:text-steel-secondary hover:bg-surface-variant dark:hover:text-paper-white'
@@ -430,7 +778,7 @@ export default function ScriptInputView(): React.JSX.Element {
                 <button
                   type="button"
                   onClick={() => setMix('photos only')}
-                  className={`flex-1 py-3 text-center border-r-2 border-ink-black dark:border-surface-variant font-label-sm text-label-sm transition-colors ${
+                  className={`flex-1 py-3 text-center border-r-2 border-ink-black dark:border-surface-variant font-label-sm text-label-sm transition-colors cursor-pointer ${
                     mix === 'photos only'
                       ? 'bg-ink-black dark:bg-surface-variant text-cyber-lime border-l-2 border-primary font-bold'
                       : 'text-outline dark:text-steel-secondary hover:bg-surface-variant dark:hover:text-paper-white'
@@ -441,7 +789,7 @@ export default function ScriptInputView(): React.JSX.Element {
                 <button
                   type="button"
                   onClick={() => setMix('videos + photos')}
-                  className={`flex-1 py-3 text-center font-label-sm text-label-sm transition-colors ${
+                  className={`flex-1 py-3 text-center font-label-sm text-label-sm transition-colors cursor-pointer ${
                     mix === 'videos + photos'
                       ? 'bg-ink-black dark:bg-surface-variant text-cyber-lime border-l-2 border-primary font-bold'
                       : 'text-outline dark:text-steel-secondary hover:bg-surface-variant dark:hover:text-paper-white'
@@ -501,11 +849,17 @@ export default function ScriptInputView(): React.JSX.Element {
           <div className="mt-section-gap flex justify-end pt-8 border-t-2 border-ink-black border-dashed">
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || isExpandingIdea}
               className="bg-cyber-lime text-surface-container-lowest border-2 border-primary-container px-8 py-4 rounded-lg font-label-sm text-label-sm tracking-wider uppercase flex items-center gap-3 shadow-[4px_4px_0px_#CCFF00] hover:bg-primary-fixed-dim transition-all duration-200 active:shadow-none active:translate-x-[4px] active:translate-y-[4px] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:active:shadow-[4px_4px_0px_#CCFF00] disabled:active:translate-x-0 disabled:active:translate-y-0"
             >
-              <span className="material-symbols-outlined">auto_awesome</span>
-              {loading ? 'Starting…' : 'Analyze & Fetch Visual Assets'}
+              <span className="material-symbols-outlined">
+                {inputMode === 'idea' && !script.trim() ? 'auto_awesome' : 'download_for_offline'}
+              </span>
+              {loading
+                ? 'Starting Pipeline…'
+                : inputMode === 'idea' && !script.trim()
+                  ? 'Generate Script & Fetch Visual Assets'
+                  : 'Analyze & Fetch Visual Assets'}
             </button>
           </div>
         </form>
@@ -575,7 +929,7 @@ export default function ScriptInputView(): React.JSX.Element {
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => handleSelectJob(job.jobId)}
-                          className="bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black text-ink-black dark:text-paper-white p-2 rounded hover:bg-surface-variant shadow-[1px_1px_0px_rgba(0,0,0,0.5)] active:translate-y-0.5 active:translate-x-0.5"
+                          className="bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black text-ink-black dark:text-paper-white p-2 rounded hover:bg-surface-variant shadow-[1px_1px_0px_rgba(0,0,0,0.5)] active:translate-y-0.5 active:translate-x-0.5 cursor-pointer"
                           title="Open View"
                         >
                           <span className="material-symbols-outlined text-[18px]">visibility</span>
@@ -583,14 +937,14 @@ export default function ScriptInputView(): React.JSX.Element {
                         <button
                           onClick={() => rerunJob(job.jobId)}
                           disabled={loading}
-                          className="bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black text-ink-black dark:text-paper-white p-2 rounded hover:bg-surface-variant shadow-[1px_1px_0px_rgba(0,0,0,0.5)] active:translate-y-0.5 active:translate-x-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                          className="bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black text-ink-black dark:text-paper-white p-2 rounded hover:bg-surface-variant shadow-[1px_1px_0px_rgba(0,0,0,0.5)] active:translate-y-0.5 active:translate-x-0.5 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                           title="Rerun Project"
                         >
                           <span className="material-symbols-outlined text-[18px]">replay</span>
                         </button>
                         <button
                           onClick={() => handleDeleteJob(job.jobId, job.title)}
-                          className="bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black text-ink-black dark:text-paper-white p-2 hover:text-error hover:bg-surface-variant shadow-[1px_1px_0px_rgba(0,0,0,0.5)] active:translate-y-0.5 active:translate-x-0.5"
+                          className="bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black text-ink-black dark:text-paper-white p-2 hover:text-error hover:bg-surface-variant shadow-[1px_1px_0px_rgba(0,0,0,0.5)] active:translate-y-0.5 active:translate-x-0.5 cursor-pointer"
                           title="Delete Project & Files"
                         >
                           <span className="material-symbols-outlined text-[18px]">delete</span>

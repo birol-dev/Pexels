@@ -310,6 +310,38 @@ export default function AgentRunView(): React.JSX.Element {
       <div className="grid grid-cols-12 gap-gutter px-grid-margin mt-8 items-start">
         {/* Left: Script Beats (2/3) */}
         <div className="col-span-12 xl:col-span-8 flex flex-col gap-6">
+          {/* Idea & Visual Concept Card (if generated from Idea Mode) */}
+          {(activeJob.idea || activeJob.visualConcept) && (
+            <div className="p-4 bg-surface border-2 border-ink-black dark:border-surface-variant rounded-xl shadow-[3px_3px_0px_var(--color-ink-black)] flex flex-col gap-2.5 animate-fade-in-up">
+              <div className="flex items-center justify-between">
+                <span className="font-title-md text-xs uppercase tracking-wider text-ink-black dark:text-paper-white font-bold flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-cyber-lime bg-ink-black p-0.5 rounded text-[16px]">
+                    lightbulb
+                  </span>
+                  Concept & Visual Strategy
+                </span>
+                {activeJob.inputMode === 'idea' && (
+                  <span className="font-mono text-[10px] bg-cyber-lime text-ink-black font-bold px-2 py-0.5 rounded border border-ink-black">
+                    AI EXPANDED
+                  </span>
+                )}
+              </div>
+              {activeJob.idea && (
+                <div className="text-xs text-outline dark:text-steel-secondary">
+                  <strong className="text-ink-black dark:text-paper-white">Origin Idea:</strong> &ldquo;{activeJob.idea}&rdquo;
+                </div>
+              )}
+              {activeJob.visualConcept && (
+                <div className="text-xs text-ink-black dark:text-paper-white bg-surface-container-low dark:bg-surface-container-lowest p-2.5 rounded border border-ink-black/20 dark:border-white/10 font-medium">
+                  <span className="font-mono text-[10px] text-primary dark:text-cyber-lime font-bold block mb-0.5">
+                    Visual Strategy:
+                  </span>
+                  {activeJob.visualConcept}
+                </div>
+              )}
+            </div>
+          )}
+
           <h3 className="font-title-md text-title-md text-ink-black dark:text-paper-white border-b-2 border-ink-black dark:border-surface-variant pb-2 inline-block self-start">
             Script Beats
           </h3>

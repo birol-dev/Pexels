@@ -12,6 +12,7 @@ import { PexelsDownloader, DownloadTask } from '../pexels/pexels-downloader'
 import { validateDownloadUrl } from '../pexels/download-url-validation'
 import { buildManifestAttribution } from '../pexels/pexels-attribution'
 import { SUBMIT_SCRIPT_BEATS_TOOL, parseBeatsFromToolCall } from '../llm/beat-parse-tool'
+import { expandIdeaToScript } from '../llm/idea-expander'
 import { ApiError } from '../http/api-errors'
 import { createTimeoutLinkedSignal } from '../http/abort-signal'
 import { ManifestWriter, ManifestData } from '../files/manifest-writer'
@@ -64,6 +65,9 @@ export interface JobSnapshot {
   jobId: string
   title: string
   script: string
+  inputMode?: 'script' | 'idea'
+  idea?: string
+  visualConcept?: string
   status: 'running' | 'paused' | 'completed' | 'cancelled' | 'failed'
   progress: number
   currentStep: string
@@ -81,6 +85,11 @@ export interface JobSnapshot {
 export interface StartJobInput {
   title: string
   script: string
+  inputMode?: 'script' | 'idea'
+  idea?: string
+  targetDuration?: string
+  tone?: string
+  visualConcept?: string
   platform: 'YouTube' | 'Shorts' | 'TikTok' | 'Instagram Reels'
   style: string
   mix: 'videos only' | 'photos only' | 'videos + photos'
@@ -254,6 +263,9 @@ export class AgentRunner extends EventEmitter {
       jobId: this.jobId,
       title: this.input.title,
       script: this.input.script,
+      inputMode: this.input.inputMode,
+      idea: this.input.idea,
+      visualConcept: this.input.visualConcept,
       status: this.status,
       progress: this.progress,
       currentStep: this.currentStep,
@@ -327,6 +339,15 @@ export class AgentRunner extends EventEmitter {
       const manifest = JSON.parse(data)
       if (typeof manifest.createdAt === 'string' && manifest.createdAt) {
         this.createdAt = manifest.createdAt
+      }
+      if (manifest.inputMode) {
+        this.input.inputMode = manifest.inputMode
+      }
+      if (manifest.originalIdea) {
+        this.input.idea = manifest.originalIdea
+      }
+      if (manifest.visualConcept) {
+        this.input.visualConcept = manifest.visualConcept
       }
       if (manifest.pexelsCandidates) {
         this.pexelsCandidates = new Map(manifest.pexelsCandidates)
@@ -454,6 +475,7 @@ export class AgentRunner extends EventEmitter {
       this.status = 'running'
       await this.saveRegistry()
 
+      await this.expandIdeaIfNeeded()
       await this.parseScriptIntoBeats()
       await this.runAgentLoop()
 
@@ -559,6 +581,9 @@ export class AgentRunner extends EventEmitter {
       createdAt: this.createdAt,
       finishedAt: this.status === 'completed' ? new Date().toISOString() : undefined,
       script: this.input.script,
+      inputMode: this.input.inputMode,
+      originalIdea: this.input.idea,
+      visualConcept: this.input.visualConcept,
       settingsSnapshot: {
         provider: this.providerId,
         modelId: this.modelId,
@@ -566,7 +591,10 @@ export class AgentRunner extends EventEmitter {
         visualStyle: this.input.style,
         assetMix: mapAssetMix(this.input.mix),
         maxAssetsPerBeat: this.input.maxAssetsPerBeat,
-        maxTotalDownloads: this.input.maxTotalDownloads
+        maxTotalDownloads: this.input.maxTotalDownloads,
+        inputMode: this.input.inputMode,
+        targetDuration: this.input.targetDuration,
+        tone: this.input.tone
       },
       beats: this.beats,
       // Prefer beat-level records so counts survive resume with a fresh downloader.
@@ -590,6 +618,61 @@ export class AgentRunner extends EventEmitter {
       pexelsQuotaSnapshot: PexelsClient.getQuotaSnapshot() || undefined
     }
     await ManifestWriter.writeManifest(this.projectDir, manifest)
+  }
+
+  private async expandIdeaIfNeeded(): Promise<void> {
+    const rawIdea = this.input.idea || (this.input.inputMode === 'idea' ? this.input.script : '')
+    const shouldExpand =
+      this.input.inputMode === 'idea' &&
+      (!this.input.script || this.input.script === this.input.idea)
+
+    if (!shouldExpand || !rawIdea.trim()) return
+
+    this.updateProgress('Expanding video idea with AI', 10)
+    this.log(
+      'thought',
+      `💡 Expanding video concept "${rawIdea.trim().slice(0, 60)}${rawIdea.length > 60 ? '…' : ''}" into a full narration script and visual strategy...`
+    )
+
+    const providerKey = await SecureSecrets.getSecret(`${this.providerId}Key`)
+    if (!providerKey) {
+      throw new Error(`Missing API Key for LLM provider: ${this.providerId}`)
+    }
+
+    const expanded = await expandIdeaToScript({
+      idea: rawIdea.trim(),
+      platform: this.input.platform,
+      style: this.input.style,
+      targetDuration: this.input.targetDuration,
+      tone: this.input.tone,
+      title: this.input.title,
+      timeoutSeconds: this.requestTimeoutSeconds,
+      providerId: this.providerId,
+      modelId: this.modelId,
+      apiKey: providerKey,
+      abortSignal: this.abortController?.signal
+    })
+
+    this.input.script = expanded.script
+    this.input.visualConcept = expanded.visualConcept
+    if (
+      expanded.title &&
+      (!this.input.title ||
+        this.input.title.toLowerCase().startsWith('untitled') ||
+        this.input.title.toLowerCase().startsWith('new pack'))
+    ) {
+      this.input.title = expanded.title
+    }
+
+    const wordCount = expanded.script.split(/\s+/).filter(Boolean).length
+    this.log(
+      'info',
+      `Generated full script (${wordCount} words). Visual direction: "${expanded.visualConcept}"`
+    )
+
+    await this.saveRegistry()
+    await this.writeManifest()
+    this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
   }
 
   private async parseScriptIntoBeats(): Promise<void> {

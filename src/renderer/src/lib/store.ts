@@ -43,6 +43,9 @@ export interface JobSnapshot {
   jobId: string
   title: string
   script: string
+  inputMode?: 'script' | 'idea'
+  idea?: string
+  visualConcept?: string
   status: 'running' | 'paused' | 'completed' | 'cancelled' | 'failed'
   progress: number
   currentStep: string
@@ -108,6 +111,12 @@ export interface TabItem {
 export interface InputFormState {
   title: string
   script: string
+  inputMode: 'script' | 'idea'
+  idea: string
+  targetDuration: string
+  tone: string
+  visualConcept?: string
+  isExpandingIdea?: boolean
   platform: 'YouTube' | 'Shorts' | 'TikTok' | 'Instagram Reels'
   style: string
   customStyleText: string
@@ -141,6 +150,12 @@ interface AppStore {
   closeTab: (tabId: string) => void
   selectTab: (tabId: string) => void
   updateInputTabState: (tabId: string, updates: Partial<InputFormState>) => void
+  expandIdea: (tabId: string) => Promise<{
+    title?: string
+    script: string
+    visualConcept: string
+    keyThemes?: string[]
+  }>
 
   navigate: (route: 'input' | 'run' | 'stuff' | 'settings') => void
   setActiveJobId: (id: string | null) => void
@@ -152,6 +167,11 @@ interface AppStore {
   startJob: (input: {
     title: string
     script: string
+    inputMode?: 'script' | 'idea'
+    idea?: string
+    targetDuration?: string
+    tone?: string
+    visualConcept?: string
     platform: 'YouTube' | 'Shorts' | 'TikTok' | 'Instagram Reels'
     style: string
     mix: 'videos only' | 'photos only' | 'videos + photos'
@@ -180,6 +200,12 @@ interface AppStore {
 const DEFAULT_INPUT_TAB_STATE: InputFormState = {
   title: '',
   script: '',
+  inputMode: 'script',
+  idea: '',
+  targetDuration: '60s',
+  tone: 'Engaging & Hook-first',
+  visualConcept: '',
+  isExpandingIdea: false,
   platform: 'YouTube',
   style: 'cinematic',
   customStyleText: '',
@@ -367,6 +393,40 @@ export const useAppStore = create<AppStore>((set, get) => ({
         }
       }
     })
+  },
+
+  expandIdea: async (tabId: string) => {
+    const tabState = get().inputTabStates[tabId] || { ...DEFAULT_INPUT_TAB_STATE }
+    if (!tabState.idea.trim()) {
+      throw new Error('Please enter a video idea or topic before generating.')
+    }
+    get().updateInputTabState(tabId, { isExpandingIdea: true })
+    try {
+      const result = await api.jobs.expandIdea({
+        idea: tabState.idea.trim(),
+        platform: tabState.platform,
+        style: tabState.style,
+        targetDuration: tabState.targetDuration,
+        tone: tabState.tone,
+        title: tabState.title
+      })
+      const typedResult = result as {
+        title?: string
+        script: string
+        visualConcept: string
+        keyThemes?: string[]
+      }
+      get().updateInputTabState(tabId, {
+        script: typedResult.script,
+        visualConcept: typedResult.visualConcept,
+        title: tabState.title.trim() ? tabState.title : typedResult.title || tabState.title,
+        isExpandingIdea: false
+      })
+      return typedResult
+    } catch (err) {
+      get().updateInputTabState(tabId, { isExpandingIdea: false })
+      throw err
+    }
   },
 
   navigate: (route) => {
