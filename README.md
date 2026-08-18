@@ -99,7 +99,6 @@ Inspect the code, report bugs, or contribute on [GitHub](https://github.com/biro
 
 The in-app onboarding wizard walks you through setup.
 
-
 ---
 
 ## Development
@@ -160,19 +159,19 @@ StockFinder AI helps with: AI stock footage search, Pexels video downloader, You
 ---
 
 ## Contributing
- 
+
 Found a bug or want to add a feature?
- 
+
 1. [Open an issue](https://github.com/birol-dev/Pexels/issues) — describe the problem or idea
 2. Fork the repo and open a pull request
 3. Star the repo if it saves you a run — it helps other creators find the tool
- 
+
 ---
- 
+
 ## Author & Community
- 
+
 StockFinder AI is created and maintained by [Birol](https://birol.tech).
- 
+
 - **Website & Documentation**: [https://stockfinderai.birol.tech](https://stockfinderai.birol.tech)
 - **Developer Website**: [https://birol.tech](https://birol.tech)
 - **GitHub Repository**: [https://github.com/birol-dev/Pexels](https://github.com/birol-dev/Pexels)

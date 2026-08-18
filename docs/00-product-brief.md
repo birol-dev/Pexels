@@ -5,7 +5,6 @@
 
 Research date: 2026-05-27
 
-
 ## Goal
 
 Build an Electron desktop app that helps a YouTube creator turn a script into a curated local folder of relevant stock videos and photos.

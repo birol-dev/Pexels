@@ -79,6 +79,7 @@ export interface PublicSettings {
   maxConcurrentDownloads: number
   maxAgentIterations: number
   requestTimeoutSeconds: number
+  requestsPerMinute?: number
   skipExplicitQueries: boolean
   requireApprovalBeforeDownload: boolean
   avoidPeopleAndFaces: boolean

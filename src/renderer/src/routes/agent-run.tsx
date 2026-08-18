@@ -328,7 +328,8 @@ export default function AgentRunView(): React.JSX.Element {
               </div>
               {activeJob.idea && (
                 <div className="text-xs text-outline dark:text-steel-secondary">
-                  <strong className="text-ink-black dark:text-paper-white">Origin Idea:</strong> &ldquo;{activeJob.idea}&rdquo;
+                  <strong className="text-ink-black dark:text-paper-white">Origin Idea:</strong>{' '}
+                  &ldquo;{activeJob.idea}&rdquo;
                 </div>
               )}
               {activeJob.visualConcept && (

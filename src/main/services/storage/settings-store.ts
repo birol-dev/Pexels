@@ -1,6 +1,7 @@
-import { app } from 'electron'
+import * as electron from 'electron'
 import { dirname, join } from 'path'
 import { promises as fs } from 'fs'
+import os from 'os'
 
 export interface PublicSettings {
   llmProvider: 'openai' | 'openrouter' | 'gemini'
@@ -9,6 +10,7 @@ export interface PublicSettings {
   maxConcurrentDownloads: number
   maxAgentIterations: number
   requestTimeoutSeconds: number
+  requestsPerMinute: number
   skipExplicitQueries: boolean
   requireApprovalBeforeDownload: boolean
   avoidPeopleAndFaces: boolean
@@ -17,10 +19,26 @@ export interface PublicSettings {
   hideEstimatedCost?: boolean
 }
 
+function getAppPath(name: 'userData' | 'downloads'): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const electronApp = (electron as any)?.app || (electron as any)?.default?.app
+  if (electronApp?.getPath) {
+    try {
+      return electronApp.getPath(name)
+    } catch {
+      // Fall through to fallback
+    }
+  }
+  if (name === 'userData') {
+    return join(os.homedir(), '.stockfinder-ai')
+  }
+  return join(os.homedir(), 'Downloads')
+}
+
 let settingsFile: string | null = null
 function getSettingsFile(): string {
   if (!settingsFile) {
-    settingsFile = join(app.getPath('userData'), 'settings.json')
+    settingsFile = join(getAppPath('userData'), 'settings.json')
   }
   return settingsFile
 }
@@ -31,10 +49,11 @@ export function getDefaultSettings(): PublicSettings {
     defaultSettings = {
       llmProvider: 'openai',
       modelId: 'gpt-4o',
-      downloadFolder: app.getPath('downloads'),
+      downloadFolder: getAppPath('downloads'),
       maxConcurrentDownloads: 3,
       maxAgentIterations: 30,
       requestTimeoutSeconds: 60,
+      requestsPerMinute: 0,
       skipExplicitQueries: true,
       requireApprovalBeforeDownload: false,
       avoidPeopleAndFaces: false,

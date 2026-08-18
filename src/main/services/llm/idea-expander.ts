@@ -1,6 +1,4 @@
-import {
-  LlmProviderFactory
-} from './llm-provider.ts'
+import { LlmProviderFactory } from './llm-provider.ts'
 import type { NormalizedToolDefinition } from './llm-provider.ts'
 import { createTimeoutLinkedSignal } from '../http/abort-signal.ts'
 
@@ -78,11 +76,12 @@ export function parseExpandedScriptFromToolCall(argumentsJson: string): Expanded
   }
 
   const script = typeof record.script === 'string' ? record.script.trim() : ''
-  const visualConcept =
-    typeof record.visualConcept === 'string' ? record.visualConcept.trim() : ''
+  const visualConcept = typeof record.visualConcept === 'string' ? record.visualConcept.trim() : ''
   const title = typeof record.title === 'string' ? record.title.trim() : undefined
   const keyThemes = Array.isArray(record.keyThemes)
-    ? record.keyThemes.filter((t): t is string => typeof t === 'string' && !Number.isNaN(t) && !!t.trim())
+    ? record.keyThemes.filter(
+        (t): t is string => typeof t === 'string' && !Number.isNaN(t) && !!t.trim()
+      )
     : undefined
 
   if (!script) {
@@ -152,7 +151,8 @@ export async function expandIdeaToScript(params: ExpandIdeaParams): Promise<Expa
     wordGuidance = 'approximately 300-450 words (2-3 minutes)'
   }
 
-  const isVertical = platform === 'Shorts' || platform === 'TikTok' || platform === 'Instagram Reels'
+  const isVertical =
+    platform === 'Shorts' || platform === 'TikTok' || platform === 'Instagram Reels'
 
   const systemPrompt = `You are a world-class video producer, viral content scriptwriter, and stock b-roll creative director.
 Your mission is to take a creator's short idea, topic, or premise and expand it into:
@@ -180,10 +180,7 @@ ${params.title ? `Working Title: "${params.title}"` : ''}
 
 Please expand this idea into a full narration script and visual strategy.`
 
-  const { signal, cleanup } = createTimeoutLinkedSignal(
-    timeoutSeconds * 1000,
-    params.abortSignal
-  )
+  const { signal, cleanup } = createTimeoutLinkedSignal(timeoutSeconds * 1000, params.abortSignal)
 
   try {
     const response = await provider.createToolTurn(

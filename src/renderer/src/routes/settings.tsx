@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAppStore, PublicSettings } from '../lib/store'
 import { api } from '../lib/api-client'
 
@@ -479,6 +479,42 @@ export default function SettingsView(): React.JSX.Element {
                   return {
                     ...prev,
                     requestTimeoutSeconds: Number(e.target.value)
+                  }
+                })
+              }
+              className="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-electric-purple brutal-border"
+            />
+          </div>
+
+          {/* Slider 4: Request Per Minute (RPM) Limiter */}
+          <div className="flex flex-col gap-3">
+            <div className="flex justify-between items-center">
+              <div>
+                <label className="font-label-sm text-label-sm text-ink-black uppercase">
+                  Rate Limit (Requests / Min)
+                </label>
+                <div className="text-[10px] text-risograph-gray select-none">
+                  Throttle LLM calls to prevent 429 errors (0 = Unlimited)
+                </div>
+              </div>
+              <span className="font-mono text-electric-purple font-bold">
+                {localSettings.requestsPerMinute && localSettings.requestsPerMinute > 0
+                  ? `${localSettings.requestsPerMinute} RPM`
+                  : 'Unlimited (0)'}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="120"
+              step="5"
+              value={localSettings.requestsPerMinute ?? 0}
+              onChange={(e) =>
+                setLocalSettings((prev) => {
+                  if (!prev) return null
+                  return {
+                    ...prev,
+                    requestsPerMinute: Number(e.target.value)
                   }
                 })
               }

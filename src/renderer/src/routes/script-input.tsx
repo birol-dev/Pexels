@@ -4,23 +4,28 @@ import { useAppStore } from '../lib/store'
 const QUICK_IDEA_STARTERS = [
   {
     label: '🔥 5 Mind-Blowing Facts',
-    prompt: '5 mind-blowing psychological facts that explain why humans procrastinate and how our brain tricks us.'
+    prompt:
+      '5 mind-blowing psychological facts that explain why humans procrastinate and how our brain tricks us.'
   },
   {
     label: '⏳ How It Actually Works',
-    prompt: 'A step-by-step breakdown of how quantum computing works compared to regular computers, explained simply.'
+    prompt:
+      'A step-by-step breakdown of how quantum computing works compared to regular computers, explained simply.'
   },
   {
     label: '❓ Myth vs Reality',
-    prompt: 'Top 3 biggest fitness and diet myths debunked with scientific facts and practical truths.'
+    prompt:
+      'Top 3 biggest fitness and diet myths debunked with scientific facts and practical truths.'
   },
   {
     label: '🌊 Deep Ocean Wonders',
-    prompt: 'The bizarre, bioluminescent creatures living in the Mariana Trench and how they survive extreme darkness and pressure.'
+    prompt:
+      'The bizarre, bioluminescent creatures living in the Mariana Trench and how they survive extreme darkness and pressure.'
   },
   {
     label: '🚀 Future Tech Revolution',
-    prompt: 'How humanoid AI robots are preparing to enter factories and homes over the next decade.'
+    prompt:
+      'How humanoid AI robots are preparing to enter factories and homes over the next decade.'
   }
 ]
 
@@ -140,7 +145,10 @@ export default function ScriptInputView(): React.JSX.Element {
 
   const handleExpandIdeaClick = async (): Promise<void> => {
     if (!idea.trim()) {
-      await alert('Idea Required', 'Please enter a short concept, prompt, or outline for your video.')
+      await alert(
+        'Idea Required',
+        'Please enter a short concept, prompt, or outline for your video.'
+      )
       return
     }
 
@@ -171,7 +179,10 @@ export default function ScriptInputView(): React.JSX.Element {
     // Validation based on inputMode
     if (inputMode === 'script') {
       if (!title.trim() || !script.trim()) {
-        await alert('Validation Error', 'Please fill out both the project title and the video script.')
+        await alert(
+          'Validation Error',
+          'Please fill out both the project title and the video script.'
+        )
         return
       }
     } else {
@@ -200,7 +211,10 @@ export default function ScriptInputView(): React.JSX.Element {
       return
     }
 
-    const finalTitle = title.trim() || (idea.trim().length > 40 ? `${idea.trim().slice(0, 40)}…` : idea.trim()) || 'New Video Pack'
+    const finalTitle =
+      title.trim() ||
+      (idea.trim().length > 40 ? `${idea.trim().slice(0, 40)}…` : idea.trim()) ||
+      'New Video Pack'
 
     try {
       await startJob({
@@ -296,7 +310,8 @@ export default function ScriptInputView(): React.JSX.Element {
             Create New Pack
           </h2>
           <p className="font-body-lg text-body-lg text-outline dark:text-steel-secondary mt-2">
-            Paste a full script or enter a raw idea — AI will write the narrative and curate matching b-roll.
+            Paste a full script or enter a raw idea — AI will write the narrative and curate
+            matching b-roll.
           </p>
         </div>
         <button
@@ -396,12 +411,21 @@ export default function ScriptInputView(): React.JSX.Element {
               className="block font-title-md text-title-md text-ink-black dark:text-paper-white mb-2 uppercase tracking-wide text-xs"
               htmlFor="project-title"
             >
-              Project Title {inputMode === 'idea' && <span className="text-outline lowercase font-normal">(optional — AI will generate one if blank)</span>}
+              Project Title{' '}
+              {inputMode === 'idea' && (
+                <span className="text-outline lowercase font-normal">
+                  (optional — AI will generate one if blank)
+                </span>
+              )}
             </label>
             <input
               id="project-title"
               type="text"
-              placeholder={inputMode === 'idea' ? 'e.g. 5 Deep Sea Monsters, Why We Procrastinate (or leave blank)' : 'e.g. Q3 Marketing Explainer, AI Office Hacks'}
+              placeholder={
+                inputMode === 'idea'
+                  ? 'e.g. 5 Deep Sea Monsters, Why We Procrastinate (or leave blank)'
+                  : 'e.g. Q3 Marketing Explainer, AI Office Hacks'
+              }
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full bg-paper-white dark:bg-surface-container-lowest border-2 border-ink-black dark:border-surface-variant rounded-lg px-4 py-3 font-body-md text-body-md text-ink-black dark:text-paper-white placeholder:text-risograph-gray dark:placeholder:text-steel-secondary focus:outline-none focus:ring-0 neo-brutalist-input transition-all duration-200"
@@ -511,7 +535,9 @@ export default function ScriptInputView(): React.JSX.Element {
                             : 'bg-paper-white dark:bg-surface-variant text-ink-black dark:text-paper-white hover:bg-surface-container-high'
                         }`}
                       >
-                        <span className="material-symbols-outlined text-[18px] mb-0.5">{opt.icon}</span>
+                        <span className="material-symbols-outlined text-[18px] mb-0.5">
+                          {opt.icon}
+                        </span>
                         <span className="text-xs font-bold leading-tight">{opt.label}</span>
                         <span className="text-[10px] font-mono opacity-80 mt-0.5">{opt.words}</span>
                       </button>
@@ -558,7 +584,8 @@ export default function ScriptInputView(): React.JSX.Element {
                       AI Scriptwriter
                     </span>
                     <span className="text-xs text-outline dark:text-steel-secondary">
-                      Preview and edit the AI-generated script, or proceed directly to pack generation.
+                      Preview and edit the AI-generated script, or proceed directly to pack
+                      generation.
                     </span>
                   </div>
                   <button
@@ -567,10 +594,18 @@ export default function ScriptInputView(): React.JSX.Element {
                     disabled={isExpandingIdea || !idea.trim()}
                     className="bg-primary-container border-2 border-ink-black text-on-primary-container px-5 py-2.5 rounded-lg font-title-md text-xs uppercase tracking-wider flex items-center gap-2 shadow-[3px_3px_0px_var(--color-ink-black)] hover:bg-primary hover:text-white transition-all cursor-pointer active:shadow-none active:translate-x-0.5 active:translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <span className={`material-symbols-outlined text-[18px] ${isExpandingIdea ? 'animate-spin' : ''}`}>
+                    <span
+                      className={`material-symbols-outlined text-[18px] ${isExpandingIdea ? 'animate-spin' : ''}`}
+                    >
                       {isExpandingIdea ? 'sync' : 'auto_awesome'}
                     </span>
-                    <span>{isExpandingIdea ? 'Expanding Idea…' : script.trim() ? 'Regenerate Script' : 'Generate Script from Idea'}</span>
+                    <span>
+                      {isExpandingIdea
+                        ? 'Expanding Idea…'
+                        : script.trim()
+                          ? 'Regenerate Script'
+                          : 'Generate Script from Idea'}
+                    </span>
                   </button>
                 </div>
 

@@ -1,4 +1,5 @@
 import { ApiCircuitBreaker, ApiError, fetchWithRetry } from '../http/api-errors.ts'
+import { LlmRateLimiter } from './llm-rate-limiter.ts'
 
 const llmCircuits = new Map<string, ApiCircuitBreaker>()
 
@@ -23,6 +24,12 @@ export interface LlmFetchOptions {
 export async function llmFetch(options: LlmFetchOptions): Promise<Response> {
   const circuit = getCircuit(options.label)
   circuit.ensureClosed(options.label)
+
+  await LlmRateLimiter.waitForSlot(options.init.signal ?? undefined, undefined, (waitMs) => {
+    console.info(
+      `[LlmRateLimiter] Outbound RPM limit reached. Throttling request (${options.label}) for ${Math.ceil(waitMs / 1000)}s`
+    )
+  })
 
   try {
     const response = await fetchWithRetry(options.url, {

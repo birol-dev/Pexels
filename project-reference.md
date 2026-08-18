@@ -6,7 +6,6 @@
 
 StockFinder AI (registered in `package.json` as `stockfinder-ai`) is an Electron-based desktop application designed for video producers, YouTube creators, and short-form editors. It uses an AI-powered agent to parse narrational video scripts into structured visual scenes ("beats"), generate highly contextual visual prompts, search the Pexels API for relevant stock b-roll photos/videos, and automatically download them into a structured local directory structure.
 
-
 ---
 
 ## 1. Architectural Overview
@@ -484,4 +483,3 @@ $ npm run build:linux    # For Linux systems
 - **Developer Website**: [https://birol.tech](https://birol.tech)
 - **GitHub Repository**: [https://github.com/birol-dev/Pexels](https://github.com/birol-dev/Pexels)
 - **Releases & Installers**: [https://github.com/birol-dev/Pexels/releases](https://github.com/birol-dev/Pexels/releases)
-
