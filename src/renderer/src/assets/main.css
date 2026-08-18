@@ -998,7 +998,7 @@ select.glass-input option {
   box-shadow: none;
 }
 
-/* Light stroke effect opposite to background color */
+/* Stroke effect on light backgrounds */
 .brand-logo-stroke {
   filter: drop-shadow(1px 0 0 rgba(0, 0, 0, 0.4)) drop-shadow(-1px 0 0 rgba(0, 0, 0, 0.4))
     drop-shadow(0 1px 0 rgba(0, 0, 0, 0.4)) drop-shadow(0 -1px 0 rgba(0, 0, 0, 0.4))
@@ -1006,10 +1006,9 @@ select.glass-input option {
   transition: filter 0.2s ease;
 }
 
+/* In dark mode, remove the stroke */
 .dark .brand-logo-stroke,
 :root[class~='dark'] .brand-logo-stroke,
 .theme-flat-black .brand-logo-stroke {
-  filter: drop-shadow(1px 0 0 rgba(255, 255, 255, 0.55))
-    drop-shadow(-1px 0 0 rgba(255, 255, 255, 0.55)) drop-shadow(0 1px 0 rgba(255, 255, 255, 0.55))
-    drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.55)) drop-shadow(0 0 6px rgba(255, 255, 255, 0.25));
+  filter: none;
 }
