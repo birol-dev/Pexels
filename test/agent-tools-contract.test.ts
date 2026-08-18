@@ -1,12 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { z } from 'zod'
-import {
-  PexelsPhotoSearchResultSchema,
-  PexelsVideoSearchResultSchema,
-  PexelsPhotoSchema,
-  PexelsVideoSchema
-} from '../src/main/services/pexels/pexels-types.ts'
 
 // Schemas reflecting the tool contract defined in docs/02-agent-loop-prompts-tools.md
 const SearchPexelsPhotosArgsSchema = z.object({

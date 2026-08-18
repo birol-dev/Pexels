@@ -33,13 +33,26 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y rpm
 
+      - name: Cache electron and electron-builder
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: ${{ runner.os }}-electron-cache-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-cache-
+
       - name: Install Dependencies
         run: npm ci
 
+      - name: Pre-stage Electron Cache for electron-builder
+        run: |
+          mkdir -p ~/.cache/electron
+          cp ~/.cache/electron/*/electron-v*.zip ~/.cache/electron/ 2>/dev/null || true
+
       - name: Build and Package App
-        run: npm run build:linux
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run build:linux -- --publish never
 
       - name: Upload Linux Package Artifacts
         uses: actions/upload-artifact@v4
