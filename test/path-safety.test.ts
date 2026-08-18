@@ -25,6 +25,7 @@ describe('media URL round-trip', () => {
   })
 
   it('round-trips Windows paths through the query-param media URL', () => {
+    if (process.platform !== 'win32') return
     const filePath = 'C:\\Users\\omerb\\Downloads\\project\\photos\\photo 1.jpg'
     const url = toMediaUrl(filePath)
     assert.equal(filePathFromMediaUrl(url), normalize(filePath))
@@ -36,6 +37,17 @@ describe('media URL round-trip', () => {
     const filePath = '/home/omerb/Downloads/project/photos/photo 1.jpg'
     const url = toMediaUrl(filePath)
     assert.equal(filePathFromMediaUrl(url), normalize(filePath))
+    assert.equal(new URL(url).protocol, 'media:')
+  })
+
+  it('round-trips current platform paths through the query-param media URL', () => {
+    const filePath =
+      process.platform === 'win32'
+        ? 'C:\\Users\\test\\photos\\photo 1.jpg'
+        : '/tmp/photos/photo 1.jpg'
+    const url = toMediaUrl(filePath)
+    assert.equal(filePathFromMediaUrl(url), normalize(filePath))
+    assert.equal(new URL(url).protocol, 'media:')
   })
 })
 
