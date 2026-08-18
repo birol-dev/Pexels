@@ -14,7 +14,7 @@ All three workflows also run on pull requests (build only, no release upload) an
 
 - Work from `main`.
 - Keep unrelated user changes out of the release commit.
-- Use Node.js 20 or newer.
+- Use Node.js 22 or newer.
 - `GITHUB_TOKEN` is provided automatically in Actions — no extra secrets are required for draft/published release uploads.
 
 ## Release Steps
