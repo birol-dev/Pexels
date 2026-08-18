@@ -1088,15 +1088,18 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           this.pexelsCandidates.set(key, {
             pexelsId: p.id,
             type: 'photo',
-            photographer: p.photographer,
-            photographerUrl: p.photographer_url,
+            photographer: p.photographer || 'Unknown Photographer',
+            photographerUrl: p.photographer_url || undefined,
             width: p.width,
             height: p.height,
             imageUrl: p.src.medium || p.src.original,
             query: args.query,
             variants: Object.entries(p.src)
-              .map(([label, url]) => ({ label, url }))
-              .filter((v): v is { label: string; url: string } => typeof v.url === 'string')
+              .map(([label, url]) => ({ label, url: url || '' }))
+              .filter(
+                (v): v is { label: string; url: string } =>
+                  typeof v.url === 'string' && v.url.length > 0
+              )
           })
         }
 
@@ -1105,16 +1108,19 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           results: searchRes.photos.map((p) => ({
             pexelsId: p.id,
             url: p.url,
-            photographer: p.photographer,
-            photographerUrl: p.photographer_url,
+            photographer: p.photographer || 'Unknown Photographer',
+            photographerUrl: p.photographer_url || undefined,
             width: p.width,
             height: p.height,
-            avgColor: p.avg_color,
-            alt: p.alt,
-            previewUrl: p.src.medium,
+            avgColor: p.avg_color || undefined,
+            alt: p.alt || undefined,
+            previewUrl: p.src.medium || p.src.original,
             downloadableVariants: Object.entries(p.src)
-              .map(([label, url]) => ({ label, url }))
-              .filter((v): v is { label: string; url: string } => typeof v.url === 'string')
+              .map(([label, url]) => ({ label, url: url || '' }))
+              .filter(
+                (v): v is { label: string; url: string } =>
+                  typeof v.url === 'string' && v.url.length > 0
+              )
           }))
         }
       } else if (tc.name === 'search_pexels_videos') {
@@ -1152,16 +1158,16 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           this.pexelsCandidates.set(key, {
             pexelsId: v.id,
             type: 'video',
-            photographer: v.user.name,
-            photographerUrl: v.user.url,
+            photographer: v.user?.name || 'Unknown Creator',
+            photographerUrl: v.user?.url || undefined,
             width: v.width,
             height: v.height,
-            imageUrl: v.image,
-            duration: v.duration,
+            imageUrl: v.image || '',
+            duration: v.duration || 0,
             query: args.query,
             variants: v.video_files.map((vf) => ({
-              quality: vf.quality,
-              fileType: vf.file_type,
+              quality: vf.quality || undefined,
+              fileType: vf.file_type || undefined,
               url: vf.link,
               width: vf.width ?? undefined,
               height: vf.height ?? undefined
@@ -1174,15 +1180,15 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           results: searchRes.videos.map((v) => ({
             pexelsId: v.id,
             url: v.url,
-            userName: v.user.name,
-            userUrl: v.user.url,
+            userName: v.user?.name || 'Unknown Creator',
+            userUrl: v.user?.url || undefined,
             width: v.width,
             height: v.height,
-            durationSeconds: v.duration,
-            previewImageUrl: v.image,
+            durationSeconds: v.duration || 0,
+            previewImageUrl: v.image || '',
             downloadableVariants: v.video_files.map((vf) => ({
-              quality: vf.quality,
-              fileType: vf.file_type,
+              quality: vf.quality || undefined,
+              fileType: vf.file_type || undefined,
               url: vf.link,
               width: vf.width ?? undefined,
               height: vf.height ?? undefined

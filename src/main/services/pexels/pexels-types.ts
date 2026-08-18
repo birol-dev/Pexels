@@ -7,20 +7,22 @@ export const PexelsPhotoSchema = z
     width: z.number(),
     height: z.number(),
     url: z.string(),
-    photographer: z.string(),
-    photographer_url: z.string().optional(),
-    photographer_id: z.number().optional(),
+    photographer: z.string().nullable().optional(),
+    photographer_url: z.string().nullable().optional(),
+    photographer_id: z.number().nullable().optional(),
     avg_color: z.string().nullable().optional(),
-    src: z.object({
-      original: z.string(),
-      large2x: z.string().optional(),
-      large: z.string().optional(),
-      medium: z.string().optional(),
-      small: z.string().optional(),
-      portrait: z.string().optional(),
-      landscape: z.string().optional(),
-      tiny: z.string().optional()
-    }),
+    src: z
+      .object({
+        original: z.string(),
+        large2x: z.string().nullable().optional(),
+        large: z.string().nullable().optional(),
+        medium: z.string().nullable().optional(),
+        small: z.string().nullable().optional(),
+        portrait: z.string().nullable().optional(),
+        landscape: z.string().nullable().optional(),
+        tiny: z.string().nullable().optional()
+      })
+      .passthrough(),
     alt: z.string().nullable().optional()
   })
   .passthrough()
@@ -30,8 +32,8 @@ export type PexelsPhoto = z.infer<typeof PexelsPhotoSchema>
 export const PexelsPhotoSearchResultSchema = z
   .object({
     total_results: z.number(),
-    page: z.number(),
-    per_page: z.number(),
+    page: z.number().optional(),
+    per_page: z.number().optional(),
     photos: z.array(PexelsPhotoSchema)
   })
   .passthrough()
@@ -41,11 +43,12 @@ export type PexelsPhotoSearchResult = z.infer<typeof PexelsPhotoSearchResultSche
 // Video schemas
 export const PexelsVideoFileSchema = z
   .object({
-    id: z.number(),
-    quality: z.string(),
-    file_type: z.string(),
+    id: z.number().optional(),
+    quality: z.string().nullable().optional(),
+    file_type: z.string().nullable().optional(),
     width: z.number().nullable().optional(),
     height: z.number().nullable().optional(),
+    fps: z.number().nullable().optional(),
     link: z.string()
   })
   .passthrough()
@@ -54,9 +57,9 @@ export type PexelsVideoFile = z.infer<typeof PexelsVideoFileSchema>
 
 export const PexelsVideoPictureSchema = z
   .object({
-    id: z.number(),
+    id: z.number().optional(),
     picture: z.string(),
-    nr: z.number()
+    nr: z.number().optional()
   })
   .passthrough()
 
@@ -66,15 +69,19 @@ export const PexelsVideoSchema = z
     width: z.number(),
     height: z.number(),
     url: z.string(),
-    image: z.string(),
-    duration: z.number(),
-    user: z.object({
-      id: z.number(),
-      name: z.string(),
-      url: z.string().optional()
-    }),
+    image: z.string().nullable().optional(),
+    duration: z.number().optional(),
+    user: z
+      .object({
+        id: z.number().optional(),
+        name: z.string().nullable().optional(),
+        url: z.string().nullable().optional()
+      })
+      .passthrough()
+      .nullable()
+      .optional(),
     video_files: z.array(PexelsVideoFileSchema),
-    video_pictures: z.array(PexelsVideoPictureSchema).optional()
+    video_pictures: z.array(PexelsVideoPictureSchema).nullable().optional()
   })
   .passthrough()
 
@@ -83,8 +90,8 @@ export type PexelsVideo = z.infer<typeof PexelsVideoSchema>
 export const PexelsVideoSearchResultSchema = z
   .object({
     total_results: z.number(),
-    page: z.number(),
-    per_page: z.number(),
+    page: z.number().optional(),
+    per_page: z.number().optional(),
     videos: z.array(PexelsVideoSchema)
   })
   .passthrough()

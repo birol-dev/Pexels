@@ -250,4 +250,42 @@ describe('Pexels Zod Schemas', () => {
     assert.equal(parsed.videos[0].duration, 12)
     assert.equal(parsed.videos[0].video_files[0].quality, 'hd')
   })
+
+  it('validates and parses video search payloads with null quality and optional fields', () => {
+    const rawVideoResponseWithNulls = {
+      total_results: 1,
+      page: 1,
+      per_page: 15,
+      videos: [
+        {
+          id: 99999,
+          width: 1920,
+          height: 1080,
+          url: 'https://www.pexels.com/video/99999/',
+          image: null,
+          user: null,
+          video_files: [
+            {
+              id: 222,
+              quality: null,
+              file_type: null,
+              width: null,
+              height: null,
+              fps: null,
+              link: 'https://videos.pexels.com/video-files/99999/stream.mp4'
+            }
+          ]
+        }
+      ]
+    }
+
+    const parsed = PexelsVideoSearchResultSchema.parse(rawVideoResponseWithNulls)
+    assert.equal(parsed.videos.length, 1)
+    assert.equal(parsed.videos[0].id, 99999)
+    assert.equal(parsed.videos[0].video_files[0].quality, null)
+    assert.equal(
+      parsed.videos[0].video_files[0].link,
+      'https://videos.pexels.com/video-files/99999/stream.mp4'
+    )
+  })
 })
