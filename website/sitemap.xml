@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset
   xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml"
   xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
 >
   <url>
@@ -8,9 +9,11 @@
     <lastmod>2026-08-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://stockfinderai.birol.tech/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://stockfinderai.birol.tech/" />
     <image:image>
       <image:loc>https://stockfinderai.birol.tech/logos/og-image.png</image:loc>
-      <image:title>StockFinder AI — free AI b-roll finder for YouTube</image:title>
+      <image:title>StockFinder AI — Free AI B-Roll Finder for YouTube</image:title>
     </image:image>
   </url>
   <url>
@@ -18,9 +21,11 @@
     <lastmod>2026-08-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://stockfinderai.birol.tech/how-to-find-b-roll/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://stockfinderai.birol.tech/how-to-find-b-roll/" />
     <image:image>
       <image:loc>https://stockfinderai.birol.tech/logos/og-image.png</image:loc>
-      <image:title>How to find b-roll for YouTube videos</image:title>
+      <image:title>How to Find B-Roll for YouTube Videos</image:title>
     </image:image>
   </url>
   <url>
@@ -28,6 +33,8 @@
     <lastmod>2026-08-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.95</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://stockfinderai.birol.tech/docs/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://stockfinderai.birol.tech/docs/" />
     <image:image>
       <image:loc>https://stockfinderai.birol.tech/logos/og-image.png</image:loc>
       <image:title>StockFinder AI Documentation — User Guide &amp; Technical Reference</image:title>
@@ -38,6 +45,8 @@
     <lastmod>2026-08-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://stockfinderai.birol.tech/about/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://stockfinderai.birol.tech/about/" />
     <image:image>
       <image:loc>https://stockfinderai.birol.tech/logos/og-image.png</image:loc>
       <image:title>About StockFinder AI — The Open-Source AI B-Roll Assistant</image:title>
@@ -48,6 +57,8 @@
     <lastmod>2026-08-18</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://stockfinderai.birol.tech/pricing/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://stockfinderai.birol.tech/pricing/" />
     <image:image>
       <image:loc>https://stockfinderai.birol.tech/logos/og-image.png</image:loc>
       <image:title>StockFinder AI Pricing — Free Forever</image:title>
@@ -58,9 +69,12 @@
     <lastmod>2026-08-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://stockfinderai.birol.tech/privacy/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://stockfinderai.birol.tech/privacy/" />
     <image:image>
       <image:loc>https://stockfinderai.birol.tech/logos/og-image.png</image:loc>
       <image:title>StockFinder AI Privacy</image:title>
     </image:image>
   </url>
 </urlset>
+

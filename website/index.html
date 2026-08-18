@@ -29,6 +29,12 @@
       href="https://stockfinderai.birol.tech/llms.txt"
       title="LLM context"
     />
+    <link
+      rel="alternate"
+      type="text/markdown"
+      href="https://stockfinderai.birol.tech/pricing.md"
+      title="Pricing Markdown"
+    />
     <link rel="me" href="https://github.com/birol-dev/Pexels" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="StockFinder AI" />
@@ -60,6 +66,7 @@
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;600&display=swap"
       rel="stylesheet"
@@ -95,19 +102,33 @@
             "publisher": { "@id": "https://stockfinderai.birol.tech/#organization" }
           },
           {
+            "@type": "BreadcrumbList",
+            "@id": "https://stockfinderai.birol.tech/#breadcrumb",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://stockfinderai.birol.tech/"
+              }
+            ]
+          },
+          {
             "@type": "WebPage",
             "@id": "https://stockfinderai.birol.tech/#webpage",
             "url": "https://stockfinderai.birol.tech/",
             "name": "Free AI B-Roll Finder for YouTube | StockFinder AI",
             "isPartOf": { "@id": "https://stockfinderai.birol.tech/#website" },
             "about": { "@id": "https://stockfinderai.birol.tech/#software" },
+            "breadcrumb": { "@id": "https://stockfinderai.birol.tech/#breadcrumb" },
             "primaryImageOfPage": {
               "@type": "ImageObject",
               "url": "https://stockfinderai.birol.tech/logos/og-image.png",
               "width": 1200,
               "height": 630
             },
-            "dateModified": "2026-08-17",
+            "datePublished": "2026-06-09",
+            "dateModified": "2026-08-18",
             "inLanguage": "en-US"
           },
           {
@@ -134,7 +155,7 @@
             "operatingSystem": "Windows, macOS, Linux",
             "softwareVersion": "1.2.9",
             "datePublished": "2026-06-09",
-            "dateModified": "2026-08-17",
+            "dateModified": "2026-08-18",
             "description": "Free, open-source desktop app that uses AI to map video scripts into visual beats, search Pexels stock footage, and download organized b-roll packs with attribution.",
             "downloadUrl": "https://github.com/birol-dev/Pexels/releases",
             "installUrl": "https://github.com/birol-dev/Pexels/releases",
@@ -498,7 +519,9 @@
           <div class="section-header centered reveal">
             <span class="eyebrow">How it works</span>
             <h2 class="display-lg">Four steps. Zero stock-site spelunking.</h2>
-            <p class="lead">Turn any narration script into a curated, editor-ready Pexels b-roll pack.</p>
+            <p class="lead">
+              Turn any narration script into a curated, editor-ready Pexels b-roll pack.
+            </p>
           </div>
 
           <div class="steps-grid">
@@ -536,7 +559,16 @@
             </article>
           </div>
 
-          <div class="reveal" style="margin-top: 2.25rem; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+          <div
+            class="reveal"
+            style="
+              margin-top: 2.25rem;
+              display: flex;
+              justify-content: center;
+              gap: 1rem;
+              flex-wrap: wrap;
+            "
+          >
             <a href="/docs/#step-by-step" class="btn btn-primary">
               Read step-by-step user guide
               <span class="material-symbols-outlined" style="font-size: 1rem">arrow_forward</span>
@@ -564,8 +596,7 @@
             <p class="body-sm definition-meta">
               Last updated: August 18, 2026 · Version 1.2.9 ·
               <a href="/docs/#step-by-step">Step-by-step guide</a> ·
-              <a href="/docs/">Documentation</a> ·
-              <a href="/about/">About StockFinder</a> ·
+              <a href="/docs/">Documentation</a> · <a href="/about/">About StockFinder</a> ·
               <a href="/pricing/">Pricing</a> ·
               <a href="/privacy/">Privacy</a>
             </p>
@@ -935,8 +966,6 @@
           </div>
         </div>
       </section>
-
-
 
       <!-- FEATURES BENTO -->
       <section class="section" id="features">
@@ -1483,6 +1512,7 @@
               </li>
               <li><a href="/privacy/">Privacy</a></li>
               <li><a href="/llms.txt">llms.txt</a></li>
+              <li><a href="/pricing.md">pricing.md</a></li>
               <li>
                 <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer"
                   >Pexels API</a
@@ -1492,7 +1522,7 @@
           </div>
         </div>
         <div class="footer-bottom">
-          <span>StockFinder AI v1.2.9 — Free &amp; open source · Last updated August 17, 2026</span>
+          <span>StockFinder AI v1.2.9 — Free &amp; open source · Last updated August 18, 2026</span>
           <span>Pexels media used under the Pexels License</span>
         </div>
       </div>

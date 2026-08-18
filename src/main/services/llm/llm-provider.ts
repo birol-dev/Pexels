@@ -142,7 +142,6 @@ function toOpenAiMessages(messages: AgentMessage[], systemPrompt?: string): Open
 }
 
 // 1. OpenAI Implementation
-// 1. OpenAI Implementation
 class OpenAiProvider implements LlmProvider {
   public id = 'openai' as const
 

@@ -2,6 +2,7 @@
   "name": "stockfinder-ai",
   "version": "1.2.9",
   "description": "An Electron desktop app for finding and downloading Pexels stock assets with AI.",
+  "type": "module",
   "main": "./out/main/index.js",
   "author": "eact6",
   "license": "MIT",
@@ -13,9 +14,7 @@
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
-    "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
-    "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
-    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "typecheck": "tsc -b --noEmit",
     "test": "node --experimental-strip-types --test test/**/*.test.ts",
     "start": "electron-vite dev",
     "dev": "electron-vite dev",
@@ -42,7 +41,6 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "electron": "^39.2.6",
-
     "electron-builder": "^26.0.12",
     "electron-vite": "^5.0.0",
     "eslint": "^9.39.1",

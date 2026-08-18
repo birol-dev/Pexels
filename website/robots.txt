@@ -6,13 +6,11 @@ Sitemap: https://stockfinderai.birol.tech/sitemap.xml
 User-agent: *
 Allow: /
 Disallow: /404.html
-Disallow: /pricing.md
 
 # Googlebot (Search & Mobile-first indexing)
 User-agent: Googlebot
 Allow: /
 Disallow: /404.html
-Disallow: /pricing.md
 
 # Googlebot Images
 User-agent: Googlebot-Image
@@ -23,7 +21,6 @@ Allow: /
 User-agent: Bingbot
 Allow: /
 Disallow: /404.html
-Disallow: /pricing.md
 
 # Google Gemini & AI Overviews
 User-agent: Google-Extended
@@ -43,10 +40,18 @@ Allow: /
 User-agent: anthropic-ai
 Allow: /
 
-# Perplexity
+# Perplexity AI
 User-agent: PerplexityBot
 Allow: /
 
 # Apple Intelligence / Spotlight
 User-agent: Applebot
+Allow: /
+
+# Meta AI
+User-agent: Meta-ExternalAgent
+Allow: /
+
+# Cohere
+User-agent: cohere-ai
 Allow: /

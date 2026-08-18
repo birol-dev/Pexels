@@ -27,9 +27,18 @@
       href="https://stockfinderai.birol.tech/llms.txt"
       title="LLM context"
     />
+    <link
+      rel="alternate"
+      type="text/markdown"
+      href="https://stockfinderai.birol.tech/pricing.md"
+      title="Pricing Markdown"
+    />
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="StockFinder AI" />
-    <meta property="og:title" content="StockFinder AI Documentation — Complete Step-by-Step Guide & Reference" />
+    <meta
+      property="og:title"
+      content="StockFinder AI Documentation — Complete Step-by-Step Guide & Reference"
+    />
     <meta
       property="og:description"
       content="Everything you need to master StockFinder AI: API setup, script-to-beat parsing, autonomous Pexels agent runs, human review workflows, and timeline imports."
@@ -53,12 +62,10 @@
       content="Full documentation and step-by-step user guide for StockFinder AI. Automate your b-roll search on your desktop."
     />
     <meta name="twitter:image" content="https://stockfinderai.birol.tech/logos/og-image.png" />
-    <meta
-      name="twitter:image:alt"
-      content="StockFinder AI Documentation"
-    />
+    <meta name="twitter:image:alt" content="StockFinder AI Documentation" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;600&display=swap"
       rel="stylesheet"
@@ -278,7 +285,9 @@
           <span class="eyebrow">User Manual &amp; Technical Reference</span>
           <h1 class="display-lg">StockFinder AI Documentation</h1>
           <p class="lead">
-            The complete guide to installing, configuring, and operating StockFinder AI. Learn how to turn any video script into an organized, attribution-ready Pexels b-roll pack on your machine.
+            The complete guide to installing, configuring, and operating StockFinder AI. Learn how
+            to turn any video script into an organized, attribution-ready Pexels b-roll pack on your
+            machine.
           </p>
           <p class="updated-meta">Version 1.2.9 · Last updated August 18, 2026 · 12 min read</p>
         </div>
@@ -296,7 +305,9 @@
               <li><a href="#review-mode">5. Human-in-the-Loop Review Controls</a></li>
               <li><a href="#manifest-structure">6. Project Folder &amp; Manifest Structure</a></li>
               <li><a href="#nle-integration">7. Importing Assets into Video Editors</a></li>
-              <li><a href="#attribution-guide">8. Pexels Attribution &amp; License Compliance</a></li>
+              <li>
+                <a href="#attribution-guide">8. Pexels Attribution &amp; License Compliance</a>
+              </li>
               <li><a href="#advanced-settings">9. Performance &amp; Safety Configuration</a></li>
               <li><a href="#architecture">10. Architecture &amp; Developer Reference</a></li>
               <li><a href="#troubleshooting">11. Troubleshooting &amp; FAQ</a></li>
@@ -305,7 +316,8 @@
 
           <h2 id="step-by-step">1. Step-by-Step User Guide (How to Use)</h2>
           <p>
-            Follow this complete step-by-step walkthrough to turn any raw script into an organized Pexels b-roll asset pack.
+            Follow this complete step-by-step walkthrough to turn any raw script into an organized
+            Pexels b-roll asset pack.
           </p>
 
           <!-- STEP 1 -->
@@ -318,16 +330,30 @@
               </div>
             </div>
             <p>
-              Open StockFinder AI and navigate to the <strong>Settings</strong> tab from the left navigation sidebar.
+              Open StockFinder AI and navigate to the <strong>Settings</strong> tab from the left
+              navigation sidebar.
             </p>
             <ol>
-              <li>Select your preferred <strong>LLM Provider</strong> (e.g. Google Gemini, OpenAI, or OpenRouter) and enter your API key.</li>
+              <li>
+                Select your preferred <strong>LLM Provider</strong> (e.g. Google Gemini, OpenAI, or
+                OpenRouter) and enter your API key.
+              </li>
               <li>Paste your free <strong>Pexels API Key</strong>.</li>
-              <li>Click the <strong>Test Connection</strong> buttons next to each field to verify that your keys are valid and active.</li>
-              <li>Choose your <strong>Default Download Folder</strong> (e.g., <code>D:/VideoProjects/StockAssets</code> or your desktop video folder).</li>
+              <li>
+                Click the <strong>Test Connection</strong> buttons next to each field to verify that
+                your keys are valid and active.
+              </li>
+              <li>
+                Choose your <strong>Default Download Folder</strong> (e.g.,
+                <code>D:/VideoProjects/StockAssets</code> or your desktop video folder).
+              </li>
             </ol>
             <div class="callout">
-              <p><strong>Tip:</strong> If you want to review each photo and video candidate before it gets saved to your hard drive, toggle on <strong>"Require Human Approval Before Download"</strong> in Settings.</p>
+              <p>
+                <strong>Tip:</strong> If you want to review each photo and video candidate before it
+                gets saved to your hard drive, toggle on
+                <strong>"Require Human Approval Before Download"</strong> in Settings.
+              </p>
             </div>
           </div>
 
@@ -341,21 +367,43 @@
               </div>
             </div>
             <p>
-              Click on <strong>"Create Asset Pack"</strong> in the sidebar. You will see the project input form:
+              Click on <strong>"Create Asset Pack"</strong> in the sidebar. You will see the project
+              input form:
             </p>
             <ul>
-              <li><strong>Project Title:</strong> Enter a recognizable name (e.g. <code>The Future of Artificial Intelligence</code>). A slugified folder will be created on disk.</li>
-              <li><strong>Video Script:</strong> Paste your full narration, voiceover text, talking-head script, or scene outline.</li>
-              <li><strong>Platform Layout:</strong>
+              <li>
+                <strong>Project Title:</strong> Enter a recognizable name (e.g.
+                <code>The Future of Artificial Intelligence</code>). A slugified folder will be
+                created on disk.
+              </li>
+              <li>
+                <strong>Video Script:</strong> Paste your full narration, voiceover text,
+                talking-head script, or scene outline.
+              </li>
+              <li>
+                <strong>Platform Layout:</strong>
                 <ul>
                   <li><code>YouTube (16:9)</code> — Prioritizes horizontal widescreen footage.</li>
-                  <li><code>Shorts / TikTok / Reels (9:16)</code> — Prioritizes vertical video clips with subjects framed in center.</li>
+                  <li>
+                    <code>Shorts / TikTok / Reels (9:16)</code> — Prioritizes vertical video clips
+                    with subjects framed in center.
+                  </li>
                   <li><code>Square (1:1)</code> — For Instagram and social feeds.</li>
                 </ul>
               </li>
-              <li><strong>Visual Mood:</strong> Select an aesthetic direction to guide the AI's search prompts (e.g., <em>Cinematic, High Tech, Moody Documentary, Warm &amp; Lifestyle, Abstract</em>).</li>
-              <li><strong>Asset Mix Type:</strong> Choose whether you want <em>"Videos Only"</em>, <em>"Photos Only"</em>, or <em>"Videos + Photos"</em>.</li>
-              <li><strong>Asset Limits:</strong> Set maximum assets per beat (e.g. 2–3) and total project download caps (e.g. 15–25 assets).</li>
+              <li>
+                <strong>Visual Mood:</strong> Select an aesthetic direction to guide the AI's search
+                prompts (e.g.,
+                <em>Cinematic, High Tech, Moody Documentary, Warm &amp; Lifestyle, Abstract</em>).
+              </li>
+              <li>
+                <strong>Asset Mix Type:</strong> Choose whether you want <em>"Videos Only"</em>,
+                <em>"Photos Only"</em>, or <em>"Videos + Photos"</em>.
+              </li>
+              <li>
+                <strong>Asset Limits:</strong> Set maximum assets per beat (e.g. 2–3) and total
+                project download caps (e.g. 15–25 assets).
+              </li>
             </ul>
           </div>
 
@@ -369,13 +417,27 @@
               </div>
             </div>
             <p>
-              Click the bright lime <strong>"Analyze &amp; Fetch Visual Assets"</strong> button. The app will immediately transition to the <strong>Agent Run Progress</strong> view:
+              Click the bright lime <strong>"Analyze &amp; Fetch Visual Assets"</strong> button. The
+              app will immediately transition to the <strong>Agent Run Progress</strong> view:
             </p>
             <ol>
-              <li><strong>Script Segmentation:</strong> The LLM parses your narration into granular <code>VisualBeat</code> segments.</li>
-              <li><strong>Visual Direction Synthesis:</strong> For each beat, the agent drafts the ideal visual direction and compiles targeted Pexels search keywords.</li>
-              <li><strong>Autonomous Tool Calling:</strong> The agent calls <code>search_pexels_videos</code> and <code>search_pexels_photos</code> in parallel, evaluating candidate relevance and resolution.</li>
-              <li><strong>Real-Time Console:</strong> Watch the agent's live thoughts, query payloads, API responses, and token cost estimations in the built-in developer console.</li>
+              <li>
+                <strong>Script Segmentation:</strong> The LLM parses your narration into granular
+                <code>VisualBeat</code> segments.
+              </li>
+              <li>
+                <strong>Visual Direction Synthesis:</strong> For each beat, the agent drafts the
+                ideal visual direction and compiles targeted Pexels search keywords.
+              </li>
+              <li>
+                <strong>Autonomous Tool Calling:</strong> The agent calls
+                <code>search_pexels_videos</code> and <code>search_pexels_photos</code> in parallel,
+                evaluating candidate relevance and resolution.
+              </li>
+              <li>
+                <strong>Real-Time Console:</strong> Watch the agent's live thoughts, query payloads,
+                API responses, and token cost estimations in the built-in developer console.
+              </li>
             </ol>
           </div>
 
@@ -389,13 +451,20 @@
               </div>
             </div>
             <p>
-              If you enabled <em>Human Approval Mode</em>, the agent loop pauses once candidate assets are selected:
+              If you enabled <em>Human Approval Mode</em>, the agent loop pauses once candidate
+              assets are selected:
             </p>
             <ul>
               <li>Each visual beat card displays the shortlisted video and photo thumbnails.</li>
-              <li>Click on candidate cards to inspect preview resolution, dimensions, and photographer name.</li>
+              <li>
+                Click on candidate cards to inspect preview resolution, dimensions, and photographer
+                name.
+              </li>
               <li>Approve the assets you want or reject off-topic clips with a single click.</li>
-              <li>Click <strong>"Approve &amp; Download"</strong> to trigger the multi-threaded downloader.</li>
+              <li>
+                Click <strong>"Approve &amp; Download"</strong> to trigger the multi-threaded
+                downloader.
+              </li>
             </ul>
           </div>
 
@@ -408,19 +477,29 @@
                 <span class="badge badge-lime">Export &amp; Cut</span>
               </div>
             </div>
-            <p>
-              Once downloads finish, navigate to the <strong>Media Library</strong> view:
-            </p>
+            <p>Once downloads finish, navigate to the <strong>Media Library</strong> view:</p>
             <ul>
-              <li><strong>Built-In Media Player:</strong> Preview local video clips with scrubbing and playback powered by the zero-CORS <code>media://</code> protocol.</li>
-              <li><strong>Open in Folder:</strong> Click <em>"Reveal in Folder"</em> to jump directly to the asset on your operating system's file explorer.</li>
-              <li><strong>Export Manifest &amp; Attribution:</strong> Click <em>"Copy Attribution"</em> to get a pre-formatted credits list ready to paste directly into your YouTube video description or client deliverable.</li>
+              <li>
+                <strong>Built-In Media Player:</strong> Preview local video clips with scrubbing and
+                playback powered by the zero-CORS <code>media://</code> protocol.
+              </li>
+              <li>
+                <strong>Open in Folder:</strong> Click <em>"Reveal in Folder"</em> to jump directly
+                to the asset on your operating system's file explorer.
+              </li>
+              <li>
+                <strong>Export Manifest &amp; Attribution:</strong> Click
+                <em>"Copy Attribution"</em> to get a pre-formatted credits list ready to paste
+                directly into your YouTube video description or client deliverable.
+              </li>
             </ul>
           </div>
 
           <h2 id="prerequisites">2. Prerequisites &amp; API Keys Setup</h2>
           <p>
-            Because StockFinder AI is 100% local and open-source, there are no monthly subscription fees or proprietary cloud servers. You simply connect your own free and pay-as-you-go API credentials:
+            Because StockFinder AI is 100% local and open-source, there are no monthly subscription
+            fees or proprietary cloud servers. You simply connect your own free and pay-as-you-go
+            API credentials:
           </p>
 
           <div class="doc-grid">
@@ -436,7 +515,10 @@
                 <br />
                 <strong>Rate Limit:</strong> 200 requests/hour, 20,000 requests/month.
                 <br />
-                <strong>Get it here:</strong> <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer">pexels.com/api</a>
+                <strong>Get it here:</strong>
+                <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer"
+                  >pexels.com/api</a
+                >
               </p>
             </div>
 
@@ -460,39 +542,71 @@
           </div>
 
           <p>
-            All sensitive API keys are encrypted directly on your machine using your operating system's hardware-backed key vault:
+            All sensitive API keys are encrypted directly on your machine using your operating
+            system's hardware-backed key vault:
           </p>
           <ul>
-            <li><strong>Windows:</strong> Microsoft Data Protection API (DPAPI) via Electron <code>safeStorage</code>.</li>
-            <li><strong>macOS:</strong> Apple Keychain Services via Electron <code>safeStorage</code>.</li>
+            <li>
+              <strong>Windows:</strong> Microsoft Data Protection API (DPAPI) via Electron
+              <code>safeStorage</code>.
+            </li>
+            <li>
+              <strong>macOS:</strong> Apple Keychain Services via Electron <code>safeStorage</code>.
+            </li>
             <li><strong>Linux:</strong> Secret Service API / Libsecret.</li>
           </ul>
 
           <h2 id="overview">3. Project Overview &amp; What It Does</h2>
           <p>
-            <strong>StockFinder AI</strong> is a free, open-source (MIT licensed) desktop application built for YouTube creators, documentary editors, short-form video producers, and marketing teams.
+            <strong>StockFinder AI</strong> is a free, open-source (MIT licensed) desktop
+            application built for YouTube creators, documentary editors, short-form video producers,
+            and marketing teams.
           </p>
           <p>
-            When making video content, video creators often spend <strong>2 to 4 hours per project</strong> manually browsing stock footage websites like Pexels, guessing search keywords scene by scene, downloading clips one by one into an unorganized Downloads folder, and manually keeping track of photographer credits.
+            When making video content, video creators often spend
+            <strong>2 to 4 hours per project</strong> manually browsing stock footage websites like
+            Pexels, guessing search keywords scene by scene, downloading clips one by one into an
+            unorganized Downloads folder, and manually keeping track of photographer credits.
           </p>
-          <p>
-            StockFinder AI completely automates this stock research phase:
-          </p>
+          <p>StockFinder AI completely automates this stock research phase:</p>
           <ul>
-            <li><strong>Script Decomposition:</strong> An LLM agent reads your entire narration script and splits it into structured visual beats (scenes).</li>
-            <li><strong>Visual Translation:</strong> Metaphors and abstract lines are translated into concrete, searchable real-world visual descriptions.</li>
-            <li><strong>Autonomous Media Search:</strong> The agent calls the official Pexels API to locate high-resolution 4K/HD video clips and photos matching your chosen aspect ratio and mood.</li>
-            <li><strong>High-Speed Multi-Threaded Downloader:</strong> Streams selected media directly into a cleanly structured project folder on your machine.</li>
-            <li><strong>Automatic Attribution:</strong> Generates a full credits manifest and YouTube description block complying with the Pexels License.</li>
+            <li>
+              <strong>Script Decomposition:</strong> An LLM agent reads your entire narration script
+              and splits it into structured visual beats (scenes).
+            </li>
+            <li>
+              <strong>Visual Translation:</strong> Metaphors and abstract lines are translated into
+              concrete, searchable real-world visual descriptions.
+            </li>
+            <li>
+              <strong>Autonomous Media Search:</strong> The agent calls the official Pexels API to
+              locate high-resolution 4K/HD video clips and photos matching your chosen aspect ratio
+              and mood.
+            </li>
+            <li>
+              <strong>High-Speed Multi-Threaded Downloader:</strong> Streams selected media directly
+              into a cleanly structured project folder on your machine.
+            </li>
+            <li>
+              <strong>Automatic Attribution:</strong> Generates a full credits manifest and YouTube
+              description block complying with the Pexels License.
+            </li>
           </ul>
 
           <div class="callout callout-lime">
-            <p><strong>Important Clarification:</strong> StockFinder AI is <em>not</em> an NLE video editor (like Premiere Pro or DaVinci Resolve) and not a video stitcher. It is an intelligent stock footage researcher and asset bundler that prepares high-quality media packs for your timeline.</p>
+            <p>
+              <strong>Important Clarification:</strong> StockFinder AI is <em>not</em> an NLE video
+              editor (like Premiere Pro or DaVinci Resolve) and not a video stitcher. It is an
+              intelligent stock footage researcher and asset bundler that prepares high-quality
+              media packs for your timeline.
+            </p>
           </div>
 
           <h2 id="agent-loop">4. How the AI Agent Loop Works</h2>
           <p>
-            StockFinder AI uses a secure <strong>tool-calling agent loop</strong> rather than simple keyword replacement. The backend agent interacts with Pexels and the file system through a strict four-tool contract:
+            StockFinder AI uses a secure <strong>tool-calling agent loop</strong> rather than simple
+            keyword replacement. The backend agent interacts with Pexels and the file system through
+            a strict four-tool contract:
           </p>
 
           <div class="code-block">
@@ -517,23 +631,40 @@ download_selected_assets({ assets: [{ assetType: 'video', pexelsId: 123456 }] })
           </div>
 
           <p>
-            <strong>Rate-Limit &amp; Cache Protection:</strong> To ensure you never exhaust your Pexels API quota, all search queries are hashed and cached locally for 1 hour. If a network blip occurs, exponential backoff retries the request automatically.
+            <strong>Rate-Limit &amp; Cache Protection:</strong> To ensure you never exhaust your
+            Pexels API quota, all search queries are hashed and cached locally for 1 hour. If a
+            network blip occurs, exponential backoff retries the request automatically.
           </p>
 
           <h2 id="review-mode">5. Human-in-the-Loop Review Controls</h2>
           <p>
-            AI search is fast, but video creators have distinct visual taste. StockFinder AI gives you granular control over what gets saved to your disk:
+            AI search is fast, but video creators have distinct visual taste. StockFinder AI gives
+            you granular control over what gets saved to your disk:
           </p>
           <ul>
-            <li><strong>Review Lock:</strong> When <code>requireApprovalBeforeDownload</code> is enabled in settings, the runner pauses after asset selection and emits an <code>awaiting_user_approval</code> event.</li>
-            <li><strong>Per-Asset Decisions:</strong> Accept or reject individual clips per scene beat.</li>
-            <li><strong>Resume Continuity:</strong> If you close the app or pause a run, StockFinder AI preserves your session state and continues where you left off.</li>
-            <li><strong>Rerun Failed Jobs:</strong> Retry individual failed beats or whole projects with a single click without re-entering your script.</li>
+            <li>
+              <strong>Review Lock:</strong> When <code>requireApprovalBeforeDownload</code> is
+              enabled in settings, the runner pauses after asset selection and emits an
+              <code>awaiting_user_approval</code> event.
+            </li>
+            <li>
+              <strong>Per-Asset Decisions:</strong> Accept or reject individual clips per scene
+              beat.
+            </li>
+            <li>
+              <strong>Resume Continuity:</strong> If you close the app or pause a run, StockFinder
+              AI preserves your session state and continues where you left off.
+            </li>
+            <li>
+              <strong>Rerun Failed Jobs:</strong> Retry individual failed beats or whole projects
+              with a single click without re-entering your script.
+            </li>
           </ul>
 
           <h2 id="manifest-structure">6. Project Folder &amp; Manifest Structure</h2>
           <p>
-            Each project is saved in its own organized directory within your configured download folder:
+            Each project is saved in its own organized directory within your configured download
+            folder:
           </p>
 
           <div class="code-block">
@@ -555,34 +686,49 @@ download_selected_assets({ assets: [{ assetType: 'video', pexelsId: 123456 }] })
 
           <h2 id="nle-integration">7. Importing Assets into Video Editors</h2>
           <p>
-            Because assets are grouped into standard MP4 and JPG files with sanitized file names, importing your new b-roll pack takes seconds:
+            Because assets are grouped into standard MP4 and JPG files with sanitized file names,
+            importing your new b-roll pack takes seconds:
           </p>
           <div class="doc-grid">
             <div class="doc-card">
               <h4>Adobe Premiere Pro</h4>
-              <p>Drag the entire project folder into your Premiere Pro <strong>Project Panel</strong>. Premiere automatically preserves the <code>videos/</code> and <code>photos/</code> bin structure.</p>
+              <p>
+                Drag the entire project folder into your Premiere Pro
+                <strong>Project Panel</strong>. Premiere automatically preserves the
+                <code>videos/</code> and <code>photos/</code> bin structure.
+              </p>
             </div>
             <div class="doc-card">
               <h4>DaVinci Resolve</h4>
-              <p>Drag the folder into your <strong>Media Pool</strong>. All 4K and 1080p clips are indexed instantly for color grading and timeline cutting.</p>
+              <p>
+                Drag the folder into your <strong>Media Pool</strong>. All 4K and 1080p clips are
+                indexed instantly for color grading and timeline cutting.
+              </p>
             </div>
             <div class="doc-card">
               <h4>Final Cut Pro</h4>
-              <p>Import the folder as a new <strong>Keyword Collection</strong>. Your clips are immediately tagged and searchable in the event browser.</p>
+              <p>
+                Import the folder as a new <strong>Keyword Collection</strong>. Your clips are
+                immediately tagged and searchable in the event browser.
+              </p>
             </div>
             <div class="doc-card">
               <h4>CapCut Desktop</h4>
-              <p>Drag the <code>videos/</code> directory directly into CapCut's <strong>Media Import</strong> tab for rapid short-form video creation.</p>
+              <p>
+                Drag the <code>videos/</code> directory directly into CapCut's
+                <strong>Media Import</strong> tab for rapid short-form video creation.
+              </p>
             </div>
           </div>
 
           <h2 id="attribution-guide">8. Pexels Attribution &amp; License Compliance</h2>
           <p>
-            All media downloaded from Pexels is free to use for commercial and non-commercial purposes under the <strong>Pexels License</strong>. Attribution is not strictly legally required by Pexels, but it is heavily encouraged and appreciated by photographers and creators.
+            All media downloaded from Pexels is free to use for commercial and non-commercial
+            purposes under the <strong>Pexels License</strong>. Attribution is not strictly legally
+            required by Pexels, but it is heavily encouraged and appreciated by photographers and
+            creators.
           </p>
-          <p>
-            StockFinder AI generates a clean attribution block in one click:
-          </p>
+          <p>StockFinder AI generates a clean attribution block in one click:</p>
           <div class="code-block">
             <div class="code-block-header">
               <span>Sample Exported Attribution Block for YouTube Description</span>
@@ -598,25 +744,48 @@ Curated with StockFinder AI (https://stockfinderai.birol.tech)</code></pre>
 
           <h2 id="advanced-settings">9. Performance &amp; Safety Configuration</h2>
           <p>
-            Customize StockFinder AI to match your hardware and editorial guidelines in the <strong>Settings</strong> tab:
+            Customize StockFinder AI to match your hardware and editorial guidelines in the
+            <strong>Settings</strong> tab:
           </p>
           <ul>
-            <li><strong>Max Concurrent Downloads:</strong> Adjust between 1 and 5 parallel download streams based on your network bandwidth.</li>
-            <li><strong>Request Timeout:</strong> Sets maximum timeout duration (default: 30 seconds) before aborting hanging API connections.</li>
-            <li><strong>Avoid Faces and People:</strong> Injects negative prompts into stock searches to favor objects, nature, architecture, and technology over human closeups.</li>
-            <li><strong>Skip Explicit Queries:</strong> Automatically sanitizes adult, violent, or sensitive terms from stock search queries.</li>
+            <li>
+              <strong>Max Concurrent Downloads:</strong> Adjust between 1 and 5 parallel download
+              streams based on your network bandwidth.
+            </li>
+            <li>
+              <strong>Request Timeout:</strong> Sets maximum timeout duration (default: 30 seconds)
+              before aborting hanging API connections.
+            </li>
+            <li>
+              <strong>Avoid Faces and People:</strong> Injects negative prompts into stock searches
+              to favor objects, nature, architecture, and technology over human closeups.
+            </li>
+            <li>
+              <strong>Skip Explicit Queries:</strong> Automatically sanitizes adult, violent, or
+              sensitive terms from stock search queries.
+            </li>
           </ul>
 
           <h2 id="architecture">10. Architecture &amp; Developer Reference</h2>
-          <p>
-            StockFinder AI is built on a modern, secure Electron stack:
-          </p>
+          <p>StockFinder AI is built on a modern, secure Electron stack:</p>
           <ul>
-            <li><strong>Electron 39:</strong> Multi-process desktop container with strict context isolation.</li>
-            <li><strong>React 19 &amp; Vite:</strong> High-performance renderer bundle with instant hot reloading during development.</li>
-            <li><strong>Tailwind CSS 4:</strong> Industrial risograph dark theme with custom glassmorphic components.</li>
+            <li>
+              <strong>Electron 39:</strong> Multi-process desktop container with strict context
+              isolation.
+            </li>
+            <li>
+              <strong>React 19 &amp; Vite:</strong> High-performance renderer bundle with instant
+              hot reloading during development.
+            </li>
+            <li>
+              <strong>Tailwind CSS 4:</strong> Industrial risograph dark theme with custom
+              glassmorphic components.
+            </li>
             <li><strong>Zustand:</strong> Fast, lightweight reactive state management.</li>
-            <li><strong>Node.js IPC:</strong> Sandboxed main process handling filesystem, cryptography, and network requests safely.</li>
+            <li>
+              <strong>Node.js IPC:</strong> Sandboxed main process handling filesystem,
+              cryptography, and network requests safely.
+            </li>
           </ul>
 
           <p>To run or build StockFinder AI from source code:</p>
@@ -645,26 +814,44 @@ npm run build:linux # Linux AppImage &amp; .deb</code></pre>
 
           <h3>"Invalid Pexels API Key" Error</h3>
           <p>
-            Ensure your Pexels key does not contain leading or trailing spaces. Verify that your account at <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer">pexels.com/api</a> has an approved active application.
+            Ensure your Pexels key does not contain leading or trailing spaces. Verify that your
+            account at
+            <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer"
+              >pexels.com/api</a
+            >
+            has an approved active application.
           </p>
 
           <h3>"LLM Rate Limit (429)" Error</h3>
           <p>
-            If you hit rate limits with your LLM provider, switch the model in Settings (e.g. from <code>gpt-4o</code> to <code>gpt-4o-mini</code>, or from <code>gemini-1.5-pro</code> to <code>gemini-2.5-flash</code>) or increase your project timeout limit.
+            If you hit rate limits with your LLM provider, switch the model in Settings (e.g. from
+            <code>gpt-4o</code> to <code>gpt-4o-mini</code>, or from <code>gemini-1.5-pro</code> to
+            <code>gemini-2.5-flash</code>) or increase your project timeout limit.
           </p>
 
           <h3>Missing Video Previews in Media Library</h3>
           <p>
-            StockFinder AI uses a custom <code>media://</code> protocol to safely stream local video files without CORS errors. If a video fails to play, check that your system has standard H.264/WebM codecs installed.
+            StockFinder AI uses a custom <code>media://</code> protocol to safely stream local video
+            files without CORS errors. If a video fails to play, check that your system has standard
+            H.264/WebM codecs installed.
           </p>
 
           <h3>Can I run StockFinder AI without internet?</h3>
           <p>
-            The desktop application itself runs locally, but an active internet connection is required during the agent run to query the LLM API and stream media assets from Pexels servers.
+            The desktop application itself runs locally, but an active internet connection is
+            required during the agent run to query the LLM API and stream media assets from Pexels
+            servers.
           </p>
 
-          <div class="callout callout-lime" style="margin-top: 3rem;">
-            <p><strong>Ready to start?</strong> <a href="https://github.com/birol-dev/Pexels/releases">Download StockFinder AI for free</a> on GitHub, or read our <a href="/how-to-find-b-roll/">Guide on finding b-roll</a> and <a href="/about/">About page</a> to learn more.</p>
+          <div class="callout callout-lime" style="margin-top: 3rem">
+            <p>
+              <strong>Ready to start?</strong>
+              <a href="https://github.com/birol-dev/Pexels/releases"
+                >Download StockFinder AI for free</a
+              >
+              on GitHub, or read our <a href="/how-to-find-b-roll/">Guide on finding b-roll</a> and
+              <a href="/about/">About page</a> to learn more.
+            </p>
           </div>
         </div>
       </section>
@@ -732,6 +919,7 @@ npm run build:linux # Linux AppImage &amp; .deb</code></pre>
               </li>
               <li><a href="/privacy/">Privacy</a></li>
               <li><a href="/llms.txt">llms.txt</a></li>
+              <li><a href="/pricing.md">pricing.md</a></li>
               <li>
                 <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer"
                   >Pexels API</a

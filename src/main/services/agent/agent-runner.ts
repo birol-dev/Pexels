@@ -17,6 +17,7 @@ import { createTimeoutLinkedSignal } from '../http/abort-signal'
 import { ManifestWriter, ManifestData } from '../files/manifest-writer'
 import { ProjectStore, JobSummary } from '../storage/project-store'
 import { SecureSecrets } from '../storage/secure-secrets'
+import { SettingsStore } from '../storage/settings-store'
 
 export interface VisualBeat {
   id: string
@@ -158,7 +159,6 @@ export class AgentRunner extends EventEmitter {
   public async ensureRegistered(): Promise<void> {
     AgentRunner.activeRunners.set(this.jobId, this)
 
-    const { SettingsStore } = await import('../storage/settings-store')
     const settings = await SettingsStore.getSettings()
     this.modelId = settings.modelId
     this.providerId = settings.llmProvider
@@ -292,7 +292,6 @@ export class AgentRunner extends EventEmitter {
     AgentRunner.activeRunners.set(this.jobId, this)
     this.abortController = new AbortController()
 
-    const { SettingsStore } = await import('../storage/settings-store')
     const settings = await SettingsStore.getSettings()
     this.modelId = settings.modelId
     this.providerId = settings.llmProvider
@@ -1227,7 +1226,6 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
         await this.writeManifest()
         this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
 
-        const { SettingsStore } = await import('../storage/settings-store')
         const settings = await SettingsStore.getSettings()
 
         if (settings.requireApprovalBeforeDownload && selections.length > 0) {
@@ -1261,7 +1259,6 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
         this.log('info', `Queuing ${assetIds.length} assets for local download...`)
         this.updateProgress(`Queuing assets for download...`, this.progress)
 
-        const { SettingsStore } = await import('../storage/settings-store')
         const settings = await SettingsStore.getSettings()
 
         for (const assetRef of assetIds) {

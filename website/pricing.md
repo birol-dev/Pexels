@@ -50,4 +50,4 @@ No separate enterprise tier. Fork the MIT-licensed source on GitHub for custom t
 
 ## Last updated
 
-2026-08-17
+2026-08-18

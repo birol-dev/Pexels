@@ -21,6 +21,18 @@
       type="application/xml"
       href="https://stockfinderai.birol.tech/sitemap.xml"
     />
+    <link
+      rel="alternate"
+      type="text/plain"
+      href="https://stockfinderai.birol.tech/llms.txt"
+      title="LLM context"
+    />
+    <link
+      rel="alternate"
+      type="text/markdown"
+      href="https://stockfinderai.birol.tech/pricing.md"
+      title="Pricing Markdown"
+    />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="StockFinder AI" />
     <meta property="og:title" content="Privacy — StockFinder AI" />
@@ -42,6 +54,7 @@
     <meta name="twitter:image" content="https://stockfinderai.birol.tech/logos/og-image.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;600&display=swap"
       rel="stylesheet"
@@ -88,13 +101,16 @@
             "@id": "https://stockfinderai.birol.tech/privacy/#webpage",
             "name": "Privacy — StockFinder AI",
             "url": "https://stockfinderai.birol.tech/privacy/",
-            "dateModified": "2026-08-17",
             "isPartOf": {
               "@type": "WebSite",
               "@id": "https://stockfinderai.birol.tech/#website",
               "name": "StockFinder AI",
               "url": "https://stockfinderai.birol.tech/"
-            }
+            },
+            "breadcrumb": { "@id": "https://stockfinderai.birol.tech/privacy/#breadcrumb" },
+            "datePublished": "2026-06-09",
+            "dateModified": "2026-08-18",
+            "inLanguage": "en-US"
           }
         ]
       }
@@ -305,11 +321,12 @@
                 >
               </li>
               <li><a href="/llms.txt">llms.txt</a></li>
+              <li><a href="/pricing.md">pricing.md</a></li>
             </ul>
           </div>
         </div>
         <div class="footer-bottom">
-          <span>StockFinder AI v1.2.9 — Free &amp; open source · Last updated August 17, 2026</span>
+          <span>StockFinder AI v1.2.9 — Free &amp; open source · Last updated August 18, 2026</span>
           <span>Pexels media used under the Pexels License</span>
         </div>
       </div>
