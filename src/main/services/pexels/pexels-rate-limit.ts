@@ -44,14 +44,38 @@ export class PexelsRateLimitTracker {
     return this.state.remaining <= 0
   }
 
-  public static async waitForQuota(onWait?: (waitMs: number) => void): Promise<void> {
+  public static clear(): void {
+    this.state = null
+  }
+
+  public static async waitForQuota(
+    onWait?: (waitMs: number) => void,
+    signal?: AbortSignal
+  ): Promise<void> {
     if (!this.isExhausted() || !this.state) return
 
     const waitMs = Math.min(MAX_WAIT_MS, Math.max(0, this.state.resetAt * 1000 - Date.now()) + 1000)
 
     if (waitMs <= 0) return
 
+    if (signal?.aborted) {
+      throw new Error('Pexels quota wait aborted')
+    }
+
     onWait?.(waitMs)
-    await new Promise((resolve) => setTimeout(resolve, waitMs))
+
+    await new Promise<void>((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        signal?.removeEventListener('abort', onAbort)
+        resolve()
+      }, waitMs)
+
+      const onAbort = (): void => {
+        clearTimeout(timeoutId)
+        reject(new Error('Pexels quota wait aborted'))
+      }
+
+      signal?.addEventListener('abort', onAbort, { once: true })
+    })
   }
 }

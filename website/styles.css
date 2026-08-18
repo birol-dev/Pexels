@@ -280,7 +280,9 @@ img {
   height: 2px;
   background: var(--text);
   border-radius: 1px;
-  transition: transform 0.2s, opacity 0.2s;
+  transition:
+    transform 0.2s,
+    opacity 0.2s;
 }
 
 .nav-toggle[aria-expanded='true'] .nav-toggle-bar:nth-child(1) {
@@ -396,7 +398,9 @@ img {
   border-radius: 0.25rem;
   border: 2px solid var(--ink);
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
   white-space: nowrap;
 }
 
@@ -949,7 +953,9 @@ img {
   border-radius: 0.25rem;
   padding: 1.5rem;
   background: var(--surface-card);
-  transition: border-color 0.2s, transform 0.2s;
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
 }
 
 .pain-card:hover {
@@ -1945,3 +1951,187 @@ img {
 .toc a:hover {
   color: var(--lime);
 }
+
+/* Documentation & Guide Components */
+.prose pre {
+  margin: 1.25rem 0;
+  padding: 1.25rem;
+  background: var(--surface-card);
+  border: 2px solid var(--border);
+  border-radius: 0.25rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #e4e4e7;
+}
+
+.prose pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+.code-block {
+  margin: 1.5rem 0;
+  border: 2px solid var(--border);
+  border-radius: 0.25rem;
+  background: var(--surface-card);
+  overflow: hidden;
+}
+
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.code-block pre {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.prose .callout-lime {
+  border-color: var(--lime);
+  background: rgba(204, 255, 0, 0.05);
+}
+
+.prose .callout-purple {
+  border-color: var(--purple);
+  background: rgba(156, 72, 234, 0.06);
+}
+
+.prose .callout-alert {
+  border-color: var(--error);
+  background: rgba(248, 113, 113, 0.06);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 0.2rem;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text-muted);
+}
+
+.badge-lime {
+  border-color: rgba(204, 255, 0, 0.4);
+  background: rgba(204, 255, 0, 0.1);
+  color: var(--lime);
+}
+
+.badge-purple {
+  border-color: rgba(156, 72, 234, 0.4);
+  background: rgba(156, 72, 234, 0.12);
+  color: #c084fc;
+}
+
+.doc-step {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  border: 2px solid var(--border);
+  border-radius: 0.25rem;
+  background: var(--surface-card);
+  position: relative;
+}
+
+.doc-step-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.doc-step-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  background: var(--lime);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.125rem;
+  border-radius: 0.25rem;
+}
+
+.doc-step-title {
+  margin: 0 !important;
+  padding-top: 0.15rem;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.doc-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+@media (min-width: 640px) {
+  .doc-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.doc-card {
+  border: 2px solid var(--border);
+  border-radius: 0.25rem;
+  padding: 1.25rem;
+  background: var(--surface-card);
+}
+
+.doc-card h4 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.doc-card p {
+  font-size: 0.875rem !important;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+kbd {
+  display: inline-block;
+  padding: 0.15rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 0.2rem;
+}
+

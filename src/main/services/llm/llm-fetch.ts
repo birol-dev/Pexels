@@ -1,4 +1,4 @@
-import { ApiCircuitBreaker, ApiError, fetchWithRetry } from '../http/api-errors'
+import { ApiCircuitBreaker, ApiError, fetchWithRetry } from '../http/api-errors.ts'
 
 const llmCircuits = new Map<string, ApiCircuitBreaker>()
 
@@ -35,11 +35,21 @@ export async function llmFetch(options: LlmFetchOptions): Promise<Response> {
     circuit.recordSuccess()
     return response
   } catch (error) {
-    // Permanent failures (auth, bad request) should not open the breaker.
     const isTransient = !(error instanceof ApiError) || error.kind === 'transient'
     if (isTransient) {
       circuit.recordFailure()
     }
     throw error
+  }
+}
+
+export function resetLlmCircuit(label?: string): void {
+  if (label) {
+    const key = label.split(':')[0] || label
+    llmCircuits.get(key)?.reset()
+  } else {
+    for (const circuit of llmCircuits.values()) {
+      circuit.reset()
+    }
   }
 }

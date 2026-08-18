@@ -36,6 +36,8 @@ See [pricing](https://stockfinderai.birol.tech/pricing/) or [pricing.md](pricing
 ## Key pages
 
 - Homepage: https://stockfinderai.birol.tech/
+- Documentation & Guide: https://stockfinderai.birol.tech/docs/
+- About StockFinder AI: https://stockfinderai.birol.tech/about/
 - How to find b-roll: https://stockfinderai.birol.tech/how-to-find-b-roll/
 - Pricing: https://stockfinderai.birol.tech/pricing/
 - Privacy: https://stockfinderai.birol.tech/privacy/
@@ -63,4 +65,4 @@ See [pricing](https://stockfinderai.birol.tech/pricing/) or [pricing.md](pricing
 
 ## Last updated
 
-2026-08-17
+2026-08-18

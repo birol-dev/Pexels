@@ -19,13 +19,17 @@ import { PexelsSearchCache } from './pexels-search-cache'
 const pexelsCircuit = new ApiCircuitBreaker(5, 60_000)
 
 export class PexelsClient {
+  public static resetCircuit(): void {
+    pexelsCircuit.reset()
+  }
+
   private static async getHeaders(): Promise<HeadersInit> {
     const key = await SecureSecrets.getSecret('pexelsKey')
-    if (!key) {
+    if (!key || !key.trim()) {
       throw new ApiError('Pexels API Key is missing. Please set it in Settings.', 'permanent')
     }
     return {
-      Authorization: key
+      Authorization: key.trim()
     }
   }
 
@@ -39,23 +43,26 @@ export class PexelsClient {
     const settings = await SettingsStore.getSettings()
     const timeoutMs = (settings.requestTimeoutSeconds || 60) * 1000
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
     const parentSignal = init?.signal
     if (parentSignal?.aborted) {
-      clearTimeout(timeoutId)
       throw new ApiError('Request aborted', 'permanent')
     }
 
     const onParentAbort = (): void => controller.abort()
     parentSignal?.addEventListener('abort', onParentAbort)
 
+    let timeoutId: NodeJS.Timeout | null = null
+
     try {
       await PexelsRateLimitTracker.waitForQuota((waitMs) => {
         console.info(
           `[Pexels] Monthly quota exhausted. Waiting ${Math.ceil(waitMs / 1000)}s for reset.`
         )
-      })
+      }, controller.signal)
+
+      // Start the HTTP timeout clock only after quota wait finishes
+      timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
       const response = await fetchWithRetry(url, {
         label,
@@ -83,7 +90,7 @@ export class PexelsClient {
       }
       throw error
     } finally {
-      clearTimeout(timeoutId)
+      if (timeoutId) clearTimeout(timeoutId)
       parentSignal?.removeEventListener('abort', onParentAbort)
     }
   }
@@ -135,7 +142,7 @@ export class PexelsClient {
     if (cached) return cached
 
     const headers = await this.getHeaders()
-    const url = new URL('https://api.pexels.com/v1/videos/search')
+    const url = new URL('https://api.pexels.com/videos/search')
 
     url.searchParams.append('query', input.query)
     if (input.orientation) url.searchParams.append('orientation', input.orientation)
@@ -165,7 +172,7 @@ export class PexelsClient {
   public static async getVideo(id: number): Promise<PexelsVideo> {
     const headers = await this.getHeaders()
     const response = await this.fetchPexels(
-      `https://api.pexels.com/v1/videos/videos/${id}`,
+      `https://api.pexels.com/videos/videos/${id}`,
       { headers },
       'Pexels get video'
     )

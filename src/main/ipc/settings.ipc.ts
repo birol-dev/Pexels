@@ -2,6 +2,8 @@ import { ipcMain, dialog, shell, app } from 'electron'
 import { SettingsStore } from '../services/storage/settings-store'
 import { SecureSecrets } from '../services/storage/secure-secrets'
 import { LlmProviderFactory } from '../services/llm/llm-provider'
+import { resetLlmCircuit } from '../services/llm/llm-fetch'
+import { PexelsClient } from '../services/pexels/pexels-client'
 import { z } from 'zod'
 
 const SettingsUpdateSchema = z.object({
@@ -65,22 +67,22 @@ export function registerSettingsHandlers(): void {
 
     // Save secure keys separately if they are provided and not masked strings
     if (input.openaiKey !== undefined && !isMaskedSecret(input.openaiKey)) {
-      await SecureSecrets.setSecret('openaiKey', input.openaiKey)
+      await SecureSecrets.setSecret('openaiKey', input.openaiKey.trim())
     }
     if (input.geminiKey !== undefined && !isMaskedSecret(input.geminiKey)) {
-      await SecureSecrets.setSecret('geminiKey', input.geminiKey)
+      await SecureSecrets.setSecret('geminiKey', input.geminiKey.trim())
     }
     if (input.openrouterKey !== undefined && !isMaskedSecret(input.openrouterKey)) {
-      await SecureSecrets.setSecret('openrouterKey', input.openrouterKey)
+      await SecureSecrets.setSecret('openrouterKey', input.openrouterKey.trim())
     }
     if (input.pexelsKey !== undefined && !isMaskedSecret(input.pexelsKey)) {
-      await SecureSecrets.setSecret('pexelsKey', input.pexelsKey)
+      await SecureSecrets.setSecret('pexelsKey', input.pexelsKey.trim())
     }
 
     const publicSettings = Object.fromEntries(
       Object.entries({
         llmProvider: input.llmProvider,
-        modelId: input.modelId,
+        modelId: input.modelId?.trim(),
         downloadFolder: input.downloadFolder,
         maxConcurrentDownloads: input.maxConcurrentDownloads,
         maxAgentIterations: input.maxAgentIterations,
@@ -104,8 +106,17 @@ export function registerSettingsHandlers(): void {
     if (apiKey === 'CURRENT_KEY_ON_DISK') {
       apiKey = await SecureSecrets.getSecret(`${provider}Key`)
     }
+    apiKey = (apiKey || '').trim()
+    if (!apiKey) {
+      return {
+        success: false,
+        message: `${provider.toUpperCase()} API key is missing. Please enter an API key.`
+      }
+    }
+    // Reset circuit breaker so testing a key doesn't fail on a stale open breaker
+    resetLlmCircuit()
     const client = LlmProviderFactory.getProvider(provider)
-    return await client.testConnection({ apiKey }, modelId)
+    return await client.testConnection({ apiKey }, modelId?.trim())
   })
 
   ipcMain.handle('settings:testPexelsKey', async (_, rawKey: unknown) => {
@@ -115,12 +126,33 @@ export function registerSettingsHandlers(): void {
       if (activeKey === 'CURRENT_KEY_ON_DISK') {
         activeKey = await SecureSecrets.getSecret('pexelsKey')
       }
+      activeKey = (activeKey || '').trim()
+      if (!activeKey) {
+        return {
+          success: false,
+          message: 'Pexels API key is missing. Please enter an API key.'
+        }
+      }
+      // Reset circuit breaker so testing a key doesn't fail on a stale open breaker
+      PexelsClient.resetCircuit()
       const response = await fetch('https://api.pexels.com/v1/search?query=test&per_page=1', {
         headers: { Authorization: activeKey },
         signal: AbortSignal.timeout(15_000)
       })
       if (response.ok) {
         return { success: true, message: 'Pexels API key is valid!' }
+      }
+      if (response.status === 401 || response.status === 403) {
+        return {
+          success: false,
+          message: `Invalid Pexels API key. Authentication failed (HTTP ${response.status}).`
+        }
+      }
+      if (response.status === 429) {
+        return {
+          success: false,
+          message: 'Pexels API rate limit reached (HTTP 429). Please try again later.'
+        }
       }
       return { success: false, message: `Pexels API error: HTTP ${response.status}` }
     } catch (err) {

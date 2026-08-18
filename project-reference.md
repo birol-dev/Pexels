@@ -90,13 +90,11 @@ graph TD
 Pexels/
 ├── .editorconfig               # Editor settings config
 ├── .github/                    # GitHub actions / workflows
-├── .vscode/                    # VS Code environment configurations
-├── components.json             # Shadcn-like components setup
 ├── electron-builder.yml        # Electron builder distribution packing configuration
 ├── electron.vite.config.ts     # Bundling configs for main, preload, and renderer
 ├── package.json                # Project dependencies, build scripts, metadata
-├── postcss.config.js           # PostCSS setup
-├── tailwind.config.js          # Tailwind styling design tokens
+├── postcss.config.js           # PostCSS setup (@tailwindcss/postcss)
+
 ├── tsconfig.json               # Main TypeScript config
 ├── tsconfig.node.json          # Node modules TypeScript configuration (Main/Preload)
 ├── tsconfig.web.json           # Frontend TypeScript configuration (Renderer)

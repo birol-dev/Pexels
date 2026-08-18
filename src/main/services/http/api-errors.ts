@@ -107,6 +107,27 @@ export interface FetchWithRetryOptions {
   isAborted?: () => boolean
 }
 
+export function extractErrorMessage(errText: string): string {
+  if (!errText) return ''
+  try {
+    const parsed = JSON.parse(errText) as unknown
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      const obj = parsed as Record<string, unknown>
+      if (obj.error) {
+        if (typeof obj.error === 'string') return obj.error
+        if (typeof obj.error === 'object' && obj.error !== null) {
+          const nested = obj.error as Record<string, unknown>
+          if (typeof nested.message === 'string') return nested.message
+        }
+      }
+      if (typeof obj.message === 'string') return obj.message
+    }
+  } catch {
+    // Not JSON, return trimmed string below
+  }
+  return errText.slice(0, 300).trim()
+}
+
 export async function fetchWithRetry(
   url: string,
   options: FetchWithRetryOptions = {}
@@ -128,9 +149,10 @@ export async function fetchWithRetry(
 
       const retryAfter = response.headers.get('Retry-After')
       const apiError = classifyHttpStatus(response.status, retryAfter)
-      const errText = await response.text().catch(() => '')
+      const rawErrText = await response.text().catch(() => '')
+      const detailedMsg = extractErrorMessage(rawErrText)
       apiError.message = `${options.label || 'Request'} failed: HTTP ${response.status}${
-        errText ? `: ${errText.slice(0, 300)}` : ''
+        detailedMsg ? `: ${detailedMsg}` : ''
       }`
 
       if (!apiError.isRetryable || attempt === maxRetries) {
@@ -184,6 +206,11 @@ export class ApiCircuitBreaker {
     if (this.failures >= this.threshold) {
       this.openUntil = Date.now() + this.cooldownMs
     }
+  }
+
+  public reset(): void {
+    this.failures = 0
+    this.openUntil = 0
   }
 
   public isOpen(): boolean {

@@ -1,4 +1,4 @@
-import { NormalizedToolDefinition } from './llm-provider'
+import type { NormalizedToolDefinition } from './llm-provider.ts'
 
 export interface ParsedScriptBeat {
   text: string

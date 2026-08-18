@@ -29,10 +29,12 @@ export default defineConfig(
     }
   },
   {
-    files: ['**/*.js'],
+    files: ['**/*.js', '**/*.mjs'],
     rules: {
-      '@typescript-eslint/explicit-function-return-type': 'off'
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/no-require-imports': 'off'
     }
   },
+
   eslintConfigPrettier
 )

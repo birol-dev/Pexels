@@ -6,6 +6,8 @@ const websiteDir = path.resolve(__dirname)
 const htmlFiles = [
   'index.html',
   'how-to-find-b-roll/index.html',
+  'docs/index.html',
+  'about/index.html',
   'pricing/index.html',
   'privacy/index.html',
   '404.html'
@@ -36,18 +38,29 @@ for (const relPath of htmlFiles) {
     assert(navMatch !== null, `${relPath} has site-nav-menu nav element`)
     if (navMatch) {
       assert(!navMatch[0].includes('inert'), `${relPath} nav has NO static inert attribute`)
-      assert(!navMatch[0].includes('aria-hidden="true"'), `${relPath} nav has NO static aria-hidden="true" attribute`)
+      assert(
+        !navMatch[0].includes('aria-hidden="true"'),
+        `${relPath} nav has NO static aria-hidden="true" attribute`
+      )
     }
   }
 
   // Check JSON-LD
-  const jsonLdMatches = content.match(/<script type=["']application\/ld\+json["']>([\s\S]*?)<\/script>/gi)
+  const jsonLdMatches = content.match(
+    /<script type=["']application\/ld\+json["']>([\s\S]*?)<\/script>/gi
+  )
   if (jsonLdMatches) {
     for (const block of jsonLdMatches) {
-      const jsonText = block.replace(/<script type=["']application\/ld\+json["']>/i, '').replace(/<\/script>/i, '').trim()
+      const jsonText = block
+        .replace(/<script type=["']application\/ld\+json["']>/i, '')
+        .replace(/<\/script>/i, '')
+        .trim()
       try {
         const parsed = JSON.parse(jsonText)
-        assert(typeof parsed === 'object' && parsed !== null, `${relPath} JSON-LD parses as valid JSON object`)
+        assert(
+          typeof parsed === 'object' && parsed !== null,
+          `${relPath} JSON-LD parses as valid JSON object`
+        )
       } catch (e) {
         assert(false, `${relPath} JSON-LD parsing error: ${e.message}`)
       }
@@ -59,6 +72,8 @@ console.log('\n--- 2. Testing Internal Link & Asset Targets ---')
 const knownValidRoutes = new Set([
   '/',
   '/how-to-find-b-roll/',
+  '/docs/',
+  '/about/',
   '/pricing/',
   '/privacy/',
   '/llms.txt',
@@ -101,16 +116,42 @@ const robotsPath = path.join(websiteDir, 'robots.txt')
 assert(fs.existsSync(robotsPath), 'robots.txt exists')
 const robotsContent = fs.readFileSync(robotsPath, 'utf8')
 assert(robotsContent.includes('User-agent: Googlebot'), 'robots.txt explicitly allows Googlebot')
-assert(robotsContent.includes('Sitemap: https://stockfinderai.birol.tech/sitemap.xml'), 'robots.txt points to sitemap.xml')
+assert(
+  robotsContent.includes('Sitemap: https://stockfinderai.birol.tech/sitemap.xml'),
+  'robots.txt points to sitemap.xml'
+)
 
 const sitemapPath = path.join(websiteDir, 'sitemap.xml')
 assert(fs.existsSync(sitemapPath), 'sitemap.xml exists')
 const sitemapContent = fs.readFileSync(sitemapPath, 'utf8')
-assert(sitemapContent.includes('<loc>https://stockfinderai.birol.tech/</loc>'), 'sitemap.xml includes homepage')
-assert(sitemapContent.includes('<loc>https://stockfinderai.birol.tech/how-to-find-b-roll/</loc>'), 'sitemap.xml includes guide')
-assert(sitemapContent.includes('<loc>https://stockfinderai.birol.tech/pricing/</loc>'), 'sitemap.xml includes pricing')
-assert(sitemapContent.includes('<loc>https://stockfinderai.birol.tech/privacy/</loc>'), 'sitemap.xml includes privacy')
-assert(sitemapContent.includes('<lastmod>2026-08-17</lastmod>'), 'sitemap.xml has current lastmod 2026-08-17')
+assert(
+  sitemapContent.includes('<loc>https://stockfinderai.birol.tech/</loc>'),
+  'sitemap.xml includes homepage'
+)
+assert(
+  sitemapContent.includes('<loc>https://stockfinderai.birol.tech/how-to-find-b-roll/</loc>'),
+  'sitemap.xml includes guide'
+)
+assert(
+  sitemapContent.includes('<loc>https://stockfinderai.birol.tech/docs/</loc>'),
+  'sitemap.xml includes docs'
+)
+assert(
+  sitemapContent.includes('<loc>https://stockfinderai.birol.tech/about/</loc>'),
+  'sitemap.xml includes about'
+)
+assert(
+  sitemapContent.includes('<loc>https://stockfinderai.birol.tech/pricing/</loc>'),
+  'sitemap.xml includes pricing'
+)
+assert(
+  sitemapContent.includes('<loc>https://stockfinderai.birol.tech/privacy/</loc>'),
+  'sitemap.xml includes privacy'
+)
+assert(
+  sitemapContent.includes('<lastmod>2026-08-18</lastmod>'),
+  'sitemap.xml has current lastmod 2026-08-18'
+)
 
 console.log(`\n========================================`)
 console.log(`Validation finished: ${checks} checks run. ${errors} errors found.`)

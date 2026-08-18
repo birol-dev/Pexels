@@ -19,12 +19,12 @@ Most editing time disappears into stock footage searches — not the edit itself
 
 StockFinder AI automates that loop:
 
-| Without StockFinder AI | With StockFinder AI |
-| --- | --- |
+| Without StockFinder AI            | With StockFinder AI                     |
+| --------------------------------- | --------------------------------------- |
 | Manual keyword guessing per scene | AI breaks your script into visual beats |
-| Dozens of browser tabs | One agent run, one organized folder |
-| Clips scattered across Downloads | Assets named, grouped, and export-ready |
-| Easy to miss Pexels attribution | Built-in credits and manifest export |
+| Dozens of browser tabs            | One agent run, one organized folder     |
+| Clips scattered across Downloads  | Assets named, grouped, and export-ready |
+| Easy to miss Pexels attribution   | Built-in credits and manifest export    |
 
 ---
 
@@ -41,24 +41,30 @@ Works with **OpenAI**, **Google Gemini**, or **OpenRouter** for the AI layer, pl
 ## Features
 
 ### Script-to-stock automation
+
 Turns long-form scripts into scene-by-scene visual directions and Pexels search queries — no manual beat mapping.
 
 ### AI-powered Pexels search
+
 Finds relevant stock b-roll videos and photos per beat, with caching and rate-limit handling so agent runs stay efficient.
 
 ### Local asset library
+
 Browse, filter, and inspect everything the agent downloaded. Export a manifest with photographer credits for Pexels compliance.
 
 ### Human-in-the-loop controls
+
 Pause before downloads, approve or reject individual assets, and rerun failed jobs without starting from scratch.
 
 ### Built for production workflows
+
 - Encrypted API key storage (Electron `safeStorage`)
 - Configurable download limits, timeouts, and content filters
 - Dark and light themes
 - Real-time run progress and agent console logs
 
 ### Open source
+
 Inspect the code, report bugs, or contribute on [GitHub](https://github.com/birol-dev/Pexels).
 
 ---
@@ -79,10 +85,10 @@ Product site and installers: **[stockfinderai.birol.tech](https://stockfinderai.
 Pre-built GitHub installers are also on the [Releases page](https://github.com/birol-dev/Pexels/releases).
 
 | Platform | Command (build from source) |
-| --- | --- |
-| Windows | `npm run build:win` |
-| macOS | `npm run build:mac` |
-| Linux | `npm run build:linux` |
+| -------- | --------------------------- |
+| Windows  | `npm run build:win`         |
+| macOS    | `npm run build:mac`         |
+| Linux    | `npm run build:linux`       |
 
 ### What you need before your first run
 

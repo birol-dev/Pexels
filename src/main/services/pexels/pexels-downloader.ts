@@ -1,5 +1,5 @@
-import * as fs from 'fs'
-import { promises as fsPromises } from 'fs'
+import { createWriteStream, promises as fsPromises } from 'fs'
+
 import { join } from 'path'
 import { Readable, PassThrough } from 'stream'
 import { pipeline } from 'stream/promises'
@@ -258,9 +258,10 @@ export class PexelsDownloader {
 
       // Stream download
       const tempPath = finalPath + '.tmp'
-      const fileStream = fs.createWriteStream(tempPath)
+      const fileStream = createWriteStream(tempPath)
 
       const contentLength = Number(response.headers.get('content-length') || 0)
+
       let downloadedBytes = 0
 
       // PassThrough stream taps into the data flow to update progress and reset the request timeout

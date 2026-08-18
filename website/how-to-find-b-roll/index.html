@@ -16,8 +16,17 @@
     <meta name="theme-color" content="#ccff00" />
     <meta name="color-scheme" content="dark" />
     <link rel="canonical" href="https://stockfinderai.birol.tech/how-to-find-b-roll/" />
-    <link rel="sitemap" type="application/xml" href="https://stockfinderai.birol.tech/sitemap.xml" />
-    <link rel="alternate" type="text/plain" href="https://stockfinderai.birol.tech/llms.txt" title="LLM context" />
+    <link
+      rel="sitemap"
+      type="application/xml"
+      href="https://stockfinderai.birol.tech/sitemap.xml"
+    />
+    <link
+      rel="alternate"
+      type="text/plain"
+      href="https://stockfinderai.birol.tech/llms.txt"
+      title="LLM context"
+    />
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="StockFinder AI" />
     <meta property="og:title" content="How to Find B-Roll for YouTube Videos | StockFinder AI" />
@@ -209,10 +218,17 @@
             <li><a href="/#how">How</a></li>
             <li><a href="/#features">Features</a></li>
             <li><a href="/how-to-find-b-roll/" aria-current="page">Guide</a></li>
+            <li><a href="/docs/">Docs</a></li>
+            <li><a href="/about/">About</a></li>
             <li><a href="/pricing/">Pricing</a></li>
             <li><a href="/#faq">FAQ</a></li>
             <li class="nav-links-mobile-cta">
-              <a href="https://github.com/birol-dev/Pexels" class="btn btn-secondary" target="_blank" rel="noreferrer">
+              <a
+                href="https://github.com/birol-dev/Pexels"
+                class="btn btn-secondary"
+                target="_blank"
+                rel="noreferrer"
+              >
                 Star on GitHub
                 <span class="material-symbols-outlined" style="font-size: 1rem">star</span>
               </a>
@@ -220,14 +236,29 @@
           </ul>
         </nav>
         <div class="nav-actions">
-          <a href="https://github.com/birol-dev/Pexels" class="btn btn-ghost nav-github-btn" target="_blank" rel="noreferrer">
+          <a
+            href="https://github.com/birol-dev/Pexels"
+            class="btn btn-ghost nav-github-btn"
+            target="_blank"
+            rel="noreferrer"
+          >
             GitHub
           </a>
-          <a href="https://github.com/birol-dev/Pexels/releases" class="btn btn-primary nav-download-btn">
+          <a
+            href="https://github.com/birol-dev/Pexels/releases"
+            class="btn btn-primary nav-download-btn"
+          >
             <span class="nav-download-label">Download</span>
             <span class="material-symbols-outlined" style="font-size: 1rem">download</span>
           </a>
-          <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav-menu" aria-label="Open menu">
+          <button
+            type="button"
+            class="nav-toggle"
+            id="nav-toggle"
+            aria-expanded="false"
+            aria-controls="site-nav-menu"
+            aria-label="Open menu"
+          >
             <span class="nav-toggle-bar" aria-hidden="true"></span>
             <span class="nav-toggle-bar" aria-hidden="true"></span>
             <span class="nav-toggle-bar" aria-hidden="true"></span>
@@ -279,28 +310,31 @@
           <p>
             Editors lose time when they search stock sites the way they browse social feeds: type a
             noun, scroll, download, repeat. Pexels can return millions of clips. Your script speaks
-            in story, metaphor, and mood. The gap between those two languages is the real bottleneck.
+            in story, metaphor, and mood. The gap between those two languages is the real
+            bottleneck.
           </p>
 
           <h2 id="script-first">Start from the script, not from generic keywords</h2>
           <p>
-            If the narration says “the market froze overnight,” searching “market” will return office
-            handshakes. Searching “ice” will return winter travel. Neither matches the beat. You have
-            to translate the line into something a stock library can actually index: empty trading
-            floor, paused city street, closed shopfront, still water.
+            If the narration says “the market froze overnight,” searching “market” will return
+            office handshakes. Searching “ice” will return winter travel. Neither matches the beat.
+            You have to translate the line into something a stock library can actually index: empty
+            trading floor, paused city street, closed shopfront, still water.
           </p>
-          <p>
-            Do this on paper or in a notes app before you open Pexels:
-          </p>
+          <p>Do this on paper or in a notes app before you open Pexels:</p>
           <ol>
             <li>Split the script into beats. A beat is one visual idea, not one sentence.</li>
             <li>Write the emotion next to each beat: tension, relief, scale, intimacy, dread.</li>
             <li>List two or three concrete search phrases per beat. Prefer nouns you can film.</li>
-            <li>Note orientation. Long-form YouTube is usually 16:9. Shorts, TikTok, and Reels need vertical-friendly shots.</li>
+            <li>
+              Note orientation. Long-form YouTube is usually 16:9. Shorts, TikTok, and Reels need
+              vertical-friendly shots.
+            </li>
           </ol>
           <p>
-            That list is the difference between a two-hour browse and a twenty-minute pull. It is also
-            what <a href="/">StockFinder AI</a> generates automatically when you paste the full script.
+            That list is the difference between a two-hour browse and a twenty-minute pull. It is
+            also what <a href="/">StockFinder AI</a> generates automatically when you paste the full
+            script.
           </p>
 
           <h2 id="workflow">A free stock footage workflow that actually ships</h2>
@@ -322,8 +356,8 @@
           <h3>3. Download into a project folder, not Downloads</h3>
           <p>
             Create one folder per video. Inside it, keep photos, videos, and a text file of source
-            URLs. Random names like <code>pexels-download(3).mp4</code> are why editors re-search the
-            same scene the next morning.
+            URLs. Random names like <code>pexels-download(3).mp4</code> are why editors re-search
+            the same scene the next morning.
           </p>
           <h3>4. Keep the Pexels page with the file</h3>
           <p>
@@ -333,34 +367,33 @@
           </p>
           <div class="callout">
             <p>
-              StockFinder AI runs this loop locally: paste the script, the agent maps beats, searches
-              Pexels photos and videos, and writes <code>manifest.json</code> with file paths and
-              credits. Typical active review time is about 10 minutes instead of a 2–4 hour hunt.
-              See <a href="/pricing/">pricing</a> — the app is $0.
+              StockFinder AI runs this loop locally: paste the script, the agent maps beats,
+              searches Pexels photos and videos, and writes <code>manifest.json</code> with file
+              paths and credits. Typical active review time is about 10 minutes instead of a 2–4
+              hour hunt. See <a href="/pricing/">pricing</a> — the app is $0.
             </p>
           </div>
 
           <h2 id="attribution">Pexels attribution for YouTube descriptions</h2>
           <p>
             Pexels media is free to use under the
-            <a href="https://www.pexels.com/license/" target="_blank" rel="noreferrer">Pexels License</a>,
-            including most commercial YouTube use. “Free” is not the same as “no credit.” Pexels asks
-            you to credit the creator and Pexels when reasonably possible. YouTube descriptions are
-            the normal place to do that.
+            <a href="https://www.pexels.com/license/" target="_blank" rel="noreferrer"
+              >Pexels License</a
+            >, including most commercial YouTube use. “Free” is not the same as “no credit.” Pexels
+            asks you to credit the creator and Pexels when reasonably possible. YouTube descriptions
+            are the normal place to do that.
           </p>
           <p>A credits block that holds up looks like this:</p>
           <div class="callout">
             <p>
-              Video by Jane Photographer from Pexels:
-              https://www.pexels.com/video/example-123/<br />
-              Photo by John Videographer from Pexels:
-              https://www.pexels.com/photo/example-456/
+              Video by Jane Photographer from Pexels: https://www.pexels.com/video/example-123/<br />
+              Photo by John Videographer from Pexels: https://www.pexels.com/photo/example-456/
             </p>
           </div>
           <p>
             StockFinder AI stores photographer name, Pexels URL, and license notes in the Media
-            Library and in the exported manifest so you can paste a complete credits block instead of
-            hunting through browser history.
+            Library and in the exported manifest so you can paste a complete credits block instead
+            of hunting through browser history.
           </p>
 
           <h2 id="ai-tools">AI tools for YouTube b-roll without cloud lock-in</h2>
@@ -372,21 +405,25 @@
           </p>
           <p>
             StockFinder AI is a desktop agent, not a generator. You bring a
-            <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer">free Pexels API key</a>
+            <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer"
+              >free Pexels API key</a
+            >
             and an API key from OpenAI, Google Gemini, or OpenRouter. The app is MIT licensed. There
             are no StockFinder cloud servers. Your script is sent only to the LLM provider you
             configure. Details are in the <a href="/privacy/">privacy page</a>.
           </p>
           <p>
-            Use it when you already have a script and you need a folder of relevant Pexels photos and
-            videos. Do not use it as a replacement for Premiere, DaVinci Resolve, Final Cut, or CapCut.
-            It stops at the organized pack.
+            Use it when you already have a script and you need a folder of relevant Pexels photos
+            and videos. Do not use it as a replacement for Premiere, DaVinci Resolve, Final Cut, or
+            CapCut. It stops at the organized pack.
           </p>
 
           <h2 id="checklist">Pre-edit checklist</h2>
           <ul>
             <li>Every narration beat has at least one covering clip or still.</li>
-            <li>Orientation matches the platform: 16:9 for long-form, vertical-friendly for Shorts.</li>
+            <li>
+              Orientation matches the platform: 16:9 for long-form, vertical-friendly for Shorts.
+            </li>
             <li>Files live in a named project folder, not a mixed Downloads dump.</li>
             <li>Photographer credits and Pexels URLs are copied into the description draft.</li>
             <li>You still have energy left for pacing, music, and the actual cut.</li>
@@ -409,8 +446,8 @@
             <details class="faq-item">
               <summary>What is the fastest way to find b-roll for a YouTube video?</summary>
               <p>
-                Start from the finished script, split it into visual beats, and search Pexels per beat
-                instead of browsing generic keywords.
+                Start from the finished script, split it into visual beats, and search Pexels per
+                beat instead of browsing generic keywords.
                 <a href="/">StockFinder AI</a> can map those beats and download an organized folder
                 automatically.
               </p>
@@ -418,15 +455,15 @@
             <details class="faq-item">
               <summary>Is Pexels b-roll free to use on YouTube?</summary>
               <p>
-                Yes. Pexels media is free to use under the Pexels License, including on YouTube. Credit
-                photographers and link back to Pexels in the description when you can.
+                Yes. Pexels media is free to use under the Pexels License, including on YouTube.
+                Credit photographers and link back to Pexels in the description when you can.
               </p>
             </details>
             <details class="faq-item">
               <summary>Do I need a video editor to use StockFinder AI?</summary>
               <p>
-                No, and it is not a video editor. It finds and organizes stock assets. You still edit
-                in Premiere, DaVinci Resolve, Final Cut, or CapCut.
+                No, and it is not a video editor. It finds and organizes stock assets. You still
+                edit in Premiere, DaVinci Resolve, Final Cut, or CapCut.
               </p>
             </details>
           </div>
@@ -466,14 +503,19 @@
                 >StockFinder <span class="brand-accent">AI</span></span
               >
             </a>
-            <p>Free, open-source desktop app for YouTube creators. Paste a script, get a useful Pexels asset pack.</p>
+            <p>
+              Free, open-source desktop app for YouTube creators. Paste a script, get a useful
+              Pexels asset pack.
+            </p>
           </div>
           <div class="footer-col">
             <p class="footer-heading">Product</p>
             <ul>
               <li><a href="/#how">How it works</a></li>
               <li><a href="/#features">Features</a></li>
-              <li><a href="/how-to-find-b-roll/">How to find b-roll</a></li>
+              <li><a href="/docs/">Documentation</a></li>
+              <li><a href="/how-to-find-b-roll/" aria-current="page">How to find b-roll</a></li>
+              <li><a href="/about/">About project</a></li>
               <li><a href="/pricing/">Pricing</a></li>
               <li><a href="/#faq">FAQ</a></li>
             </ul>
@@ -481,8 +523,19 @@
           <div class="footer-col">
             <p class="footer-heading">Resources</p>
             <ul>
-              <li><a href="https://github.com/birol-dev/Pexels" target="_blank" rel="noreferrer">GitHub</a></li>
-              <li><a href="https://github.com/birol-dev/Pexels/releases" target="_blank" rel="noreferrer">Downloads</a></li>
+              <li>
+                <a href="https://github.com/birol-dev/Pexels" target="_blank" rel="noreferrer"
+                  >GitHub</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/birol-dev/Pexels/releases"
+                  target="_blank"
+                  rel="noreferrer"
+                  >Downloads</a
+                >
+              </li>
               <li><a href="/privacy/">Privacy</a></li>
               <li><a href="/llms.txt">llms.txt</a></li>
             </ul>

@@ -2,11 +2,11 @@
 
 This project publishes releases from git tags. Pushing a tag matching `v*` triggers three parallel GitHub Actions workflows that build installers for every platform and upload them to the same GitHub Release.
 
-| Workflow | Runner | Artifacts uploaded to the release |
-| --- | --- | --- |
-| [build-win.yml](.github/workflows/build-win.yml) | `windows-latest` | `stockfinder-ai-*-setup.exe` |
-| [build-mac.yml](.github/workflows/build-mac.yml) | `macos-latest` | `stockfinder-ai-*.dmg` |
-| [build-linux.yml](.github/workflows/build-linux.yml) | `ubuntu-latest` | `stockfinder-ai-*.AppImage`, `stockfinder-ai-*.deb` |
+| Workflow                                             | Runner           | Artifacts uploaded to the release                   |
+| ---------------------------------------------------- | ---------------- | --------------------------------------------------- |
+| [build-win.yml](.github/workflows/build-win.yml)     | `windows-latest` | `stockfinder-ai-*-setup.exe`                        |
+| [build-mac.yml](.github/workflows/build-mac.yml)     | `macos-latest`   | `stockfinder-ai-*.dmg`                              |
+| [build-linux.yml](.github/workflows/build-linux.yml) | `ubuntu-latest`  | `stockfinder-ai-*.AppImage`, `stockfinder-ai-*.deb` |
 
 All three workflows also run on pull requests (build only, no release upload) and can be started manually from the Actions tab via **Run workflow**.
 
