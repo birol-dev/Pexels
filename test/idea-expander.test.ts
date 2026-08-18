@@ -37,6 +37,11 @@ describe('parseExpandedScriptFromToolCall', () => {
     assert.throws(() => parseExpandedScriptFromToolCall('{bad json'), /not valid JSON/)
   })
 
+  it('rejects non-object root arguments', () => {
+    assert.throws(() => parseExpandedScriptFromToolCall('null'), /not an object/)
+    assert.throws(() => parseExpandedScriptFromToolCall('"hello"'), /not an object/)
+  })
+
   it('rejects payload with missing or empty script', () => {
     assert.throws(
       () =>
@@ -54,6 +59,17 @@ describe('parseExpandedScriptFromToolCall', () => {
     const result = parseExpandedScriptFromToolCall(json)
     assert.equal(result.script, 'This is an awesome script.')
     assert.ok(result.visualConcept.length > 0)
+    assert.equal(result.title, undefined)
+  })
+
+  it('filters out empty or invalid keyThemes', () => {
+    const json = JSON.stringify({
+      script: 'Narration text goes here.',
+      visualConcept: 'Visual direction',
+      keyThemes: ['nature', '', '   ', 123, null]
+    })
+    const result = parseExpandedScriptFromToolCall(json)
+    assert.deepEqual(result.keyThemes, ['nature'])
   })
 })
 
