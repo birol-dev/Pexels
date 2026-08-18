@@ -4,37 +4,31 @@
 - **Developer Website**: [https://birol.tech](https://birol.tech)
 - **Source Code Repository**: [https://github.com/birol-dev/Pexels](https://github.com/birol-dev/Pexels)
 
-StockFinder AI (registered in `package.json` as `stockfinder-ai`) is an Electron-based desktop application designed for video producers, YouTube creators, and short-form editors. It uses an AI-powered agent to parse narrational video scripts into structured visual scenes ("beats"), generate highly contextual visual prompts, search the Pexels API for relevant stock b-roll photos/videos, and automatically download them into a structured local directory structure.
+StockFinder AI (registered in `package.json` as `stockfinder-ai`) is an Electron-based desktop application designed for video producers, YouTube creators, documentary editors, and short-form creators. It uses an AI-driven agent to parse narrational video scripts into structured visual scenes ("beats"), generate highly contextual stock media queries, search the Pexels API for relevant stock photos and videos, and automatically download and organize them into structured local project workspaces.
 
 ---
 
 ## 1. Architectural Overview
 
-StockFinder AI follows Electron’s secure multi-process architecture with strict context isolation. It consists of:
-
-1. **Main Process (`src/main`)**: The Node.js backend. It controls application lifecycle, secure local storage, network requests, file system operations, registers custom privileged protocols (`media://` for streaming local resources safely), and orchestrates the AI search/download agent.
-2. **Preload Script (`src/preload`)**: The secure gateway between the main process and the renderer. It exposes a minimal, safe set of IPC methods using Electron's `contextBridge` and `ipcRenderer`.
-3. **Renderer Process (`src/renderer`)**: The React frontend built with Vite, styled with Tailwind CSS (v4) and Radix UI primitives. It handles user inputs, renders live run progress, acts as a media dashboard, and triggers configuration settings.
-
-### System Architecture & Data Flow
+StockFinder AI follows Electron’s secure multi-process architecture with strict context isolation.
 
 ```mermaid
 graph TD
     %% Main Architecture Elements
-    subgraph Renderer [Renderer Process React + Vite]
+    subgraph Renderer [Renderer Process (React + Vite + Tailwind v4 + Radix UI)]
         App[App.tsx]
         Store[Zustand Store: store.ts]
-        View1[ScriptInputView]
-        View2[AgentRunView]
-        View3[DownloadedStuffView]
-        View4[SettingsView]
+        View1[ScriptInput / IdeaExpander View]
+        View2[AgentRun View]
+        View3[DownloadedStuff View]
+        View4[Settings View]
     end
 
-    subgraph Preload [Preload Script]
-        API[contextBridge API Wrapper]
+    subgraph Preload [Preload Bridge Layer]
+        API[contextBridge API (window.api)]
     end
 
-    subgraph Main [Main Process Node.js]
+    subgraph Main [Main Process (Node.js Environment)]
         Index[index.ts Electron Entry]
 
         subgraph IPCHandlers [IPC Gateways]
@@ -43,10 +37,14 @@ graph TD
             SettingsIPC[settings.ipc.ts]
         end
 
-        subgraph Services [Backend Services]
-            Runner[AgentRunner: AI Core]
+        subgraph BackendServices [Backend Services]
+            Runner[AgentRunner: AI Loop]
+            IdeaExp[IdeaExpander]
             LLM[LlmProviderFactory]
+            RateLimiter[LlmRateLimiter]
             Pexels[PexelsClient]
+            Quota[PexelsRateLimitTracker]
+            Cache[PexelsSearchCache]
             Downloader[PexelsDownloader]
             StoreProj[ProjectStore]
             StoreSet[SettingsStore]
@@ -57,429 +55,384 @@ graph TD
 
     %% External APIs
     subgraph External [External Interfaces]
-        PexelsAPI[Pexels Web API]
+        PexelsAPI[Pexels REST API]
         LLM_API[OpenAI / Gemini / OpenRouter]
-        LocalFS[Local Disk Directory]
+        LocalFS[Local Disk Project Workspace]
     end
 
     %% Wiring Connections
     App --> Store
     Store --> View1 & View2 & View3 & View4
     Store <==>|"window.api"| API
-    API <==>|"IPC (Invoke/Send/on)"| IPCHandlers
+    API <==>|"IPC (Invoke / Send / on)"| IPCHandlers
     Index --> IPCHandlers
 
     %% IPC to Services Connections
-    JobsIPC --> Runner
-    JobsIPC --> StoreProj
-    AssetsIPC --> StoreProj
-    SettingsIPC --> StoreSet & Secure & LLM
+    JobsIPC --> Runner & StoreProj & IdeaExp
+    AssetsIPC --> StoreProj & Manifest
+    SettingsIPC --> StoreSet & Secure & LLM & RateLimiter
 
     %% Runner internals connections
-    Runner --> LLM & Pexels & Downloader & Manifest & StoreProj
-    Pexels --> Secure & StoreSet & PexelsAPI
+    Runner --> LLM & RateLimiter & Pexels & Downloader & Manifest & StoreProj
+    Pexels --> Secure & StoreSet & Quota & Cache & PexelsAPI
     Downloader --> LocalFS
     Manifest --> LocalFS
     StoreProj --> LocalFS
     StoreSet --> LocalFS
     Secure --> LocalFS
-    LLM --> LLM_API
+    LLM --> RateLimiter & LLM_API
 ```
+
+### Core Architecture Layers:
+
+1. **Main Process (`src/main`)**: The Node.js backend. Manages the Electron lifecycle, secure local storage, network requests, custom stream protocols (`media://`), file system operations, rate limiters, and the AI agent loop.
+2. **Preload Script (`src/preload`)**: The secure gateway exposing a minimal, typed IPC bridge (`window.api`) to the renderer via `contextBridge` and `ipcRenderer`.
+3. **Renderer Process (`src/renderer`)**: The React frontend built with Vite, Tailwind CSS (v4), Zustand state management, and Radix UI primitives.
 
 ---
 
-## 2. Directory Layout & Core Files
+## 2. Directory Layout & Key Modules
 
 ```
 Pexels/
-├── .editorconfig               # Editor settings config
-├── .github/                    # GitHub actions / workflows
-├── electron-builder.yml        # Electron builder distribution packing configuration
-├── electron.vite.config.ts     # Bundling configs for main, preload, and renderer
+├── .github/                    # GitHub actions / CI workflows
+├── docs/                       # Architectural specs and research docs
+│   ├── 00-product-brief.md
+│   ├── 01-technical-architecture.md
+│   ├── 02-agent-loop-prompts-tools.md
+│   ├── 03-implementation-backlog.md
+│   └── 04-api-contracts-and-research.md
+├── electron-builder.yml        # Multi-platform distribution packager
+├── electron.vite.config.ts     # Bundling configs for main, preload, renderer
 ├── package.json                # Project dependencies, build scripts, metadata
-├── postcss.config.js           # PostCSS setup (@tailwindcss/postcss)
-
-├── tsconfig.json               # Main TypeScript config
-├── tsconfig.node.json          # Node modules TypeScript configuration (Main/Preload)
-├── tsconfig.web.json           # Frontend TypeScript configuration (Renderer)
-├── resources/                  # Asset icons and static app binaries
-│   └── icon.png
-└── src/
-    ├── main/                   # ELECTRON MAIN PROCESS (Node.js Environment)
-    │   ├── index.ts            # Entry point: Window creation, lifecycle hooks, handler registration
-    │   ├── ipc/                # Inter-Process Communication (IPC) Modules
-    │   │   ├── assets.ipc.ts   # Core asset listing, local deletion, manifest exporter
-    │   │   ├── jobs.ipc.ts     # Background process orchestrator (runs AgentRunner)
-    │   │   └── settings.ipc.ts # Preferences management, API validation, folder pickers
-    │   └── services/           # Backend Logic Services
-    │       ├── agent/
-    │       │   └── agent-runner.ts  # Central AI loop orchestrating search and downloads
-    │       ├── files/
-    │       │   └── manifest-writer.ts # Manages folder structure and appends JSONL logs
-    │       ├── llm/
-    │       │   └── llm-provider.ts  # Standardized API wrapper for OpenAI, Gemini, OpenRouter
-    │       ├── pexels/
-    │       │   ├── pexels-client.ts # Interacts with Pexels Search & Media APIs
-    │       │   ├── pexels-downloader.ts # High-concurrency chunk downloader with retry logic
-    │       │   └── pexels-types.ts  # Zod validation schemas for photo/video payloads
-    │       └── storage/
-    │           ├── project-store.ts # Tracks historical jobs in userData/projects.json
-    │           ├── settings-store.ts # Saves general preferences in userData/settings.json
-    │           └── secure-secrets.ts # Encrypts API credentials in userData/secrets.json
-    │
-    ├── preload/                # IPC BRIDGE LAYER
-    │   ├── index.d.ts          # Declarations matching window.api schemas
-    │   └── index.ts            # Exposes safe main channels to renderer
-    │
-    └── renderer/               # REACT CLIENT (Web Environment)
-        ├── index.html          # Shell layout template
-        └── src/
-            ├── env.d.ts        # Vite client declarations
-            ├── main.tsx        # React entry-point bundle script
-            ├── App.tsx         # Central UI router and sidebar navigation layout
-            ├── assets/
-            │   └── main.css    # Tailwind import, CSS variables, custom styles
-            ├── lib/
-            │   ├── api-client.ts # Standardized client referencing window.api
-            │   ├── store.ts    # Global state management using Zustand
-            │   └── utils.ts    # Style merging utilities (clsx + tailwind-merge)
-            ├── components/     # UI Core Elements
-            │   ├── Versions.tsx # Helper displaying Chrome, Node, Electron runtimes
-            │   └── ui/         # Shadcn-like components (buttons, input, select, sliders, etc.)
-            └── routes/         # Views
-                ├── agent-run.tsx     # Progress console, live logs, approval portals
-                ├── downloaded-stuff.tsx # Media dashboard, local playbacks, metadata explorer
-                ├── script-input.tsx  # Setup form for title, script, mix type, visual style
-                └── settings.tsx      # Provider credential setup, safety switches, metrics
+├── postcss.config.js           # PostCSS Tailwind setup
+├── project-reference.md        # Comprehensive technical manual (this document)
+├── README.md                   # Repository overview
+├── test/                       # Node test runner suite
+│   ├── abort-signal.test.ts
+│   ├── agent-tools-contract.test.ts
+│   ├── api-errors.test.ts
+│   ├── beat-parse-tool.test.ts
+│   ├── download-retry.test.ts
+│   ├── idea-expander.test.ts
+│   ├── llm-provider.test.ts
+│   ├── manifest-writer.test.ts
+│   ├── path-safety.test.ts
+│   ├── pexels-client.test.ts
+│   └── rate-limiter.test.ts
+├── src/
+│   ├── main/                   # ELECTRON MAIN PROCESS (Node.js)
+│   │   ├── index.ts            # App entry, custom media:// protocol, window management
+│   │   ├── ipc/                # Inter-Process Communication (IPC)
+│   │   │   ├── assets.ipc.ts   # Asset management, manifest export, file explorer
+│   │   │   ├── jobs.ipc.ts     # Job orchestration, pause/resume, rerun, idea expander
+│   │   │   └── settings.ipc.ts # Preferences, API validation, directory chooser
+│   │   └── services/           # Backend Logic Services
+│   │       ├── agent/          # Agent loop orchestrator and StockScout prompts
+│   │       │   ├── agent-runner.ts
+│   │       │   └── prompts.ts
+│   │       ├── files/          # Manifest writer, atomic saves, path safety
+│   │       │   ├── manifest-writer.ts
+│   │       │   └── path-safety.ts
+│   │       ├── http/           # HTTP helpers, abort signals, error mappers
+│   │       │   ├── abort-signal.ts
+│   │       │   └── api-errors.ts
+│   │       ├── llm/            # Unified LLM provider adapters & rate limiting
+│   │       │   ├── beat-parse-tool.ts
+│   │       │   ├── idea-expander.ts
+│   │       │   ├── llm-fetch.ts
+│   │       │   ├── llm-provider.ts
+│   │       │   └── llm-rate-limiter.ts
+│   │       ├── pexels/         # Pexels API client, quota tracker, cache, downloader
+│   │       │   ├── download-task-utils.ts
+│   │       │   ├── download-url-validation.ts
+│   │       │   ├── pexels-attribution.ts
+│   │       │   ├── pexels-client.ts
+│   │       │   ├── pexels-downloader.ts
+│   │       │   ├── pexels-rate-limit.ts
+│   │       │   ├── pexels-search-cache.ts
+│   │       │   └── pexels-types.ts
+│   │       └── storage/        # File-based persistent databases
+│   │           ├── project-store.ts
+│   │           ├── secure-secrets.ts
+│   │           └── settings-store.ts
+│   ├── preload/                # IPC BRIDGE LAYER
+│   │   ├── index.d.ts          # Type declarations for window.api
+│   │   └── index.ts            # Preload script exposing window.api
+│   └── renderer/               # REACT CLIENT (Web Environment)
+│       ├── index.html          # HTML entry point
+│       └── src/
+│           ├── App.tsx         # Main layout & view routing
+│           ├── assets/main.css # CSS variables, dark theme, glassmorphism
+│           ├── components/     # UI components (BrandLogo, ErrorBoundary, Radix primitives)
+│           ├── lib/            # Zustand store, API client, media URL resolver
+│           └── routes/         # Application Views
+│               ├── agent-run.tsx        # Live execution console, beat progress
+│               ├── downloaded-stuff.tsx # Media dashboard, local playback
+│               ├── onboarding.tsx      # Welcome & initial key setup
+│               ├── script-input.tsx    # Script & Idea setup form
+│               └── settings.tsx        # Provider keys, rate limits, performance tuning
+└── website/                    # Static Product Portal and SEO Documentation
 ```
 
 ---
 
 ## 3. IPC (Inter-Process Communication) Interface
 
-Communication across the isolated boundary is controlled by custom IPC handlers registered on `ipcMain` in the main process and exposed via `ipcRenderer` in the preload script.
+Communication across the Electron security boundary is strictly managed by typed IPC channels.
 
-| Interface Channel               | Call Type           | Arguments                        | Returns                                          | Description                                                                                      |
-| :------------------------------ | :------------------ | :------------------------------- | :----------------------------------------------- | :----------------------------------------------------------------------------------------------- |
-| **Settings Channel**            |                     |                                  |                                                  |                                                                                                  |
-| `settings:getPublicSettings`    | `invoke`            | None                             | `Promise<PublicSettings>`                        | Retrieves public configurations, obscuring API keys as `••••••••••••••••`.                       |
-| `settings:updateSettings`       | `invoke`            | `rawInput: Partial<Settings>`    | `Promise<PublicSettings>`                        | Validates inputs via Zod, writes public preferences to `settings.json`, and updates secure keys. |
-| `settings:testProvider`         | `invoke`            | `{ provider, apiKey, modelId }`  | `Promise<ProviderTestResult>`                    | Tests connection for OpenAI, Gemini, or OpenRouter with a simple ping-pong request.              |
-| `settings:testPexelsKey`        | `invoke`            | `apiKey: string`                 | `Promise<{ success: boolean, message: string }>` | Verifies Pexels API credentials by calling Pexels search query.                                  |
-| `settings:chooseDownloadFolder` | `invoke`            | None                             | `Promise<string \| null>`                        | Triggers Electron's native directory browser dialog.                                             |
-| `settings:openAppDataFolder`    | `invoke`            | None                             | `Promise<void>`                                  | Launches OS explorer showing application's local sandbox `userData` folder.                      |
-| **Jobs Channel**                |                     |                                  |                                                  |                                                                                                  |
-| `jobs:start`                    | `invoke`            | `rawInput: StartJobInput`        | `Promise<string>`                                | Triggers a new job, instantiates an `AgentRunner`, and runs it asynchronously in the background. |
-| `jobs:pause`                    | `invoke`            | `jobId: string`                  | `Promise<void>`                                  | Pauses the agent loop execution, triggering network thread cancel flags.                         |
-| `jobs:resume`                   | `invoke`            | `jobId: string`                  | `Promise<void>`                                  | Resumes a paused agent loop, resuming visual search checks.                                      |
-| `jobs:approveAndResume`         | `invoke`            | `jobId: string`                  | `Promise<void>`                                  | Approves queued asset candidates and triggers the download queue runner.                         |
-| `jobs:cancel`                   | `invoke`            | `jobId: string`                  | `Promise<void>`                                  | Halts the current job, marking it as `cancelled` in stores.                                      |
-| `jobs:rerun`                    | `invoke`            | `jobId: string`                  | `Promise<string>`                                | Restarts a previously finished or failed run under a new UUID.                                   |
-| `jobs:get`                      | `invoke`            | `jobId: string`                  | `Promise<JobSnapshot>`                           | Resolves the combined details of a run (manifest settings, visual beats, and log files).         |
-| `jobs:list`                     | `invoke`            | None                             | `Promise<JobSummary[]>`                          | Lists all project logs recorded in the store database.                                           |
-| `jobs:event`                    | `send` _(Callback)_ | `event: any`                     | None                                             | Emits live logs, script parsing steps, and download completion metrics to the UI.                |
-| **Assets Channel**              |                     |                                  |                                                  |                                                                                                  |
-| `assets:list`                   | `invoke`            | `jobId: string`                  | `Promise<AssetRecord[]>`                         | Returns the flat array of all assets parsed from the local `manifest.json`.                      |
-| `assets:openInFolder`           | `invoke`            | `jobId: string, assetId: string` | `Promise<void>`                                  | Selects and reveals the downloaded file inside the OS file manager.                              |
-| `assets:deleteLocal`            | `invoke`            | `jobId: string, assetId: string` | `Promise<void>`                                  | Deletes the file from disk, updates its manifest entry status to `failed`, and rewrites metrics. |
-| `assets:exportManifest`         | `invoke`            | `jobId: string`                  | `Promise<string>`                                | Reads the project's local JSON manifest file contents and returns it as a string.                |
+| Channel                         | Method           | Arguments                        | Returns                                          | Description                                                                    |
+| :------------------------------ | :--------------- | :------------------------------- | :----------------------------------------------- | :----------------------------------------------------------------------------- |
+| **Settings**                    |                  |                                  |                                                  |                                                                                |
+| `settings:getPublicSettings`    | `invoke`         | None                             | `Promise<PublicSettings>`                        | Returns public settings; API keys masked as `••••••••••••••••`.                |
+| `settings:updateSettings`       | `invoke`         | `Partial<Settings>`              | `Promise<PublicSettings>`                        | Validates inputs via Zod, persists public settings and updates encrypted keys. |
+| `settings:testProvider`         | `invoke`         | `{ provider, apiKey, modelId }`  | `Promise<ProviderTestResult>`                    | Tests connection to OpenAI, Gemini, or OpenRouter.                             |
+| `settings:testPexelsKey`        | `invoke`         | `apiKey: string`                 | `Promise<{ success: boolean, message: string }>` | Verifies Pexels API key by issuing a lightweight search query.                 |
+| `settings:chooseDownloadFolder` | `invoke`         | None                             | `Promise<string \| null>`                        | Opens native directory picker dialog.                                          |
+| `settings:openAppDataFolder`    | `invoke`         | None                             | `Promise<void>`                                  | Opens local OS file explorer at `app.getPath('userData')`.                     |
+| **Jobs**                        |                  |                                  |                                                  |                                                                                |
+| `jobs:start`                    | `invoke`         | `StartJobInput`                  | `Promise<string>`                                | Spawns a new background `AgentRunner` job and returns `jobId`.                 |
+| `jobs:pause`                    | `invoke`         | `jobId: string`                  | `Promise<void>`                                  | Pauses the agent loop execution.                                               |
+| `jobs:resume`                   | `invoke`         | `jobId: string`                  | `Promise<void>`                                  | Resumes a paused agent loop.                                                   |
+| `jobs:approveAndResume`         | `invoke`         | `jobId: string`                  | `Promise<void>`                                  | Approves pending asset candidates and initiates the download queue.            |
+| `jobs:cancel`                   | `invoke`         | `jobId: string`                  | `Promise<void>`                                  | Halts the job and marks status as `cancelled`.                                 |
+| `jobs:rerun`                    | `invoke`         | `jobId: string`                  | `Promise<string>`                                | Creates a fresh job run using previous settings.                               |
+| `jobs:get`                      | `invoke`         | `jobId: string`                  | `Promise<JobSnapshot>`                           | Returns combined snapshot of manifest, visual beats, and log records.          |
+| `jobs:list`                     | `invoke`         | None                             | `Promise<JobSummary[]>`                          | Lists all recorded projects.                                                   |
+| `jobs:expandIdea`               | `invoke`         | `IdeaExpanderInput`              | `Promise<IdeaExpanderResult>`                    | Expands a brief concept into a structured script with visual directions.       |
+| `jobs:event`                    | `send` _(Event)_ | `AgentEvent`                     | `void`                                           | Emits live logs, progress updates, tool events, and download metrics.          |
+| **Assets**                      |                  |                                  |                                                  |                                                                                |
+| `assets:list`                   | `invoke`         | `jobId: string`                  | `Promise<AssetRecord[]>`                         | Returns flat array of assets from local `manifest.json`.                       |
+| `assets:openInFolder`           | `invoke`         | `jobId: string, assetId: string` | `Promise<void>`                                  | Reveals downloaded asset in the native OS file explorer.                       |
+| `assets:deleteLocal`            | `invoke`         | `jobId: string, assetId: string` | `Promise<void>`                                  | Safely deletes local asset file and updates manifest record.                   |
+| `assets:exportManifest`         | `invoke`         | `jobId: string`                  | `Promise<string>`                                | Returns project's `manifest.json` as a formatted string.                       |
 
 ---
 
-## 4. Backend Services (Main Process)
+## 4. Backend Services & Core Logic
 
-### A. AI Stock Scout (`AgentRunner` - `src/main/services/agent/agent-runner.ts`)
+### A. The Agent Loop (`AgentRunner` - `src/main/services/agent/agent-runner.ts`)
 
-The `AgentRunner` manages the core logic of StockFinder AI. It processes jobs asynchronously in the background and communicates progress updates back to the UI.
-
-#### 1. Execution States
-
-A run goes through the following lifecycle:
+The `AgentRunner` executes a deterministic 10-step AI search and download loop:
 
 ```
-  [Initializing job] ──> [Analyzing script into beats] ──> [Executing agent search and downloads]
-                                                                        │
-     ┌─────────────────────────────────── Pause Lock ───────────────────┼─── Require Approval?
-     │                                                                  ▼
-     ▼                                                      [Awaiting user approval]
- [Paused] ──(Resume/Approve)──> [Queueing Downloads]                    │
-     │                                    │                             ▼
-     ▼                                    ▼                    [Approve & Download]
-[Cancelled]                          [Completed]                        │
-     │                                    │                             ▼
-     └────────────────────────────────────┴────────────────────────> [Finished]
+[Start Job]
+    │
+    ▼
+[Step 1: Parse Script into Visual Beats (structured output / tool call)]
+    │
+    ▼
+[Step 2-8: Iterative Agent Loop (up to maxAgentIterations)]
+    │
+    ├── 1. Formulate Pexels queries for next pending beat
+    ├── 2. Execute `search_pexels_photos` / `search_pexels_videos`
+    ├── 3. Register trusted candidate media in `pexelsCandidates`
+    ├── 4. Model calls `select_assets_for_download`
+    ├── 5. Safety check: verify URLs match candidate pool (anti-hallucination)
+    ├── 6. User Approval check (if `requireApprovalBeforeDownload` enabled)
+    └── 7. Trigger `PexelsDownloader` to fetch media into local workspace
+    │
+    ▼
+[Step 9: Build Manifest & Attribution Document (`pexels-attribution.ts`)]
+    │
+    ▼
+[Step 10: Finalize Workspace (`manifest.json`, `agent-log.jsonl`) -> Status: Done]
 ```
 
-#### 2. Dynamic Progress & Step Tracking
-
-Rather than remaining static during the search and download loops, the runner dynamically calculates progress metrics:
-
-- **Live Description updates**: Updates `currentStep` in real time with the active action (e.g., `Searching photos for "nebula" (beat 1)`).
-- **Beat-Ratio Progress**: Calculates progress percentages based on the ratio of completed beats, smoothly transitioning from 30% to 90% as files finish downloading.
-- **Detailed Console Logging**: Appends explicit console entries when LLM consults start, when Pexels API calls initiate, and when download queues change state (start, fail, finish).
-
-#### 3. Visual Beat Schema
-
-Each script segment is parsed into a **Visual Beat** structure:
+#### Visual Beat Schema:
 
 ```typescript
 interface VisualBeat {
   id: string // e.g. "beat_1", "beat_2"
-  text: string // Exact segment script narrative text
-  visualPrompt: string // AI visual prompt optimized for stock media discovery
-  searchQueries: string[] // List of search terms called by the agent for this beat
-  assets: AssetRecord[] // Downloaded or queued assets mapping to this beat
-  rejectedAssets?: Array<{ type: 'photo' | 'video'; pexelsId: number; reason: string }> // Rejected items
+  order: number
+  scriptExcerpt: string // Script section text
+  visualIntent: string // Scene direction
+  mood: string // Emotional / cinematic tone
+  subjects: string[] // Key visual elements
+  searchQueries: string[] // Queries performed
+  desiredAssetTypes: ('photo' | 'video')[]
+  minNeeded: number
   status: 'pending' | 'searching' | 'selecting' | 'downloading' | 'completed' | 'failed'
+  assets: AssetRecord[]
 }
 ```
 
-#### 3. Agent Tool Contract (StockScout Tools)
+#### Termination Conditions:
 
-The agent operates through an iterative loop (up to `maxAgentIterations`) using standard LLM tool calling:
+The agent stops when any of the following occur:
 
-- `search_pexels_photos`: Queries Pexels for static images. Takes parameters `beatId`, `query`, `orientation`, `size`, `color`, `page`, and `perPage`.
-- `search_pexels_videos`: Queries Pexels for motion videos. Takes parameters `beatId`, `query`, `orientation`, `size`, `page`, and `perPage`.
-- `select_assets_for_download`: Selects asset candidates from search results. Takes selection arrays containing `beatId`, `assetType` (`photo` | `video`), `pexelsId`, `variantUrl`, and a selection `reason`. It also logs rejections with a reason (e.g. `off topic`, `poor composition`, `wrong orientation`, etc.).
-- `download_selected_assets`: Triggers downloads for selected assets. Takes an array of `{ assetType, pexelsId }`. If `requireApprovalBeforeDownload` is enabled, this tool returns a status of `awaiting_user_approval` and pauses the agent loop until the user approves the assets in the UI.
-
----
-
-### B. LLM Wrapper (`LlmProvider` - `src/main/services/llm/llm-provider.ts`)
-
-The `LlmProvider` normalizes communication with different LLM APIs (OpenAI, Gemini, OpenRouter) through a unified interface.
-
-- **OpenAI**: Communicates with the `v1/chat/completions` endpoint. Translates system instructions, message histories, tool definitions, and tool choice selections.
-- **OpenRouter**: Integrates with OpenRouter endpoints. Configures special headers (like `HTTP-Referer` and `X-Title`) and parses the response format.
-- **Gemini**: Interfaces with Google's API (`v1beta/models/...:generateContent?key=...`). Translates message roles (`user` -> `user`, `assistant` -> `model`, `tool` -> `user` with `functionResponse`).
-  > [!IMPORTANT]
-  > Gemini requires function parameter types to be uppercase strings (e.g. `STRING`, `NUMBER`, `OBJECT`). `GeminiProvider` automatically formats these types before sending request payloads.
+1. All visual beats are satisfied (`completed` or `skipped`).
+2. Total downloaded assets reach `maxTotalDownloads`.
+3. Agent loop iterations reach `maxAgentIterations` (default `20`).
+4. User cancels or pauses the job.
+5. Repeated unparseable tool errors (3 strikes).
 
 ---
 
-### C. Pexels Integration (`src/main/services/pexels/`)
+### B. LLM Providers & Normalization (`src/main/services/llm/`)
 
-- **`PexelsClient`**: Handles API requests to `api.pexels.com/v1/search` (photos) and `api.pexels.com/videos/search` (videos). It retrieves credentials from `SecureSecrets`, applies request timeout limits, and checks for HTTP 429 rate limit exceptions.
-- **`PexelsDownloader`**: An asynchronous, queue-based downloader.
-  - **Concurrency**: Features a configurable concurrency limit (1 to 5 concurrent connections).
-  - **Retries**: Implements automatic retries (up to 2) with exponential backoff (`delay = 2^retries * 1000` ms) for transient network errors.
-  - **Streaming**: Downloads assets in chunks using a streaming reader (`response.body.getReader()`). It writes progress to a `.tmp` file and renames it to the target file name once the download completes.
-  - **Validation**: Inspects `content-type` headers to resolve file extensions:
-    - Photos: `.jpeg`, `.png`, `.webp`
-    - Videos: `.mp4`, `.mov`, `.webm`
-
----
-
-### D. Data Storage (`src/main/services/storage/`)
-
-#### 1. Project Registry (`ProjectStore` -> `userData/projects.json`)
-
-Saves a flat index of all historical projects for the dashboard dashboard panel.
+The application provides a unified interface across 3 major LLM providers:
 
 ```typescript
-interface JobSummary {
-  jobId: string
-  projectName: string
-  title: string
-  script: string
-  status: 'running' | 'paused' | 'completed' | 'cancelled' | 'failed'
-  createdAt: string
-  updatedAt: string
-  downloadPath: string
-  assetCount: number
+interface LlmProvider {
+  id: 'openai' | 'openrouter' | 'gemini'
+  name: string
+  testConnection(credentials: ProviderCredentials, modelId: string): Promise<ProviderTestResult>
+  createToolTurn(
+    request: ToolTurnRequest,
+    credentials: ProviderCredentials
+  ): Promise<ToolTurnResponse>
 }
 ```
 
-#### 2. Configuration Settings (`SettingsStore` -> `userData/settings.json`)
+#### Provider Formatting Rules:
 
-Saves non-sensitive application settings.
+1. **OpenAI (`OpenAiProvider`)**:
+   - Base URL: `https://api.openai.com/v1/chat/completions`.
+   - Tool calling: standard OpenAI `tools: [{ type: 'function', function: { name, description, parameters } }]`.
+   - Auth: `Authorization: Bearer <API_KEY>`.
+2. **OpenRouter (`OpenRouterProvider`)**:
+   - Base URL: `https://openrouter.ai/api/v1/chat/completions`.
+   - Headers: passes `HTTP-Referer: https://github.com/birol-dev/Pexels` and `X-Title: AI Stock Asset Finder`.
+   - Error detection: detects unsupported models with custom guidance: `"The selected OpenRouter model does not appear to support tool calling."`
+3. **Google Gemini (`GeminiProvider`)**:
+   - Base URL: `https://generativelanguage.googleapis.com/v1beta/models/{modelId}:generateContent?key={apiKey}`.
+   - Converts schema types to **UPPERCASE** (e.g. `type: 'STRING'`, `type: 'OBJECT'`, `type: 'ARRAY'`).
+   - Strips unsupported JSON Schema keys such as `additionalProperties`.
+   - Formats `systemInstruction`, `functionDeclarations`, and `functionResponse` parts.
+   - Detects `SAFETY` finish reasons and returns clear error messaging.
+
+---
+
+### C. Rate Limiting Architecture
+
+StockFinder AI implements two distinct rate limiting layers to prevent 429 throttling:
+
+1. **LLM Sliding-Window Rate Limiter (`LlmRateLimiter` - `llm-rate-limiter.ts`)**:
+   - Enforces a configurable Requests-Per-Minute (`requestsPerMinute`) cap.
+   - Uses a sliding time window (60s) with mutex concurrency locking.
+   - Rejects cleanly upon `AbortSignal` without leaking pending timers.
+   - Set `requestsPerMinute: 0` for unlimited throughput.
+
+2. **Pexels Quota Tracker (`PexelsRateLimitTracker` - `pexels-rate-limit.ts`)**:
+   - Inspects Pexels response headers: `X-Ratelimit-Limit`, `X-Ratelimit-Remaining`, `X-Ratelimit-Reset`.
+   - When remaining quota falls $\le 10$, automatically applies backoff delays.
+   - When quota is exhausted, pauses requests until `X-Ratelimit-Reset`.
+
+---
+
+### D. Pexels API & Resilient Video Schemas (`src/main/services/pexels/`)
+
+#### Pexels Response Resilience:
+
+Pexels API responses can include `null` or omitted values for `quality`, `file_type`, `fps`, `width`, `height`, and `user.url` (e.g., on HLS streams or preview transcode variants).
+
+`PexelsVideoFileSchema` and `PexelsPhotoSchema` in [pexels-types.ts](file:///c:/Users/omerb/Desktop/antigravity/Pexels/src/main/services/pexels/pexels-types.ts) are strictly configured to accept nullable/optional fields:
 
 ```typescript
-interface PublicSettings {
-  llmProvider: 'openai' | 'gemini' | 'openrouter'
-  modelId: string
-  downloadFolder: string
-  maxConcurrentDownloads: number
-  maxAgentIterations: number
-  requestTimeoutSeconds: number
-  skipExplicitQueries: boolean
-  requireApprovalBeforeDownload: boolean
-  avoidPeopleAndFaces: boolean
-}
+export const PexelsVideoFileSchema = z
+  .object({
+    id: z.number().optional(),
+    quality: z.string().nullable().optional(),
+    file_type: z.string().nullable().optional(),
+    width: z.number().nullable().optional(),
+    height: z.number().nullable().optional(),
+    fps: z.number().nullable().optional(),
+    link: z.string()
+  })
+  .passthrough()
 ```
 
-#### 3. Secure Key Vault (`SecureSecrets` -> `userData/secrets.json`)
+#### Safe Asset Downloader (`PexelsDownloader`):
 
-Uses Electron's native `safeStorage` API to encrypt sensitive credentials (like API keys) using OS-level keychains (Keychain Access on macOS, DPAPI on Windows). If encryption is not available on the host system, it falls back to plaintext storage prefixed with `plain:`.
-
-- Keys: `openaiKey`, `geminiKey`, `openrouterKey`, `pexelsKey`
-- Encrypted Values: Stored as hex strings prefixed with `encrypted:`.
+- **Concurrency Control**: 1–5 parallel workers.
+- **Retry Mechanism**: Exponential backoff with jitter on transient network/server failures (5xx, 429, 401/403 expired CDN tokens). Non-retryable on 404/400.
+- **Atomic Writing**: Streams chunks to `.tmp` files and renames only after successful completion and hash/size verification.
+- **Domain Verification**: Enforces strict URL validation to prevent SSRF (`download-url-validation.ts`).
 
 ---
 
-### E. File System Orchestration (`src/main/services/files/manifest-writer.ts`)
+### E. File System & Manifest Structure (`ManifestWriter`)
 
-Each project is saved in a dedicated folder in the default download directory:
+Each project workspace is created inside the user's selected download folder:
 
 ```
-[Download Root]/[slugified-project-title]/
-├── manifest.json         # Project settings snapshot, parsed visual beats, and download metadata
-├── agent-log.jsonl       # Appends structured JSON logs for thoughts, tool calls, and errors
-├── photos/               # Target directory for downloaded photos
-├── videos/               # Target directory for downloaded videos
-└── thumbnails/           # Target directory for thumbnail previews
+[Download Directory]/[slugified-project-title]-[unique-suffix]/
+├── manifest.json         # Complete snapshot of project settings, beats, assets, attribution
+├── agent-log.jsonl       # Real-time JSON Lines audit log with timestamps
+├── photos/               # Downloaded photo assets (e.g. photo-12345-large.jpg)
+├── videos/               # Downloaded video assets (e.g. video-67890-hd.mp4)
+└── thumbnails/           # Downloaded preview thumbnails
 ```
+
+#### Attribution Compliance (`pexels-attribution.ts`):
+
+Builds canonical attribution records in `manifest.json` conforming to Pexels API Guidelines:
+
+- Official Pexels credit text & logo URLs.
+- Per-asset photographer credits: `"Photo by [Photographer] on Pexels (ID [ID])"`.
+- Direct links to original Pexels asset pages.
 
 ---
 
-## 5. UI Architecture & Renderer Process
+## 5. Security & Isolation Controls
 
-### A. Global State Store (`src/renderer/src/lib/store.ts`)
-
-The React frontend uses a **Zustand** store (`useAppStore`) to manage application state:
-
-- **Routing**: Manages the current view page (`currentRoute`).
-- **Navigation Hooks**: Synchronizes transitions and loads active job data.
-- **IPC Event Stream**: Listens to real-time events via `api.jobs.onEvent()` to update job progress, append console logs, and refresh download metrics in the UI.
-
-### B. Styling System (`src/renderer/src/assets/main.css`)
-
-StockFinder AI uses a dark theme themed with HSL color tokens.
-
-- **Color Palette**: Sleek dark grays (Neutral `#09090b` to `#16161a`) with a violet-to-indigo highlight primary accent (`hsl(263.4, 70%, 50.4%)`).
-- **Glassmorphic Design**:
-  - `.glass-panel`: Translucent background (`rgba(20, 20, 25, 0.7)`) with `backdrop-filter: blur(12px)` and a subtle light border (`border-white/5`).
-  - `.glass-card`: Interactive hover-responsive layouts for list containers.
-- **Transitions & Custom Scrollbars**: Smooth webkit-based scroll bars for log consoles and history queues.
-- **Flowing Loader Animations**: Custom `@keyframes shimmer` and `.animate-shimmer` linear gradient background shifts applied on progress indicators to convey active API calls.
+1. **Custom `media://` Protocol**:
+   - Replaces insecure `file://` protocols in the renderer.
+   - Streamlines local video/image playback with full HTTP range seeking support.
+2. **Encrypted Secret Storage (`SecureSecrets`)**:
+   - Uses Electron `safeStorage` (Windows DPAPI, macOS Keychain).
+   - Encrypted keys stored as hex strings prefixed with `encrypted:`.
+   - Never logs unmasked keys (`sk-abc...xyz`).
+3. **Anti-Hallucination & Anti-SSRF URL Validation**:
+   - Candidates returned by Pexels are indexed in `pexelsCandidates`.
+   - When the agent selects an asset, the URL is verified against the candidates map before downloading.
+   - Blocks private IP ranges (`127.0.0.1`, `10.0.0.0/8`, `192.168.0.0/16`, `localhost`).
+4. **Path Traversal Protection (`path-safety.ts`)**:
+   - Checks `isPathInside` before any file deletion or local file open operations.
 
 ---
 
-### C. Views & Modules (`src/renderer/src/routes/`)
+## 6. Testing Guide & Test Architecture
 
-#### 1. Create Pack View (`script-input.tsx`)
-
-The entry dashboard for starting new projects.
-
-- **Input Form**: Takes a project title and narrative script, with options for target platform layouts, visual styles (cinematic, tech, abstract, etc.), and asset mix types (videos only, photos only, or a combination of both).
-- **Run History**: Shows a list of historical runs with status badges (running, paused, completed, failed, cancelled) and a rerun action button.
-
-```
-+-----------------------------------------------------------+
-|                   CREATE ASSET PACK                       |
-|  [Project Title Input]                                    |
-|  [Video Script Textarea]                                  |
-|                                                           |
-|  Platform Layout        Visual Mood                       |
-|  [YouTube (16:9)     v] [Cinematic    v]                  |
-|                                                           |
-|  Asset Mix Type                                           |
-|  [Videos Only]     [Photos Only]    [Videos + Photos]     |
-|                                                           |
-|  Max Assets / Beat      Max Total Downloads               |
-|  [ 3 ]                  [ 15 ]                            |
-|                                                           |
-|  [ === ANALYZE & FETCH VISUAL ASSETS === ]                |
-+-----------------------------------------------------------+
-```
-
-#### 2. Run Progress View (`agent-run.tsx`)
-
-A dashboard displaying the active agent run status.
-
-- **Progress Dashboard**: Displays a progress bar with a flowing shimmer effect, cost calculations, status badge indicators (with green/purple pulse highlights), and actions. Shows an active loading spinner next to the running step.
-- **Script Beats**: Displays visual beats cards featuring:
-  - **Download overlays**: An active loader spinner for queued (`pending`) assets, and a live progress bar overlay with percentage labels for assets in the `downloading` status.
-- **Agent Console**: Displays real-time logs from the agent (such as thoughts, tool calls, and outputs). Outputs are processed through a formatting module (`renderLogData`) that pretty-prints tool parameters and outputs into structured JSON blocks.
-
-```
-+--------------------------------------------------------------------------------+
-|  [< Setup]  History of Space Travel                                            |
-|  Progress: [=========================>                 ] 45%                   |
-|  Status: Running | Beats: 4 | Downloads: 3 complete | Cost: $0.0240            |
-+-------------------------------------------------------+------------------------+
-|  SCRIPT BEATS                                         |  AGENT CONSOLE         |
-|  +-------------------------------------------------+  |  [14:32:01] THOUGHT    |
-|  | Beat 1: "Humanity always looked at the stars"   |  |  Searching for space   |
-|  | Direction: Cinematic shot of night sky galaxy   |  |  background...         |
-|  | Searches: [galaxy nebula] [night sky space]     |  |  [14:32:02] TOOL CALL  |
-|  |                                                 |  |  search_pexels_videos  |
-|  | Beat Stock Assets:                              |  |  args: query=nebula    |
-|  | [Thumbnail]   [Thumbnail]                       |  |  [14:32:04] RESULT     |
-|  | video (100%)  photo (ready)                     |  |  Returned 8 videos     |
-|  +-------------------------------------------------+  |                        |
-+-------------------------------------------------------+------------------------+
-```
-
-#### 3. Media Library View (`downloaded-stuff.tsx`)
-
-A dashboard for managing downloaded stock assets.
-
-- **Filters**: Displays assets filtered by type (videos, photos) and status (downloaded, failed).
-- **Asset Inspector**: Clicking an asset displays its details, including Pexels source, photographer licensing, dimensions, search query context, and local file path.
-- **Media Player**: Plays local video files and displays local images directly in the UI using the custom secure `media://` local streaming protocol to allow seeking, scrubbing, and bypassing CORS blockages.
-
-#### 4. Settings View (`settings.tsx`)
-
-Manages application configuration settings.
-
-- **API Credentials**: Input fields for OpenAI, Gemini, OpenRouter, and Pexels API keys, with connection test buttons for debugging.
-- **Performance Sliders**: Configuration sliders for maximum concurrent downloads, maximum agent loop turns, and request timeouts.
-- **Safety Switches**: Toggle switches to skip explicit content, avoid faces/people in search results, and require human approval before downloading.
-
----
-
-## 6. Security Hardening Controls
-
-To protect users against unauthorized access and malicious network requests, StockFinder AI implements several security checks:
-
-1.  **Local Resource Isolation (`media://` scheme)**: By registering the `media` scheme as a privileged custom protocol standard and routing local requests securely through Node's native fetches inside the main process, the system avoids opening up unsafe `file://` resources inside the React browser renderer.
-2.  **Protocol Verification**: Ensures the download URL protocol is strictly `http:` or `https:`.
-3.  **Domain Filtering (`validateDownloadUrl`)**: Rejects requests targeting local hostnames, loopbacks, or private IP address spaces to prevent Server-Side Request Forgery (SSRF):
-    - Blocks: `localhost`, `127.0.0.1`, `0.0.0.0`, `192.168.*`, `10.*`, `172.16.*`, and subdomains ending in `.local`.
-4.  **Selection Validation**: Before downloading an asset, the application verifies the download URL and Pexels ID against the search results cached in the `pexelsCandidates` map. This prevents the agent from downloading files from unverified external URLs.
-
----
-
-## 7. Packaging & Dependency Configuration
-
-The application is built and packaged using `electron-vite` and `electron-builder`.
-
-### Dependencies & Frameworks
-
-- **Electron Core**: `electron` (v39.x) with `@electron-toolkit/utils` and `@electron-toolkit/preload`.
-- **Frontend UI**: `react` (v19.x) + `zustand` (v5.x) + `lucide-react` icons.
-- **Validation**: `zod` (v4.x) for validating settings payloads, Pexels API payloads, and form inputs.
-- **Packaging**: `electron-builder` (v26.x).
-
-### Packaging Scripts (`package.json`)
+StockFinder AI includes an automated unit test suite executed using Node's native test runner (`node --test` with `--experimental-strip-types`):
 
 ```bash
-# Start development server (with HMR)
-$ npm run dev
+# Run all unit test suites
+$ npm test
 
-# Compile TypeScript and bundle build assets
-$ npm run build
+# Run TypeScript type check
+$ npm run typecheck
 
-# Package desktop application directory (unpackaged setup folder)
-$ npm run build:unpack
-
-# Build installer packages
-$ npm run build:win      # For Windows systems
-$ npm run build:mac      # For macOS platforms
-$ npm run build:linux    # For Linux systems
+# Run code formatter
+$ npm run format
 ```
+
+### Complete Test Catalog:
+
+| Test File                           | Covered Modules                                                                | Primary Assertions                                                                                              |
+| :---------------------------------- | :----------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- |
+| `test/rate-limiter.test.ts`         | `LlmRateLimiter`                                                               | Sliding window enforcement, capacity checks, abort signal handling, timer cleanup.                              |
+| `test/pexels-client.test.ts`        | `PexelsClient`, `pexels-types.ts`, `pexels-rate-limit.ts`                      | Zod schema validation, nullable `quality: null` handling, quota tracking, search cache keys.                    |
+| `test/agent-tools-contract.test.ts` | `AgentRunner`, Tool schemas                                                    | Argument validation bounds (2-100 chars, page 1-10, perPage 80), anti-hallucination candidate safety.           |
+| `test/manifest-writer.test.ts`      | `ManifestWriter`                                                               | Title slugification, atomic `.tmp` writes, directory structure, JSONL log appending.                            |
+| `test/llm-provider.test.ts`         | `LlmProviderFactory`, `GeminiProvider`, `OpenAiProvider`, `OpenRouterProvider` | Gemini uppercase parameter formatting, additionalProperties stripping, OpenRouter headers, safety finishReason. |
+| `test/idea-expander.test.ts`        | `IdeaExpander`                                                                 | Concept expansion, prompt generation, duration and tone parameters.                                             |
+| `test/beat-parse-tool.test.ts`      | `beat-parse-tool.ts`                                                           | Script segmentation into beats, structured schema fallback.                                                     |
+| `test/download-retry.test.ts`       | `download-task-utils.ts`                                                       | Retryable status codes (401/403/429/500 vs 404), in-flight queue deduplication.                                 |
+| `test/path-safety.test.ts`          | `path-safety.ts`                                                               | Directory containment, path traversal rejection.                                                                |
+| `test/abort-signal.test.ts`         | `abort-signal.ts`                                                              | Timeout signal composition, abort propagation.                                                                  |
+| `test/api-errors.test.ts`           | `api-errors.ts`                                                                | HTTP status code error mapping, user-friendly messages.                                                         |
 
 ---
 
-## 8. Official Links & Online Resources
+## 7. Troubleshooting & Error Code Matrix
 
-- **Official Product Portal**: [https://stockfinderai.birol.tech](https://stockfinderai.birol.tech)
-  - Documentation & User Manual: [https://stockfinderai.birol.tech/docs/](https://stockfinderai.birol.tech/docs/)
-  - Guide (How to Find B-Roll): [https://stockfinderai.birol.tech/how-to-find-b-roll/](https://stockfinderai.birol.tech/how-to-find-b-roll/)
-  - Pricing & License: [https://stockfinderai.birol.tech/pricing/](https://stockfinderai.birol.tech/pricing/)
-  - About Project: [https://stockfinderai.birol.tech/about/](https://stockfinderai.birol.tech/about/)
-  - Privacy Policy: [https://stockfinderai.birol.tech/privacy/](https://stockfinderai.birol.tech/privacy/)
-- **Developer Website**: [https://birol.tech](https://birol.tech)
-- **GitHub Repository**: [https://github.com/birol-dev/Pexels](https://github.com/birol-dev/Pexels)
-- **Releases & Installers**: [https://github.com/birol-dev/Pexels/releases](https://github.com/birol-dev/Pexels/releases)
+| Error Code / Message                                                     | Cause                                                             | Resolution                                                                                   |
+| :----------------------------------------------------------------------- | :---------------------------------------------------------------- | :------------------------------------------------------------------------------------------- |
+| `Invalid input: expected string, received null` (`quality`)              | Pexels API returned `null` for transcode quality on video stream. | Fixed in `pexels-types.ts` by using `z.string().nullable().optional()`.                      |
+| `pexels_rate_limited` (429)                                              | Exceeded Pexels hourly request quota (200 req/hr).                | Agent will back off; adjust `maxConcurrentDownloads` or wait for quota reset.                |
+| `llm_rate_limited`                                                       | Exceeded RPM limit set in settings or provider tier limit.        | Adjust **Rate Limit (Requests / Min)** slider in Settings -> Performance Tuning.             |
+| `SAFETY` (Gemini)                                                        | Prompt or script triggered Gemini safety filters.                 | Enable `skipExplicitQueries` or adjust script wording.                                       |
+| `The selected OpenRouter model does not appear to support tool calling.` | Selected model does not implement tool calling.                   | Choose a tool-capable model (e.g. `anthropic/claude-3.5-sonnet`, `google/gemini-2.5-flash`). |
+| `Invalid download URL domain`                                            | Asset URL does not belong to authorized Pexels CDN hosts.         | Security check prevented download of unverified host.                                        |

@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
-import { PexelsManifestAttribution } from '../pexels/pexels-attribution'
+import type { PexelsManifestAttribution } from '../pexels/pexels-attribution.ts'
 
 export interface ManifestData {
   schemaVersion: 1
