@@ -281,9 +281,9 @@
             <ol>
               <li><a href="#the-problem">The Problem: The B-Roll Search Bottleneck</a></li>
               <li><a href="#what-is-stockfinder">What StockFinder AI Is (and What It Isn't)</a></li>
+              <li><a href="#step-by-step-guide">Step-by-Step Guide: From Script to Asset Pack</a></li>
               <li><a href="#core-values">Core Principles: Open Source, Local-First, Zero Lock-in</a></li>
               <li><a href="#how-it-works">How the Technology Works Behind the Scenes</a></li>
-              <li><a href="#step-by-step-guide">Step-by-Step Guide: From Script to Asset Pack</a></li>
               <li><a href="#comparison">StockFinder AI vs. Manual Search vs. SaaS Subscriptions</a></li>
               <li><a href="#privacy-security">Privacy, Security &amp; Keychain Encryption</a></li>
               <li><a href="#open-source">Open Source Community &amp; MIT License</a></li>
@@ -321,56 +321,6 @@
           <div class="callout callout-lime">
             <p><strong>What it is NOT:</strong> StockFinder AI is not a video editor, not an AI video synthesizer (like Sora or Runway), and not a cloud video renderer. It does not touch your video cuts or audio tracks. It simply hands you the raw, authentic stock footage you need before you start cutting.</p>
           </div>
-
-          <h2 id="core-values">Core Principles: Open Source, Local-First, Zero Lock-in</h2>
-          <p>
-            We designed StockFinder AI around four core philosophical principles:
-          </p>
-
-          <div class="doc-grid">
-            <div class="doc-card">
-              <h4>
-                <span class="material-symbols-outlined" style="color: var(--lime);">code</span>
-                100% MIT Open Source
-              </h4>
-              <p>Free forever. No paid tiers, no "pro" subscription locks, no artificial watermarks, and no usage throttling. Fork it and modify it freely on GitHub.</p>
-            </div>
-
-            <div class="doc-card">
-              <h4>
-                <span class="material-symbols-outlined" style="color: var(--lime);">lock</span>
-                100% Local-First
-              </h4>
-              <p>Runs entirely on your machine. Your scripts and API credentials never pass through any middleman servers operated by StockFinder AI.</p>
-            </div>
-
-            <div class="doc-card">
-              <h4>
-                <span class="material-symbols-outlined" style="color: var(--lime);">key</span>
-                Bring Your Own Keys (BYOK)
-              </h4>
-              <p>Connect your free Pexels API key and your choice of LLM provider (OpenAI, Google Gemini, or OpenRouter). You pay only fractions of a cent per run directly to the provider.</p>
-            </div>
-
-            <div class="doc-card">
-              <h4>
-                <span class="material-symbols-outlined" style="color: var(--lime);">thumb_up</span>
-                Human Taste in Control
-              </h4>
-              <p>AI does the repetitive searching, but you maintain creative control. Built-in approval locks allow you to review and filter clips before anything downloads.</p>
-            </div>
-          </div>
-
-          <h2 id="how-it-works">How the Technology Works Behind the Scenes</h2>
-          <p>
-            StockFinder AI combines modern desktop engineering with state-of-the-art LLM function calling:
-          </p>
-          <ol>
-            <li><strong>Semantic Segmentation:</strong> When you submit a script, the app invokes an LLM with structured schemas (via tools like <code>submit_script_beats</code>) to divide continuous narration into actionable visual units called <code>VisualBeats</code>.</li>
-            <li><strong>Intent-Driven Query Synthesis:</strong> If your script says <em>"the company expanded across borders in 2024"</em>, a naive search for "borders" yields maps and fences. StockFinder AI's visual reasoning translates this beat into targeted visual concepts: <em>"international cargo airplane landing"</em> or <em>"modern corporate skyscraper skyline"</em>.</li>
-            <li><strong>Pexels API Orchestration:</strong> The agent issues authenticated queries to the official Pexels v1 REST API, respecting rate limits, caching identical queries for 1 hour, and evaluating candidate media resolutions.</li>
-            <li><strong>High-Concurrency Downloader:</strong> Using streaming chunks with automatic exponential backoff retry logic, the downloader pulls full-resolution assets concurrently without freezing your UI.</li>
-          </ol>
 
           <h2 id="step-by-step-guide">Step-by-Step Guide: From Script to Asset Pack</h2>
           <p>
@@ -438,6 +388,60 @@
               Your footage is organized inside your download folder. Drag the folder directly into Premiere Pro, DaVinci Resolve, Final Cut Pro, or CapCut. Go to the <strong>Media Library</strong> in StockFinder AI and click <strong>"Copy Attribution"</strong> to paste photographer credits directly into your video description.
             </p>
           </div>
+
+          <div class="callout" style="margin-bottom: 2rem;">
+            <p><strong>Looking for technical documentation?</strong> Read the full <a href="/docs/">StockFinder AI Documentation</a> for parameter schemas, IPC contracts, and troubleshooting guides.</p>
+          </div>
+
+          <h2 id="core-values">Core Principles: Open Source, Local-First, Zero Lock-in</h2>
+          <p>
+            We designed StockFinder AI around four core philosophical principles:
+          </p>
+
+          <div class="doc-grid">
+            <div class="doc-card">
+              <h4>
+                <span class="material-symbols-outlined" style="color: var(--lime);">code</span>
+                100% MIT Open Source
+              </h4>
+              <p>Free forever. No paid tiers, no "pro" subscription locks, no artificial watermarks, and no usage throttling. Fork it and modify it freely on GitHub.</p>
+            </div>
+
+            <div class="doc-card">
+              <h4>
+                <span class="material-symbols-outlined" style="color: var(--lime);">lock</span>
+                100% Local-First
+              </h4>
+              <p>Runs entirely on your machine. Your scripts and API credentials never pass through any middleman servers operated by StockFinder AI.</p>
+            </div>
+
+            <div class="doc-card">
+              <h4>
+                <span class="material-symbols-outlined" style="color: var(--lime);">key</span>
+                Bring Your Own Keys (BYOK)
+              </h4>
+              <p>Connect your free Pexels API key and your choice of LLM provider (OpenAI, Google Gemini, or OpenRouter). You pay only fractions of a cent per run directly to the provider.</p>
+            </div>
+
+            <div class="doc-card">
+              <h4>
+                <span class="material-symbols-outlined" style="color: var(--lime);">thumb_up</span>
+                Human Taste in Control
+              </h4>
+              <p>AI does the repetitive searching, but you maintain creative control. Built-in approval locks allow you to review and filter clips before anything downloads.</p>
+            </div>
+          </div>
+
+          <h2 id="how-it-works">How the Technology Works Behind the Scenes</h2>
+          <p>
+            StockFinder AI combines modern desktop engineering with state-of-the-art LLM function calling:
+          </p>
+          <ol>
+            <li><strong>Semantic Segmentation:</strong> When you submit a script, the app invokes an LLM with structured schemas (via tools like <code>submit_script_beats</code>) to divide continuous narration into actionable visual units called <code>VisualBeats</code>.</li>
+            <li><strong>Intent-Driven Query Synthesis:</strong> If your script says <em>"the company expanded across borders in 2024"</em>, a naive search for "borders" yields maps and fences. StockFinder AI's visual reasoning translates this beat into targeted visual concepts: <em>"international cargo airplane landing"</em> or <em>"modern corporate skyscraper skyline"</em>.</li>
+            <li><strong>Pexels API Orchestration:</strong> The agent issues authenticated queries to the official Pexels v1 REST API, respecting rate limits, caching identical queries for 1 hour, and evaluating candidate media resolutions.</li>
+            <li><strong>High-Concurrency Downloader:</strong> Using streaming chunks with automatic exponential backoff retry logic, the downloader pulls full-resolution assets concurrently without freezing your UI.</li>
+          </ol>
 
           <h2 id="comparison">StockFinder AI vs. Manual Search vs. SaaS Subscriptions</h2>
           <p>

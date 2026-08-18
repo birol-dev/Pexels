@@ -289,9 +289,9 @@
           <nav class="toc" aria-label="Documentation contents">
             <p>Documentation Index</p>
             <ol>
-              <li><a href="#overview">1. Project Overview &amp; What It Does</a></li>
+              <li><a href="#step-by-step">1. Step-by-Step User Guide (How to Use)</a></li>
               <li><a href="#prerequisites">2. Prerequisites &amp; API Keys Setup</a></li>
-              <li><a href="#step-by-step">3. Step-by-Step User Guide (How to Use)</a></li>
+              <li><a href="#overview">3. Project Overview &amp; What It Does</a></li>
               <li><a href="#agent-loop">4. How the AI Agent Loop Works</a></li>
               <li><a href="#review-mode">5. Human-in-the-Loop Review Controls</a></li>
               <li><a href="#manifest-structure">6. Project Folder &amp; Manifest Structure</a></li>
@@ -303,81 +303,9 @@
             </ol>
           </nav>
 
-          <h2 id="overview">1. Project Overview &amp; What It Does</h2>
+          <h2 id="step-by-step">1. Step-by-Step User Guide (How to Use)</h2>
           <p>
-            <strong>StockFinder AI</strong> is a free, open-source (MIT licensed) desktop application built for YouTube creators, documentary editors, short-form video producers, and marketing teams.
-          </p>
-          <p>
-            When making video content, video creators often spend <strong>2 to 4 hours per project</strong> manually browsing stock footage websites like Pexels, guessing search keywords scene by scene, downloading clips one by one into an unorganized Downloads folder, and manually keeping track of photographer credits.
-          </p>
-          <p>
-            StockFinder AI completely automates this stock research phase:
-          </p>
-          <ul>
-            <li><strong>Script Decomposition:</strong> An LLM agent reads your entire narration script and splits it into structured visual beats (scenes).</li>
-            <li><strong>Visual Translation:</strong> Metaphors and abstract lines are translated into concrete, searchable real-world visual descriptions.</li>
-            <li><strong>Autonomous Media Search:</strong> The agent calls the official Pexels API to locate high-resolution 4K/HD video clips and photos matching your chosen aspect ratio and mood.</li>
-            <li><strong>High-Speed Multi-Threaded Downloader:</strong> Streams selected media directly into a cleanly structured project folder on your machine.</li>
-            <li><strong>Automatic Attribution:</strong> Generates a full credits manifest and YouTube description block complying with the Pexels License.</li>
-          </ul>
-
-          <div class="callout callout-lime">
-            <p><strong>Important Clarification:</strong> StockFinder AI is <em>not</em> an NLE video editor (like Premiere Pro or DaVinci Resolve) and not a video stitcher. It is an intelligent stock footage researcher and asset bundler that prepares high-quality media packs for your timeline.</p>
-          </div>
-
-          <h2 id="prerequisites">2. Prerequisites &amp; API Keys Setup</h2>
-          <p>
-            Because StockFinder AI is 100% local and open-source, there are no monthly subscription fees or proprietary cloud servers. You simply connect your own free and pay-as-you-go API credentials:
-          </p>
-
-          <div class="doc-grid">
-            <div class="doc-card">
-              <h4>
-                <span class="badge badge-lime">Required</span>
-                Pexels API Key
-              </h4>
-              <p>
-                Provides access to millions of free photos and videos.
-                <br /><br />
-                <strong>Cost:</strong> 100% Free ($0).
-                <br />
-                <strong>Rate Limit:</strong> 200 requests/hour, 20,000 requests/month.
-                <br />
-                <strong>Get it here:</strong> <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer">pexels.com/api</a>
-              </p>
-            </div>
-
-            <div class="doc-card">
-              <h4>
-                <span class="badge badge-purple">Required</span>
-                LLM Provider API Key
-              </h4>
-              <p>
-                Powers script understanding and visual search synthesis. Choose one:
-                <br /><br />
-                • <strong>Google Gemini:</strong> Gemini 2.5 Flash / 1.5 Pro
-                <br />
-                • <strong>OpenAI:</strong> GPT-4o / GPT-4o-mini
-                <br />
-                • <strong>OpenRouter:</strong> Claude 3.5, Mistral, Llama 3
-                <br />
-                <strong>Cost:</strong> Fractions of a cent (~$0.01 to $0.03 per script run).
-              </p>
-            </div>
-          </div>
-
-          <p>
-            All sensitive API keys are encrypted directly on your machine using your operating system's hardware-backed key vault:
-          </p>
-          <ul>
-            <li><strong>Windows:</strong> Microsoft Data Protection API (DPAPI) via Electron <code>safeStorage</code>.</li>
-            <li><strong>macOS:</strong> Apple Keychain Services via Electron <code>safeStorage</code>.</li>
-            <li><strong>Linux:</strong> Secret Service API / Libsecret.</li>
-          </ul>
-
-          <h2 id="step-by-step">3. Step-by-Step User Guide (How to Use)</h2>
-          <p>
-            Follow this step-by-step walkthrough to create your first b-roll asset pack from a raw video script.
+            Follow this complete step-by-step walkthrough to turn any raw script into an organized Pexels b-roll asset pack.
           </p>
 
           <!-- STEP 1 -->
@@ -488,6 +416,78 @@
               <li><strong>Open in Folder:</strong> Click <em>"Reveal in Folder"</em> to jump directly to the asset on your operating system's file explorer.</li>
               <li><strong>Export Manifest &amp; Attribution:</strong> Click <em>"Copy Attribution"</em> to get a pre-formatted credits list ready to paste directly into your YouTube video description or client deliverable.</li>
             </ul>
+          </div>
+
+          <h2 id="prerequisites">2. Prerequisites &amp; API Keys Setup</h2>
+          <p>
+            Because StockFinder AI is 100% local and open-source, there are no monthly subscription fees or proprietary cloud servers. You simply connect your own free and pay-as-you-go API credentials:
+          </p>
+
+          <div class="doc-grid">
+            <div class="doc-card">
+              <h4>
+                <span class="badge badge-lime">Required</span>
+                Pexels API Key
+              </h4>
+              <p>
+                Provides access to millions of free photos and videos.
+                <br /><br />
+                <strong>Cost:</strong> 100% Free ($0).
+                <br />
+                <strong>Rate Limit:</strong> 200 requests/hour, 20,000 requests/month.
+                <br />
+                <strong>Get it here:</strong> <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer">pexels.com/api</a>
+              </p>
+            </div>
+
+            <div class="doc-card">
+              <h4>
+                <span class="badge badge-purple">Required</span>
+                LLM Provider API Key
+              </h4>
+              <p>
+                Powers script understanding and visual search synthesis. Choose one:
+                <br /><br />
+                • <strong>Google Gemini:</strong> Gemini 2.5 Flash / 1.5 Pro
+                <br />
+                • <strong>OpenAI:</strong> GPT-4o / GPT-4o-mini
+                <br />
+                • <strong>OpenRouter:</strong> Claude 3.5, Mistral, Llama 3
+                <br />
+                <strong>Cost:</strong> Fractions of a cent (~$0.01 to $0.03 per script run).
+              </p>
+            </div>
+          </div>
+
+          <p>
+            All sensitive API keys are encrypted directly on your machine using your operating system's hardware-backed key vault:
+          </p>
+          <ul>
+            <li><strong>Windows:</strong> Microsoft Data Protection API (DPAPI) via Electron <code>safeStorage</code>.</li>
+            <li><strong>macOS:</strong> Apple Keychain Services via Electron <code>safeStorage</code>.</li>
+            <li><strong>Linux:</strong> Secret Service API / Libsecret.</li>
+          </ul>
+
+          <h2 id="overview">3. Project Overview &amp; What It Does</h2>
+          <p>
+            <strong>StockFinder AI</strong> is a free, open-source (MIT licensed) desktop application built for YouTube creators, documentary editors, short-form video producers, and marketing teams.
+          </p>
+          <p>
+            When making video content, video creators often spend <strong>2 to 4 hours per project</strong> manually browsing stock footage websites like Pexels, guessing search keywords scene by scene, downloading clips one by one into an unorganized Downloads folder, and manually keeping track of photographer credits.
+          </p>
+          <p>
+            StockFinder AI completely automates this stock research phase:
+          </p>
+          <ul>
+            <li><strong>Script Decomposition:</strong> An LLM agent reads your entire narration script and splits it into structured visual beats (scenes).</li>
+            <li><strong>Visual Translation:</strong> Metaphors and abstract lines are translated into concrete, searchable real-world visual descriptions.</li>
+            <li><strong>Autonomous Media Search:</strong> The agent calls the official Pexels API to locate high-resolution 4K/HD video clips and photos matching your chosen aspect ratio and mood.</li>
+            <li><strong>High-Speed Multi-Threaded Downloader:</strong> Streams selected media directly into a cleanly structured project folder on your machine.</li>
+            <li><strong>Automatic Attribution:</strong> Generates a full credits manifest and YouTube description block complying with the Pexels License.</li>
+          </ul>
+
+          <div class="callout callout-lime">
+            <p><strong>Important Clarification:</strong> StockFinder AI is <em>not</em> an NLE video editor (like Premiere Pro or DaVinci Resolve) and not a video stitcher. It is an intelligent stock footage researcher and asset bundler that prepares high-quality media packs for your timeline.</p>
           </div>
 
           <h2 id="agent-loop">4. How the AI Agent Loop Works</h2>
