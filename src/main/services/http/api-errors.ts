@@ -128,6 +128,20 @@ export function extractErrorMessage(errText: string): string {
   return errText.slice(0, 300).trim()
 }
 
+export function parseRetryFromBody(bodyText: string): number | undefined {
+  if (!bodyText) return undefined
+  const match = bodyText.match(/retry (?:in|after)\s+([0-9.]+)\s*(s|sec|seconds|ms)?/i)
+  if (match) {
+    const val = parseFloat(match[1])
+    if (!Number.isNaN(val) && val > 0) {
+      const unit = (match[2] || 's').toLowerCase()
+      const ms = unit.startsWith('ms') ? val : val * 1000
+      return Math.min(ms + 500, 60_000)
+    }
+  }
+  return undefined
+}
+
 export async function fetchWithRetry(
   url: string,
   options: FetchWithRetryOptions = {}
@@ -148,9 +162,13 @@ export async function fetchWithRetry(
       }
 
       const retryAfter = response.headers.get('Retry-After')
-      const apiError = classifyHttpStatus(response.status, retryAfter)
       const rawErrText = await response.text().catch(() => '')
       const detailedMsg = extractErrorMessage(rawErrText)
+      const bodyRetryAfterMs = parseRetryFromBody(rawErrText)
+      const apiError = classifyHttpStatus(response.status, retryAfter)
+      if (apiError.retryAfterMs === undefined && bodyRetryAfterMs !== undefined) {
+        ;(apiError as { retryAfterMs?: number }).retryAfterMs = bodyRetryAfterMs
+      }
       apiError.message = `${options.label || 'Request'} failed: HTTP ${response.status}${
         detailedMsg ? `: ${detailedMsg}` : ''
       }`

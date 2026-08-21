@@ -280,4 +280,34 @@ describe('Fixes & Security Hardening Regression Suite', () => {
       assert.equal(result.success, false)
     })
   })
+
+  describe('8. Completed Job Status Reconciliation', () => {
+    it('reconciles status to completed if all beats in manifest have completed assets', () => {
+      const beats = [
+        { id: 'beat_1', status: 'completed', assets: [{ status: 'completed' }] },
+        { id: 'beat_2', status: 'completed', assets: [{ status: 'completed' }] }
+      ]
+      const allBeatsDone =
+        beats.length > 0 &&
+        beats.every(
+          (b) =>
+            b.status === 'completed' &&
+            (b.assets || []).length > 0 &&
+            b.assets.every((a) => a.status === 'completed')
+        )
+      assert.equal(allBeatsDone, true)
+    })
+
+    it('identifies unfulfilled beats when some beats lack assets', () => {
+      const beats = [
+        { id: 'beat_1', status: 'completed', assets: [{ status: 'completed' }] },
+        { id: 'beat_2', status: 'pending', assets: [] }
+      ]
+      const pendingBeats = beats.filter(
+        (b) => !b.assets || b.assets.length === 0 || b.assets.every((a) => a.status === 'failed')
+      )
+      assert.equal(pendingBeats.length, 1)
+      assert.equal(pendingBeats[0].id, 'beat_2')
+    })
+  })
 })

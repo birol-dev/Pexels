@@ -1,6 +1,6 @@
 {
   "name": "stockfinder-ai",
-  "version": "1.2.9",
+  "version": "1.2.10",
   "description": "An Electron desktop app for finding and downloading Pexels stock assets with AI.",
   "type": "module",
   "main": "./out/main/index.js",

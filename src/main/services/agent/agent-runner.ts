@@ -206,10 +206,24 @@ export class AgentRunner extends EventEmitter {
       await fn()
     } catch (error) {
       if (this.status !== 'cancelled' && this.status !== 'paused') {
-        this.status = 'failed'
-        const errMsg = error instanceof Error ? error.message : String(error)
-        this.log('error', `Agent execution failed: ${errMsg}`)
-        this.updateProgress('Error', 100)
+        const allBeatsDone =
+          this.beats.length > 0 &&
+          this.beats.every(
+            (b) =>
+              b.status === 'completed' &&
+              (b.assets || []).length > 0 &&
+              b.assets.every((a) => a.status === 'completed')
+          )
+        if (allBeatsDone) {
+          this.status = 'completed'
+          this.currentStep = 'Finished'
+          this.progress = 100
+        } else {
+          this.status = 'failed'
+          const errMsg = error instanceof Error ? error.message : String(error)
+          this.log('error', `Agent execution failed: ${errMsg}`)
+          this.updateProgress('Error', 100)
+        }
       }
     } finally {
       // Only the active generation may clear promise/registry ownership —
@@ -502,7 +516,12 @@ export class AgentRunner extends EventEmitter {
 
       await this.expandIdeaIfNeeded()
       await this.parseScriptIntoBeats()
-      await this.runAgentLoop()
+      try {
+        await this.runAgentLoop()
+      } catch (loopErr) {
+        const errMsg = loopErr instanceof Error ? loopErr.message : String(loopErr)
+        this.log('error', `Agent loop encountered an error: ${errMsg}`)
+      }
 
       if (this.status === 'running') {
         await this.waitForDownloadsToSettle()
@@ -971,6 +990,24 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     const maxEmptyToolNudges = 3
 
     while (iteration < this.maxIterations && this.status === 'running') {
+      const pendingBeats = this.beats.filter(
+        (b) => !b.assets || b.assets.length === 0 || b.assets.every((a) => a.status === 'failed')
+      )
+      const totalSelected = this.getSelectedAssetCount()
+      const allBeatsFulfilled =
+        pendingBeats.length === 0 || totalSelected >= this.input.maxTotalDownloads
+      const hasUnqueuedPendingAssets = this.beats.some((b) =>
+        (b.assets || []).some((a) => a.status === 'pending')
+      )
+
+      if (allBeatsFulfilled && this.beats.length > 0 && !hasUnqueuedPendingAssets) {
+        this.log(
+          'info',
+          'All visual beats have assets selected or queued. Agent workflow complete.'
+        )
+        break
+      }
+
       iteration++
       this.log(
         'info',
@@ -1663,7 +1700,12 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
         this.status = 'running'
       }
 
-      await this.runAgentLoop()
+      try {
+        await this.runAgentLoop()
+      } catch (loopErr) {
+        const errMsg = loopErr instanceof Error ? loopErr.message : String(loopErr)
+        this.log('error', `Agent loop encountered an error: ${errMsg}`)
+      }
 
       if (this.status === 'running') {
         await this.waitForDownloadsToSettle()
@@ -1757,6 +1799,35 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     this.failedCount = this.beats
       .flatMap((b) => b.assets || [])
       .filter((a) => a.status === 'failed').length
+
+    // Check if the entire job has finished all downloads!
+    const allBeatsDone =
+      this.beats.length > 0 &&
+      this.beats.every(
+        (b) =>
+          b.status === 'completed' &&
+          (b.assets || []).length > 0 &&
+          b.assets.every((a) => a.status === 'completed')
+      )
+    const hasInFlightDownloads = this.downloader
+      ?.getTasks()
+      .some((t) => t.status === 'pending' || t.status === 'downloading')
+
+    if (
+      allBeatsDone &&
+      !hasInFlightDownloads &&
+      this.status !== 'cancelled' &&
+      this.status !== 'paused'
+    ) {
+      if (this.status !== 'completed') {
+        this.status = 'completed'
+        this.currentStep = 'Finished'
+        this.progress = 100
+        this.saveRegistry().catch((err) =>
+          console.error('Failed to save registry on job complete:', err)
+        )
+      }
+    }
 
     // Write manifest update
     this.writeManifest().catch((err) =>

@@ -152,6 +152,21 @@ export default function AgentRunView(): React.JSX.Element {
     }
   }
 
+  const getStatusBadgeClass = (status: string): string => {
+    switch (status) {
+      case 'completed':
+        return 'bg-cyber-lime text-on-lime'
+      case 'running':
+        return 'bg-primary-container text-on-primary-container animate-pulse'
+      case 'paused':
+        return 'bg-tertiary-container text-on-tertiary-container'
+      case 'failed':
+        return 'bg-error-container text-on-error-container'
+      default:
+        return 'bg-surface-container-high text-outline'
+    }
+  }
+
   return (
     <div className="w-full space-y-6 pb-12 animate-fade-in-up relative risograph-overlay">
       {/* Top Section */}
@@ -168,7 +183,11 @@ export default function AgentRunView(): React.JSX.Element {
             <h2 className="font-display-xl text-display-xl text-ink-black dark:text-paper-white">
               {activeJob.title}
             </h2>
-            <span className="px-3 py-1 bg-cyber-lime border-2 border-ink-black dark:border-primary-container font-label-sm text-label-sm text-on-lime tracking-widest uppercase inline-block brutal-shadow translate-y-[-2px]">
+            <span
+              className={`px-3 py-1 border-2 border-ink-black dark:border-primary-container font-label-sm text-label-sm tracking-widest uppercase inline-block brutal-shadow translate-y-[-2px] ${getStatusBadgeClass(
+                activeJob.status
+              )}`}
+            >
               {activeJob.status}
             </span>
           </div>

@@ -319,6 +319,23 @@ export function registerJobsHandlers(): void {
       const downloadedCount = beatAssets.filter((a) => a.status === 'completed').length
       const failedCount = beatAssets.filter((a) => a.status === 'failed').length
 
+      const beats = (manifest.beats || []) as JobSnapshot['beats']
+      const allBeatsCompleted =
+        beats.length > 0 &&
+        beats.every(
+          (b) =>
+            b.status === 'completed' &&
+            (b.assets || []).length > 0 &&
+            b.assets.every((a) => a.status === 'completed')
+        )
+      let effectiveStatus = summary.status
+      if (allBeatsCompleted && summary.status !== 'completed' && summary.status !== 'cancelled') {
+        effectiveStatus = 'completed'
+        summary.status = 'completed'
+        summary.assetCount = downloadedCount
+        await ProjectStore.save(summary)
+      }
+
       return {
         jobId: manifest.projectId || jobId,
         title: manifest.title || summary.title,
@@ -326,10 +343,10 @@ export function registerJobsHandlers(): void {
         inputMode: manifest.inputMode || manifest.settingsSnapshot?.inputMode,
         idea: manifest.originalIdea,
         visualConcept: manifest.visualConcept,
-        status: summary.status,
-        progress: summary.status === 'completed' ? 100 : 0,
-        currentStep: summary.status === 'completed' ? 'Finished' : 'Stopped',
-        beats: (manifest.beats || []) as JobSnapshot['beats'],
+        status: effectiveStatus,
+        progress: effectiveStatus === 'completed' ? 100 : 0,
+        currentStep: effectiveStatus === 'completed' ? 'Finished' : 'Stopped',
+        beats: beats,
         logs: logs as JobSnapshot['logs'],
         downloadedCount,
         failedCount
@@ -351,7 +368,34 @@ export function registerJobsHandlers(): void {
   })
 
   ipcMain.handle('jobs:list', async (): Promise<JobSummary[]> => {
-    return await ProjectStore.list()
+    const list = await ProjectStore.list()
+    for (const job of list) {
+      if (job.status !== 'completed' && job.status !== 'cancelled' && job.downloadPath) {
+        try {
+          const manifestPath = join(job.downloadPath, 'manifest.json')
+          const data = await fs.readFile(manifestPath, 'utf-8')
+          const manifest = JSON.parse(data)
+          const beats = (manifest.beats || []) as JobSnapshot['beats']
+          const allBeatsDone =
+            beats.length > 0 &&
+            beats.every(
+              (b) =>
+                b.status === 'completed' &&
+                (b.assets || []).length > 0 &&
+                b.assets.every((a) => a.status === 'completed')
+            )
+          if (allBeatsDone) {
+            const beatAssets = beats.flatMap((b) => b.assets || [])
+            job.status = 'completed'
+            job.assetCount = beatAssets.filter((a) => a.status === 'completed').length
+            await ProjectStore.save(job)
+          }
+        } catch {
+          // ignore manifest read errors
+        }
+      }
+    }
+    return list
   })
 
   ipcMain.handle('jobs:delete', async (_, rawJobId: unknown): Promise<void> => {

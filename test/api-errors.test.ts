@@ -4,7 +4,8 @@ import {
   ApiCircuitBreaker,
   ApiError,
   extractErrorMessage,
-  fetchWithRetry
+  fetchWithRetry,
+  parseRetryFromBody
 } from '../src/main/services/http/api-errors.ts'
 
 const originalFetch = globalThis.fetch
@@ -18,6 +19,21 @@ function abortError(): Error {
   err.name = 'AbortError'
   return err
 }
+
+describe('parseRetryFromBody', () => {
+  it('extracts retry seconds from Gemini rate limit text', () => {
+    const text = 'Quota exceeded... Please retry in 9.596735189s.'
+    const delay = parseRetryFromBody(text)
+    assert.ok(delay !== undefined)
+    assert.ok(delay >= 10000 && delay <= 11000)
+  })
+
+  it('extracts retry seconds from generic retry in/after formats', () => {
+    assert.ok(parseRetryFromBody('Please retry after 5 seconds') !== undefined)
+    assert.ok(parseRetryFromBody('Rate limit reached; retry in 2s') !== undefined)
+    assert.equal(parseRetryFromBody('No retry specified'), undefined)
+  })
+})
 
 describe('extractErrorMessage', () => {
   it('extracts nested OpenAI/Gemini error messages from JSON', () => {
