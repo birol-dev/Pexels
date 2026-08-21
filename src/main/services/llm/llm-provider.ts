@@ -4,6 +4,7 @@ export interface AgentMessage {
   name?: string
   tool_call_id?: string
   tool_calls?: NormalizedToolCall[]
+  rawParts?: unknown[]
 }
 
 export interface NormalizedToolDefinition {
@@ -507,23 +508,27 @@ class GeminiProvider implements LlmProvider {
       if (msg.role === 'user') {
         parts.push({ text: msg.content || '' })
       } else if (msg.role === 'assistant') {
-        if (msg.content) {
-          parts.push({ text: msg.content })
-        }
-        if (msg.tool_calls && msg.tool_calls.length > 0) {
-          for (const tc of msg.tool_calls) {
-            let parsedArgs: Record<string, unknown> = {}
-            try {
-              parsedArgs = JSON.parse(tc.arguments) as Record<string, unknown>
-            } catch {
-              console.warn(`Failed to parse tool call arguments: ${tc.arguments}`)
-            }
-            parts.push({
-              functionCall: {
-                name: tc.name,
-                args: parsedArgs
+        if (msg.rawParts && Array.isArray(msg.rawParts) && msg.rawParts.length > 0) {
+          parts.push(...(msg.rawParts as GeminiPart[]))
+        } else {
+          if (msg.content) {
+            parts.push({ text: msg.content })
+          }
+          if (msg.tool_calls && msg.tool_calls.length > 0) {
+            for (const tc of msg.tool_calls) {
+              let parsedArgs: Record<string, unknown> = {}
+              try {
+                parsedArgs = JSON.parse(tc.arguments) as Record<string, unknown>
+              } catch {
+                console.warn(`Failed to parse tool call arguments: ${tc.arguments}`)
               }
-            })
+              parts.push({
+                functionCall: {
+                  name: tc.name,
+                  args: parsedArgs
+                }
+              })
+            }
           }
         }
       } else if (msg.role === 'tool') {
@@ -691,7 +696,8 @@ class GeminiProvider implements LlmProvider {
     const assistantMessage: AgentMessage = {
       role: 'assistant',
       content: contentText,
-      tool_calls: toolCalls.length > 0 ? toolCalls : undefined
+      tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+      rawParts: contentParts.length > 0 ? contentParts : undefined
     }
 
     let stopReason: LlmToolTurnResult['stopReason'] = 'final'

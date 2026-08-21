@@ -297,4 +297,80 @@ describe('GeminiProvider', () => {
       /blocked due to safety settings/
     )
   })
+
+  it('preserves thought_signature and rawParts in multi-turn history', async () => {
+    let capturedPayload: Record<string, unknown> | null = null
+
+    globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+      capturedPayload = JSON.parse(init?.body as string) as Record<string, unknown>
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Here are the results' }]
+              },
+              finishReason: 'STOP'
+            }
+          ]
+        })
+      } as Response
+    }) as typeof globalThis.fetch
+
+    const rawPartsWithSignature = [
+      { text: 'Thinking about query...', thought: true },
+      {
+        functionCall: {
+          name: 'search_pexels_videos',
+          args: { beatId: 'beat_1', query: 'futuristic server room' }
+        },
+        thought_signature: 'test_encrypted_signature_token_123'
+      }
+    ]
+
+    await provider.createToolTurn(
+      {
+        model: 'gemini-2.5-flash',
+        systemPrompt: 'You are StockScout',
+        messages: [
+          { role: 'user', content: 'Find stock clips' },
+          {
+            role: 'assistant',
+            content: 'Searching videos',
+            tool_calls: [
+              {
+                id: 'call_1',
+                name: 'search_pexels_videos',
+                arguments: '{"beatId":"beat_1","query":"futuristic server room"}'
+              }
+            ],
+            rawParts: rawPartsWithSignature
+          },
+          {
+            role: 'tool',
+            name: 'search_pexels_videos',
+            tool_call_id: 'call_1',
+            content: JSON.stringify({ results: [] })
+          }
+        ],
+        tools: sampleTools,
+        toolChoice: 'auto',
+        temperature: 0.3,
+        maxOutputTokens: 1000
+      },
+      { apiKey: 'AIzaSyTestKey' }
+    )
+
+    const contents = capturedPayload?.contents as Array<{
+      role: string
+      parts: Array<Record<string, unknown>>
+    }>
+    assert.equal(contents.length, 3)
+    assert.equal(contents[1].role, 'model')
+    assert.equal(contents[1].parts.length, 2)
+    assert.equal(contents[1].parts[1].thought_signature, 'test_encrypted_signature_token_123')
+  })
 })

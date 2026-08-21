@@ -6,19 +6,20 @@ import {
   AgentMessage,
   NormalizedToolDefinition,
   NormalizedToolCall
-} from '../llm/llm-provider'
-import { PexelsClient } from '../pexels/pexels-client'
-import { PexelsDownloader, DownloadTask } from '../pexels/pexels-downloader'
-import { validateDownloadUrl } from '../pexels/download-url-validation'
-import { buildManifestAttribution } from '../pexels/pexels-attribution'
-import { SUBMIT_SCRIPT_BEATS_TOOL, parseBeatsFromToolCall } from '../llm/beat-parse-tool'
-import { expandIdeaToScript } from '../llm/idea-expander'
-import { ApiError } from '../http/api-errors'
-import { createTimeoutLinkedSignal } from '../http/abort-signal'
-import { ManifestWriter, ManifestData } from '../files/manifest-writer'
-import { ProjectStore, JobSummary } from '../storage/project-store'
-import { SecureSecrets } from '../storage/secure-secrets'
-import { SettingsStore } from '../storage/settings-store'
+} from '../llm/llm-provider.ts'
+import { PexelsClient } from '../pexels/pexels-client.ts'
+import { PexelsDownloader, DownloadTask } from '../pexels/pexels-downloader.ts'
+import { validateDownloadUrl } from '../pexels/download-url-validation.ts'
+import { buildManifestAttribution } from '../pexels/pexels-attribution.ts'
+import { SUBMIT_SCRIPT_BEATS_TOOL, parseBeatsFromToolCall } from '../llm/beat-parse-tool.ts'
+import { expandIdeaToScript } from '../llm/idea-expander.ts'
+import { ApiError } from '../http/api-errors.ts'
+import { createTimeoutLinkedSignal } from '../http/abort-signal.ts'
+import { ManifestWriter, ManifestData } from '../files/manifest-writer.ts'
+import { ProjectStore, JobSummary } from '../storage/project-store.ts'
+import { SecureSecrets } from '../storage/secure-secrets.ts'
+import { SettingsStore } from '../storage/settings-store.ts'
+import { extractToolCallsFromText } from './tool-parser.ts'
 
 export interface VisualBeat {
   id: string
@@ -444,6 +445,19 @@ export class AgentRunner extends EventEmitter {
         `Agent finished with ${unfinishedAssets.length} unfinished download(s); marking job failed.`
       )
       this.updateProgress('Failed — unfinished downloads', 100)
+      return
+    }
+
+    const completedOrQueued = this.beats
+      .flatMap((b) => b.assets || [])
+      .filter((a) => a.status === 'completed' || a.status === 'downloading')
+    if (completedOrQueued.length === 0 && this.beats.length > 0) {
+      this.status = 'failed'
+      this.log(
+        'error',
+        `Agent finished without downloading any assets for ${this.beats.length} visual beats. Try using a model with robust tool calling support (such as gpt-4o, claude-3.7-sonnet, or gemini-2.5-flash).`
+      )
+      this.updateProgress('Failed — 0 assets downloaded', 100)
       return
     }
 
@@ -934,9 +948,16 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     ]
 
     if (this.messages.length === 0) {
-      this.messages = [{ role: 'user', content: 'Begin searching and downloading assets.' }]
+      this.messages = [
+        {
+          role: 'user',
+          content: `Begin searching for stock assets for all ${this.beats.length} visual beats. Call search_pexels_photos or search_pexels_videos for the first beats now.`
+        }
+      ]
     }
     let iteration = 0
+    let emptyToolTurnCount = 0
+    const maxEmptyToolNudges = 3
 
     while (iteration < this.maxIterations && this.status === 'running') {
       iteration++
@@ -974,19 +995,72 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       }
 
       const assistantMsg = turnResult.assistantMessage
+
+      // If the model returned no structured tool_calls, check if tool calls were output in text format
+      let effectiveToolCalls = [...turnResult.toolCalls]
+      if (effectiveToolCalls.length === 0 && assistantMsg.content) {
+        const extracted = extractToolCallsFromText(
+          assistantMsg.content,
+          tools.map((t) => t.name)
+        )
+        if (extracted.length > 0) {
+          effectiveToolCalls = extracted
+          assistantMsg.tool_calls = extracted
+          this.log('info', `Extracted ${extracted.length} tool call(s) from model text response.`)
+        }
+      }
+
       this.messages.push(assistantMsg)
 
       if (assistantMsg.content) {
         this.log('thought', assistantMsg.content)
       }
 
-      if (turnResult.toolCalls.length === 0) {
-        this.log('info', 'Agent decided no more tool calls are needed. Wrapping up.')
-        break
+      if (effectiveToolCalls.length === 0) {
+        const pendingBeats = this.beats.filter(
+          (b) => !b.assets || b.assets.length === 0 || b.assets.every((a) => a.status === 'failed')
+        )
+        const totalSelected = this.getSelectedAssetCount()
+        const allBeatsFulfilled =
+          pendingBeats.length === 0 || totalSelected >= this.input.maxTotalDownloads
+
+        if (allBeatsFulfilled) {
+          this.log(
+            'info',
+            'All visual beats have assets selected or queued. Agent workflow complete.'
+          )
+          break
+        }
+
+        if (emptyToolTurnCount < maxEmptyToolNudges) {
+          emptyToolTurnCount++
+          this.log(
+            'info',
+            `Model responded with text without calling search tools (${emptyToolTurnCount}/${maxEmptyToolNudges}). Nudging agent to search for pending beats...`
+          )
+          const pendingSample = pendingBeats
+            .slice(0, 4)
+            .map((b) => `${b.id} ("${b.visualPrompt.slice(0, 50)}")`)
+            .join(', ')
+          this.messages.push({
+            role: 'user',
+            content: `You replied with text, but you did not execute any search tools. You must call search_pexels_photos or search_pexels_videos now to find stock assets for the script beats. There are still ${pendingBeats.length} beats waiting for assets (such as: ${pendingSample}). Call the search tools now.`
+          })
+          continue
+        } else {
+          this.log(
+            'error',
+            `Model "${this.modelId}" did not invoke any tool calls after ${emptyToolTurnCount} nudges. Please ensure your selected model supports tool calling.`
+          )
+          break
+        }
       }
 
+      // Reset nudge counter once tools are executed
+      emptyToolTurnCount = 0
+
       // Handle all tool calls in parallel or sequentially
-      for (const tc of turnResult.toolCalls) {
+      for (const tc of effectiveToolCalls) {
         if (this.status !== 'running') {
           this.messages.push({
             role: 'tool',
