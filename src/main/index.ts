@@ -1,6 +1,6 @@
 import { app, shell, BrowserWindow, protocol, net, session } from 'electron'
-import { join } from 'path'
-import { pathToFileURL } from 'url'
+import { join, resolve } from 'path'
+import { pathToFileURL, fileURLToPath } from 'url'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
@@ -96,7 +96,9 @@ function createWindow(): void {
     try {
       const target = new URL(url)
       if (target.protocol === 'file:') {
-        return true
+        const expectedPath = resolve(__dirname, '../renderer/index.html')
+        const targetPath = resolve(fileURLToPath(url))
+        return targetPath === expectedPath
       }
       return allowedOrigins.has(target.origin)
     } catch {

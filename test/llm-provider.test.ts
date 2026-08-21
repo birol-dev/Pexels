@@ -179,9 +179,11 @@ describe('GeminiProvider', () => {
   it('formats schema types to uppercase, strips additionalProperties, and parses response', async () => {
     let capturedPayload: Record<string, unknown> | null = null
     let capturedUrl = ''
+    let capturedHeaders: HeadersInit | undefined
 
     globalThis.fetch = (async (url: string, init?: RequestInit) => {
       capturedUrl = url
+      capturedHeaders = init?.headers
       capturedPayload = JSON.parse(init?.body as string) as Record<string, unknown>
       return {
         ok: true,
@@ -240,7 +242,10 @@ describe('GeminiProvider', () => {
       { apiKey: 'AIzaSyTestKey' }
     )
 
-    assert.ok(capturedUrl.includes('models/gemini-2.5-flash:generateContent?key=AIzaSyTestKey'))
+    assert.ok(capturedUrl.endsWith('models/gemini-2.5-flash:generateContent'))
+    assert.ok(!capturedUrl.includes('key='))
+    const headerMap = (capturedHeaders as Record<string, string>) || {}
+    assert.equal(headerMap['x-goog-api-key'], 'AIzaSyTestKey')
     const sysInstruction = capturedPayload?.systemInstruction as { parts: Array<{ text: string }> }
     assert.equal(sysInstruction?.parts?.[0]?.text, 'You are StockScout')
 

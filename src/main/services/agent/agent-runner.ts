@@ -425,16 +425,6 @@ export class AgentRunner extends EventEmitter {
   }
 
   private finalizeSuccessfulRun(): void {
-    if (this.hitIterationLimit) {
-      this.status = 'failed'
-      this.log(
-        'error',
-        `Agent stopped after reaching the maximum iteration limit (${this.maxIterations}).`
-      )
-      this.updateProgress('Failed — iteration limit', 100)
-      return
-    }
-
     const unfinishedAssets = this.beats
       .flatMap((b) => b.assets || [])
       .filter((a) => a.status === 'pending' || a.status === 'downloading')
@@ -461,8 +451,29 @@ export class AgentRunner extends EventEmitter {
       return
     }
 
+    const hasIncompleteBeats =
+      this.beats.length > 0 &&
+      this.beats.some((b) => !b.assets || !b.assets.some((a) => a.status === 'completed'))
+
+    if (this.hitIterationLimit && hasIncompleteBeats) {
+      this.status = 'failed'
+      this.log(
+        'error',
+        `Agent stopped after reaching the maximum iteration limit (${this.maxIterations}) with incomplete beats.`
+      )
+      this.updateProgress('Failed — iteration limit', 100)
+      return
+    }
+
     this.status = 'completed'
-    this.log('info', 'Agent execution completed successfully!')
+    if (this.hitIterationLimit) {
+      this.log(
+        'info',
+        `Agent reached iteration limit (${this.maxIterations}) but all beats have completed downloads.`
+      )
+    } else {
+      this.log('info', 'Agent execution completed successfully!')
+    }
     this.updateProgress('Finished', 100)
   }
 
@@ -1300,23 +1311,43 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           const candidate = this.pexelsCandidates.get(key)
 
           if (!candidate) {
-            throw new Error(
-              `Security Check Failed: Asset ${sel.pexelsId} (${sel.assetType}) was not found in Pexels search results of this job.`
-            )
+            selectionResults.push({
+              pexelsId: sel.pexelsId,
+              status: 'rejected',
+              reason: `Security Check Failed: Asset ${sel.pexelsId} (${sel.assetType}) was not found in Pexels search results of this job.`
+            })
+            continue
           }
 
           const variantExists = candidate.variants.some((v) => v.url === sel.variantUrl)
           if (!variantExists) {
-            throw new Error(
-              `Security Check Failed: URL for asset ${sel.pexelsId} is not a valid Pexels download variant from this job.`
-            )
+            selectionResults.push({
+              pexelsId: sel.pexelsId,
+              status: 'rejected',
+              reason: `Security Check Failed: URL for asset ${sel.pexelsId} is not a valid Pexels download variant from this job.`
+            })
+            continue
           }
 
-          validateDownloadUrl(sel.variantUrl)
+          try {
+            validateDownloadUrl(sel.variantUrl)
+          } catch (err) {
+            selectionResults.push({
+              pexelsId: sel.pexelsId,
+              status: 'rejected',
+              reason: `Security Check Failed: Invalid download URL for asset ${sel.pexelsId}: ${err instanceof Error ? err.message : String(err)}`
+            })
+            continue
+          }
 
           const beat = this.beats.find((b) => b.id === sel.beatId)
           if (!beat) {
-            throw new Error(`Beat ID ${sel.beatId} not found in project beats.`)
+            selectionResults.push({
+              pexelsId: sel.pexelsId,
+              status: 'rejected',
+              reason: `Beat ID ${sel.beatId} not found in project beats.`
+            })
+            continue
           }
 
           const recordId = `${sel.assetType}_${sel.pexelsId}`
@@ -1435,17 +1466,6 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
             continue
           }
 
-          const queuedOrCompletedCount = this.getSelectedAssetCount()
-          if (queuedOrCompletedCount > this.input.maxTotalDownloads) {
-            failed.push({
-              assetType: assetRef.assetType,
-              pexelsId: assetRef.pexelsId,
-              reason: `Max total downloads cap of ${this.input.maxTotalDownloads} reached.`,
-              retryable: false
-            })
-            continue
-          }
-
           let assetRecord: AssetRecord | undefined
           let parentBeat: VisualBeat | undefined
 
@@ -1485,6 +1505,19 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
               assetType: assetRecord.type,
               pexelsId: assetRecord.pexelsId,
               status: assetRecord.status
+            })
+            continue
+          }
+
+          const queuedOrCompletedCount = this.beats
+            .flatMap((b) => b.assets || [])
+            .filter((a) => a.status === 'completed' || a.status === 'downloading').length
+          if (queuedOrCompletedCount >= this.input.maxTotalDownloads) {
+            failed.push({
+              assetType: assetRef.assetType,
+              pexelsId: assetRef.pexelsId,
+              reason: `Max total downloads cap of ${this.input.maxTotalDownloads} reached.`,
+              retryable: false
             })
             continue
           }

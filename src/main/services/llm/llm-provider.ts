@@ -582,8 +582,11 @@ class GeminiProvider implements LlmProvider {
     }
     const rawModel = (input.model || 'gemini-2.5-flash').trim()
     const cleanModel = rawModel.startsWith('models/') ? rawModel : `models/${rawModel}`
-    const url = `https://generativelanguage.googleapis.com/v1beta/${cleanModel}:generateContent?key=${trimmedKey}`
-    const headers = { 'Content-Type': 'application/json' }
+    const url = `https://generativelanguage.googleapis.com/v1beta/${cleanModel}:generateContent`
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': trimmedKey
+    }
 
     const contents = this.toGeminiContents(input.messages)
 

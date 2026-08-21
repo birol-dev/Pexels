@@ -53,15 +53,13 @@ export class SecureSecrets {
         )
       }
       // If safeStorage is unavailable, refuse legacy or plain secrets to prevent plaintext usage
-      if (!app.isPackaged)
-        console.warn(`Refusing plaintext secret for key ${key} as plaintext fallback is disabled.`)
+      console.warn(`Refusing plaintext secret for key ${key} as plaintext fallback is disabled.`)
       return ''
     }
 
     // safeStorage is available, so the secret MUST be encrypted
     if (!encryptedHex.startsWith(ENCRYPTED_PREFIX)) {
-      if (!app.isPackaged)
-        console.warn(`Refusing unencrypted secret for key ${key} since secure storage is active.`)
+      console.warn(`Refusing unencrypted secret for key ${key} since secure storage is active.`)
       return ''
     }
 
@@ -70,7 +68,10 @@ export class SecureSecrets {
       const encryptedBuffer = Buffer.from(hex, 'hex')
       return safeStorage.decryptString(encryptedBuffer)
     } catch (error) {
-      if (!app.isPackaged) console.error(`Failed to decrypt secret for key ${key}:`, error)
+      console.error(
+        `Failed to decrypt secret for key ${key}:`,
+        error instanceof Error ? error.message : error
+      )
       return ''
     }
   }

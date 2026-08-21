@@ -227,6 +227,10 @@ export class PexelsDownloader {
     try {
       response = await fetch(task.url, { signal: controller.signal })
 
+      if (response.url) {
+        validateDownloadUrl(response.url)
+      }
+
       if (!response.ok) {
         throw new ApiError(
           `HTTP Error: ${response.status} ${response.statusText}`,

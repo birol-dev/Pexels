@@ -65,6 +65,26 @@ function broadcastJobEvent(event: unknown): void {
   }
 }
 
+const ManifestSettingsSnapshotSchema = z.object({
+  targetPlatform: z.enum(['YouTube', 'Shorts', 'TikTok', 'Instagram Reels']).optional(),
+  visualStyle: z.string().optional(),
+  assetMix: z.string().optional(),
+  maxAssetsPerBeat: z.number().int().min(1).max(10).optional(),
+  maxTotalDownloads: z.number().int().min(1).max(100).optional(),
+  inputMode: z.enum(['script', 'idea']).optional(),
+  targetDuration: z.string().optional(),
+  tone: z.string().optional()
+})
+
+const ManifestSchema = z.object({
+  title: z.string().optional(),
+  script: z.string().optional(),
+  inputMode: z.enum(['script', 'idea']).optional(),
+  originalIdea: z.string().optional(),
+  visualConcept: z.string().optional(),
+  settingsSnapshot: ManifestSettingsSnapshotSchema.optional()
+})
+
 async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInput> {
   const defaultInput: StartJobInput = {
     title: summary.title,
@@ -79,29 +99,21 @@ async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInp
   try {
     const manifestPath = join(summary.downloadPath, 'manifest.json')
     const data = await fs.readFile(manifestPath, 'utf-8')
-    const manifest = JSON.parse(data) as {
-      title?: string
-      script?: string
-      inputMode?: 'script' | 'idea'
-      originalIdea?: string
-      visualConcept?: string
-      settingsSnapshot?: {
-        targetPlatform?: string
-        visualStyle?: string
-        assetMix?: string
-        maxAssetsPerBeat?: number
-        maxTotalDownloads?: number
-        inputMode?: 'script' | 'idea'
-        targetDuration?: string
-        tone?: string
-      }
+    const parsed = JSON.parse(data)
+    const result = ManifestSchema.safeParse(parsed)
+
+    if (!result.success) {
+      console.warn(`Manifest validation failed for ${summary.jobId}:`, result.error)
+      return defaultInput
     }
+
+    const manifest = result.data
     if (manifest.settingsSnapshot) {
       const snap = manifest.settingsSnapshot
 
-      const mapAssetMixBack = (mix: string): StartJobInput['mix'] => {
-        if (mix === 'videos_only') return 'videos only'
-        if (mix === 'photos_only') return 'photos only'
+      const mapAssetMixBack = (mix?: string): StartJobInput['mix'] => {
+        if (mix === 'videos_only' || mix === 'videos only') return 'videos only'
+        if (mix === 'photos_only' || mix === 'photos only') return 'photos only'
         return 'videos + photos'
       }
 
@@ -113,9 +125,9 @@ async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInp
         visualConcept: manifest.visualConcept,
         targetDuration: snap.targetDuration,
         tone: snap.tone,
-        platform: (snap.targetPlatform || 'YouTube') as StartJobInput['platform'],
-        style: (snap.visualStyle || 'cinematic') as StartJobInput['style'],
-        mix: mapAssetMixBack(snap.assetMix || ''),
+        platform: snap.targetPlatform || 'YouTube',
+        style: snap.visualStyle || 'cinematic',
+        mix: mapAssetMixBack(snap.assetMix),
         maxAssetsPerBeat: snap.maxAssetsPerBeat || 3,
         maxTotalDownloads: snap.maxTotalDownloads || 15
       }
