@@ -46,10 +46,23 @@ export function buildAssetCreditLine(
 export function buildManifestAttribution(
   assets: AttributionAssetInput[]
 ): PexelsManifestAttribution {
-  const uniqueAssets = new Map<string, AttributionAssetInput>()
-  for (const asset of assets) {
-    if (!asset.pexelsId || !asset.photographer) continue
-    uniqueAssets.set(asset.id, asset)
+  const seenIds = new Set<string>()
+  const attributionAssets: PexelsAssetAttribution[] = []
+
+  for (let i = 0; i < assets.length; i++) {
+    const asset = assets[i]
+    if (!asset.pexelsId || !asset.photographer || seenIds.has(asset.id)) continue
+    seenIds.add(asset.id)
+
+    attributionAssets.push({
+      assetId: asset.id,
+      type: asset.type,
+      pexelsId: asset.pexelsId,
+      pexelsUrl: buildPexelsAssetUrl(asset.type, asset.pexelsId),
+      photographer: asset.photographer,
+      photographerUrl: asset.photographerUrl,
+      creditLine: buildAssetCreditLine(asset.type, asset.photographer, asset.pexelsId)
+    })
   }
 
   return {
@@ -60,19 +73,6 @@ export function buildManifestAttribution(
     },
     usageNote:
       'Per Pexels API guidelines, credit photographers when possible and link back to Pexels.',
-    assets: Array.from(uniqueAssets.values()).map((asset) => {
-      // Always use the public Pexels page URL — asset.url is often a CDN
-      // download variant and does not satisfy attribution linking guidelines.
-      const pexelsUrl = buildPexelsAssetUrl(asset.type, asset.pexelsId)
-      return {
-        assetId: asset.id,
-        type: asset.type,
-        pexelsId: asset.pexelsId,
-        pexelsUrl,
-        photographer: asset.photographer,
-        photographerUrl: asset.photographerUrl,
-        creditLine: buildAssetCreditLine(asset.type, asset.photographer, asset.pexelsId)
-      }
-    })
+    assets: attributionAssets
   }
 }

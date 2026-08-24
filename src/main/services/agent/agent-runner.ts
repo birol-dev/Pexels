@@ -160,6 +160,19 @@ export class AgentRunner extends EventEmitter {
     }
   >()
 
+  private assetLookup = new Map<string, { asset: AssetRecord; beat: VisualBeat }>()
+
+  private rebuildAssetLookup(): void {
+    this.assetLookup.clear()
+    for (const b of this.beats) {
+      if (b.assets) {
+        for (const a of b.assets) {
+          this.assetLookup.set(a.id, { asset: a, beat: b })
+        }
+      }
+    }
+  }
+
   constructor(jobId: string, input: StartJobInput) {
     super()
     this.jobId = jobId
@@ -236,8 +249,11 @@ export class AgentRunner extends EventEmitter {
           AgentRunner.activeRunners.delete(this.jobId)
         }
       }
+      if (this.projectDir) {
+        await ManifestWriter.flushPendingWrites(this.projectDir)
+      }
       await this.saveRegistry()
-      await this.writeManifest()
+      await this.writeManifest(true)
       this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
     }
   }
@@ -252,6 +268,9 @@ export class AgentRunner extends EventEmitter {
     }
     if (this.downloader) {
       await this.downloader.waitForIdle()
+    }
+    if (this.projectDir) {
+      await ManifestWriter.flushPendingWrites(this.projectDir)
     }
   }
 
@@ -417,12 +436,19 @@ export class AgentRunner extends EventEmitter {
       }
 
       // Update metrics
-      this.downloadedCount = this.beats
-        .flatMap((b) => b.assets || [])
-        .filter((a) => a.status === 'completed').length
-      this.failedCount = this.beats
-        .flatMap((b) => b.assets || [])
-        .filter((a) => a.status === 'failed').length
+      let downloaded = 0
+      let failed = 0
+      for (const b of this.beats) {
+        if (b.assets) {
+          for (const a of b.assets) {
+            if (a.status === 'completed') downloaded++
+            else if (a.status === 'failed') failed++
+          }
+        }
+      }
+      this.downloadedCount = downloaded
+      this.failedCount = failed
+      this.rebuildAssetLookup()
     } catch {
       // Manifest doesn't exist yet, which is normal for new runs
     }
@@ -600,7 +626,7 @@ export class AgentRunner extends EventEmitter {
     await ProjectStore.save(summary)
   }
 
-  private async writeManifest(): Promise<void> {
+  private async writeManifest(immediate = true): Promise<void> {
     if (!this.projectDir) return
 
     const mapAssetMix = (
@@ -611,12 +637,36 @@ export class AgentRunner extends EventEmitter {
       return 'videos_and_photos'
     }
 
-    const completedAssets = this.beats
-      .flatMap((b) => b.assets || [])
-      .filter((a) => a.status === 'completed')
-    const failedAssets = this.beats
-      .flatMap((b) => b.assets || [])
-      .filter((a) => a.status === 'failed')
+    const completedAssets: AssetRecord[] = []
+    const failedAssets: AssetRecord[] = []
+    const allAssetSnapshots: Array<{
+      id: string
+      type: 'photo' | 'video'
+      pexelsId: number
+      url: string
+      photographer: string
+      photographerUrl?: string
+    }> = []
+
+    for (const b of this.beats) {
+      if (b.assets) {
+        for (const a of b.assets) {
+          if (a.status === 'completed') {
+            completedAssets.push(a)
+          } else if (a.status === 'failed') {
+            failedAssets.push(a)
+          }
+          allAssetSnapshots.push({
+            id: a.id,
+            type: a.type,
+            pexelsId: a.pexelsId,
+            url: a.url,
+            photographer: a.photographer,
+            photographerUrl: a.photographerUrl
+          })
+        }
+      }
+    }
 
     const manifest: ManifestData = {
       schemaVersion: 1,
@@ -647,21 +697,15 @@ export class AgentRunner extends EventEmitter {
       messages: this.messages,
       pexelsCandidates: Array.from(this.pexelsCandidates.entries()),
       sourceDocsCheckedAt: new Date().toISOString(),
-      attribution: buildManifestAttribution(
-        this.beats.flatMap((beat) =>
-          (beat.assets || []).map((asset) => ({
-            id: asset.id,
-            type: asset.type,
-            pexelsId: asset.pexelsId,
-            url: asset.url,
-            photographer: asset.photographer,
-            photographerUrl: asset.photographerUrl
-          }))
-        )
-      ),
+      attribution: buildManifestAttribution(allAssetSnapshots),
       pexelsQuotaSnapshot: PexelsClient.getQuotaSnapshot() || undefined
     }
-    await ManifestWriter.writeManifest(this.projectDir, manifest)
+
+    if (immediate) {
+      await ManifestWriter.writeManifest(this.projectDir, manifest)
+    } else {
+      ManifestWriter.writeManifestThrottled(this.projectDir, manifest, 800)
+    }
   }
 
   private async expandIdeaIfNeeded(): Promise<void> {
@@ -781,6 +825,7 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
       assets: [],
       status: 'pending'
     }))
+    this.rebuildAssetLookup()
 
     this.log('info', `Successfully parsed script into ${this.beats.length} visual beats.`)
     this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
@@ -1426,6 +1471,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
               status: 'pending'
             }
             beat.assets.push(newAsset)
+            this.assetLookup.set(recordId, { asset: newAsset, beat })
             beat.status = 'selecting'
           }
 
@@ -1721,21 +1767,22 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
   }
 
   private handleDownloadProgress(task: DownloadTask): void {
-    // Find the beat that owns this download task
-    let assetRecord: AssetRecord | undefined
-    let parentBeat: VisualBeat | undefined
+    const lookupKey = `${task.type}_${task.assetId}`
+    let lookup = this.assetLookup.get(lookupKey)
 
-    for (const b of this.beats) {
-      const record = b.assets.find((a) => a.pexelsId === task.assetId && a.type === task.type)
-      if (record) {
-        assetRecord = record
-        parentBeat = b
-        break
+    if (!lookup) {
+      for (const b of this.beats) {
+        const record = b.assets.find((a) => a.pexelsId === task.assetId && a.type === task.type)
+        if (record) {
+          lookup = { asset: record, beat: b }
+          this.assetLookup.set(lookupKey, lookup)
+          break
+        }
       }
     }
 
-    if (!assetRecord || !parentBeat) return
-
+    if (!lookup) return
+    const { asset: assetRecord, beat: parentBeat } = lookup
     const prevStatus = assetRecord.status
 
     // Backoff leaves the queue task as pending; the download is still in flight.
@@ -1746,6 +1793,8 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       assetRecord.status = task.status
     }
     assetRecord.progress = task.progress
+
+    const statusChanged = assetRecord.status !== prevStatus
 
     // Log download transitions
     if (prevStatus === 'pending' && task.status === 'downloading') {
@@ -1773,70 +1822,84 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       )
     }
 
-    // Reevaluate beat status
-    const allDone = parentBeat.assets.every((a) => a.status === 'completed')
-    const anyFailed = parentBeat.assets.some((a) => a.status === 'failed')
-    const anyDownloading = parentBeat.assets.some(
-      (a) => a.status === 'downloading' || a.status === 'pending'
-    )
-
-    if (allDone && parentBeat.status !== 'completed') {
-      parentBeat.status = 'completed'
-      this.log(
-        'info',
-        `[Beat Complete] All selected assets downloaded for ${parentBeat.id.replace('_', ' ')}.`
+    // Reevaluate beat status on state change or task finish
+    if (statusChanged) {
+      const allDone = parentBeat.assets.every((a) => a.status === 'completed')
+      const anyFailed = parentBeat.assets.some((a) => a.status === 'failed')
+      const anyDownloading = parentBeat.assets.some(
+        (a) => a.status === 'downloading' || a.status === 'pending'
       )
-    } else if (anyDownloading) {
-      parentBeat.status = 'downloading'
-    } else if (anyFailed) {
-      parentBeat.status = 'failed'
-    }
 
-    // Update counts
-    this.downloadedCount = this.beats
-      .flatMap((b) => b.assets || [])
-      .filter((a) => a.status === 'completed').length
-    this.failedCount = this.beats
-      .flatMap((b) => b.assets || [])
-      .filter((a) => a.status === 'failed').length
-
-    // Check if the entire job has finished all downloads!
-    const allBeatsDone =
-      this.beats.length > 0 &&
-      this.beats.every(
-        (b) =>
-          b.status === 'completed' &&
-          (b.assets || []).length > 0 &&
-          b.assets.every((a) => a.status === 'completed')
-      )
-    const hasInFlightDownloads = this.downloader
-      ?.getTasks()
-      .some((t) => t.status === 'pending' || t.status === 'downloading')
-
-    if (
-      allBeatsDone &&
-      !hasInFlightDownloads &&
-      this.status !== 'cancelled' &&
-      this.status !== 'paused'
-    ) {
-      if (this.status !== 'completed') {
-        this.status = 'completed'
-        this.currentStep = 'Finished'
-        this.progress = 100
-        this.saveRegistry().catch((err) =>
-          console.error('Failed to save registry on job complete:', err)
+      if (allDone && parentBeat.status !== 'completed') {
+        parentBeat.status = 'completed'
+        this.log(
+          'info',
+          `[Beat Complete] All selected assets downloaded for ${parentBeat.id.replace('_', ' ')}.`
         )
+      } else if (anyDownloading) {
+        parentBeat.status = 'downloading'
+      } else if (anyFailed) {
+        parentBeat.status = 'failed'
       }
+
+      // Fast count recalculation
+      let downloaded = 0
+      let failed = 0
+      for (const b of this.beats) {
+        if (b.assets) {
+          for (const a of b.assets) {
+            if (a.status === 'completed') downloaded++
+            else if (a.status === 'failed') failed++
+          }
+        }
+      }
+      this.downloadedCount = downloaded
+      this.failedCount = failed
+
+      // Check if the entire job has finished all downloads!
+      const allBeatsDone =
+        this.beats.length > 0 &&
+        this.beats.every(
+          (b) =>
+            b.status === 'completed' &&
+            (b.assets || []).length > 0 &&
+            b.assets.every((a) => a.status === 'completed')
+        )
+      const hasInFlightDownloads = this.downloader
+        ?.getTasks()
+        .some((t) => t.status === 'pending' || t.status === 'downloading')
+
+      if (
+        allBeatsDone &&
+        !hasInFlightDownloads &&
+        this.status !== 'cancelled' &&
+        this.status !== 'paused'
+      ) {
+        if (this.status !== 'completed') {
+          this.status = 'completed'
+          this.currentStep = 'Finished'
+          this.progress = 100
+          this.saveRegistry().catch((err) =>
+            console.error('Failed to save registry on job complete:', err)
+          )
+        }
+      }
+
+      // Write manifest update immediately on state changes
+      this.writeManifest(true).catch((err) =>
+        console.error('Failed to write manifest on state transition:', err)
+      )
+
+      // Broadcast update
+      this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
+      this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
+    } else {
+      // Progress-only update (e.g. 34% -> 35%): throttled manifest update
+      this.writeManifest(false).catch((err) =>
+        console.error('Failed to write throttled manifest on progress update:', err)
+      )
+      this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
     }
-
-    // Write manifest update
-    this.writeManifest().catch((err) =>
-      console.error('Failed to write manifest on progress update:', err)
-    )
-
-    // Broadcast update
-    this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
-    this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
   }
 
   private async refreshDownloadUrl(

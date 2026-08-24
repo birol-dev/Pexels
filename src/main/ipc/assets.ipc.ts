@@ -27,26 +27,46 @@ export function registerAssetsHandlers(): void {
       const assets: unknown[] = []
 
       if (manifest.beats) {
+        const checkTasks: Array<{
+          asset: NonNullable<NonNullable<VisualBeat['assets']>[number]>
+        }> = []
+
         for (const beat of manifest.beats) {
           if (beat.assets) {
             for (const asset of beat.assets) {
-              // If manifest says completed but file is gone from disk, correct it
               if (asset.status === 'completed' && asset.filePath) {
-                let exists = false
-                try {
-                  await fs.access(asset.filePath)
-                  exists = true
-                } catch {
-                  exists = false
-                }
-                if (!exists) {
-                  asset.status = 'failed'
-                  asset.error = 'File not found on disk'
-                  asset.filePath = undefined
-                  manifestDirty = true
-                }
+                checkTasks.push({ asset })
               }
+            }
+          }
+        }
 
+        if (checkTasks.length > 0) {
+          const results = await Promise.all(
+            checkTasks.map(async ({ asset }) => {
+              try {
+                await fs.access(asset.filePath!)
+                return true
+              } catch {
+                return false
+              }
+            })
+          )
+
+          for (let i = 0; i < checkTasks.length; i++) {
+            if (!results[i]) {
+              const { asset } = checkTasks[i]
+              asset.status = 'failed'
+              asset.error = 'File not found on disk'
+              asset.filePath = undefined
+              manifestDirty = true
+            }
+          }
+        }
+
+        for (const beat of manifest.beats) {
+          if (beat.assets) {
+            for (const asset of beat.assets) {
               assets.push({
                 ...asset,
                 beatId: beat.id,

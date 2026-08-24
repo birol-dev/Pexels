@@ -103,8 +103,16 @@ export class LlmRateLimiter {
 
   private static pruneExpired(now: number): void {
     const cutoff = now - WINDOW_MS
-    while (this.requestTimestamps.length > 0 && this.requestTimestamps[0] <= cutoff) {
-      this.requestTimestamps.shift()
+    const len = this.requestTimestamps.length
+    if (len === 0 || this.requestTimestamps[0] > cutoff) {
+      return
+    }
+    let firstValid = 0
+    while (firstValid < len && this.requestTimestamps[firstValid] <= cutoff) {
+      firstValid++
+    }
+    if (firstValid > 0) {
+      this.requestTimestamps = this.requestTimestamps.slice(firstValid)
     }
   }
 

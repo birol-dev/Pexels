@@ -61,28 +61,20 @@ describe('Fixes & Security Hardening Regression Suite', () => {
     }
 
     it('marks job completed if all beats have completed assets despite hitting iteration limit', () => {
-      const beats = [
-        { assets: [{ status: 'completed' }] },
-        { assets: [{ status: 'completed' }] }
-      ]
+      const beats = [{ assets: [{ status: 'completed' }] }, { assets: [{ status: 'completed' }] }]
       const result = evaluateRunStatus(true, beats)
       assert.equal(result.status, 'completed')
     })
 
     it('marks job failed on iteration limit if any beat is missing completed assets', () => {
-      const beats = [
-        { assets: [{ status: 'completed' }] },
-        { assets: [] }
-      ]
+      const beats = [{ assets: [{ status: 'completed' }] }, { assets: [] }]
       const result = evaluateRunStatus(true, beats)
       assert.equal(result.status, 'failed')
       assert.equal(result.reason, 'iteration limit with incomplete beats')
     })
 
     it('marks job failed if there are unfinished downloads regardless of iteration limit', () => {
-      const beats = [
-        { assets: [{ status: 'downloading' }] }
-      ]
+      const beats = [{ assets: [{ status: 'downloading' }] }]
       const result = evaluateRunStatus(false, beats)
       assert.equal(result.status, 'failed')
       assert.equal(result.reason, 'unfinished downloads')
@@ -97,8 +89,18 @@ describe('Fixes & Security Hardening Regression Suite', () => {
       })
 
       const selections = [
-        { beatId: 'beat_1', assetType: 'photo' as const, pexelsId: 999, variantUrl: 'https://images.pexels.com/photos/999/x.jpg' },
-        { beatId: 'beat_1', assetType: 'photo' as const, pexelsId: 100, variantUrl: 'https://images.pexels.com/photos/100/valid.jpg' }
+        {
+          beatId: 'beat_1',
+          assetType: 'photo' as const,
+          pexelsId: 999,
+          variantUrl: 'https://images.pexels.com/photos/999/x.jpg'
+        },
+        {
+          beatId: 'beat_1',
+          assetType: 'photo' as const,
+          pexelsId: 100,
+          variantUrl: 'https://images.pexels.com/photos/100/valid.jpg'
+        }
       ]
 
       const selectionResults: Array<{ pexelsId: number; status: string; reason?: string }> = []

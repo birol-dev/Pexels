@@ -369,8 +369,9 @@ export function registerJobsHandlers(): void {
 
   ipcMain.handle('jobs:list', async (): Promise<JobSummary[]> => {
     const list = await ProjectStore.list()
-    for (const job of list) {
-      if (job.status !== 'completed' && job.status !== 'cancelled' && job.downloadPath) {
+    const checkPromises = list
+      .filter((job) => job.status !== 'completed' && job.status !== 'cancelled' && job.downloadPath)
+      .map(async (job) => {
         try {
           const manifestPath = join(job.downloadPath, 'manifest.json')
           const data = await fs.readFile(manifestPath, 'utf-8')
@@ -385,15 +386,25 @@ export function registerJobsHandlers(): void {
                 b.assets.every((a) => a.status === 'completed')
             )
           if (allBeatsDone) {
-            const beatAssets = beats.flatMap((b) => b.assets || [])
+            let completedCount = 0
+            for (const b of beats) {
+              if (b.assets) {
+                for (const a of b.assets) {
+                  if (a.status === 'completed') completedCount++
+                }
+              }
+            }
             job.status = 'completed'
-            job.assetCount = beatAssets.filter((a) => a.status === 'completed').length
+            job.assetCount = completedCount
             await ProjectStore.save(job)
           }
         } catch {
           // ignore manifest read errors
         }
-      }
+      })
+
+    if (checkPromises.length > 0) {
+      await Promise.all(checkPromises)
     }
     return list
   })

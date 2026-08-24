@@ -149,6 +149,17 @@ export default function DownloadedStuffView(): React.JSX.Element {
       setAssets([])
       loadAssets()
     })
+  }, [activeJobId, loadAssets])
+
+  useEffect(() => {
+    if (
+      activeJobId &&
+      (activeJob?.downloadedCount !== undefined || activeJob?.failedCount !== undefined)
+    ) {
+      Promise.resolve().then(() => {
+        loadAssets()
+      })
+    }
   }, [activeJobId, activeJob?.downloadedCount, activeJob?.failedCount, loadAssets])
 
   useEffect(() => {

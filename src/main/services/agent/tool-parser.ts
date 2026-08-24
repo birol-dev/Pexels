@@ -44,47 +44,58 @@ export function extractToolCallsFromText(
   }
 
   // 1. XML / tag-based tool calls: <tool_call>...</tool_call> or <invoke>...</invoke>
-  const tagRegex = /<(?:tool_call|invoke)>([\s\S]*?)<\/(?:tool_call|invoke)>/gi
-  let tagMatch: RegExpExecArray | null
-  while ((tagMatch = tagRegex.exec(content)) !== null) {
-    try {
-      const parsed = JSON.parse(tagMatch[1].trim())
-      const items = Array.isArray(parsed) ? parsed : [parsed]
-      for (const item of items) tryPush(item)
-    } catch {
-      // ignore
-    }
-  }
-  if (toolCalls.length > 0) return toolCalls
-
-  // 2. Markdown code blocks (```json ... ``` or ``` ... ```)
-  const codeBlockRegex = /```(?:json)?\s*([\s\S]*?)\s*```/gi
-  let codeMatch: RegExpExecArray | null
-  while ((codeMatch = codeBlockRegex.exec(content)) !== null) {
-    try {
-      const parsed = JSON.parse(codeMatch[1].trim())
-      const items = Array.isArray(parsed) ? parsed : [parsed]
-      for (const item of items) tryPush(item)
-    } catch {
-      // ignore
-    }
-  }
-  if (toolCalls.length > 0) return toolCalls
-
-  // 3. Standalone JSON array or object
-  try {
-    const trimmed = content.trim()
-    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-      const parsed = JSON.parse(trimmed)
-      tryPush(parsed)
-    } else if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-      const parsed = JSON.parse(trimmed)
-      if (Array.isArray(parsed)) {
-        for (const item of parsed) tryPush(item)
+  if (
+    content.includes('<tool_call') ||
+    content.includes('<invoke') ||
+    content.includes('</tool_call>') ||
+    content.includes('</invoke>')
+  ) {
+    const tagRegex = /<(?:tool_call|invoke)>([\s\S]*?)<\/(?:tool_call|invoke)>/gi
+    let tagMatch: RegExpExecArray | null
+    while ((tagMatch = tagRegex.exec(content)) !== null) {
+      try {
+        const parsed = JSON.parse(tagMatch[1].trim())
+        const items = Array.isArray(parsed) ? parsed : [parsed]
+        for (const item of items) tryPush(item)
+      } catch {
+        // ignore
       }
     }
-  } catch {
-    // ignore
+    if (toolCalls.length > 0) return toolCalls
+  }
+
+  // 2. Markdown code blocks (```json ... ``` or ``` ... ```)
+  if (content.includes('```')) {
+    const codeBlockRegex = /```(?:json)?\s*([\s\S]*?)\s*```/gi
+    let codeMatch: RegExpExecArray | null
+    while ((codeMatch = codeBlockRegex.exec(content)) !== null) {
+      try {
+        const parsed = JSON.parse(codeMatch[1].trim())
+        const items = Array.isArray(parsed) ? parsed : [parsed]
+        for (const item of items) tryPush(item)
+      } catch {
+        // ignore
+      }
+    }
+    if (toolCalls.length > 0) return toolCalls
+  }
+
+  // 3. Standalone JSON array or object
+  if (content.includes('{') || content.includes('[')) {
+    try {
+      const trimmed = content.trim()
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        const parsed = JSON.parse(trimmed)
+        tryPush(parsed)
+      } else if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        const parsed = JSON.parse(trimmed)
+        if (Array.isArray(parsed)) {
+          for (const item of parsed) tryPush(item)
+        }
+      }
+    } catch {
+      // ignore
+    }
   }
 
   return toolCalls
