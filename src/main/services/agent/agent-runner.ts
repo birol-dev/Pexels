@@ -21,7 +21,11 @@ import {
   SearchPexelsVideosArgsSchema,
   SelectAssetsForDownloadArgsSchema,
   DownloadSelectedAssetsArgsSchema,
-  areAllBeatsDownloaded
+  areAllBeatsDownloaded,
+  areBeatsSatisfiedForLoop,
+  decideRunFinalize,
+  getUnfulfilledBeats,
+  hasPendingUnqueuedAssets
 } from './tool-schemas.ts'
 
 export interface VisualBeat {
@@ -441,56 +445,15 @@ export class AgentRunner extends EventEmitter {
   }
 
   private finalizeSuccessfulRun(): void {
-    const unfinishedAssets = this.beats
-      .flatMap((b) => b.assets || [])
-      .filter((a) => a.status === 'pending' || a.status === 'downloading')
-    if (unfinishedAssets.length > 0) {
-      this.status = 'failed'
-      this.log(
-        'error',
-        `Agent finished with ${unfinishedAssets.length} unfinished download(s); marking job failed.`
-      )
-      this.updateProgress('Failed — unfinished downloads', 100)
-      return
-    }
-
-    const completedOrQueued = this.beats
-      .flatMap((b) => b.assets || [])
-      .filter((a) => a.status === 'completed' || a.status === 'downloading')
-    if (completedOrQueued.length === 0 && this.beats.length > 0) {
-      this.status = 'failed'
-      this.log(
-        'error',
-        `Agent finished without downloading any assets for ${this.beats.length} visual beats. Try using a model with robust tool calling support (such as gpt-4o, claude-3.7-sonnet, or gemini-2.5-flash).`
-      )
-      this.updateProgress('Failed — 0 assets downloaded', 100)
-      return
-    }
-
-    const hasIncompleteBeats =
-      this.beats.length > 0 &&
-      this.beats.some((b) => !b.assets || !b.assets.some((a) => a.status === 'completed'))
-
-    if (this.hitIterationLimit && hasIncompleteBeats) {
-      this.status = 'failed'
-      this.log(
-        'error',
-        `Agent stopped after reaching the maximum iteration limit (${this.maxIterations}) with incomplete beats.`
-      )
-      this.updateProgress('Failed — iteration limit', 100)
-      return
-    }
-
-    this.status = 'completed'
-    if (this.hitIterationLimit) {
-      this.log(
-        'info',
-        `Agent reached iteration limit (${this.maxIterations}) but all beats have completed downloads.`
-      )
-    } else {
-      this.log('info', 'Agent execution completed successfully!')
-    }
-    this.updateProgress('Finished', 100)
+    const decision = decideRunFinalize({
+      beats: this.beats,
+      hitIterationLimit: this.hitIterationLimit,
+      maxTotalDownloads: this.input.maxTotalDownloads,
+      maxIterations: this.maxIterations
+    })
+    this.status = decision.status
+    this.log(decision.logType, decision.logMessage)
+    this.updateProgress(decision.progressLabel, 100)
   }
 
   public async start(): Promise<void> {
@@ -554,6 +517,15 @@ export class AgentRunner extends EventEmitter {
 
   public async resume(): Promise<void> {
     if (this.status !== 'paused') return
+    // Approval pauses leave pending assets that download_selected_assets will refuse.
+    // Route through approveAndResume (default: approve all pending) so downloads start.
+    if (hasPendingUnqueuedAssets(this.beats)) {
+      const settings = await SettingsStore.getSettings()
+      if (settings.requireApprovalBeforeDownload) {
+        await this.approveAndResume({})
+        return
+      }
+    }
     // Wait for the aborted run's finally to finish before starting another.
     if (this.activePromise) {
       try {
@@ -892,15 +864,8 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     const maxEmptyToolNudges = 3
 
     while (iteration < this.maxIterations && this.status === 'running') {
-      const pendingBeats = this.beats.filter(
-        (b) => !b.assets || b.assets.length === 0 || b.assets.every((a) => a.status === 'failed')
-      )
-      const totalSelected = this.getSelectedAssetCount()
-      const allBeatsFulfilled =
-        pendingBeats.length === 0 || totalSelected >= this.input.maxTotalDownloads
-      const hasUnqueuedPendingAssets = this.beats.some((b) =>
-        (b.assets || []).some((a) => a.status === 'pending')
-      )
+      const allBeatsFulfilled = areBeatsSatisfiedForLoop(this.beats, this.input.maxTotalDownloads)
+      const hasUnqueuedPendingAssets = hasPendingUnqueuedAssets(this.beats)
 
       if (allBeatsFulfilled && this.beats.length > 0 && !hasUnqueuedPendingAssets) {
         this.log(
@@ -965,12 +930,31 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       }
 
       if (effectiveToolCalls.length === 0) {
-        const pendingBeats = this.beats.filter(
-          (b) => !b.assets || b.assets.length === 0 || b.assets.every((a) => a.status === 'failed')
-        )
-        const totalSelected = this.getSelectedAssetCount()
-        const allBeatsFulfilled =
-          pendingBeats.length === 0 || totalSelected >= this.input.maxTotalDownloads
+        const pendingBeats = getUnfulfilledBeats(this.beats)
+        const hasUnqueuedPendingAssets = hasPendingUnqueuedAssets(this.beats)
+        const allBeatsFulfilled = areBeatsSatisfiedForLoop(this.beats, this.input.maxTotalDownloads)
+
+        // Selected-but-not-downloaded assets still need download_selected_assets.
+        if (hasUnqueuedPendingAssets) {
+          if (emptyToolTurnCount < maxEmptyToolNudges) {
+            emptyToolTurnCount++
+            this.log(
+              'info',
+              `Model responded with text while assets are still pending download (${emptyToolTurnCount}/${maxEmptyToolNudges}). Nudging agent to queue downloads...`
+            )
+            this.messages.push({
+              role: 'user',
+              content:
+                'You replied with text, but selected assets are still pending download. Call download_selected_assets now to queue those downloads. Do not stop until pending assets are queued.'
+            })
+            continue
+          }
+          this.log(
+            'error',
+            `Model "${this.modelId}" left pending assets undownloaded after ${emptyToolTurnCount} nudges.`
+          )
+          break
+        }
 
         if (allBeatsFulfilled) {
           this.log(
@@ -1377,9 +1361,14 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
 
         const settings = await SettingsStore.getSettings()
 
-        if (settings.requireApprovalBeforeDownload && selections.length > 0) {
+        const acceptedSelectionCount = selectionResults.filter(
+          (r) =>
+            typeof r === 'object' && r !== null && (r as { status?: string }).status === 'selected'
+        ).length
+
+        if (settings.requireApprovalBeforeDownload && acceptedSelectionCount > 0) {
           this.status = 'paused'
-          this.log('info', `Awaiting user approval for ${selections.length} selected assets.`)
+          this.log('info', `Awaiting user approval for ${acceptedSelectionCount} selected assets.`)
 
           result = {
             status: 'awaiting_user_approval',
@@ -1705,6 +1694,11 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
         (a) => a.status === 'downloading' || a.status === 'pending'
       )
 
+      const anyCompleted = parentBeat.assets.some((a) => a.status === 'completed')
+      const allTerminal = parentBeat.assets.every(
+        (a) => a.status === 'completed' || a.status === 'failed'
+      )
+
       if (allDone && parentBeat.status !== 'completed') {
         parentBeat.status = 'completed'
         this.log(
@@ -1713,6 +1707,9 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
         )
       } else if (anyDownloading) {
         parentBeat.status = 'downloading'
+      } else if (allTerminal && anyCompleted) {
+        // At least one asset landed — don't fail the beat because a sibling failed.
+        parentBeat.status = 'completed'
       } else if (anyFailed) {
         parentBeat.status = 'failed'
       }

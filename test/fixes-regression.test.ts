@@ -5,7 +5,13 @@ import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { validateDownloadUrl } from '../src/main/services/pexels/download-url-validation.ts'
 import { LlmProviderFactory } from '../src/main/services/llm/llm-provider.ts'
-import { areAllBeatsDownloaded } from '../src/main/services/agent/tool-schemas.ts'
+import {
+  areAllBeatsDownloaded,
+  decideRunFinalize,
+  hasPendingUnqueuedAssets,
+  areBeatsSatisfiedForLoop
+} from '../src/main/services/agent/tool-schemas.ts'
+// decideRunFinalize imported below with areAllBeatsDownloaded
 import { isAllowedExternalUrl } from '../src/main/services/files/external-url.ts'
 
 describe('Fixes & Security Hardening Regression Suite', () => {
@@ -33,53 +39,76 @@ describe('Fixes & Security Hardening Regression Suite', () => {
   })
 
   describe('2. Iteration Limit Finalization', () => {
-    function evaluateRunStatus(
-      hitIterationLimit: boolean,
-      beats: Array<{ assets?: Array<{ status: string }> }>
-    ): { status: 'completed' | 'failed'; reason: string } {
-      const unfinishedAssets = beats
-        .flatMap((b) => b.assets || [])
-        .filter((a) => a.status === 'pending' || a.status === 'downloading')
-      if (unfinishedAssets.length > 0) {
-        return { status: 'failed', reason: 'unfinished downloads' }
-      }
-
-      const completedOrQueued = beats
-        .flatMap((b) => b.assets || [])
-        .filter((a) => a.status === 'completed' || a.status === 'downloading')
-      if (completedOrQueued.length === 0 && beats.length > 0) {
-        return { status: 'failed', reason: '0 assets downloaded' }
-      }
-
-      const hasIncompleteBeats =
-        beats.length > 0 &&
-        beats.some((b) => !b.assets || !b.assets.some((a) => a.status === 'completed'))
-
-      if (hitIterationLimit && hasIncompleteBeats) {
-        return { status: 'failed', reason: 'iteration limit with incomplete beats' }
-      }
-
-      return { status: 'completed', reason: 'success' }
-    }
-
     it('marks job completed if all beats have completed assets despite hitting iteration limit', () => {
       const beats = [{ assets: [{ status: 'completed' }] }, { assets: [{ status: 'completed' }] }]
-      const result = evaluateRunStatus(true, beats)
+      const result = decideRunFinalize({
+        beats,
+        hitIterationLimit: true,
+        maxTotalDownloads: 10,
+        maxIterations: 30
+      })
       assert.equal(result.status, 'completed')
     })
 
     it('marks job failed on iteration limit if any beat is missing completed assets', () => {
       const beats = [{ assets: [{ status: 'completed' }] }, { assets: [] }]
-      const result = evaluateRunStatus(true, beats)
+      const result = decideRunFinalize({
+        beats,
+        hitIterationLimit: true,
+        maxTotalDownloads: 10,
+        maxIterations: 30
+      })
       assert.equal(result.status, 'failed')
-      assert.equal(result.reason, 'iteration limit with incomplete beats')
+      assert.equal(result.reason, 'iteration_limit')
     })
 
     it('marks job failed if there are unfinished downloads regardless of iteration limit', () => {
       const beats = [{ assets: [{ status: 'downloading' }] }]
-      const result = evaluateRunStatus(false, beats)
+      const result = decideRunFinalize({
+        beats,
+        hitIterationLimit: false,
+        maxTotalDownloads: 10,
+        maxIterations: 30
+      })
       assert.equal(result.status, 'failed')
-      assert.equal(result.reason, 'unfinished downloads')
+      assert.equal(result.reason, 'unfinished_downloads')
+    })
+
+    it('marks job failed when beats are incomplete without hitting the download cap', () => {
+      const beats = [{ assets: [{ status: 'completed' }] }, { assets: [] }]
+      const result = decideRunFinalize({
+        beats,
+        hitIterationLimit: false,
+        maxTotalDownloads: 10,
+        maxIterations: 30
+      })
+      assert.equal(result.status, 'failed')
+      assert.equal(result.reason, 'incomplete_beats')
+    })
+
+    it('allows partial completion when the download cap was reached', () => {
+      const beats = [{ assets: [{ status: 'completed' }, { status: 'completed' }] }, { assets: [] }]
+      const result = decideRunFinalize({
+        beats,
+        hitIterationLimit: false,
+        maxTotalDownloads: 2,
+        maxIterations: 30
+      })
+      assert.equal(result.status, 'completed')
+      assert.equal(result.reason, 'partial_at_cap')
+    })
+  })
+
+  describe('2b. Empty-tool loop exit guards', () => {
+    it('does not treat pending undownloaded assets as loop-complete', () => {
+      const beats = [
+        { status: 'selecting', assets: [{ status: 'pending' }] },
+        { status: 'selecting', assets: [{ status: 'pending' }] }
+      ]
+      assert.equal(hasPendingUnqueuedAssets(beats), true)
+      assert.equal(areBeatsSatisfiedForLoop(beats, 10), true)
+      // Cap/selection satisfied, but pending downloads must keep the loop alive.
+      assert.equal(areBeatsSatisfiedForLoop(beats, 10) && !hasPendingUnqueuedAssets(beats), false)
     })
   })
 
