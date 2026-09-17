@@ -126,6 +126,13 @@ export class PexelsDownloader {
 
     this.runDownload(nextTask)
       .then((filePath) => {
+        // cancelAll may have already marked this failed+aborted; don't resurrect it
+        if (nextTask.cancelled) {
+          this.activeCount--
+          this.resolveIdleIfNeeded()
+          this.processNext()
+          return
+        }
         nextTask.status = 'completed'
         nextTask.progress = 100
         nextTask.filePath = filePath

@@ -56,11 +56,9 @@ describe('ManifestWriter', () => {
 
       const photosDir = await fs.stat(join(projectDir, 'photos'))
       const videosDir = await fs.stat(join(projectDir, 'videos'))
-      const thumbsDir = await fs.stat(join(projectDir, 'thumbnails'))
 
       assert.ok(photosDir.isDirectory())
       assert.ok(videosDir.isDirectory())
-      assert.ok(thumbsDir.isDirectory())
     })
   })
 

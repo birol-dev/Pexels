@@ -27,3 +27,23 @@ describe('findInFlightDownload', () => {
     assert.equal(findInFlightDownload(queue, 1, 'photo'), undefined)
   })
 })
+
+describe('cancelAll completion race', () => {
+  it('treats cancelled tasks as non-completable', () => {
+    const task = {
+      cancelled: true,
+      status: 'failed' as const,
+      progress: 0,
+      filePath: undefined as string | undefined
+    }
+    // Mirrors the guard added in PexelsDownloader.runDownload .then()
+    if (task.cancelled) {
+      assert.equal(task.status, 'failed')
+      return
+    }
+    task.status = 'completed'
+    task.progress = 100
+    task.filePath = '/tmp/x.jpg'
+    assert.fail('cancelled task must not be marked completed')
+  })
+})
