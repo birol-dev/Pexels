@@ -78,7 +78,10 @@ export class PexelsClient {
       pexelsCircuit.recordSuccess()
       return response
     } catch (error) {
-      pexelsCircuit.recordFailure()
+      // Caller cancel/pause must not open the circuit — only real upstream failures.
+      if (!parentSignal?.aborted) {
+        pexelsCircuit.recordFailure()
+      }
       if (error instanceof ApiError && error.statusCode === 429) {
         throw new ApiError(
           'pexels_rate_limited: Pexels API rate limit reached.',
