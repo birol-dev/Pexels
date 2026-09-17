@@ -66,19 +66,22 @@ export function registerSettingsHandlers(): void {
   ipcMain.handle('settings:updateSettings', async (_, rawInput) => {
     const input = SettingsUpdateSchema.parse(rawInput)
 
-    // Save secure keys separately if they are provided and not masked strings
-    if (input.openaiKey !== undefined && !isMaskedSecret(input.openaiKey)) {
-      await SecureSecrets.setSecret('openaiKey', input.openaiKey.trim())
+    // Only write secrets when a real (non-empty, non-masked) value is provided.
+    // Blank/whitespace means "leave unchanged" — never overwrite or delete a stored key.
+    const applySecret = async (
+      key: 'openaiKey' | 'geminiKey' | 'openrouterKey' | 'pexelsKey',
+      value: string | undefined
+    ): Promise<void> => {
+      if (value === undefined || isMaskedSecret(value)) return
+      const trimmed = value.trim()
+      if (!trimmed) return
+      await SecureSecrets.setSecret(key, trimmed)
     }
-    if (input.geminiKey !== undefined && !isMaskedSecret(input.geminiKey)) {
-      await SecureSecrets.setSecret('geminiKey', input.geminiKey.trim())
-    }
-    if (input.openrouterKey !== undefined && !isMaskedSecret(input.openrouterKey)) {
-      await SecureSecrets.setSecret('openrouterKey', input.openrouterKey.trim())
-    }
-    if (input.pexelsKey !== undefined && !isMaskedSecret(input.pexelsKey)) {
-      await SecureSecrets.setSecret('pexelsKey', input.pexelsKey.trim())
-    }
+
+    await applySecret('openaiKey', input.openaiKey)
+    await applySecret('geminiKey', input.geminiKey)
+    await applySecret('openrouterKey', input.openrouterKey)
+    await applySecret('pexelsKey', input.pexelsKey)
 
     const publicSettings = Object.fromEntries(
       Object.entries({
