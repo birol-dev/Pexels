@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { validateDownloadUrl } from '../src/main/services/pexels/download-url-validation.ts'
 import { LlmProviderFactory } from '../src/main/services/llm/llm-provider.ts'
+import { areAllBeatsDownloaded } from '../src/main/services/agent/tool-schemas.ts'
+import { isAllowedExternalUrl } from '../src/main/services/files/external-url.ts'
 
 describe('Fixes & Security Hardening Regression Suite', () => {
   describe('1. Download Cap Enforcement', () => {
@@ -289,15 +291,7 @@ describe('Fixes & Security Hardening Regression Suite', () => {
         { id: 'beat_1', status: 'completed', assets: [{ status: 'completed' }] },
         { id: 'beat_2', status: 'completed', assets: [{ status: 'completed' }] }
       ]
-      const allBeatsDone =
-        beats.length > 0 &&
-        beats.every(
-          (b) =>
-            b.status === 'completed' &&
-            (b.assets || []).length > 0 &&
-            b.assets.every((a) => a.status === 'completed')
-        )
-      assert.equal(allBeatsDone, true)
+      assert.equal(areAllBeatsDownloaded(beats), true)
     })
 
     it('identifies unfulfilled beats when some beats lack assets', () => {
@@ -310,6 +304,15 @@ describe('Fixes & Security Hardening Regression Suite', () => {
       )
       assert.equal(pendingBeats.length, 1)
       assert.equal(pendingBeats[0].id, 'beat_2')
+    })
+  })
+
+  describe('9. External open allowlist', () => {
+    it('allows Pexels/docs hosts and rejects arbitrary phishing URLs', () => {
+      assert.equal(isAllowedExternalUrl('https://www.pexels.com/photo/123'), true)
+      assert.equal(isAllowedExternalUrl('https://stockfinderai.birol.tech/docs'), true)
+      assert.equal(isAllowedExternalUrl('https://evil.example/phish'), false)
+      assert.equal(isAllowedExternalUrl('http://pexels.com/insecure'), false)
     })
   })
 })

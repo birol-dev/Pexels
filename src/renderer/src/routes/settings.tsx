@@ -1,8 +1,27 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useAppStore, PublicSettings } from '../lib/store'
 import { api } from '../lib/api-client'
 
 const GITHUB_REPO_URL = 'https://github.com/birol-dev/Pexels'
+const PERSIST_DEBOUNCE_MS = 300
+
+type SecretKeyField = 'openaiKey' | 'geminiKey' | 'openrouterKey' | 'pexelsKey'
+
+const SECRET_FIELDS: SecretKeyField[] = ['openaiKey', 'geminiKey', 'openrouterKey', 'pexelsKey']
+
+function stripEmptySecrets(updates: Partial<PublicSettings>): Partial<PublicSettings> {
+  const next = { ...updates }
+  for (const key of SECRET_FIELDS) {
+    if (!(key in next)) continue
+    const value = next[key]
+    if (typeof value !== 'string' || !value.trim()) {
+      delete next[key]
+    } else {
+      next[key] = value.trim()
+    }
+  }
+  return next
+}
 
 export default function SettingsView(): React.JSX.Element {
   const { settings, loadSettings, updateSettings, confirm } = useAppStore()
@@ -10,7 +29,7 @@ export default function SettingsView(): React.JSX.Element {
   const [localSettings, setLocalSettings] = useState<PublicSettings | null>(null)
   const [localSettingsInitialized, setLocalSettingsInitialized] = useState(false)
 
-  // API keys state
+  // API keys state (blank = leave stored key unchanged)
   const [openaiKey, setOpenaiKey] = useState('')
   const [geminiKey, setGeminiKey] = useState('')
   const [openrouterKey, setOpenrouterKey] = useState('')
@@ -31,35 +50,131 @@ export default function SettingsView(): React.JSX.Element {
   const [savingSettings, setSavingSettings] = useState(false)
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null)
 
+  const pendingRef = useRef<Partial<PublicSettings>>({})
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const flushingRef = useRef(false)
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+        debounceTimerRef.current = null
+      }
+    }
+  }, [])
+
   useEffect(() => {
     loadSettings()
   }, [loadSettings])
 
+  // Drive UI from local state. Initialize once; do not merge global settings back
+  // into local on every persist (would fight in-progress edits).
   useEffect(() => {
     if (settings && !localSettingsInitialized) {
       Promise.resolve().then(() => {
         setLocalSettings({ ...settings })
         setLocalSettingsInitialized(true)
       })
-    } else if (settings && localSettingsInitialized) {
-      // Theme (and other immediate saves) update global settings — merge only
-      // those fields so unsaved local form edits are not discarded.
-      Promise.resolve().then(() => {
-        setLocalSettings((prev) => {
-          if (!prev) return { ...settings }
-          return {
-            ...prev,
-            theme: settings.theme,
-            isOnboarded: settings.isOnboarded,
-            openaiKey: settings.openaiKey,
-            geminiKey: settings.geminiKey,
-            openrouterKey: settings.openrouterKey,
-            pexelsKey: settings.pexelsKey
-          }
-        })
-      })
     }
   }, [settings, localSettingsInitialized])
+
+  const syncSecretStatusFromStore = useCallback((): void => {
+    const latest = useAppStore.getState().settings
+    if (!latest) return
+    setLocalSettings((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        openaiKey: latest.openaiKey,
+        geminiKey: latest.geminiKey,
+        openrouterKey: latest.openrouterKey,
+        pexelsKey: latest.pexelsKey
+      }
+    })
+  }, [])
+
+  const flushPersist = useCallback(async (): Promise<void> => {
+    if (flushingRef.current) return
+    flushingRef.current = true
+    if (mountedRef.current) setSavingSettings(true)
+    let failed = false
+
+    try {
+      while (Object.keys(pendingRef.current).length > 0) {
+        const batch = stripEmptySecrets({ ...pendingRef.current })
+        pendingRef.current = {}
+
+        if (Object.keys(batch).length === 0) {
+          continue
+        }
+
+        try {
+          await updateSettings(batch)
+        } catch (err) {
+          // Re-queue this batch ahead of any newer edits so nothing is lost
+          pendingRef.current = { ...batch, ...pendingRef.current }
+          failed = true
+          const msg = err instanceof Error ? err.message : String(err)
+          if (mountedRef.current) {
+            setSaveResult({
+              success: false,
+              message: msg || 'Failed to save settings.'
+            })
+          }
+          break
+        }
+
+        // Clear password fields that were successfully persisted
+        for (const key of SECRET_FIELDS) {
+          if (key in batch) {
+            if (key === 'openaiKey') setOpenaiKey('')
+            if (key === 'geminiKey') setGeminiKey('')
+            if (key === 'openrouterKey') setOpenrouterKey('')
+            if (key === 'pexelsKey') setPexelsKey('')
+          }
+        }
+
+        if (mountedRef.current) {
+          syncSecretStatusFromStore()
+          setSaveResult({ success: true, message: 'Settings saved.' })
+        }
+      }
+    } finally {
+      flushingRef.current = false
+      if (mountedRef.current) setSavingSettings(false)
+      // Drain edits that arrived during a successful flush; do not auto-retry failures
+      if (!failed && Object.keys(pendingRef.current).length > 0) {
+        void flushPersist()
+      }
+    }
+  }, [updateSettings, syncSecretStatusFromStore])
+
+  const schedulePersist = useCallback(
+    (partial: Partial<PublicSettings>): void => {
+      pendingRef.current = { ...pendingRef.current, ...partial }
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = setTimeout(() => {
+        debounceTimerRef.current = null
+        void flushPersist()
+      }, PERSIST_DEBOUNCE_MS)
+    },
+    [flushPersist]
+  )
+
+  const persistNow = useCallback(
+    (partial: Partial<PublicSettings>): void => {
+      pendingRef.current = { ...pendingRef.current, ...partial }
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+        debounceTimerRef.current = null
+      }
+      void flushPersist()
+    },
+    [flushPersist]
+  )
 
   if (!localSettings) {
     return (
@@ -71,48 +186,15 @@ export default function SettingsView(): React.JSX.Element {
     )
   }
 
-  const handleSave = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault()
-    setSavingSettings(true)
-    setSaveResult(null)
-    const updates: Partial<PublicSettings> = { ...localSettings }
-
-    // Clear out masked values
-    updates.openaiKey = undefined
-    updates.geminiKey = undefined
-    updates.openrouterKey = undefined
-    updates.pexelsKey = undefined
-
-    if (openaiKey) updates.openaiKey = openaiKey
-    if (geminiKey) updates.geminiKey = geminiKey
-    if (openrouterKey) updates.openrouterKey = openrouterKey
-    if (pexelsKey) updates.pexelsKey = pexelsKey
-
-    try {
-      await updateSettings(updates)
-      setSaveResult({ success: true, message: 'Settings saved successfully.' })
-      setOpenaiKey('')
-      setGeminiKey('')
-      setOpenrouterKey('')
-      setPexelsKey('')
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      setSaveResult({
-        success: false,
-        message: msg || 'Failed to save settings.'
-      })
-    } finally {
-      setSavingSettings(false)
-    }
+  const patchLocal = (partial: Partial<PublicSettings>): void => {
+    setLocalSettings((prev) => (prev ? { ...prev, ...partial } : null))
   }
 
   const handleChooseFolder = async (): Promise<void> => {
     const folder = await api.settings.chooseDownloadFolder()
     if (folder) {
-      setLocalSettings((prev) => {
-        if (!prev) return null
-        return { ...prev, downloadFolder: folder }
-      })
+      patchLocal({ downloadFolder: folder })
+      persistNow({ downloadFolder: folder })
     }
   }
 
@@ -175,16 +257,75 @@ export default function SettingsView(): React.JSX.Element {
       gemini: 'gemini-1.5-pro-latest',
       openrouter: 'anthropic/claude-3-opus'
     }
-    setLocalSettings((prev) => {
-      if (!prev) return null
-      return {
-        ...prev,
-        llmProvider: prov,
-        modelId: defaults[prov]
-      }
-    })
+    const modelId = defaults[prov]
+    patchLocal({ llmProvider: prov, modelId })
+    persistNow({ llmProvider: prov, modelId })
     setLlmTestResult(null)
   }
+
+  const statusToasts = (saveResult || llmTestResult || pexelsTestResult) && (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {saveResult && (
+        <div
+          className={`p-4 border-2 border-ink-black rounded-DEFAULT shadow-[4px_4px_0px_var(--color-ink-black)] flex items-start gap-3 ${
+            saveResult.success
+              ? 'bg-cyber-lime/10 text-ink-black'
+              : 'bg-error-container text-on-error-container'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
+            {saveResult.success ? (savingSettings ? 'sync' : 'check_circle') : 'error'}
+          </span>
+          <div>
+            <div className="font-title-md text-[14px] uppercase">Settings Status</div>
+            <div className="font-body-md text-[12px] mt-0.5 leading-normal opacity-90">
+              {savingSettings && saveResult.success ? 'Saving…' : saveResult.message}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {llmTestResult && (
+        <div
+          className={`p-4 border-2 border-ink-black rounded-DEFAULT shadow-[4px_4px_0px_var(--color-ink-black)] flex items-start gap-3 ${
+            llmTestResult.success
+              ? 'bg-cyber-lime/10 text-ink-black'
+              : 'bg-error-container text-on-error-container'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
+            {llmTestResult.success ? 'check_circle' : 'error'}
+          </span>
+          <div>
+            <div className="font-title-md text-[14px] uppercase">LLM Connection Test</div>
+            <div className="font-body-md text-[12px] mt-0.5 leading-normal opacity-90">
+              {llmTestResult.message}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pexelsTestResult && (
+        <div
+          className={`p-4 border-2 border-ink-black rounded-DEFAULT shadow-[4px_4px_0px_var(--color-ink-black)] flex items-start gap-3 ${
+            pexelsTestResult.success
+              ? 'bg-cyber-lime/10 text-ink-black'
+              : 'bg-error-container text-on-error-container'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
+            {pexelsTestResult.success ? 'check_circle' : 'error'}
+          </span>
+          <div>
+            <div className="font-title-md text-[14px] uppercase">Pexels Connection Test</div>
+            <div className="font-body-md text-[12px] mt-0.5 leading-normal opacity-90">
+              {pexelsTestResult.message}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 
   return (
     <div className="w-full max-w-[1160px] mx-auto px-grid-margin py-8 flex flex-col gap-8 relative z-10 animate-fade-in-up">
@@ -195,75 +336,11 @@ export default function SettingsView(): React.JSX.Element {
         </h2>
         <p className="font-body-lg text-body-lg text-risograph-gray mt-3 max-w-2xl">
           Configure generation parameters, API keys, and safety controls for the core engine.
+          Changes apply automatically.
         </p>
       </header>
 
-      {/* Diagnostics / Connection Alert Cards */}
-      {(saveResult || llmTestResult || pexelsTestResult) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {saveResult && (
-            <div
-              className={`p-4 border-2 border-ink-black rounded-DEFAULT shadow-[4px_4px_0px_var(--color-ink-black)] flex items-start gap-3 ${
-                saveResult.success
-                  ? 'bg-cyber-lime/10 text-ink-black'
-                  : 'bg-error-container text-on-error-container'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
-                {saveResult.success ? 'check_circle' : 'error'}
-              </span>
-              <div>
-                <div className="font-title-md text-[14px] uppercase">Settings Status</div>
-                <div className="font-body-md text-[12px] mt-0.5 leading-normal opacity-90">
-                  {saveResult.message}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {llmTestResult && (
-            <div
-              className={`p-4 border-2 border-ink-black rounded-DEFAULT shadow-[4px_4px_0px_var(--color-ink-black)] flex items-start gap-3 ${
-                llmTestResult.success
-                  ? 'bg-cyber-lime/10 text-ink-black'
-                  : 'bg-error-container text-on-error-container'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
-                {llmTestResult.success ? 'check_circle' : 'error'}
-              </span>
-              <div>
-                <div className="font-title-md text-[14px] uppercase">LLM Connection Test</div>
-                <div className="font-body-md text-[12px] mt-0.5 leading-normal opacity-90">
-                  {llmTestResult.message}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {pexelsTestResult && (
-            <div
-              className={`p-4 border-2 border-ink-black rounded-DEFAULT shadow-[4px_4px_0px_var(--color-ink-black)] flex items-start gap-3 ${
-                pexelsTestResult.success
-                  ? 'bg-cyber-lime/10 text-ink-black'
-                  : 'bg-error-container text-on-error-container'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[20px] mt-0.5 shrink-0">
-                {pexelsTestResult.success ? 'check_circle' : 'error'}
-              </span>
-              <div>
-                <div className="font-title-md text-[14px] uppercase">Pexels Connection Test</div>
-                <div className="font-body-md text-[12px] mt-0.5 leading-normal opacity-90">
-                  {pexelsTestResult.message}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-gutter">
         {/* Tile 1: AI Provider Config (Span 8) */}
         <div className="bento-card col-span-1 md:col-span-8 p-6 flex flex-col gap-6">
           <div className="flex items-center justify-between border-b-2 border-ink-black pb-4">
@@ -307,12 +384,11 @@ export default function SettingsView(): React.JSX.Element {
                 type="text"
                 placeholder="Enter model ID"
                 value={localSettings.modelId}
-                onChange={(e) =>
-                  setLocalSettings((prev) => {
-                    if (!prev) return null
-                    return { ...prev, modelId: e.target.value }
-                  })
-                }
+                onChange={(e) => {
+                  const modelId = e.target.value
+                  patchLocal({ modelId })
+                  schedulePersist({ modelId })
+                }}
                 className="neo-input rounded-DEFAULT w-full px-4 py-3 font-body-md text-body-md outline-none focus:border-electric-purple transition-colors font-mono text-ink-black bg-surface"
               />
             </div>
@@ -336,9 +412,17 @@ export default function SettingsView(): React.JSX.Element {
                       : openrouterKey
                 }
                 onChange={(e) => {
-                  if (localSettings.llmProvider === 'openai') setOpenaiKey(e.target.value)
-                  else if (localSettings.llmProvider === 'gemini') setGeminiKey(e.target.value)
-                  else setOpenrouterKey(e.target.value)
+                  const value = e.target.value
+                  if (localSettings.llmProvider === 'openai') {
+                    setOpenaiKey(value)
+                    schedulePersist({ openaiKey: value })
+                  } else if (localSettings.llmProvider === 'gemini') {
+                    setGeminiKey(value)
+                    schedulePersist({ geminiKey: value })
+                  } else {
+                    setOpenrouterKey(value)
+                    schedulePersist({ openrouterKey: value })
+                  }
                 }}
                 className="neo-input rounded-DEFAULT flex-1 px-4 py-3 font-body-md text-body-md outline-none focus:border-electric-purple transition-colors font-mono tracking-widest text-ink-black bg-surface"
               />
@@ -374,7 +458,11 @@ export default function SettingsView(): React.JSX.Element {
               type="password"
               placeholder={localSettings.pexelsKey ? '••••••••••••••••' : 'Enter Pexels key...'}
               value={pexelsKey}
-              onChange={(e) => setPexelsKey(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value
+                setPexelsKey(value)
+                schedulePersist({ pexelsKey: value })
+              }}
               className="neo-input rounded-DEFAULT w-full px-4 py-3 font-body-md text-body-md outline-none focus:border-cyber-lime transition-colors font-mono text-ink-black bg-surface"
             />
             <button
@@ -415,15 +503,11 @@ export default function SettingsView(): React.JSX.Element {
               min="1"
               max="10"
               value={localSettings.maxConcurrentDownloads}
-              onChange={(e) =>
-                setLocalSettings((prev) => {
-                  if (!prev) return null
-                  return {
-                    ...prev,
-                    maxConcurrentDownloads: Number(e.target.value)
-                  }
-                })
-              }
+              onChange={(e) => {
+                const maxConcurrentDownloads = Number(e.target.value)
+                patchLocal({ maxConcurrentDownloads })
+                schedulePersist({ maxConcurrentDownloads })
+              }}
               className="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-electric-purple brutal-border"
             />
           </div>
@@ -444,15 +528,11 @@ export default function SettingsView(): React.JSX.Element {
               max="50"
               step="5"
               value={localSettings.maxAgentIterations}
-              onChange={(e) =>
-                setLocalSettings((prev) => {
-                  if (!prev) return null
-                  return {
-                    ...prev,
-                    maxAgentIterations: Number(e.target.value)
-                  }
-                })
-              }
+              onChange={(e) => {
+                const maxAgentIterations = Number(e.target.value)
+                patchLocal({ maxAgentIterations })
+                schedulePersist({ maxAgentIterations })
+              }}
               className="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-electric-purple brutal-border"
             />
           </div>
@@ -473,15 +553,11 @@ export default function SettingsView(): React.JSX.Element {
               max="180"
               step="5"
               value={localSettings.requestTimeoutSeconds}
-              onChange={(e) =>
-                setLocalSettings((prev) => {
-                  if (!prev) return null
-                  return {
-                    ...prev,
-                    requestTimeoutSeconds: Number(e.target.value)
-                  }
-                })
-              }
+              onChange={(e) => {
+                const requestTimeoutSeconds = Number(e.target.value)
+                patchLocal({ requestTimeoutSeconds })
+                schedulePersist({ requestTimeoutSeconds })
+              }}
               className="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-electric-purple brutal-border"
             />
           </div>
@@ -509,15 +585,11 @@ export default function SettingsView(): React.JSX.Element {
               max="120"
               step="5"
               value={localSettings.requestsPerMinute ?? 0}
-              onChange={(e) =>
-                setLocalSettings((prev) => {
-                  if (!prev) return null
-                  return {
-                    ...prev,
-                    requestsPerMinute: Number(e.target.value)
-                  }
-                })
-              }
+              onChange={(e) => {
+                const requestsPerMinute = Number(e.target.value)
+                patchLocal({ requestsPerMinute })
+                schedulePersist({ requestsPerMinute })
+              }}
               className="w-full h-2 bg-surface-container-high rounded-full appearance-none cursor-pointer accent-electric-purple brutal-border"
             />
           </div>
@@ -557,17 +629,10 @@ export default function SettingsView(): React.JSX.Element {
             <div className="relative">
               <select
                 value={localSettings.theme || 'flat-black'}
-                onChange={async (e) => {
+                onChange={(e) => {
                   const newTheme = e.target.value as 'flat-black' | 'flat-white'
-                  setLocalSettings((prev) => {
-                    if (!prev) return null
-                    return { ...prev, theme: newTheme }
-                  })
-                  try {
-                    await updateSettings({ theme: newTheme })
-                  } catch (err) {
-                    console.error('Failed to update theme', err)
-                  }
+                  patchLocal({ theme: newTheme })
+                  persistNow({ theme: newTheme })
                 }}
                 className="neo-input appearance-none rounded-DEFAULT w-full px-4 py-2 font-body-md text-body-md outline-none focus:border-electric-purple transition-colors cursor-pointer bg-surface text-ink-black"
               >
@@ -593,15 +658,11 @@ export default function SettingsView(): React.JSX.Element {
                   <input
                     type="checkbox"
                     checked={localSettings.skipExplicitQueries}
-                    onChange={(e) =>
-                      setLocalSettings((prev) => {
-                        if (!prev) return null
-                        return {
-                          ...prev,
-                          skipExplicitQueries: e.target.checked
-                        }
-                      })
-                    }
+                    onChange={(e) => {
+                      const skipExplicitQueries = e.target.checked
+                      patchLocal({ skipExplicitQueries })
+                      persistNow({ skipExplicitQueries })
+                    }}
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                   />
                   {localSettings.skipExplicitQueries ? (
@@ -628,15 +689,11 @@ export default function SettingsView(): React.JSX.Element {
                   <input
                     type="checkbox"
                     checked={localSettings.avoidPeopleAndFaces}
-                    onChange={(e) =>
-                      setLocalSettings((prev) => {
-                        if (!prev) return null
-                        return {
-                          ...prev,
-                          avoidPeopleAndFaces: e.target.checked
-                        }
-                      })
-                    }
+                    onChange={(e) => {
+                      const avoidPeopleAndFaces = e.target.checked
+                      patchLocal({ avoidPeopleAndFaces })
+                      persistNow({ avoidPeopleAndFaces })
+                    }}
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                   />
                   {localSettings.avoidPeopleAndFaces ? (
@@ -663,15 +720,11 @@ export default function SettingsView(): React.JSX.Element {
                   <input
                     type="checkbox"
                     checked={localSettings.requireApprovalBeforeDownload}
-                    onChange={(e) =>
-                      setLocalSettings((prev) => {
-                        if (!prev) return null
-                        return {
-                          ...prev,
-                          requireApprovalBeforeDownload: e.target.checked
-                        }
-                      })
-                    }
+                    onChange={(e) => {
+                      const requireApprovalBeforeDownload = e.target.checked
+                      patchLocal({ requireApprovalBeforeDownload })
+                      persistNow({ requireApprovalBeforeDownload })
+                    }}
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                   />
                   {localSettings.requireApprovalBeforeDownload ? (
@@ -698,15 +751,11 @@ export default function SettingsView(): React.JSX.Element {
                   <input
                     type="checkbox"
                     checked={localSettings.hideEstimatedCost || false}
-                    onChange={(e) =>
-                      setLocalSettings((prev) => {
-                        if (!prev) return null
-                        return {
-                          ...prev,
-                          hideEstimatedCost: e.target.checked
-                        }
-                      })
-                    }
+                    onChange={(e) => {
+                      const hideEstimatedCost = e.target.checked
+                      patchLocal({ hideEstimatedCost })
+                      persistNow({ hideEstimatedCost })
+                    }}
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                   />
                   {localSettings.hideEstimatedCost ? (
@@ -730,7 +779,12 @@ export default function SettingsView(): React.JSX.Element {
           </div>
         </div>
 
-        {/* Save Action */}
+        {/* Sticky status toasts near controls (former save-bar area) */}
+        {statusToasts && (
+          <div className="col-span-12 sticky bottom-4 z-20 mt-2">{statusToasts}</div>
+        )}
+
+        {/* Utility actions (Save Configuration removed — auto-apply) */}
         <div className="col-span-12 flex flex-wrap items-center justify-between gap-4 mt-4 pt-8 border-t-2 border-ink-black border-dashed">
           <button
             type="button"
@@ -752,20 +806,9 @@ export default function SettingsView(): React.JSX.Element {
               <span className="material-symbols-outlined">folder_open</span>
               <span className="font-label-sm text-label-sm uppercase">Show Sandbox Files</span>
             </button>
-
-            <button
-              type="submit"
-              disabled={savingSettings}
-              className="btn-secondary rounded-DEFAULT px-8 py-3.5 flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined">save</span>
-              <span className="font-title-md text-[18px] uppercase tracking-wider">
-                {savingSettings ? 'Saving...' : 'Save Configuration'}
-              </span>
-            </button>
           </div>
         </div>
-      </form>
+      </div>
 
       <section className="bento-card p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
         <div className="flex gap-4">

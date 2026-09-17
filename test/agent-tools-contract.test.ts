@@ -1,50 +1,11 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { z } from 'zod'
-
-// Schemas reflecting the tool contract defined in docs/02-agent-loop-prompts-tools.md
-const SearchPexelsPhotosArgsSchema = z.object({
-  beatId: z.string().min(1),
-  query: z.string().min(2).max(100),
-  orientation: z.enum(['landscape', 'portrait', 'square']).optional(),
-  size: z.enum(['large', 'medium', 'small']).optional(),
-  color: z.string().optional(),
-  page: z.number().int().min(1).max(10).default(1),
-  perPage: z.number().int().min(1).max(80).default(15)
-})
-
-const SearchPexelsVideosArgsSchema = z.object({
-  beatId: z.string().min(1),
-  query: z.string().min(2).max(100),
-  orientation: z.enum(['landscape', 'portrait', 'square']).optional(),
-  size: z.enum(['large', 'medium', 'small']).optional(),
-  page: z.number().int().min(1).max(10).default(1),
-  perPage: z.number().int().min(1).max(80).default(10)
-})
-
-const SelectAssetsForDownloadArgsSchema = z.object({
-  selections: z
-    .array(
-      z.object({
-        beatId: z.string().min(1),
-        assetType: z.enum(['photo', 'video']),
-        pexelsId: z.number().int().positive(),
-        variantUrl: z.string().url(),
-        reason: z.string().min(1).max(500)
-      })
-    )
-    .default([]),
-  rejections: z
-    .array(
-      z.object({
-        beatId: z.string().min(1),
-        assetType: z.enum(['photo', 'video']),
-        pexelsId: z.number().int().positive(),
-        reason: z.string().min(1).max(500)
-      })
-    )
-    .default([])
-})
+import {
+  SearchPexelsPhotosArgsSchema,
+  SearchPexelsVideosArgsSchema,
+  SelectAssetsForDownloadArgsSchema,
+  areAllBeatsDownloaded
+} from '../src/main/services/agent/tool-schemas.ts'
 
 describe('Agent Tools Contract & Validation', () => {
   describe('search_pexels_photos validation', () => {
@@ -168,6 +129,24 @@ describe('Agent Tools Contract & Validation', () => {
       assert.throws(
         () => SelectAssetsForDownloadArgsSchema.parse(invalidPayload),
         /invalid_format|invalid_url|invalid_string|Invalid URL/
+      )
+    })
+  })
+
+  describe('areAllBeatsDownloaded', () => {
+    it('requires completed status and at least one completed asset per beat', () => {
+      assert.equal(areAllBeatsDownloaded([]), false)
+      assert.equal(
+        areAllBeatsDownloaded([{ status: 'completed', assets: [{ status: 'completed' }] }]),
+        true
+      )
+      assert.equal(areAllBeatsDownloaded([{ status: 'completed', assets: [] }]), false)
+      assert.equal(
+        areAllBeatsDownloaded([
+          { status: 'completed', assets: [{ status: 'completed' }] },
+          { status: 'downloading', assets: [{ status: 'completed' }] }
+        ]),
+        false
       )
     })
   })

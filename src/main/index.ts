@@ -9,6 +9,7 @@ import { registerJobsHandlers } from './ipc/jobs.ipc'
 import { registerAssetsHandlers } from './ipc/assets.ipc'
 import { ProjectStore } from './services/storage/project-store'
 import { filePathFromMediaUrl, isPathInside } from './services/files/path-safety'
+import { isAllowedExternalUrl } from './services/files/external-url'
 
 // Register schemes as privileged before app is ready
 // NOTE: bypassCSP is intentionally omitted — the handler restricts paths to
@@ -32,7 +33,7 @@ function getContentSecurityPolicy(): string {
       "script-src 'self' 'unsafe-inline'; " +
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com; " +
       "font-src 'self' data: https://fonts.gstatic.com https://cdn.fontshare.com; " +
-      "img-src 'self' data: media: https://images.pexels.com https://lh3.googleusercontent.com; " +
+      "img-src 'self' data: media: https://images.pexels.com; " +
       "media-src 'self' media:; " +
       "connect-src 'self' ws://127.0.0.1:* ws://localhost:* http://127.0.0.1:* http://localhost:*;"
     )
@@ -43,7 +44,7 @@ function getContentSecurityPolicy(): string {
     "script-src 'self'; " +
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com; " +
     "font-src 'self' data: https://fonts.gstatic.com https://cdn.fontshare.com; " +
-    "img-src 'self' data: media: https://images.pexels.com https://lh3.googleusercontent.com; " +
+    "img-src 'self' data: media: https://images.pexels.com; " +
     "media-src 'self' media:; " +
     "connect-src 'none';"
   )
@@ -70,13 +71,8 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    try {
-      const target = new URL(details.url)
-      if (target.protocol === 'https:' || target.protocol === 'http:') {
-        shell.openExternal(target.toString())
-      }
-    } catch {
-      // Ignore malformed URLs from renderer content.
+    if (isAllowedExternalUrl(details.url)) {
+      shell.openExternal(details.url)
     }
     return { action: 'deny' }
   })
@@ -198,6 +194,3 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.

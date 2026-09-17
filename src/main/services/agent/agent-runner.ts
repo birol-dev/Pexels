@@ -1,12 +1,7 @@
 import { EventEmitter } from 'events'
 import { promises as fs } from 'fs'
 import { join } from 'path'
-import {
-  LlmProviderFactory,
-  AgentMessage,
-  NormalizedToolDefinition,
-  NormalizedToolCall
-} from '../llm/llm-provider.ts'
+import { LlmProviderFactory, AgentMessage, NormalizedToolCall } from '../llm/llm-provider.ts'
 import { PexelsClient } from '../pexels/pexels-client.ts'
 import { PexelsDownloader, DownloadTask } from '../pexels/pexels-downloader.ts'
 import { validateDownloadUrl } from '../pexels/download-url-validation.ts'
@@ -20,6 +15,14 @@ import { ProjectStore, JobSummary } from '../storage/project-store.ts'
 import { SecureSecrets } from '../storage/secure-secrets.ts'
 import { SettingsStore } from '../storage/settings-store.ts'
 import { extractToolCallsFromText } from './tool-parser.ts'
+import {
+  AGENT_TOOLS,
+  SearchPexelsPhotosArgsSchema,
+  SearchPexelsVideosArgsSchema,
+  SelectAssetsForDownloadArgsSchema,
+  DownloadSelectedAssetsArgsSchema,
+  areAllBeatsDownloaded
+} from './tool-schemas.ts'
 
 export interface VisualBeat {
   id: string
@@ -179,9 +182,9 @@ export class AgentRunner extends EventEmitter {
     this.input = input
   }
 
-  public async ensureRegistered(): Promise<void> {
-    AgentRunner.activeRunners.set(this.jobId, this)
-
+  private async applyRuntimeSettings(): Promise<
+    Awaited<ReturnType<typeof SettingsStore.getSettings>>
+  > {
     const settings = await SettingsStore.getSettings()
     this.modelId = settings.modelId
     this.providerId = settings.llmProvider
@@ -191,11 +194,6 @@ export class AgentRunner extends EventEmitter {
       skipExplicit: settings.skipExplicitQueries,
       avoidPeople: settings.avoidPeopleAndFaces
     }
-
-    if (!this.projectDir) {
-      this.projectDir = await this.resolveProjectDirectory(settings.downloadFolder)
-    }
-
     if (!this.downloader) {
       this.downloader = new PexelsDownloader(
         settings.maxConcurrentDownloads,
@@ -206,7 +204,15 @@ export class AgentRunner extends EventEmitter {
         (type, assetId, currentUrl) => this.refreshDownloadUrl(type, assetId, currentUrl)
       )
     }
+    return settings
+  }
 
+  public async ensureRegistered(): Promise<void> {
+    AgentRunner.activeRunners.set(this.jobId, this)
+    const settings = await this.applyRuntimeSettings()
+    if (!this.projectDir) {
+      this.projectDir = await this.resolveProjectDirectory(settings.downloadFolder)
+    }
     await this.saveRegistry()
   }
 
@@ -219,15 +225,7 @@ export class AgentRunner extends EventEmitter {
       await fn()
     } catch (error) {
       if (this.status !== 'cancelled' && this.status !== 'paused') {
-        const allBeatsDone =
-          this.beats.length > 0 &&
-          this.beats.every(
-            (b) =>
-              b.status === 'completed' &&
-              (b.assets || []).length > 0 &&
-              b.assets.every((a) => a.status === 'completed')
-          )
-        if (allBeatsDone) {
+        if (areAllBeatsDownloaded(this.beats)) {
           this.status = 'completed'
           this.currentStep = 'Finished'
           this.progress = 100
@@ -337,30 +335,8 @@ export class AgentRunner extends EventEmitter {
   public async initializeAndLoadState(): Promise<void> {
     AgentRunner.activeRunners.set(this.jobId, this)
     this.abortController = new AbortController()
-
-    const settings = await SettingsStore.getSettings()
-    this.modelId = settings.modelId
-    this.providerId = settings.llmProvider
-    this.maxIterations = settings.maxAgentIterations
-    this.requestTimeoutSeconds = settings.requestTimeoutSeconds
-    this.safetySettings = {
-      skipExplicit: settings.skipExplicitQueries,
-      avoidPeople: settings.avoidPeopleAndFaces
-    }
-
+    const settings = await this.applyRuntimeSettings()
     this.projectDir = await this.resolveProjectDirectory(settings.downloadFolder)
-
-    if (!this.downloader) {
-      this.downloader = new PexelsDownloader(
-        settings.maxConcurrentDownloads,
-        (task) => {
-          this.handleDownloadProgress(task)
-        },
-        settings.requestTimeoutSeconds,
-        (type, assetId, currentUrl) => this.refreshDownloadUrl(type, assetId, currentUrl)
-      )
-    }
-
     await this.loadStateFromManifest()
     this.status = 'paused'
   }
@@ -696,7 +672,6 @@ export class AgentRunner extends EventEmitter {
       failures: failedAssets,
       messages: this.messages,
       pexelsCandidates: Array.from(this.pexelsCandidates.entries()),
-      sourceDocsCheckedAt: new Date().toISOString(),
       attribution: buildManifestAttribution(allAssetSnapshots),
       pexelsQuotaSnapshot: PexelsClient.getQuotaSnapshot() || undefined
     }
@@ -902,125 +877,7 @@ Your workflow:
 Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_download, download_selected_assets.
 `
 
-    const tools: NormalizedToolDefinition[] = [
-      {
-        name: 'search_pexels_photos',
-        description: 'Search for photos on Pexels matching a query for a script beat.',
-        parameters: {
-          type: 'object',
-          properties: {
-            beatId: { type: 'string', description: 'The ID of the beat (e.g. beat_1).' },
-            query: { type: 'string', description: 'The search query keyword.' },
-            orientation: {
-              type: 'string',
-              enum: ['landscape', 'portrait', 'square'],
-              description: 'Desired orientation.'
-            },
-            size: {
-              type: 'string',
-              enum: ['large', 'medium', 'small'],
-              description: 'Desired size.'
-            },
-            color: { type: 'string', description: 'Desired dominant color.' },
-            page: { type: 'number', description: 'Page number (default 1).' },
-            perPage: { type: 'number', description: 'Results per page (default 15).' }
-          },
-          required: ['beatId', 'query']
-        }
-      },
-      {
-        name: 'search_pexels_videos',
-        description: 'Search for videos on Pexels matching a query for a script beat.',
-        parameters: {
-          type: 'object',
-          properties: {
-            beatId: { type: 'string', description: 'The ID of the beat (e.g. beat_1).' },
-            query: { type: 'string', description: 'The search query keyword.' },
-            orientation: {
-              type: 'string',
-              enum: ['landscape', 'portrait', 'square'],
-              description: 'Desired orientation.'
-            },
-            size: {
-              type: 'string',
-              enum: ['large', 'medium', 'small'],
-              description: 'Desired size.'
-            },
-            page: { type: 'number', description: 'Page number (default 1).' },
-            perPage: { type: 'number', description: 'Results per page (default 10).' }
-          },
-          required: ['beatId', 'query']
-        }
-      },
-      {
-        name: 'select_assets_for_download',
-        description:
-          'Select candidates to be downloaded or reject candidates with a reason after search results are visible.',
-        parameters: {
-          type: 'object',
-          properties: {
-            selections: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  beatId: { type: 'string', description: 'The ID of the beat.' },
-                  assetType: { type: 'string', enum: ['photo', 'video'] },
-                  pexelsId: { type: 'number', description: 'Pexels asset ID.' },
-                  variantUrl: {
-                    type: 'string',
-                    description: 'The direct download URL from the search result variants.'
-                  },
-                  reason: {
-                    type: 'string',
-                    description: 'Brief explanation of why this asset is selected.'
-                  }
-                },
-                required: ['beatId', 'assetType', 'pexelsId', 'variantUrl', 'reason']
-              }
-            },
-            rejections: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  beatId: { type: 'string', description: 'The ID of the beat.' },
-                  assetType: { type: 'string', enum: ['photo', 'video'] },
-                  pexelsId: { type: 'number' },
-                  reason: {
-                    type: 'string',
-                    description: 'Brief explanation of why this asset was rejected.'
-                  }
-                },
-                required: ['beatId', 'assetType', 'pexelsId', 'reason']
-              }
-            }
-          },
-          required: ['selections']
-        }
-      },
-      {
-        name: 'download_selected_assets',
-        description: 'Queue previously selected assets to be downloaded.',
-        parameters: {
-          type: 'object',
-          properties: {
-            assetIds: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  assetType: { type: 'string', enum: ['photo', 'video'] },
-                  pexelsId: { type: 'number' }
-                },
-                required: ['assetType', 'pexelsId']
-              }
-            }
-          },
-          required: ['assetIds']
-        }
-      }
-    ]
+    const tools = AGENT_TOOLS
 
     if (this.messages.length === 0) {
       this.messages = [
@@ -1058,11 +915,9 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
         'info',
         `Agent turn ${iteration}/${this.maxIterations}: Consulting StockScout AI (${this.providerId} / ${this.modelId})...`
       )
-      const completedBeatsCount = this.beats.filter((b) => b.status === 'completed').length
-      const loopProgressVal = Math.round(30 + (completedBeatsCount / this.beats.length) * 60)
       this.updateProgress(
         `StockScout AI is thinking... (Turn ${iteration}/${this.maxIterations})`,
-        loopProgressVal
+        this.loopProgress()
       )
 
       const turnResult = await this.executeWithTimeout(this.requestTimeoutSeconds, (signal) =>
@@ -1179,6 +1034,13 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     return this.beats.flatMap((b) => b.assets || []).filter((a) => a.status !== 'failed').length
   }
 
+  // ponytail: O(n) scan; fine until jobs have hundreds of beats
+  private loopProgress(): number {
+    if (this.beats.length === 0) return Math.max(this.progress, 30)
+    const completed = this.beats.filter((b) => b.status === 'completed').length
+    return Math.round(30 + (completed / this.beats.length) * 60)
+  }
+
   private canUseAssetType(assetType: 'photo' | 'video'): boolean {
     if (this.input.mix === 'photos only') return assetType === 'photo'
     if (this.input.mix === 'videos only') return assetType === 'video'
@@ -1217,9 +1079,17 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
     let result: unknown = {}
 
     try {
-      const args = JSON.parse(tc.arguments)
+      let rawArgs: unknown
+      try {
+        rawArgs = JSON.parse(tc.arguments)
+      } catch (parseErr) {
+        throw new Error(
+          `Invalid tool arguments JSON: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`
+        )
+      }
 
       if (tc.name === 'search_pexels_photos') {
+        const args = SearchPexelsPhotosArgsSchema.parse(rawArgs)
         this.logPexelsQuotaIfNeeded()
         if (!this.canUseAssetType('photo')) {
           throw new Error(`Photo search is disabled because asset mix is "${this.input.mix}".`)
@@ -1233,21 +1103,22 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           }
         }
         this.log('info', `[${args.beatId}] Querying Pexels Photos API for "${args.query}"...`)
-        const completedBeatsCount = this.beats.filter((b) => b.status === 'completed').length
-        const loopProgressVal = Math.round(30 + (completedBeatsCount / this.beats.length) * 60)
         this.updateProgress(
           `Searching photos for "${args.query}" (${args.beatId.replace('_', ' ')})`,
-          loopProgressVal
+          this.loopProgress()
         )
 
-        const searchRes = await PexelsClient.searchPhotos({
-          query: args.query,
-          orientation: args.orientation,
-          size: args.size,
-          color: args.color,
-          page: args.page,
-          per_page: args.perPage || 15
-        })
+        const searchRes = await PexelsClient.searchPhotos(
+          {
+            query: args.query,
+            orientation: args.orientation,
+            size: args.size,
+            color: args.color,
+            page: args.page,
+            per_page: args.perPage
+          },
+          this.abortController?.signal
+        )
 
         // Cache candidates for safety checks
         for (const p of searchRes.photos) {
@@ -1291,6 +1162,7 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           }))
         }
       } else if (tc.name === 'search_pexels_videos') {
+        const args = SearchPexelsVideosArgsSchema.parse(rawArgs)
         this.logPexelsQuotaIfNeeded()
         if (!this.canUseAssetType('video')) {
           throw new Error(`Video search is disabled because asset mix is "${this.input.mix}".`)
@@ -1304,20 +1176,21 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           }
         }
         this.log('info', `[${args.beatId}] Querying Pexels Videos API for "${args.query}"...`)
-        const completedBeatsCount = this.beats.filter((b) => b.status === 'completed').length
-        const loopProgressVal = Math.round(30 + (completedBeatsCount / this.beats.length) * 60)
         this.updateProgress(
           `Searching videos for "${args.query}" (${args.beatId.replace('_', ' ')})`,
-          loopProgressVal
+          this.loopProgress()
         )
 
-        const searchRes = await PexelsClient.searchVideos({
-          query: args.query,
-          orientation: args.orientation,
-          size: args.size,
-          page: args.page,
-          per_page: args.perPage || 10
-        })
+        const searchRes = await PexelsClient.searchVideos(
+          {
+            query: args.query,
+            orientation: args.orientation,
+            size: args.size,
+            page: args.page,
+            per_page: args.perPage
+          },
+          this.abortController?.signal
+        )
 
         // Cache candidates for safety checks
         for (const v of searchRes.videos) {
@@ -1363,19 +1236,18 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           }))
         }
       } else if (tc.name === 'select_assets_for_download') {
-        const selections = args.selections || []
-        const rejections = args.rejections || []
+        const args = SelectAssetsForDownloadArgsSchema.parse(rawArgs)
+        const selections = args.selections
+        const rejections = args.rejections
 
         const selectionResults: unknown[] = []
         const rejectionResults: unknown[] = []
 
         const firstBeatId = selections[0]?.beatId || rejections[0]?.beatId || ''
         this.log('info', `Selecting/rejecting assets for ${firstBeatId.replace('_', ' ')}...`)
-        const completedBeatsCount = this.beats.filter((b) => b.status === 'completed').length
-        const loopProgressVal = Math.round(30 + (completedBeatsCount / this.beats.length) * 60)
         this.updateProgress(
           `Selecting assets for Beat ${firstBeatId.replace('_', ' ')}`,
-          loopProgressVal
+          this.loopProgress()
         )
 
         // Handle selections
@@ -1529,7 +1401,8 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           }
         }
       } else if (tc.name === 'download_selected_assets') {
-        const assetIds = args.assetIds || []
+        const args = DownloadSelectedAssetsArgsSchema.parse(rawArgs)
+        const assetIds = args.assetIds
         const downloaded: unknown[] = []
         const failed: unknown[] = []
 
@@ -1629,6 +1502,8 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           downloaded,
           failed
         }
+      } else {
+        throw new Error(`Unknown tool: ${tc.name}`)
       }
     } catch (error) {
       const errMsg =
@@ -1857,20 +1732,12 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
       this.failedCount = failed
 
       // Check if the entire job has finished all downloads!
-      const allBeatsDone =
-        this.beats.length > 0 &&
-        this.beats.every(
-          (b) =>
-            b.status === 'completed' &&
-            (b.assets || []).length > 0 &&
-            b.assets.every((a) => a.status === 'completed')
-        )
       const hasInFlightDownloads = this.downloader
         ?.getTasks()
         .some((t) => t.status === 'pending' || t.status === 'downloading')
 
       if (
-        allBeatsDone &&
+        areAllBeatsDownloaded(this.beats) &&
         !hasInFlightDownloads &&
         this.status !== 'cancelled' &&
         this.status !== 'paused'

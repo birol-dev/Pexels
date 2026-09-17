@@ -104,7 +104,8 @@ export class PexelsClient {
   }
 
   public static async searchPhotos(
-    input: PexelsPhotoSearchInput
+    input: PexelsPhotoSearchInput,
+    abortSignal?: AbortSignal
   ): Promise<PexelsPhotoSearchResult> {
     const cacheKey = PexelsSearchCache.buildKey(
       'photo',
@@ -124,7 +125,11 @@ export class PexelsClient {
     if (input.page) url.searchParams.append('page', String(input.page))
     if (input.per_page) url.searchParams.append('per_page', String(input.per_page))
 
-    const response = await this.fetchPexels(url.toString(), { headers }, 'Pexels photo search')
+    const response = await this.fetchPexels(
+      url.toString(),
+      { headers, signal: abortSignal },
+      'Pexels photo search'
+    )
     const data = await response.json()
     const parsed = PexelsPhotoSearchResultSchema.parse(data)
     PexelsSearchCache.set(cacheKey, parsed)
@@ -132,7 +137,8 @@ export class PexelsClient {
   }
 
   public static async searchVideos(
-    input: PexelsVideoSearchInput
+    input: PexelsVideoSearchInput,
+    abortSignal?: AbortSignal
   ): Promise<PexelsVideoSearchResult> {
     const cacheKey = PexelsSearchCache.buildKey(
       'video',
@@ -151,7 +157,11 @@ export class PexelsClient {
     if (input.page) url.searchParams.append('page', String(input.page))
     if (input.per_page) url.searchParams.append('per_page', String(input.per_page))
 
-    const response = await this.fetchPexels(url.toString(), { headers }, 'Pexels video search')
+    const response = await this.fetchPexels(
+      url.toString(),
+      { headers, signal: abortSignal },
+      'Pexels video search'
+    )
     const data = await response.json()
     const parsed = PexelsVideoSearchResultSchema.parse(data)
     PexelsSearchCache.set(cacheKey, parsed)

@@ -1,6 +1,7 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { randomInt } from 'crypto'
 import { AgentRunner, StartJobInput, JobSnapshot } from '../services/agent/agent-runner'
+import { areAllBeatsDownloaded } from '../services/agent/tool-schemas'
 import { ProjectStore, JobSummary } from '../services/storage/project-store'
 import { SettingsStore } from '../services/storage/settings-store'
 import { SecureSecrets } from '../services/storage/secure-secrets'
@@ -320,16 +321,12 @@ export function registerJobsHandlers(): void {
       const failedCount = beatAssets.filter((a) => a.status === 'failed').length
 
       const beats = (manifest.beats || []) as JobSnapshot['beats']
-      const allBeatsCompleted =
-        beats.length > 0 &&
-        beats.every(
-          (b) =>
-            b.status === 'completed' &&
-            (b.assets || []).length > 0 &&
-            b.assets.every((a) => a.status === 'completed')
-        )
       let effectiveStatus = summary.status
-      if (allBeatsCompleted && summary.status !== 'completed' && summary.status !== 'cancelled') {
+      if (
+        areAllBeatsDownloaded(beats) &&
+        summary.status !== 'completed' &&
+        summary.status !== 'cancelled'
+      ) {
         effectiveStatus = 'completed'
         summary.status = 'completed'
         summary.assetCount = downloadedCount
@@ -377,15 +374,7 @@ export function registerJobsHandlers(): void {
           const data = await fs.readFile(manifestPath, 'utf-8')
           const manifest = JSON.parse(data)
           const beats = (manifest.beats || []) as JobSnapshot['beats']
-          const allBeatsDone =
-            beats.length > 0 &&
-            beats.every(
-              (b) =>
-                b.status === 'completed' &&
-                (b.assets || []).length > 0 &&
-                b.assets.every((a) => a.status === 'completed')
-            )
-          if (allBeatsDone) {
+          if (areAllBeatsDownloaded(beats)) {
             let completedCount = 0
             for (const b of beats) {
               if (b.assets) {

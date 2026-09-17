@@ -29,7 +29,6 @@ export interface ManifestData {
   failures: unknown[]
   messages?: unknown[]
   pexelsCandidates?: Array<[string, unknown]>
-  sourceDocsCheckedAt?: string
   attribution?: PexelsManifestAttribution
   pexelsQuotaSnapshot?: {
     limit: number
@@ -77,8 +76,7 @@ export class ManifestWriter {
     await fs.mkdir(projectDir, { recursive: true })
     await Promise.all([
       fs.mkdir(join(projectDir, 'photos'), { recursive: true }),
-      fs.mkdir(join(projectDir, 'videos'), { recursive: true }),
-      fs.mkdir(join(projectDir, 'thumbnails'), { recursive: true })
+      fs.mkdir(join(projectDir, 'videos'), { recursive: true })
     ])
   }
 
