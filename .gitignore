@@ -41,9 +41,10 @@ $RECYCLE.BIN/
 *.swo
 *~
 
-# Cursor agent skills (local installs — not part of the app)
-.agents/
-skills-lock.json
+# Agent local junk — keep project skills + skills-lock.json tracked
+.agents/*
+!.agents/skills/
+!.agents/skills/**
 
 # Design scratch / mockup exports
 stitch_stockfinder_ai/
