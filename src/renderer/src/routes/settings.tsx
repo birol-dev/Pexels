@@ -254,8 +254,8 @@ export default function SettingsView(): React.JSX.Element {
   const handleProviderChange = (prov: 'openai' | 'gemini' | 'openrouter'): void => {
     const defaults = {
       openai: 'gpt-4o',
-      gemini: 'gemini-1.5-pro-latest',
-      openrouter: 'anthropic/claude-3-opus'
+      gemini: 'gemini-3.8-flash',
+      openrouter: 'google/gemini-2.5-flash'
     }
     const modelId = defaults[prov]
     patchLocal({ llmProvider: prov, modelId })

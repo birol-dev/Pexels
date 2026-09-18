@@ -2,6 +2,7 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { randomInt } from 'crypto'
 import { AgentRunner, StartJobInput, JobSnapshot } from '../services/agent/agent-runner'
 import { areAllBeatsDownloaded } from '../services/agent/tool-schemas'
+import { resolveSearchModeFromSnapshot } from '../services/agent/search-mode'
 import { ProjectStore, JobSummary } from '../services/storage/project-store'
 import { SettingsStore } from '../services/storage/settings-store'
 import { SecureSecrets } from '../services/storage/secure-secrets'
@@ -28,7 +29,8 @@ const StartJobInputSchema = z
     style: z.string().min(1),
     mix: z.enum(['videos only', 'photos only', 'videos + photos']),
     maxAssetsPerBeat: z.number().min(1).max(10),
-    maxTotalDownloads: z.number().min(1).max(100)
+    maxTotalDownloads: z.number().min(1).max(100),
+    searchMode: z.enum(['focused', 'broad']).optional().default('focused')
   })
   .refine(
     (data) => {
@@ -72,6 +74,7 @@ const ManifestSettingsSnapshotSchema = z.object({
   assetMix: z.string().optional(),
   maxAssetsPerBeat: z.number().int().min(1).max(10).optional(),
   maxTotalDownloads: z.number().int().min(1).max(100).optional(),
+  searchMode: z.enum(['focused', 'broad']).optional(),
   inputMode: z.enum(['script', 'idea']).optional(),
   targetDuration: z.string().optional(),
   tone: z.string().optional()
@@ -94,7 +97,8 @@ async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInp
     style: 'cinematic',
     mix: 'videos + photos',
     maxAssetsPerBeat: 3,
-    maxTotalDownloads: 15
+    maxTotalDownloads: 15,
+    searchMode: 'focused'
   }
 
   try {
@@ -130,7 +134,8 @@ async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInp
         style: snap.visualStyle || 'cinematic',
         mix: mapAssetMixBack(snap.assetMix),
         maxAssetsPerBeat: snap.maxAssetsPerBeat || 3,
-        maxTotalDownloads: snap.maxTotalDownloads || 15
+        maxTotalDownloads: snap.maxTotalDownloads || 15,
+        searchMode: resolveSearchModeFromSnapshot(snap.searchMode)
       }
     }
   } catch (err) {

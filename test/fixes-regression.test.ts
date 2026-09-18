@@ -11,7 +11,6 @@ import {
   hasPendingUnqueuedAssets,
   areBeatsSatisfiedForLoop
 } from '../src/main/services/agent/tool-schemas.ts'
-// decideRunFinalize imported below with areAllBeatsDownloaded
 import { isAllowedExternalUrl } from '../src/main/services/files/external-url.ts'
 
 describe('Fixes & Security Hardening Regression Suite', () => {
@@ -265,6 +264,7 @@ describe('Fixes & Security Hardening Regression Suite', () => {
       assetMix: z.string().optional(),
       maxAssetsPerBeat: z.number().int().min(1).max(10).optional(),
       maxTotalDownloads: z.number().int().min(1).max(100).optional(),
+      searchMode: z.enum(['focused', 'broad']).optional(),
       inputMode: z.enum(['script', 'idea']).optional(),
       targetDuration: z.string().optional(),
       tone: z.string().optional()

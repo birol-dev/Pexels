@@ -117,8 +117,8 @@ export default function OnboardingView(): React.JSX.Element {
     setLlmProvider(prov)
     const defaults = {
       openai: 'gpt-4o',
-      gemini: 'gemini-1.5-pro-latest',
-      openrouter: 'anthropic/claude-3-opus'
+      gemini: 'gemini-3.8-flash',
+      openrouter: 'google/gemini-2.5-flash'
     }
     setModelId(defaults[prov])
     setLlmTestResult(null)

@@ -254,7 +254,7 @@ export function decideRunFinalize(input: {
       status: 'failed',
       reason: 'zero_downloads',
       progressLabel: 'Failed — 0 assets downloaded',
-      logMessage: `Agent finished without downloading any assets for ${input.beats.length} visual beats. Try using a model with robust tool calling support (such as gpt-4o, claude-3.7-sonnet, or gemini-2.5-flash).`,
+      logMessage: `Agent finished without downloading any assets for ${input.beats.length} visual beats. Try using a model with robust tool calling support (such as gpt-4o, claude-3.7-sonnet, gemini-3.8-flash, or gemini-2.5-flash).`,
       logType: 'error'
     }
   }

@@ -9,6 +9,10 @@ import {
 } from '../src/main/services/pexels/pexels-attribution.ts'
 import { PexelsSearchCache } from '../src/main/services/pexels/pexels-search-cache.ts'
 import {
+  PEXELS_VIDEO_SEARCH_URL,
+  pexelsVideoByIdUrl
+} from '../src/main/services/pexels/pexels-api-urls.ts'
+import {
   PexelsPhotoSearchResultSchema,
   PexelsVideoSearchResultSchema
 } from '../src/main/services/pexels/pexels-types.ts'
@@ -287,5 +291,20 @@ describe('Pexels Zod Schemas', () => {
       parsed.videos[0].video_files[0].link,
       'https://videos.pexels.com/video-files/99999/stream.mp4'
     )
+  })
+})
+
+describe('Pexels video API base paths', () => {
+  it('uses /v1/videos/search (legacy /videos/search is deprecated)', () => {
+    assert.equal(PEXELS_VIDEO_SEARCH_URL, 'https://api.pexels.com/v1/videos/search')
+    assert.equal(
+      PEXELS_VIDEO_SEARCH_URL.includes('/videos/search') &&
+        !PEXELS_VIDEO_SEARCH_URL.includes('/v1/videos/search'),
+      false
+    )
+  })
+
+  it('uses /v1/videos/videos/:id for get-by-id', () => {
+    assert.equal(pexelsVideoByIdUrl(12345), 'https://api.pexels.com/v1/videos/videos/12345')
   })
 })

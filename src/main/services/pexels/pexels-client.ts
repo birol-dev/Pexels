@@ -15,6 +15,7 @@ import {
 } from './pexels-types'
 import { PexelsQuotaSnapshot, PexelsRateLimitTracker } from './pexels-rate-limit'
 import { PexelsSearchCache } from './pexels-search-cache'
+import { PEXELS_VIDEO_SEARCH_URL, pexelsVideoByIdUrl } from './pexels-api-urls'
 
 const pexelsCircuit = new ApiCircuitBreaker(5, 60_000)
 
@@ -151,7 +152,7 @@ export class PexelsClient {
     if (cached) return cached
 
     const headers = await this.getHeaders()
-    const url = new URL('https://api.pexels.com/videos/search')
+    const url = new URL(PEXELS_VIDEO_SEARCH_URL)
 
     url.searchParams.append('query', input.query)
     if (input.orientation) url.searchParams.append('orientation', input.orientation)
@@ -184,11 +185,7 @@ export class PexelsClient {
 
   public static async getVideo(id: number): Promise<PexelsVideo> {
     const headers = await this.getHeaders()
-    const response = await this.fetchPexels(
-      `https://api.pexels.com/videos/videos/${id}`,
-      { headers },
-      'Pexels get video'
-    )
+    const response = await this.fetchPexels(pexelsVideoByIdUrl(id), { headers }, 'Pexels get video')
     const data = await response.json()
     return PexelsVideoSchema.parse(data)
   }
