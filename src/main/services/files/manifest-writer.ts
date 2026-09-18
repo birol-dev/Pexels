@@ -20,6 +20,7 @@ export interface ManifestData {
     assetMix: 'videos_only' | 'photos_only' | 'videos_and_photos'
     maxAssetsPerBeat: number
     maxTotalDownloads: number
+    searchMode?: 'focused' | 'broad'
     inputMode?: 'script' | 'idea'
     targetDuration?: string
     tone?: string

@@ -124,6 +124,7 @@ export interface InputFormState {
   mix: 'videos only' | 'photos only' | 'videos + photos'
   maxAssetsPerBeat: number
   maxTotalDownloads: number
+  searchMode: 'focused' | 'broad'
 }
 
 interface AppStore {
@@ -178,6 +179,7 @@ interface AppStore {
     mix: 'videos only' | 'photos only' | 'videos + photos'
     maxAssetsPerBeat: number
     maxTotalDownloads: number
+    searchMode?: 'focused' | 'broad'
   }) => Promise<string>
   pauseJob: (id: string) => Promise<void>
   resumeJob: (id: string) => Promise<void>
@@ -212,7 +214,8 @@ const DEFAULT_INPUT_TAB_STATE: InputFormState = {
   customStyleText: '',
   mix: 'videos + photos',
   maxAssetsPerBeat: 3,
-  maxTotalDownloads: 15
+  maxTotalDownloads: 15,
+  searchMode: 'focused'
 }
 
 let eventUnsubscribe: (() => void) | null = null

@@ -27,6 +27,12 @@ import {
   getUnfulfilledBeats,
   hasPendingUnqueuedAssets
 } from './tool-schemas.ts'
+import {
+  DEFAULT_SEARCH_MODE,
+  buildBroadSearchNudgeMessage,
+  buildStockScoutSystemPrompt,
+  type SearchMode
+} from './search-mode.ts'
 
 export interface VisualBeat {
   id: string
@@ -103,6 +109,7 @@ export interface StartJobInput {
   mix: 'videos only' | 'photos only' | 'videos + photos'
   maxAssetsPerBeat: number
   maxTotalDownloads: number
+  searchMode?: SearchMode
 }
 
 export class AgentRunner extends EventEmitter {
@@ -634,6 +641,7 @@ export class AgentRunner extends EventEmitter {
         assetMix: mapAssetMix(this.input.mix),
         maxAssetsPerBeat: this.input.maxAssetsPerBeat,
         maxTotalDownloads: this.input.maxTotalDownloads,
+        searchMode: this.input.searchMode || DEFAULT_SEARCH_MODE,
         inputMode: this.input.inputMode,
         targetDuration: this.input.targetDuration,
         tone: this.input.tone
@@ -787,67 +795,23 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
     }
     const provider = LlmProviderFactory.getProvider(this.providerId)
 
-    const systemPrompt = `You are StockScout, a careful stock-media research agent for YouTube creators.
-Your job is to transform a user's video script into practical Pexels stock photo and stock video searches, select useful assets for each visual beat, and download them.
-
-You must follow these rules:
-1. Work only on the provided script and user settings.
-2. Prefer concrete visual searches over abstract concepts.
-3. Search for visible subjects, actions, locations, moods, and objects.
-4. Do not search for copyrighted characters, logos, living public figures, or exact private people unless the user script explicitly requires a generic editorial-like concept.
-5. Avoid explicit sexual, hateful, or graphic queries.
-6. Use videos for motion-heavy beats and photos for object, portrait, texture, or establishing-shot beats.
-7. Keep queries short, natural, and Pexels-friendly.
-8. Use multiple query angles when the first query is too narrow.
-9. Never claim an asset was downloaded unless the tool result confirms it.
-10. If results are weak, explain why and try a broader query.
-11. Respect the user's max assets and preferred asset mix.
-12. Return final answers as structured summaries. Do not invent local file paths.
-
-When selecting assets, prioritize:
-- relevance to the script beat
-- clear subject visibility
-- high resolution
-- landscape orientation for YouTube unless the target platform is vertical (Shorts/TikTok/Instagram Reels require vertical)
-- realistic, non-stocky feel when possible
-- variety across beats
-
-When rejecting assets, give a short reason:
-- off topic
-- poor composition
-- wrong orientation
-- duplicate idea
-- low resolution
-- too literal
-- too abstract
-
-Script configuration:
-- Platform: ${this.input.platform}
-- Visual Style: ${this.input.style}
-- Asset Mix: ${this.input.mix} (Only call search tools matching this mix. If 'videos only', only search/select videos. If 'photos only', only photos. If 'videos + photos', both are fine.)
-- Max assets per beat: ${this.input.maxAssetsPerBeat}
-- Max total downloads allowed: ${this.input.maxTotalDownloads}
-- Safety controls: ${this.safetySettings.skipExplicit ? 'Skip explicit/adult keywords.' : 'No strict content filtering.'} ${this.safetySettings.avoidPeople ? 'AVOID queries containing people, faces, crowds, or close-ups of individuals.' : ''}
-Here is the parsed list of visual beats:
-${JSON.stringify(
-  this.beats.map((b) => ({
-    id: b.id,
-    visualPrompt: b.visualPrompt,
-    status: b.status,
-    assets: b.assets.map((a) => ({ id: a.id, type: a.type, status: a.status }))
-  })),
-  null,
-  2
-)}
-
-Your workflow:
-1. For each beat, call Pexels search tools ('search_pexels_photos' or 'search_pexels_videos') to look for matching items. Use simple keyword queries matching the beat's visualPrompt.
-2. Review search results and call 'select_assets_for_download' to select the best assets (up to ${this.input.maxAssetsPerBeat} per beat, total cap ${this.input.maxTotalDownloads}) and reject others.
-3. Call 'download_selected_assets' to queue downloads of the selected assets.
-4. When all beats have sufficient assets downloaded or queued, stop calling tools and provide a final summary.
-
-Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_download, download_selected_assets.
-`
+    const searchMode: SearchMode = this.input.searchMode || DEFAULT_SEARCH_MODE
+    const systemPrompt = buildStockScoutSystemPrompt({
+      searchMode,
+      platform: this.input.platform,
+      style: this.input.style,
+      mix: this.input.mix,
+      maxAssetsPerBeat: this.input.maxAssetsPerBeat,
+      maxTotalDownloads: this.input.maxTotalDownloads,
+      skipExplicit: this.safetySettings.skipExplicit,
+      avoidPeople: this.safetySettings.avoidPeople,
+      beats: this.beats.map((b) => ({
+        id: b.id,
+        visualPrompt: b.visualPrompt,
+        status: b.status,
+        assets: b.assets.map((a) => ({ id: a.id, type: a.type, status: a.status }))
+      }))
+    })
 
     const tools = AGENT_TOOLS
 
@@ -970,14 +934,23 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
             'info',
             `Model responded with text without calling search tools (${emptyToolTurnCount}/${maxEmptyToolNudges}). Nudging agent to search for pending beats...`
           )
-          const pendingSample = pendingBeats
-            .slice(0, 4)
-            .map((b) => `${b.id} ("${b.visualPrompt.slice(0, 50)}")`)
-            .join(', ')
-          this.messages.push({
-            role: 'user',
-            content: `You replied with text, but you did not execute any search tools. You must call search_pexels_photos or search_pexels_videos now to find stock assets for the script beats. There are still ${pendingBeats.length} beats waiting for assets (such as: ${pendingSample}). Call the search tools now.`
-          })
+          const broadNudge =
+            searchMode === 'broad' ? buildBroadSearchNudgeMessage(this.beats) : null
+          if (broadNudge) {
+            this.messages.push({
+              role: 'user',
+              content: broadNudge
+            })
+          } else {
+            const pendingSample = pendingBeats
+              .slice(0, 4)
+              .map((b) => `${b.id} ("${b.visualPrompt.slice(0, 50)}")`)
+              .join(', ')
+            this.messages.push({
+              role: 'user',
+              content: `You replied with text, but you did not execute any search tools. You must call search_pexels_photos or search_pexels_videos now to find stock assets for the script beats. There are still ${pendingBeats.length} beats waiting for assets (such as: ${pendingSample}). Call the search tools now.`
+            })
+          }
           continue
         } else {
           this.log(
@@ -1005,6 +978,42 @@ Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_d
           continue
         }
         await this.executeToolCall(tc)
+      }
+
+      // Broad mode light enforcement (no auto query rewrite): if under-searched beats remain
+      // after a turn that did not select/download, nudge a different broader query.
+      if (searchMode === 'broad' && this.status === 'running') {
+        const turnHadSelectOrDownload = effectiveToolCalls.some(
+          (tc) =>
+            tc.name === 'select_assets_for_download' || tc.name === 'download_selected_assets'
+        )
+        const searchedBeatIds = new Set(
+          effectiveToolCalls
+            .filter((tc) => tc.name === 'search_pexels_photos' || tc.name === 'search_pexels_videos')
+            .map((tc) => {
+              try {
+                return String((JSON.parse(tc.arguments) as { beatId?: string }).beatId || '')
+              } catch {
+                return ''
+              }
+            })
+            .filter(Boolean)
+        )
+        if (!turnHadSelectOrDownload) {
+          // Skip beats that were just searched this turn so the model can select from results.
+          const stuckBeats = this.beats.filter((b) => !searchedBeatIds.has(b.id))
+          const broadNudge = buildBroadSearchNudgeMessage(stuckBeats)
+          if (broadNudge) {
+            this.log(
+              'info',
+              'Broad search mode: nudging agent to try a different broader query for under-searched beats.'
+            )
+            this.messages.push({
+              role: 'user',
+              content: broadNudge
+            })
+          }
+        }
       }
     }
 

@@ -79,7 +79,8 @@ export default function ScriptInputView(): React.JSX.Element {
     customStyleText: '',
     mix: 'videos + photos' as const,
     maxAssetsPerBeat: 3,
-    maxTotalDownloads: 15
+    maxTotalDownloads: 15,
+    searchMode: 'focused' as const
   }
 
   const {
@@ -96,7 +97,8 @@ export default function ScriptInputView(): React.JSX.Element {
     customStyleText,
     mix,
     maxAssetsPerBeat,
-    maxTotalDownloads
+    maxTotalDownloads,
+    searchMode = 'focused'
   } = tabState
 
   // Setter redirects to store actions
@@ -118,6 +120,8 @@ export default function ScriptInputView(): React.JSX.Element {
     updateInputTabState(activeTabId, { maxAssetsPerBeat: val })
   const setMaxTotalDownloads = (val: number): void =>
     updateInputTabState(activeTabId, { maxTotalDownloads: val })
+  const setSearchMode = (val: 'focused' | 'broad'): void =>
+    updateInputTabState(activeTabId, { searchMode: val })
 
   // Custom Dropdown State & Ref
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -229,7 +233,8 @@ export default function ScriptInputView(): React.JSX.Element {
         style,
         mix,
         maxAssetsPerBeat,
-        maxTotalDownloads
+        maxTotalDownloads,
+        searchMode
       })
     } catch (err) {
       await alert(
@@ -834,6 +839,42 @@ export default function ScriptInputView(): React.JSX.Element {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Search Mode Segmented Control */}
+          <div className="pt-6">
+            <label className="block font-title-md text-title-md text-ink-black dark:text-paper-white mb-2 uppercase tracking-wide text-xs">
+              Search Mode
+            </label>
+            <div className="flex border-2 border-ink-black dark:border-surface-variant rounded-lg overflow-hidden bg-paper-white dark:bg-surface-container-lowest neo-brutalist-input">
+              <button
+                type="button"
+                onClick={() => setSearchMode('focused')}
+                className={`flex-1 py-3 text-center border-r-2 border-ink-black dark:border-surface-variant font-label-sm text-label-sm transition-colors cursor-pointer ${
+                  searchMode === 'focused'
+                    ? 'bg-ink-black dark:bg-surface-variant text-cyber-lime border-l-2 border-primary font-bold'
+                    : 'text-outline dark:text-steel-secondary hover:bg-surface-variant dark:hover:text-paper-white'
+                }`}
+              >
+                Focused search
+              </button>
+              <button
+                type="button"
+                onClick={() => setSearchMode('broad')}
+                className={`flex-1 py-3 text-center font-label-sm text-label-sm transition-colors cursor-pointer ${
+                  searchMode === 'broad'
+                    ? 'bg-ink-black dark:bg-surface-variant text-cyber-lime border-l-2 border-primary font-bold'
+                    : 'text-outline dark:text-steel-secondary hover:bg-surface-variant dark:hover:text-paper-white'
+                }`}
+              >
+                Broad search
+              </button>
+            </div>
+            <p className="font-label-sm text-xs text-outline dark:text-steel-secondary mt-1">
+              {searchMode === 'broad'
+                ? 'Broad search — more angles, better chance of usable stock'
+                : 'Focused search — tighter match to the beat'}
+            </p>
           </div>
 
           {/* Limits Config Row */}
