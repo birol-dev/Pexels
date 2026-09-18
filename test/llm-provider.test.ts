@@ -109,17 +109,126 @@ describe('OpenAiProvider', () => {
     const headersRecord = capturedHeaders as Record<string, string>
     assert.equal(headersRecord?.Authorization, 'Bearer sk-test-key')
     assert.equal(capturedPayload?.model, 'gpt-4o')
+    assert.equal(capturedPayload?.max_completion_tokens, 1000)
+    assert.equal(capturedPayload?.max_tokens, undefined)
     const messages = capturedPayload?.messages as Array<{ role: string }>
     assert.equal(messages?.[0]?.role, 'system')
     assert.equal(messages?.[1]?.role, 'user')
     const tools = capturedPayload?.tools as Array<{ function: { name: string } }>
     assert.equal(tools?.[0]?.function?.name, 'search_pexels_photos')
+    // Do not enable strict tool schemas (our schemas are not OpenAI-strict compliant)
+    assert.equal((tools?.[0] as { function?: { strict?: unknown } })?.function?.strict, undefined)
+    assert.equal((tools?.[0] as { strict?: unknown })?.strict, undefined)
 
     assert.equal(result.stopReason, 'tool_calls')
     assert.equal(result.toolCalls.length, 1)
     assert.equal(result.toolCalls[0].name, 'search_pexels_photos')
     assert.equal(result.toolCalls[0].arguments, '{"query":"mountains"}')
     assert.equal(result.usage?.totalTokens, 40)
+  })
+
+  it('allows content null on outbound assistant messages that have tool_calls', async () => {
+    let capturedPayload: Record<string, unknown> | null = null
+
+    globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+      capturedPayload = JSON.parse(init?.body as string) as Record<string, unknown>
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          choices: [
+            {
+              message: { content: 'done', tool_calls: undefined },
+              finish_reason: 'stop'
+            }
+          ]
+        })
+      } as Response
+    }) as typeof globalThis.fetch
+
+    await provider.createToolTurn(
+      {
+        model: 'gpt-4o',
+        systemPrompt: 'You are an assistant',
+        messages: [
+          { role: 'user', content: 'Find mountains' },
+          {
+            role: 'assistant',
+            content: null,
+            tool_calls: [
+              {
+                id: 'call_abc',
+                name: 'search_pexels_photos',
+                arguments: '{"query":"mountains"}'
+              }
+            ]
+          },
+          {
+            role: 'tool',
+            tool_call_id: 'call_abc',
+            name: 'search_pexels_photos',
+            content: '{"results":[]}'
+          }
+        ],
+        tools: sampleTools,
+        toolChoice: 'auto',
+        temperature: 0.2,
+        maxOutputTokens: 500
+      },
+      { apiKey: 'sk-test' }
+    )
+
+    const messages = capturedPayload?.messages as Array<{
+      role: string
+      content: string | null
+      tool_calls?: unknown[]
+    }>
+    const assistantMsg = messages.find((m) => m.role === 'assistant')
+    assert.ok(assistantMsg)
+    assert.equal(assistantMsg?.content, null)
+    assert.ok(assistantMsg?.tool_calls && assistantMsg.tool_calls.length > 0)
+  })
+
+  it('sets stopReason tool_calls when tool_calls present even if finish_reason is stop', async () => {
+    globalThis.fetch = (async () =>
+      ({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content: null,
+                tool_calls: [
+                  {
+                    id: 'call_xyz',
+                    type: 'function',
+                    function: { name: 'search_pexels_photos', arguments: '{"query":"x"}' }
+                  }
+                ]
+              },
+              finish_reason: 'stop'
+            }
+          ]
+        })
+      }) as Response) as typeof globalThis.fetch
+
+    const result = await provider.createToolTurn(
+      {
+        model: 'gpt-4o',
+        systemPrompt: '',
+        messages: [{ role: 'user', content: 'hi' }],
+        tools: sampleTools,
+        toolChoice: 'auto',
+        temperature: 0.1,
+        maxOutputTokens: 100
+      },
+      { apiKey: 'sk-test' }
+    )
+    assert.equal(result.stopReason, 'tool_calls')
+    assert.equal(result.toolCalls.length, 1)
   })
 })
 
@@ -164,6 +273,44 @@ describe('OpenRouterProvider', () => {
     assert.equal(headersRecord?.['HTTP-Referer'], 'https://github.com/birol-dev/Pexels')
     assert.equal(headersRecord?.['X-Title'], 'AI Stock Asset Finder')
     assert.equal(headersRecord?.Authorization, 'Bearer sk-or-v1-test')
+  })
+
+  it('uses max_tokens (not max_completion_tokens) in createToolTurn payload', async () => {
+    let capturedPayload: Record<string, unknown> | null = null
+
+    globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+      capturedPayload = JSON.parse(init?.body as string) as Record<string, unknown>
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          choices: [
+            {
+              message: { content: 'ok', tool_calls: undefined },
+              finish_reason: 'stop'
+            }
+          ]
+        })
+      } as Response
+    }) as typeof globalThis.fetch
+
+    await provider.createToolTurn(
+      {
+        model: 'google/gemini-2.5-flash',
+        systemPrompt: 'You are an assistant',
+        messages: [{ role: 'user', content: 'hi' }],
+        tools: sampleTools,
+        toolChoice: 'auto',
+        temperature: 0.2,
+        maxOutputTokens: 800
+      },
+      { apiKey: 'sk-or-v1-test' }
+    )
+
+    assert.equal(capturedPayload?.max_tokens, 800)
+    assert.equal(capturedPayload?.max_completion_tokens, undefined)
+    assert.equal(capturedPayload?.model, 'google/gemini-2.5-flash')
   })
 })
 
@@ -377,5 +524,207 @@ describe('GeminiProvider', () => {
     assert.equal(contents[1].role, 'model')
     assert.equal(contents[1].parts.length, 2)
     assert.equal(contents[1].parts[1].thought_signature, 'test_encrypted_signature_token_123')
+  })
+
+  it('prefers API functionCall.id when present', async () => {
+    globalThis.fetch = (async () =>
+      ({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      id: 'api_call_42',
+                      name: 'search_pexels_photos',
+                      args: { query: 'ocean' }
+                    }
+                  }
+                ]
+              },
+              finishReason: 'STOP'
+            }
+          ]
+        })
+      }) as Response) as typeof globalThis.fetch
+
+    const result = await provider.createToolTurn(
+      {
+        model: 'gemini-3.8-flash',
+        systemPrompt: '',
+        messages: [{ role: 'user', content: 'Find ocean photos' }],
+        tools: sampleTools,
+        toolChoice: 'auto',
+        temperature: 0.2,
+        maxOutputTokens: 500
+      },
+      { apiKey: 'AIzaSyTestKey' }
+    )
+
+    assert.equal(result.toolCalls.length, 1)
+    assert.equal(result.toolCalls[0].id, 'api_call_42')
+    assert.equal(result.toolCalls[0].name, 'search_pexels_photos')
+  })
+
+  it('excludes thought-only parts from assistantMessage.content', async () => {
+    globalThis.fetch = (async () =>
+      ({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  { text: 'Internal reasoning about the query', thought: true },
+                  { text: 'Here is a good ocean shot' },
+                  {
+                    functionCall: {
+                      name: 'search_pexels_photos',
+                      args: { query: 'ocean' }
+                    }
+                  }
+                ]
+              },
+              finishReason: 'STOP'
+            }
+          ]
+        })
+      }) as Response) as typeof globalThis.fetch
+
+    const result = await provider.createToolTurn(
+      {
+        model: 'gemini-3.8-flash',
+        systemPrompt: '',
+        messages: [{ role: 'user', content: 'Find ocean photos' }],
+        tools: sampleTools,
+        toolChoice: 'auto',
+        temperature: 0.2,
+        maxOutputTokens: 500
+      },
+      { apiKey: 'AIzaSyTestKey' }
+    )
+
+    assert.equal(result.assistantMessage.content, 'Here is a good ocean shot')
+    assert.ok(!result.assistantMessage.content?.includes('Internal reasoning'))
+    assert.equal(result.assistantMessage.rawParts?.length, 3)
+  })
+
+  it('includes functionResponse.id matching tool_call_id on follow-up', async () => {
+    let capturedPayload: Record<string, unknown> | null = null
+
+    globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+      capturedPayload = JSON.parse(init?.body as string) as Record<string, unknown>
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Done' }] },
+              finishReason: 'STOP'
+            }
+          ]
+        })
+      } as Response
+    }) as typeof globalThis.fetch
+
+    await provider.createToolTurn(
+      {
+        model: 'gemini-3.8-flash',
+        systemPrompt: 'You are StockScout',
+        messages: [
+          { role: 'user', content: 'Find stock clips' },
+          {
+            role: 'assistant',
+            content: null,
+            tool_calls: [
+              {
+                id: 'api_call_99',
+                name: 'search_pexels_photos',
+                arguments: '{"query":"forest"}'
+              }
+            ]
+          },
+          {
+            role: 'tool',
+            name: 'search_pexels_photos',
+            tool_call_id: 'api_call_99',
+            content: JSON.stringify({ results: [] })
+          }
+        ],
+        tools: sampleTools,
+        toolChoice: 'auto',
+        temperature: 0.3,
+        maxOutputTokens: 1000
+      },
+      { apiKey: 'AIzaSyTestKey' }
+    )
+
+    const contents = capturedPayload?.contents as Array<{
+      role: string
+      parts: Array<{ functionResponse?: { name: string; id?: string; response: unknown } }>
+    }>
+    const toolContent = contents.find((c) =>
+      c.parts.some((p) => p.functionResponse?.name === 'search_pexels_photos')
+    )
+    assert.ok(toolContent)
+    const fr = toolContent?.parts.find((p) => p.functionResponse)?.functionResponse
+    assert.equal(fr?.id, 'api_call_99')
+  })
+
+  it('strips $schema from tool parameters', async () => {
+    let capturedPayload: Record<string, unknown> | null = null
+
+    globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+      capturedPayload = JSON.parse(init?.body as string) as Record<string, unknown>
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: 'ok' }] }, finishReason: 'STOP' }]
+        })
+      } as Response
+    }) as typeof globalThis.fetch
+
+    const toolsWithSchema: NormalizedToolDefinition[] = [
+      {
+        name: 'search_pexels_photos',
+        description: 'Search',
+        parameters: {
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+          // @ts-expect-error intentional unsupported field for strip test
+          $schema: 'http://json-schema.org/draft-07/schema#'
+        }
+      }
+    ]
+
+    await provider.createToolTurn(
+      {
+        model: 'gemini-3.8-flash',
+        systemPrompt: '',
+        messages: [{ role: 'user', content: 'hi' }],
+        tools: toolsWithSchema,
+        toolChoice: 'auto',
+        temperature: 0.1,
+        maxOutputTokens: 50
+      },
+      { apiKey: 'AIzaSyTestKey' }
+    )
+
+    const tools = capturedPayload?.tools as Array<{
+      functionDeclarations: Array<{ parameters: Record<string, unknown> }>
+    }>
+    assert.equal(tools?.[0]?.functionDeclarations?.[0]?.parameters?.$schema, undefined)
+    assert.equal(tools?.[0]?.functionDeclarations?.[0]?.parameters?.type, 'OBJECT')
   })
 })

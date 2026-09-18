@@ -93,7 +93,7 @@ function toOpenAiTools(tools: NormalizedToolDefinition[]): OpenAiToolFunction[] 
 
 interface OpenAiMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
-  content: string
+  content: string | null
   name?: string
   tool_call_id?: string
   tool_calls?: Array<{
@@ -118,8 +118,13 @@ function toOpenAiMessages(messages: AgentMessage[], systemPrompt?: string): Open
     } else if (msg.role === 'user') {
       result.push({ role: 'user', content: msg.content || '' })
     } else if (msg.role === 'assistant') {
-      const openAiMsg: OpenAiMessage = { role: 'assistant', content: msg.content || '' }
-      if (msg.tool_calls && msg.tool_calls.length > 0) {
+      const hasToolCalls = Boolean(msg.tool_calls && msg.tool_calls.length > 0)
+      // OpenAI allows content: null when the assistant message has tool_calls
+      const openAiMsg: OpenAiMessage = {
+        role: 'assistant',
+        content: hasToolCalls ? msg.content : msg.content || ''
+      }
+      if (hasToolCalls && msg.tool_calls) {
         openAiMsg.tool_calls = msg.tool_calls.map((tc) => ({
           id: tc.id,
           type: 'function',
@@ -150,6 +155,8 @@ async function createOpenAiCompatibleToolTurn(
     url: string
     defaultModel: string
     label: string
+    /** OpenAI prefers max_completion_tokens; OpenRouter keeps max_tokens for broader model compatibility. */
+    maxTokensField: 'max_completion_tokens' | 'max_tokens'
     extraHeaders?: Record<string, string>
     rejectErrorField?: boolean
   }
@@ -169,7 +176,7 @@ async function createOpenAiCompatibleToolTurn(
     model: input.model?.trim() || options.defaultModel,
     messages: toOpenAiMessages(input.messages, input.systemPrompt),
     temperature: input.temperature,
-    max_tokens: input.maxOutputTokens
+    [options.maxTokensField]: input.maxOutputTokens
   }
 
   if (input.tools.length > 0) {
@@ -249,7 +256,7 @@ async function createOpenAiCompatibleToolTurn(
   }
 
   let stopReason: LlmToolTurnResult['stopReason'] = 'final'
-  if (choice.finish_reason === 'tool_calls') stopReason = 'tool_calls'
+  if (toolCalls.length > 0 || choice.finish_reason === 'tool_calls') stopReason = 'tool_calls'
   else if (choice.finish_reason === 'length') stopReason = 'length'
 
   return {
@@ -313,7 +320,8 @@ class OpenAiProvider implements LlmProvider {
       providerName: 'OpenAI',
       url: 'https://api.openai.com/v1/chat/completions',
       defaultModel: 'gpt-4o',
-      label: 'OpenAI chat completions'
+      label: 'OpenAI chat completions',
+      maxTokensField: 'max_completion_tokens'
     })
   }
 
@@ -338,8 +346,9 @@ class OpenRouterProvider implements LlmProvider {
     return createOpenAiCompatibleToolTurn(input, credentials, {
       providerName: 'OpenRouter',
       url: 'https://openrouter.ai/api/v1/chat/completions',
-      defaultModel: 'openai/gpt-4o-mini',
+      defaultModel: 'google/gemini-2.5-flash',
       label: 'OpenRouter chat completions',
+      maxTokensField: 'max_tokens',
       extraHeaders: {
         'HTTP-Referer': 'https://github.com/birol-dev/Pexels',
         'X-Title': 'AI Stock Asset Finder'
@@ -367,6 +376,7 @@ interface GeminiFunctionCallPart {
   functionCall: {
     name: string
     args: Record<string, unknown>
+    id?: string
   }
 }
 
@@ -374,6 +384,7 @@ interface GeminiFunctionResponsePart {
   functionResponse: {
     name: string
     response: Record<string, unknown>
+    id?: string
   }
 }
 
@@ -392,7 +403,7 @@ function normalizeGeminiSchema(schema: unknown): unknown {
   }
   const result = (Array.isArray(schema) ? [] : {}) as Record<string, unknown>
   for (const [key, value] of Object.entries(schema)) {
-    if (key === 'additionalProperties') {
+    if (key === 'additionalProperties' || key === '$schema') {
       continue // Unsupported by Gemini FunctionDeclaration schema
     } else if (key === 'type' && typeof value === 'string') {
       result[key] = value.toUpperCase()
@@ -459,12 +470,14 @@ class GeminiProvider implements LlmProvider {
           parsedResponse = { response: msg.content || '' }
         }
 
-        parts.push({
-          functionResponse: {
-            name: msg.name || 'unknown_tool',
-            response: parsedResponse
-          }
-        })
+        const functionResponse: GeminiFunctionResponsePart['functionResponse'] = {
+          name: msg.name || 'unknown_tool',
+          response: parsedResponse
+        }
+        if (msg.tool_call_id) {
+          functionResponse.id = msg.tool_call_id
+        }
+        parts.push({ functionResponse })
       }
 
       if (parts.length === 0) continue
@@ -495,7 +508,7 @@ class GeminiProvider implements LlmProvider {
     if (!trimmedKey) {
       throw new Error('Gemini API key is missing.')
     }
-    const rawModel = (input.model || 'gemini-2.5-flash').trim()
+    const rawModel = (input.model || 'gemini-3.8-flash').trim()
     const cleanModel = rawModel.startsWith('models/') ? rawModel : `models/${rawModel}`
     const url = `https://generativelanguage.googleapis.com/v1beta/${cleanModel}:generateContent`
     const headers = {
@@ -562,7 +575,9 @@ class GeminiProvider implements LlmProvider {
           functionCall?: {
             name: string
             args?: Record<string, unknown>
+            id?: string
           }
+          thought?: boolean
         }>
       }
       finishReason?: string
@@ -595,18 +610,23 @@ class GeminiProvider implements LlmProvider {
 
     const contentParts = candidate.content?.parts || []
 
-    // Aggregate text parts
+    // Aggregate display text — skip thought summaries (thought: true)
     const textParts = contentParts.filter(
-      (p): p is GeminiTextPart => 'text' in p && typeof p.text === 'string'
+      (p): p is GeminiTextPart =>
+        'text' in p &&
+        typeof (p as { text?: unknown }).text === 'string' &&
+        !(p as { thought?: boolean }).thought
     )
     const contentText = textParts.length > 0 ? textParts.map((p) => p.text).join('\n') : null
 
-    // Find function calls
+    // Find function calls — prefer API-provided functionCall.id when present
     const functionCalls = contentParts.filter(
       (p) => 'functionCall' in p && p.functionCall
-    ) as GeminiFunctionCallPart[]
+    ) as Array<{
+      functionCall: { name: string; args?: Record<string, unknown>; id?: string }
+    }>
     const toolCalls: NormalizedToolCall[] = functionCalls.map((fc, index: number) => ({
-      id: `gemini_call_${Date.now()}_${index}`,
+      id: fc.functionCall.id || `gemini_call_${Date.now()}_${index}`,
       name: fc.functionCall.name,
       arguments: JSON.stringify(fc.functionCall.args || {})
     }))
@@ -646,7 +666,7 @@ class GeminiProvider implements LlmProvider {
   ): Promise<ProviderTestResult> {
     return testConnectionWithPing(this, credentials, modelId, {
       providerName: 'Gemini',
-      defaultModel: 'gemini-2.5-flash'
+      defaultModel: 'gemini-3.8-flash'
     })
   }
 }
