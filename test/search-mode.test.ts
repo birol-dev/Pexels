@@ -6,7 +6,9 @@ import {
   DEFAULT_SEARCH_MODE,
   buildBroadSearchNudgeMessage,
   buildStockScoutSystemPrompt,
-  getBeatsNeedingBroaderSearch
+  getBeatsNeedingBroaderSearch,
+  resolveSearchModeFromSnapshot,
+  shouldInjectPostToolBroadNudge
 } from '../src/main/services/agent/search-mode.ts'
 
 const StartJobInputSchema = z
@@ -55,7 +57,10 @@ describe('searchMode IPC / start path', () => {
   })
 
   it('accepts focused and broad searchMode values', () => {
-    assert.equal(StartJobInputSchema.parse({ ...baseJob, searchMode: 'focused' }).searchMode, 'focused')
+    assert.equal(
+      StartJobInputSchema.parse({ ...baseJob, searchMode: 'focused' }).searchMode,
+      'focused'
+    )
     assert.equal(StartJobInputSchema.parse({ ...baseJob, searchMode: 'broad' }).searchMode, 'broad')
   })
 
@@ -173,5 +178,60 @@ describe('Broad search nudge path', () => {
     assert.match(msg!, /DIFFERENT broader query/)
     assert.match(msg!, /beat_1/)
     assert.match(msg!, /vintage brass typewriter mahogany desk/)
+  })
+})
+
+describe('resolveSearchModeFromSnapshot (rerun / old manifests)', () => {
+  it('defaults missing searchMode to focused', () => {
+    assert.equal(resolveSearchModeFromSnapshot(undefined), 'focused')
+    assert.equal(resolveSearchModeFromSnapshot(null), 'focused')
+  })
+
+  it('preserves broad and focused', () => {
+    assert.equal(resolveSearchModeFromSnapshot('broad'), 'broad')
+    assert.equal(resolveSearchModeFromSnapshot('focused'), 'focused')
+  })
+
+  it('treats unknown values as focused (safe default)', () => {
+    assert.equal(resolveSearchModeFromSnapshot('aggressive'), 'focused')
+  })
+})
+
+describe('shouldInjectPostToolBroadNudge', () => {
+  it('does not nudge after a search turn (protects search→select)', () => {
+    assert.equal(
+      shouldInjectPostToolBroadNudge({
+        turnHadSelectOrDownload: false,
+        searchedBeatCount: 1
+      }),
+      false
+    )
+    assert.equal(
+      shouldInjectPostToolBroadNudge({
+        turnHadSelectOrDownload: false,
+        searchedBeatCount: 3
+      }),
+      false
+    )
+  })
+
+  it('does not nudge after select or download', () => {
+    assert.equal(
+      shouldInjectPostToolBroadNudge({
+        turnHadSelectOrDownload: true,
+        searchedBeatCount: 0
+      }),
+      false
+    )
+  })
+
+  it('allows nudge only when tools ran without search/select/download', () => {
+    assert.equal(
+      shouldInjectPostToolBroadNudge({
+        turnHadSelectOrDownload: false,
+        searchedBeatCount: 0
+      }),
+      true
+    )
   })
 })

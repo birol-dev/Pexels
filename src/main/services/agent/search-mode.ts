@@ -32,8 +32,7 @@ export type BuildStockScoutSystemPromptInput = {
 
 export function buildStockScoutSystemPrompt(input: BuildStockScoutSystemPromptInput): string {
   const searchModeLabel = input.searchMode === 'broad' ? 'Broad' : 'Focused'
-  const broadBlock =
-    input.searchMode === 'broad' ? `\n${BROAD_SEARCH_GUIDANCE}\n` : ''
+  const broadBlock = input.searchMode === 'broad' ? `\n${BROAD_SEARCH_GUIDANCE}\n` : ''
 
   return `You are StockScout, a careful stock-media research agent for YouTube creators.
 Your job is to transform a user's video script into practical Pexels stock photo and stock video searches, select useful assets for each visual beat, and download them.
@@ -116,9 +115,7 @@ export type BroadNudgeBeat = BeatAssetStatus & {
 export function getBeatsNeedingBroaderSearch(beats: BroadNudgeBeat[]): BroadNudgeBeat[] {
   return beats.filter((b) => {
     const hasUsableAsset =
-      Array.isArray(b.assets) &&
-      b.assets.length > 0 &&
-      b.assets.some((a) => a.status !== 'failed')
+      Array.isArray(b.assets) && b.assets.length > 0 && b.assets.some((a) => a.status !== 'failed')
     if (hasUsableAsset) return false
     const uniqueQueries = new Set((b.searchQueries || []).map((q) => q.trim().toLowerCase()))
     return uniqueQueries.size <= 1
@@ -141,4 +138,27 @@ export function buildBroadSearchNudgeMessage(beats: BroadNudgeBeat[]): string | 
     .join('; ')
 
   return `Broad search mode: ${needy.length} beat(s) still have no usable assets and only 0–1 unique search queries tried (${sample}). Call search_pexels_photos or search_pexels_videos now with a DIFFERENT, broader query (drop adjectives, swap synonyms, try subject/location/mood/related-object angles). Do not repeat the same query string.`
+}
+
+/**
+ * Resolve searchMode from a persisted settings snapshot (rerun / resume).
+ * Missing or unknown values default to focused so old manifests stay valid.
+ */
+export function resolveSearchModeFromSnapshot(searchMode: string | undefined | null): SearchMode {
+  return searchMode === 'broad' ? 'broad' : DEFAULT_SEARCH_MODE
+}
+
+/**
+ * Whether to inject a Broad-mode nudge after a tool-using turn.
+ * Never nudge after select/download, and never after a search turn — that would
+ * push the model to search other beats instead of selecting from fresh results.
+ * Empty-tool-turn nudges still cover stalls.
+ */
+export function shouldInjectPostToolBroadNudge(input: {
+  turnHadSelectOrDownload: boolean
+  searchedBeatCount: number
+}): boolean {
+  if (input.turnHadSelectOrDownload) return false
+  if (input.searchedBeatCount > 0) return false
+  return true
 }

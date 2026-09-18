@@ -297,7 +297,11 @@ describe('Pexels Zod Schemas', () => {
 describe('Pexels video API base paths', () => {
   it('uses /v1/videos/search (legacy /videos/search is deprecated)', () => {
     assert.equal(PEXELS_VIDEO_SEARCH_URL, 'https://api.pexels.com/v1/videos/search')
-    assert.equal(PEXELS_VIDEO_SEARCH_URL.includes('/videos/search') && !PEXELS_VIDEO_SEARCH_URL.includes('/v1/videos/search'), false)
+    assert.equal(
+      PEXELS_VIDEO_SEARCH_URL.includes('/videos/search') &&
+        !PEXELS_VIDEO_SEARCH_URL.includes('/v1/videos/search'),
+      false
+    )
   })
 
   it('uses /v1/videos/videos/:id for get-by-id', () => {

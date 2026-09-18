@@ -2,6 +2,7 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { randomInt } from 'crypto'
 import { AgentRunner, StartJobInput, JobSnapshot } from '../services/agent/agent-runner'
 import { areAllBeatsDownloaded } from '../services/agent/tool-schemas'
+import { resolveSearchModeFromSnapshot } from '../services/agent/search-mode'
 import { ProjectStore, JobSummary } from '../services/storage/project-store'
 import { SettingsStore } from '../services/storage/settings-store'
 import { SecureSecrets } from '../services/storage/secure-secrets'
@@ -134,7 +135,7 @@ async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInp
         mix: mapAssetMixBack(snap.assetMix),
         maxAssetsPerBeat: snap.maxAssetsPerBeat || 3,
         maxTotalDownloads: snap.maxTotalDownloads || 15,
-        searchMode: snap.searchMode === 'broad' ? 'broad' : 'focused'
+        searchMode: resolveSearchModeFromSnapshot(snap.searchMode)
       }
     }
   } catch (err) {

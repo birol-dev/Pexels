@@ -31,6 +31,7 @@ import {
   DEFAULT_SEARCH_MODE,
   buildBroadSearchNudgeMessage,
   buildStockScoutSystemPrompt,
+  shouldInjectPostToolBroadNudge,
   type SearchMode
 } from './search-mode.ts'
 
@@ -980,29 +981,23 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
         await this.executeToolCall(tc)
       }
 
-      // Broad mode light enforcement (no auto query rewrite): if under-searched beats remain
-      // after a turn that did not select/download, nudge a different broader query.
+      // Broad mode light enforcement (no auto query rewrite). Do not nudge after a
+      // search turn — that interrupts search→select when other beats are still needy.
+      // Empty-tool-turn nudges still cover stalls without assets.
       if (searchMode === 'broad' && this.status === 'running') {
         const turnHadSelectOrDownload = effectiveToolCalls.some(
-          (tc) =>
-            tc.name === 'select_assets_for_download' || tc.name === 'download_selected_assets'
+          (tc) => tc.name === 'select_assets_for_download' || tc.name === 'download_selected_assets'
         )
-        const searchedBeatIds = new Set(
-          effectiveToolCalls
-            .filter((tc) => tc.name === 'search_pexels_photos' || tc.name === 'search_pexels_videos')
-            .map((tc) => {
-              try {
-                return String((JSON.parse(tc.arguments) as { beatId?: string }).beatId || '')
-              } catch {
-                return ''
-              }
-            })
-            .filter(Boolean)
-        )
-        if (!turnHadSelectOrDownload) {
-          // Skip beats that were just searched this turn so the model can select from results.
-          const stuckBeats = this.beats.filter((b) => !searchedBeatIds.has(b.id))
-          const broadNudge = buildBroadSearchNudgeMessage(stuckBeats)
+        const searchedBeatCount = effectiveToolCalls.filter(
+          (tc) => tc.name === 'search_pexels_photos' || tc.name === 'search_pexels_videos'
+        ).length
+        if (
+          shouldInjectPostToolBroadNudge({
+            turnHadSelectOrDownload,
+            searchedBeatCount
+          })
+        ) {
+          const broadNudge = buildBroadSearchNudgeMessage(this.beats)
           if (broadNudge) {
             this.log(
               'info',

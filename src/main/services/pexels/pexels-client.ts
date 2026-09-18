@@ -185,11 +185,7 @@ export class PexelsClient {
 
   public static async getVideo(id: number): Promise<PexelsVideo> {
     const headers = await this.getHeaders()
-    const response = await this.fetchPexels(
-      pexelsVideoByIdUrl(id),
-      { headers },
-      'Pexels get video'
-    )
+    const response = await this.fetchPexels(pexelsVideoByIdUrl(id), { headers }, 'Pexels get video')
     const data = await response.json()
     return PexelsVideoSchema.parse(data)
   }
