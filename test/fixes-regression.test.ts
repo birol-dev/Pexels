@@ -11,7 +11,6 @@ import {
   hasPendingUnqueuedAssets,
   areBeatsSatisfiedForLoop
 } from '../src/main/services/agent/tool-schemas.ts'
-// decideRunFinalize imported below with areAllBeatsDownloaded
 import { isAllowedExternalUrl } from '../src/main/services/files/external-url.ts'
 
 describe('Fixes & Security Hardening Regression Suite', () => {

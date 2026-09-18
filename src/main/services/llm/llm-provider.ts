@@ -142,305 +142,220 @@ function toOpenAiMessages(messages: AgentMessage[], systemPrompt?: string): Open
   return result
 }
 
-// 1. OpenAI Implementation
-class OpenAiProvider implements LlmProvider {
-  public id = 'openai' as const
+async function createOpenAiCompatibleToolTurn(
+  input: LlmToolTurnInput,
+  credentials: ProviderCredentials,
+  options: {
+    providerName: string
+    url: string
+    defaultModel: string
+    label: string
+    extraHeaders?: Record<string, string>
+    rejectErrorField?: boolean
+  }
+): Promise<LlmToolTurnResult> {
+  const trimmedKey = credentials.apiKey?.trim() || ''
+  if (!trimmedKey) {
+    throw new Error(`${options.providerName} API key is missing.`)
+  }
 
-  public async createToolTurn(
-    input: LlmToolTurnInput,
-    credentials: ProviderCredentials
-  ): Promise<LlmToolTurnResult> {
-    const trimmedKey = credentials.apiKey?.trim() || ''
-    if (!trimmedKey) {
-      throw new Error('OpenAI API key is missing.')
-    }
-    const url = 'https://api.openai.com/v1/chat/completions'
-    const headers = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${trimmedKey}`
-    }
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${trimmedKey}`,
+    ...options.extraHeaders
+  }
 
-    const payload: Record<string, unknown> = {
-      model: input.model?.trim() || 'gpt-4o',
-      messages: toOpenAiMessages(input.messages, input.systemPrompt),
-      temperature: input.temperature,
-      max_tokens: input.maxOutputTokens
-    }
+  const payload: Record<string, unknown> = {
+    model: input.model?.trim() || options.defaultModel,
+    messages: toOpenAiMessages(input.messages, input.systemPrompt),
+    temperature: input.temperature,
+    max_tokens: input.maxOutputTokens
+  }
 
-    if (input.tools.length > 0) {
-      payload.tools = toOpenAiTools(input.tools)
-      if (input.toolChoice === 'auto') {
-        payload.tool_choice = 'auto'
-      } else if (input.toolChoice === 'none') {
-        payload.tool_choice = 'none'
-      } else {
-        payload.tool_choice = {
-          type: 'function',
-          function: { name: input.toolChoice.name }
-        }
+  if (input.tools.length > 0) {
+    payload.tools = toOpenAiTools(input.tools)
+    if (input.toolChoice === 'auto') {
+      payload.tool_choice = 'auto'
+    } else if (input.toolChoice === 'none') {
+      payload.tool_choice = 'none'
+    } else {
+      payload.tool_choice = {
+        type: 'function',
+        function: { name: input.toolChoice.name }
       }
-    }
-
-    const response = await llmFetch({
-      url,
-      label: 'OpenAI chat completions',
-      init: {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
-        signal: input.abortSignal
-      }
-    })
-
-    const data = (await response.json()) as {
-      choices: Array<{
-        message: {
-          content: string | null
-          tool_calls?: Array<{
-            id: string
-            type: string
-            function: {
-              name: string
-              arguments: string
-            }
-          }>
-        }
-        finish_reason: string
-      }>
-      usage?: {
-        prompt_tokens?: number
-        completion_tokens?: number
-        total_tokens?: number
-      }
-    }
-    const choice = data.choices?.[0]
-    if (!choice) {
-      throw new Error('OpenAI API returned an empty choices array.')
-    }
-    const choiceMsg = choice.message
-
-    const toolCalls: NormalizedToolCall[] = []
-    if (choiceMsg.tool_calls) {
-      for (const tc of choiceMsg.tool_calls) {
-        if (tc.type === 'function') {
-          toolCalls.push({
-            id: tc.id,
-            name: tc.function.name,
-            arguments: tc.function.arguments
-          })
-        }
-      }
-    }
-
-    const assistantMessage: AgentMessage = {
-      role: 'assistant',
-      content: choiceMsg.content,
-      tool_calls: toolCalls.length > 0 ? toolCalls : undefined
-    }
-
-    let stopReason: LlmToolTurnResult['stopReason'] = 'final'
-    if (choice.finish_reason === 'tool_calls') stopReason = 'tool_calls'
-    else if (choice.finish_reason === 'length') stopReason = 'length'
-
-    return {
-      assistantMessage,
-      toolCalls,
-      stopReason,
-      usage: data.usage
-        ? {
-            inputTokens: data.usage.prompt_tokens,
-            outputTokens: data.usage.completion_tokens,
-            totalTokens: data.usage.total_tokens
-          }
-        : undefined,
-      raw: data
     }
   }
 
-  public async testConnection(
-    credentials: ProviderCredentials,
-    modelId: string
-  ): Promise<ProviderTestResult> {
-    const trimmedKey = credentials.apiKey?.trim() || ''
-    if (!trimmedKey) {
-      return { success: false, message: 'OpenAI API key is missing. Please enter an API key.' }
+  const response = await llmFetch({
+    url: options.url,
+    label: options.label,
+    init: {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      signal: input.abortSignal
     }
-    try {
-      await this.createToolTurn(
-        {
-          model: modelId?.trim() || 'gpt-4o-mini',
-          systemPrompt: 'Respond only with pong',
-          messages: [{ role: 'user', content: 'ping' }],
-          tools: [],
-          toolChoice: 'none',
-          temperature: 0.1,
-          maxOutputTokens: 10
-        },
-        { apiKey: trimmedKey }
-      )
-      return { success: true, message: 'Connection successful!' }
-    } catch (error) {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : String(error)
+  })
+
+  const data = (await response.json()) as {
+    error?: { message?: string }
+    choices: Array<{
+      message: {
+        content: string | null
+        tool_calls?: Array<{
+          id: string
+          type: string
+          function: { name: string; arguments: string }
+        }>
       }
+      finish_reason: string
+    }>
+    usage?: {
+      prompt_tokens?: number
+      completion_tokens?: number
+      total_tokens?: number
+    }
+  }
+
+  if (options.rejectErrorField && data.error) {
+    throw new Error(
+      `${options.providerName} API Error: ${data.error.message || JSON.stringify(data.error)}`
+    )
+  }
+
+  const choice = data.choices?.[0]
+  if (!choice) {
+    throw new Error(`${options.providerName} API returned an empty choices array.`)
+  }
+  const choiceMsg = choice.message
+
+  const toolCalls: NormalizedToolCall[] = []
+  if (choiceMsg.tool_calls) {
+    for (const tc of choiceMsg.tool_calls) {
+      if (tc.type === 'function') {
+        toolCalls.push({
+          id: tc.id,
+          name: tc.function.name,
+          arguments: tc.function.arguments
+        })
+      }
+    }
+  }
+
+  const assistantMessage: AgentMessage = {
+    role: 'assistant',
+    content: choiceMsg.content,
+    tool_calls: toolCalls.length > 0 ? toolCalls : undefined
+  }
+
+  let stopReason: LlmToolTurnResult['stopReason'] = 'final'
+  if (choice.finish_reason === 'tool_calls') stopReason = 'tool_calls'
+  else if (choice.finish_reason === 'length') stopReason = 'length'
+
+  return {
+    assistantMessage,
+    toolCalls,
+    stopReason,
+    usage: data.usage
+      ? {
+          inputTokens: data.usage.prompt_tokens,
+          outputTokens: data.usage.completion_tokens,
+          totalTokens: data.usage.total_tokens
+        }
+      : undefined,
+    raw: data
+  }
+}
+
+async function testConnectionWithPing(
+  provider: LlmProvider,
+  credentials: ProviderCredentials,
+  modelId: string,
+  options: { providerName: string; defaultModel: string }
+): Promise<ProviderTestResult> {
+  const trimmedKey = credentials.apiKey?.trim() || ''
+  if (!trimmedKey) {
+    return {
+      success: false,
+      message: `${options.providerName} API key is missing. Please enter an API key.`
+    }
+  }
+  try {
+    await provider.createToolTurn(
+      {
+        model: modelId?.trim() || options.defaultModel,
+        systemPrompt: 'Respond only with pong',
+        messages: [{ role: 'user', content: 'ping' }],
+        tools: [],
+        toolChoice: 'none',
+        temperature: 0.1,
+        maxOutputTokens: 10
+      },
+      { apiKey: trimmedKey }
+    )
+    return { success: true, message: 'Connection successful!' }
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : String(error)
     }
   }
 }
 
-// 2. OpenRouter Implementation
-class OpenRouterProvider implements LlmProvider {
-  public id = 'openrouter' as const
+class OpenAiProvider implements LlmProvider {
+  public id = 'openai' as const
 
-  public async createToolTurn(
+  public createToolTurn(
     input: LlmToolTurnInput,
     credentials: ProviderCredentials
   ): Promise<LlmToolTurnResult> {
-    const trimmedKey = credentials.apiKey?.trim() || ''
-    if (!trimmedKey) {
-      throw new Error('OpenRouter API key is missing.')
-    }
-    const url = 'https://openrouter.ai/api/v1/chat/completions'
-    const headers = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${trimmedKey}`,
-      'HTTP-Referer': 'https://github.com/birol-dev/Pexels',
-      'X-Title': 'AI Stock Asset Finder'
-    }
-
-    const payload: Record<string, unknown> = {
-      model: input.model?.trim() || 'openai/gpt-4o-mini',
-      messages: toOpenAiMessages(input.messages, input.systemPrompt),
-      temperature: input.temperature,
-      max_tokens: input.maxOutputTokens
-    }
-
-    if (input.tools.length > 0) {
-      payload.tools = toOpenAiTools(input.tools)
-      if (input.toolChoice === 'auto') {
-        payload.tool_choice = 'auto'
-      } else if (input.toolChoice === 'none') {
-        payload.tool_choice = 'none'
-      } else {
-        payload.tool_choice = {
-          type: 'function',
-          function: { name: input.toolChoice.name }
-        }
-      }
-    }
-
-    const response = await llmFetch({
-      url,
-      label: 'OpenRouter chat completions',
-      init: {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
-        signal: input.abortSignal
-      }
+    return createOpenAiCompatibleToolTurn(input, credentials, {
+      providerName: 'OpenAI',
+      url: 'https://api.openai.com/v1/chat/completions',
+      defaultModel: 'gpt-4o',
+      label: 'OpenAI chat completions'
     })
-
-    const data = (await response.json()) as {
-      error?: {
-        message?: string
-      }
-      choices: Array<{
-        message: {
-          content: string | null
-          tool_calls?: Array<{
-            id: string
-            type: string
-            function: {
-              name: string
-              arguments: string
-            }
-          }>
-        }
-        finish_reason: string
-      }>
-      usage?: {
-        prompt_tokens?: number
-        completion_tokens?: number
-        total_tokens?: number
-      }
-    }
-
-    if (data.error) {
-      throw new Error(`OpenRouter API Error: ${data.error.message || JSON.stringify(data.error)}`)
-    }
-
-    const choice = data.choices?.[0]
-    if (!choice) {
-      throw new Error('OpenRouter API returned an empty choices array.')
-    }
-    const choiceMsg = choice.message
-
-    const toolCalls: NormalizedToolCall[] = []
-    if (choiceMsg.tool_calls) {
-      for (const tc of choiceMsg.tool_calls) {
-        if (tc.type === 'function') {
-          toolCalls.push({
-            id: tc.id,
-            name: tc.function.name,
-            arguments: tc.function.arguments
-          })
-        }
-      }
-    }
-
-    const assistantMessage: AgentMessage = {
-      role: 'assistant',
-      content: choiceMsg.content,
-      tool_calls: toolCalls.length > 0 ? toolCalls : undefined
-    }
-
-    let stopReason: LlmToolTurnResult['stopReason'] = 'final'
-    if (choice.finish_reason === 'tool_calls') stopReason = 'tool_calls'
-    else if (choice.finish_reason === 'length') stopReason = 'length'
-
-    return {
-      assistantMessage,
-      toolCalls,
-      stopReason,
-      usage: data.usage
-        ? {
-            inputTokens: data.usage.prompt_tokens,
-            outputTokens: data.usage.completion_tokens,
-            totalTokens: data.usage.total_tokens
-          }
-        : undefined,
-      raw: data
-    }
   }
 
-  public async testConnection(
+  public testConnection(
     credentials: ProviderCredentials,
     modelId: string
   ): Promise<ProviderTestResult> {
-    const trimmedKey = credentials.apiKey?.trim() || ''
-    if (!trimmedKey) {
-      return { success: false, message: 'OpenRouter API key is missing. Please enter an API key.' }
-    }
-    try {
-      await this.createToolTurn(
-        {
-          model: modelId?.trim() || 'google/gemini-2.5-flash',
-          systemPrompt: 'Respond only with pong',
-          messages: [{ role: 'user', content: 'ping' }],
-          tools: [],
-          toolChoice: 'none',
-          temperature: 0.1,
-          maxOutputTokens: 10
-        },
-        { apiKey: trimmedKey }
-      )
-      return { success: true, message: 'Connection successful!' }
-    } catch (error) {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : String(error)
-      }
-    }
+    return testConnectionWithPing(this, credentials, modelId, {
+      providerName: 'OpenAI',
+      defaultModel: 'gpt-4o-mini'
+    })
+  }
+}
+
+class OpenRouterProvider implements LlmProvider {
+  public id = 'openrouter' as const
+
+  public createToolTurn(
+    input: LlmToolTurnInput,
+    credentials: ProviderCredentials
+  ): Promise<LlmToolTurnResult> {
+    return createOpenAiCompatibleToolTurn(input, credentials, {
+      providerName: 'OpenRouter',
+      url: 'https://openrouter.ai/api/v1/chat/completions',
+      defaultModel: 'openai/gpt-4o-mini',
+      label: 'OpenRouter chat completions',
+      extraHeaders: {
+        'HTTP-Referer': 'https://github.com/birol-dev/Pexels',
+        'X-Title': 'AI Stock Asset Finder'
+      },
+      rejectErrorField: true
+    })
+  }
+
+  public testConnection(
+    credentials: ProviderCredentials,
+    modelId: string
+  ): Promise<ProviderTestResult> {
+    return testConnectionWithPing(this, credentials, modelId, {
+      providerName: 'OpenRouter',
+      defaultModel: 'google/gemini-2.5-flash'
+    })
   }
 }
 
@@ -725,34 +640,14 @@ class GeminiProvider implements LlmProvider {
     }
   }
 
-  public async testConnection(
+  public testConnection(
     credentials: ProviderCredentials,
     modelId: string
   ): Promise<ProviderTestResult> {
-    const trimmedKey = credentials.apiKey?.trim() || ''
-    if (!trimmedKey) {
-      return { success: false, message: 'Gemini API key is missing. Please enter an API key.' }
-    }
-    try {
-      await this.createToolTurn(
-        {
-          model: modelId?.trim() || 'gemini-2.5-flash',
-          systemPrompt: 'Respond only with pong',
-          messages: [{ role: 'user', content: 'ping' }],
-          tools: [],
-          toolChoice: 'none',
-          temperature: 0.1,
-          maxOutputTokens: 10
-        },
-        { apiKey: trimmedKey }
-      )
-      return { success: true, message: 'Connection successful!' }
-    } catch (error) {
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : String(error)
-      }
-    }
+    return testConnectionWithPing(this, credentials, modelId, {
+      providerName: 'Gemini',
+      defaultModel: 'gemini-2.5-flash'
+    })
   }
 }
 
