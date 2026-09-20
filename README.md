@@ -8,7 +8,7 @@ StockFinder AI is a free, open-source desktop app for YouTube creators, short-fo
 
 [![Website](https://img.shields.io/badge/website-stockfinderai.birol.tech-05df72)](https://stockfinderai.birol.tech)
 [![Developer](https://img.shields.io/badge/developer-birol.tech-purple)](https://birol.tech)
-[![Version](https://img.shields.io/badge/version-1.2.9-cyber)](https://github.com/birol-dev/Pexels/releases)
+[![Version](https://img.shields.io/badge/version-1.3.0-cyber)](https://github.com/birol-dev/Pexels/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](#download)
 [![License](https://img.shields.io/badge/license-Open%20Source-blue)](https://github.com/birol-dev/Pexels)
 
@@ -179,6 +179,15 @@ StockFinder AI is created and maintained by [Birol](https://birol.tech).
 ---
 
 ## Changelog
+
+### v1.3.0 - Search Modes, Safer Persistence & Agent Hardening (2026-09-20)
+
+- **Focused / Broad search**: Choose how aggressively the agent explores Pexels queries, with Broad-mode nudges that no longer interrupt search→select.
+- **Safer project and secret files**: Unreadable JSON is quarantined for recovery; a locked or temporarily unreadable file is no longer replaced with an empty projects list or API-key store.
+- **Durable agent resume**: Conversation history and Pexels candidates stay on disk across pause/crash. Large tool results are compacted only for the model, not the saved transcript.
+- **Tool-call validation**: Shared Zod schemas reject invalid search/select/download arguments and unknown tools.
+- **Settings reliability**: Saving settings no longer wipes blank/masked API keys; runtime settings apply without a restart in more cases.
+- **Agent loop**: Clearer completion vs failure when beats are incomplete, iteration limits hit, or downloads are still in flight.
 
 ### v1.2.9 - Website, Branding & Open Source (2026-06-09)
 
