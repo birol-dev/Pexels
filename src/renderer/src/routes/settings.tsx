@@ -545,8 +545,8 @@ export default function SettingsView(): React.JSX.Element {
                   Request Timeout (Secs)
                 </label>
                 <div className="text-[10px] text-risograph-gray select-none">
-                  Pexels searches use this value. LLM replies wait at least 3 minutes because slower
-                  OpenRouter models can keep generating after 60s.
+                  Pexels searches use this value. LLM replies wait at least 10 minutes because
+                  slower OpenRouter models can keep generating after 60s.
                 </div>
               </div>
               <span className="font-mono text-electric-purple font-bold">

@@ -1,5 +1,9 @@
-import { LlmProviderFactory } from './llm-provider.ts'
-import type { NormalizedToolDefinition } from './llm-provider.ts'
+import {
+  LlmProviderFactory,
+  LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
+  LLM_STRUCTURED_REASONING,
+  type NormalizedToolDefinition
+} from './llm-provider.ts'
 import { createTimeoutLinkedSignal } from '../http/abort-signal.ts'
 import { resolveLlmRequestTimeoutSeconds } from './llm-timeout.ts'
 
@@ -193,9 +197,10 @@ Please expand this idea into a full narration script and visual strategy.`
         tools: [SUBMIT_EXPANDED_SCRIPT_TOOL],
         toolChoice: { name: 'submit_expanded_script' },
         temperature: 0.7,
-        maxOutputTokens: 3000,
+        maxOutputTokens: LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
         abortSignal: signal,
-        sessionId: params.sessionId
+        sessionId: params.sessionId,
+        reasoning: LLM_STRUCTURED_REASONING
       },
       { apiKey }
     )

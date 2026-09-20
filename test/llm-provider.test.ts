@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, describe, it } from 'node:test'
-import { LlmProviderFactory } from '../src/main/services/llm/llm-provider.ts'
+import {
+  LlmProviderFactory,
+  LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
+  LLM_STRUCTURED_REASONING,
+  normalizeChatToolCalls,
+  toOpenRouterReasoningPayload
+} from '../src/main/services/llm/llm-provider.ts'
 import type { NormalizedToolDefinition } from '../src/main/services/llm/llm-provider.ts'
 import { resetLlmCircuit } from '../src/main/services/llm/llm-fetch.ts'
 
@@ -357,6 +363,156 @@ describe('OpenRouterProvider', () => {
     assert.equal(messages?.[0]?.role, 'system')
     assert.equal(messages?.[0]?.content, 'You are StockScout')
     assert.equal(messages?.[1]?.content, 'search now')
+  })
+
+  it('sends OpenRouter reasoning config so DeepSeek does not burn max_tokens thinking', async () => {
+    let capturedPayload: Record<string, unknown> | null = null
+
+    globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+      capturedPayload = JSON.parse(init?.body as string) as Record<string, unknown>
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          choices: [
+            {
+              message: { content: '', tool_calls: [] },
+              finish_reason: 'stop'
+            }
+          ]
+        })
+      } as Response
+    }) as typeof globalThis.fetch
+
+    await provider.createToolTurn(
+      {
+        model: 'deepseek/deepseek-v4.1-flash:floor',
+        systemPrompt: 'Segment the script',
+        messages: [{ role: 'user', content: 'A dark hallway creaks.' }],
+        tools: sampleTools,
+        toolChoice: { name: 'search_pexels_photos' },
+        temperature: 0.2,
+        maxOutputTokens: LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
+        reasoning: LLM_STRUCTURED_REASONING
+      },
+      { apiKey: 'sk-or-v1-test' }
+    )
+
+    assert.deepEqual(capturedPayload?.reasoning, { enabled: false, effort: 'low' })
+    assert.equal(capturedPayload?.max_tokens, LLM_STRUCTURED_MAX_OUTPUT_TOKENS)
+  })
+
+  it('treats finish_reason length plus reasoning_tokens as a truncated turn', async () => {
+    globalThis.fetch = (async () => {
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          choices: [
+            {
+              message: { content: '', tool_calls: undefined },
+              finish_reason: 'length'
+            }
+          ],
+          usage: {
+            prompt_tokens: 200,
+            completion_tokens: 4000,
+            total_tokens: 4200,
+            completion_tokens_details: { reasoning_tokens: 4000 }
+          }
+        })
+      } as Response
+    }) as typeof globalThis.fetch
+
+    const result = await provider.createToolTurn(
+      {
+        model: 'deepseek/deepseek-v4.1-flash:floor',
+        systemPrompt: '',
+        messages: [{ role: 'user', content: 'segment this' }],
+        tools: sampleTools,
+        toolChoice: { name: 'search_pexels_photos' },
+        temperature: 0.2,
+        maxOutputTokens: 4000
+      },
+      { apiKey: 'sk-or-v1-test' }
+    )
+
+    assert.equal(result.stopReason, 'length')
+    assert.equal(result.toolCalls.length, 0)
+    assert.equal(result.assistantMessage.content, '')
+    assert.equal(result.usage?.outputTokens, 4000)
+    assert.equal(result.usage?.reasoningTokens, 4000)
+  })
+
+  it('accepts tool_calls that omit type=function', async () => {
+    globalThis.fetch = (async () => {
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content: null,
+                tool_calls: [
+                  {
+                    id: 'call_1',
+                    function: { name: 'search_pexels_photos', arguments: '{"query":"fog"}' }
+                  }
+                ]
+              },
+              finish_reason: 'stop'
+            }
+          ]
+        })
+      } as Response
+    }) as typeof globalThis.fetch
+
+    const result = await provider.createToolTurn(
+      {
+        model: 'deepseek/deepseek-v4.1-flash:floor',
+        systemPrompt: '',
+        messages: [{ role: 'user', content: 'search' }],
+        tools: sampleTools,
+        toolChoice: 'auto',
+        temperature: 0.2,
+        maxOutputTokens: 800
+      },
+      { apiKey: 'sk-or-v1-test' }
+    )
+
+    assert.equal(result.toolCalls.length, 1)
+    assert.equal(result.toolCalls[0].name, 'search_pexels_photos')
+    assert.equal(result.stopReason, 'tool_calls')
+  })
+})
+
+describe('normalizeChatToolCalls', () => {
+  it('keeps function tool calls even when type is omitted', () => {
+    const calls = normalizeChatToolCalls([
+      { id: 'a', function: { name: 'submit_script_beats', arguments: '{"beats":[]}' } }
+    ])
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0].name, 'submit_script_beats')
+  })
+})
+
+describe('toOpenRouterReasoningPayload', () => {
+  it('omits undefined keys', () => {
+    assert.deepEqual(toOpenRouterReasoningPayload({ effort: 'low' }), { effort: 'low' })
+    assert.deepEqual(toOpenRouterReasoningPayload(LLM_STRUCTURED_REASONING), {
+      enabled: false,
+      effort: 'low'
+    })
+  })
+})
+
+describe('LLM output budgets', () => {
+  it('uses the 32,768 completion budget documented for reasoning models', () => {
+    assert.equal(LLM_STRUCTURED_MAX_OUTPUT_TOKENS, 32768)
   })
 })
 

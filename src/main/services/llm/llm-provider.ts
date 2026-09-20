@@ -23,6 +23,29 @@ export interface NormalizedToolCall {
   arguments: string // JSON string
 }
 
+/** OpenRouter unified reasoning. Ignored by OpenAI and Gemini providers. */
+export interface LlmReasoningConfig {
+  effort?: 'low' | 'high' | 'max'
+  enabled?: boolean
+  exclude?: boolean
+  maxTokens?: number
+}
+
+/** Structured extract turns (beats / idea expand) need room for the tool JSON. */
+export const LLM_STRUCTURED_MAX_OUTPUT_TOKENS = 32768
+/**
+ * Agent search turns share the 32,768 completion budget OpenRouter documents for
+ * reasoning models (`max_tokens` covers thinking + visible tokens). Tool calls stop early.
+ */
+export const LLM_AGENT_TURN_MAX_OUTPUT_TOKENS = 32768
+/**
+ * DeepSeek V4.1 Flash defaults to reasoning.effort=high, which spends the whole
+ * max_tokens budget thinking (finish_reason=length, empty content, no tool call).
+ * Structured one-shot extracts do not need chain-of-thought.
+ */
+export const LLM_STRUCTURED_REASONING: LlmReasoningConfig = { enabled: false, effort: 'low' }
+export const LLM_AGENT_REASONING: LlmReasoningConfig = { effort: 'low' }
+
 export interface LlmToolTurnInput {
   model: string
   systemPrompt: string
@@ -34,6 +57,8 @@ export interface LlmToolTurnInput {
   abortSignal?: AbortSignal
   /** OpenRouter sticky-routing / prompt-cache key. Ignored by other providers. */
   sessionId?: string
+  /** OpenRouter reasoning control. Ignored by other providers. */
+  reasoning?: LlmReasoningConfig
 }
 
 export interface LlmToolTurnResult {
@@ -44,6 +69,7 @@ export interface LlmToolTurnResult {
     inputTokens?: number
     outputTokens?: number
     totalTokens?: number
+    reasoningTokens?: number
   }
   raw: unknown
 }
@@ -150,6 +176,45 @@ function toOpenAiMessages(messages: AgentMessage[], systemPrompt?: string): Open
   return result
 }
 
+export function toOpenRouterReasoningPayload(
+  reasoning: LlmReasoningConfig
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {}
+  if (reasoning.effort !== undefined) body.effort = reasoning.effort
+  if (reasoning.enabled !== undefined) body.enabled = reasoning.enabled
+  if (reasoning.exclude !== undefined) body.exclude = reasoning.exclude
+  if (reasoning.maxTokens !== undefined) body.max_tokens = reasoning.maxTokens
+  return body
+}
+
+export function normalizeChatToolCalls(
+  toolCalls:
+    | Array<{
+        id?: string
+        type?: string
+        function?: { name?: string; arguments?: unknown }
+        name?: string
+        arguments?: unknown
+      }>
+    | undefined
+): NormalizedToolCall[] {
+  if (!toolCalls || toolCalls.length === 0) return []
+
+  const out: NormalizedToolCall[] = []
+  for (const [index, tc] of toolCalls.entries()) {
+    if (tc.type && tc.type !== 'function') continue
+    const name = tc.function?.name || (typeof tc.name === 'string' ? tc.name : '')
+    if (!name) continue
+    const rawArgs = tc.function?.arguments ?? tc.arguments ?? {}
+    out.push({
+      id: tc.id || `call_${index + 1}`,
+      name,
+      arguments: typeof rawArgs === 'string' ? rawArgs : JSON.stringify(rawArgs)
+    })
+  }
+  return out
+}
+
 async function createOpenAiCompatibleToolTurn(
   input: LlmToolTurnInput,
   credentials: ProviderCredentials,
@@ -199,6 +264,9 @@ async function createOpenAiCompatibleToolTurn(
 
   if (options.promptCache) {
     applyOpenRouterPromptCache(payload, input.sessionId)
+    if (input.reasoning) {
+      payload.reasoning = toOpenRouterReasoningPayload(input.reasoning)
+    }
   }
 
   const response = await llmFetch({
@@ -217,10 +285,14 @@ async function createOpenAiCompatibleToolTurn(
     choices: Array<{
       message: {
         content: string | null
+        reasoning?: string | null
+        reasoning_content?: string | null
         tool_calls?: Array<{
-          id: string
-          type: string
-          function: { name: string; arguments: string }
+          id?: string
+          type?: string
+          function?: { name?: string; arguments?: unknown }
+          name?: string
+          arguments?: unknown
         }>
       }
       finish_reason: string
@@ -229,6 +301,8 @@ async function createOpenAiCompatibleToolTurn(
       prompt_tokens?: number
       completion_tokens?: number
       total_tokens?: number
+      reasoning_tokens?: number
+      completion_tokens_details?: { reasoning_tokens?: number }
     }
   }
 
@@ -243,19 +317,7 @@ async function createOpenAiCompatibleToolTurn(
     throw new Error(`${options.providerName} API returned an empty choices array.`)
   }
   const choiceMsg = choice.message
-
-  const toolCalls: NormalizedToolCall[] = []
-  if (choiceMsg.tool_calls) {
-    for (const tc of choiceMsg.tool_calls) {
-      if (tc.type === 'function') {
-        toolCalls.push({
-          id: tc.id,
-          name: tc.function.name,
-          arguments: tc.function.arguments
-        })
-      }
-    }
-  }
+  const toolCalls = normalizeChatToolCalls(choiceMsg.tool_calls)
 
   const assistantMessage: AgentMessage = {
     role: 'assistant',
@@ -267,6 +329,9 @@ async function createOpenAiCompatibleToolTurn(
   if (toolCalls.length > 0 || choice.finish_reason === 'tool_calls') stopReason = 'tool_calls'
   else if (choice.finish_reason === 'length') stopReason = 'length'
 
+  const reasoningTokens =
+    data.usage?.completion_tokens_details?.reasoning_tokens ?? data.usage?.reasoning_tokens
+
   return {
     assistantMessage,
     toolCalls,
@@ -275,7 +340,8 @@ async function createOpenAiCompatibleToolTurn(
       ? {
           inputTokens: data.usage.prompt_tokens,
           outputTokens: data.usage.completion_tokens,
-          totalTokens: data.usage.total_tokens
+          totalTokens: data.usage.total_tokens,
+          reasoningTokens
         }
       : undefined,
     raw: data

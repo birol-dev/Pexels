@@ -1,12 +1,24 @@
 import { EventEmitter } from 'events'
 import { promises as fs } from 'fs'
 import { join } from 'path'
-import { LlmProviderFactory, AgentMessage, NormalizedToolCall } from '../llm/llm-provider.ts'
+import {
+  LlmProviderFactory,
+  AgentMessage,
+  NormalizedToolCall,
+  LLM_AGENT_REASONING,
+  LLM_AGENT_TURN_MAX_OUTPUT_TOKENS,
+  LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
+  LLM_STRUCTURED_REASONING
+} from '../llm/llm-provider.ts'
 import { PexelsClient } from '../pexels/pexels-client.ts'
 import { PexelsDownloader, DownloadTask } from '../pexels/pexels-downloader.ts'
 import { validateDownloadUrl } from '../pexels/download-url-validation.ts'
 import { buildManifestAttribution } from '../pexels/pexels-attribution.ts'
-import { SUBMIT_SCRIPT_BEATS_TOOL, parseBeatsFromToolCall } from '../llm/beat-parse-tool.ts'
+import {
+  SUBMIT_SCRIPT_BEATS_TOOL,
+  missingBeatToolCallError,
+  parseBeatsFromToolCall
+} from '../llm/beat-parse-tool.ts'
 import { expandIdeaToScript } from '../llm/idea-expander.ts'
 import {
   MIN_LLM_REQUEST_TIMEOUT_SECONDS,
@@ -805,9 +817,10 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
           tools: [SUBMIT_SCRIPT_BEATS_TOOL],
           toolChoice: { name: 'submit_script_beats' },
           temperature: 0.2,
-          maxOutputTokens: 4000,
+          maxOutputTokens: LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
           abortSignal: signal,
-          sessionId: `stockfinder:${this.jobId}`
+          sessionId: `stockfinder:${this.jobId}`,
+          reasoning: LLM_STRUCTURED_REASONING
         },
         { apiKey: providerKey }
       )
@@ -819,11 +832,20 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
       this.usage.totalTokens += response.usage.totalTokens || 0
     }
 
-    const beatToolCall = response.toolCalls.find((tc) => tc.name === 'submit_script_beats')
+    let beatToolCall = response.toolCalls.find((tc) => tc.name === 'submit_script_beats')
+    if (!beatToolCall && response.assistantMessage.content) {
+      const extracted = extractToolCallsFromText(response.assistantMessage.content, [
+        'submit_script_beats'
+      ])
+      beatToolCall = extracted.find((tc) => tc.name === 'submit_script_beats')
+    }
     if (!beatToolCall) {
       const fallbackContent = response.assistantMessage.content || ''
-      this.log('error', `Model did not call submit_script_beats. Raw content: ${fallbackContent}`)
-      throw new Error('Script parsing failed: model did not return structured beats.')
+      this.log(
+        'error',
+        `Model did not call submit_script_beats (stop=${response.stopReason}, output=${response.usage?.outputTokens ?? '?'}, reasoning=${response.usage?.reasoningTokens ?? '?'}). Raw content: ${fallbackContent}`
+      )
+      throw missingBeatToolCallError(response)
     }
 
     const parsedBeats = parseBeatsFromToolCall(beatToolCall.arguments)
@@ -917,9 +939,10 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
             tools,
             toolChoice: 'auto',
             temperature: 0.3,
-            maxOutputTokens: 2000,
+            maxOutputTokens: LLM_AGENT_TURN_MAX_OUTPUT_TOKENS,
             abortSignal: signal,
-            sessionId: `stockfinder:${this.jobId}`
+            sessionId: `stockfinder:${this.jobId}`,
+            reasoning: LLM_AGENT_REASONING
           },
           { apiKey: providerKey }
         )

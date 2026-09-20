@@ -16,7 +16,6 @@ describe('resolveLlmRequestTimeoutSeconds', () => {
   })
 
   it('keeps an explicit timeout when it is already above the LLM floor', () => {
-    assert.equal(resolveLlmRequestTimeoutSeconds(240), 240)
     assert.equal(resolveLlmRequestTimeoutSeconds(MAX_REQUEST_TIMEOUT_SECONDS), 600)
   })
 })

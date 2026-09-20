@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
+  missingBeatToolCallError,
   parseBeatsFromToolCall,
   SUBMIT_SCRIPT_BEATS_TOOL
 } from '../src/main/services/llm/beat-parse-tool.ts'
@@ -49,5 +50,25 @@ describe('parseBeatsFromToolCall', () => {
       () => parseBeatsFromToolCall('{"beats":[{"text":"hello","visualPrompt":""}]}'),
       /missing text or visualPrompt/
     )
+  })
+})
+
+describe('missingBeatToolCallError', () => {
+  it('explains when reasoning consumed the entire output budget', () => {
+    const err = missingBeatToolCallError({
+      stopReason: 'length',
+      usage: { outputTokens: 4000, reasoningTokens: 4000 }
+    })
+    assert.match(err.message, /entire output token budget on reasoning/)
+  })
+
+  it('explains a generic output token limit when reasoning is unknown', () => {
+    const err = missingBeatToolCallError({ stopReason: 'length' })
+    assert.match(err.message, /hit the output token limit/)
+  })
+
+  it('keeps the generic structured-beats error for empty non-length replies', () => {
+    const err = missingBeatToolCallError({ stopReason: 'final' })
+    assert.match(err.message, /did not return structured beats/)
   })
 })

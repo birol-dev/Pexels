@@ -71,3 +71,28 @@ export function parseBeatsFromToolCall(argumentsJson: string): ParsedScriptBeat[
     return { text, visualPrompt }
   })
 }
+
+export function missingBeatToolCallError(input: {
+  stopReason: 'tool_calls' | 'final' | 'length' | 'error'
+  usage?: { outputTokens?: number; reasoningTokens?: number }
+}): Error {
+  if (input.stopReason === 'length') {
+    const reasoning = input.usage?.reasoningTokens
+    const output = input.usage?.outputTokens
+    if (
+      typeof reasoning === 'number' &&
+      typeof output === 'number' &&
+      output > 0 &&
+      reasoning >= output - 8
+    ) {
+      return new Error(
+        'Script parsing failed: the model used its entire output token budget on reasoning and never returned beats.'
+      )
+    }
+    return new Error(
+      'Script parsing failed: the model hit the output token limit before returning beats.'
+    )
+  }
+
+  return new Error('Script parsing failed: model did not return structured beats.')
+}
