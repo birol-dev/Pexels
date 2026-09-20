@@ -8,7 +8,7 @@ StockFinder AI is a free, open-source desktop app for YouTube creators, short-fo
 
 [![Website](https://img.shields.io/badge/website-stockfinderai.birol.tech-05df72)](https://stockfinderai.birol.tech)
 [![Developer](https://img.shields.io/badge/developer-birol.tech-purple)](https://birol.tech)
-[![Version](https://img.shields.io/badge/version-1.3.0-cyber)](https://github.com/birol-dev/Pexels/releases)
+[![Version](https://img.shields.io/badge/version-1.3.1-cyber)](https://github.com/birol-dev/Pexels/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](#download)
 [![License](https://img.shields.io/badge/license-Open%20Source-blue)](https://github.com/birol-dev/Pexels)
 
@@ -179,6 +179,12 @@ StockFinder AI is created and maintained by [Birol](https://birol.tech).
 ---
 
 ## Changelog
+
+### v1.3.1 - LLM Timeout Floor & OpenRouter Cache (2026-09-20)
+
+- **LLM timeout floor**: Agent LLM replies wait at least 180 seconds even when the request-timeout setting is lower, so slow OpenRouter models are not aborted at 60s.
+- **OpenRouter prompt cache**: Pins `session_id`, `prompt_cache_key`, and `cache_control`, and keeps a stable beat catalog prefix so cached prompts stay reusable across agent turns.
+- **Settings**: Request timeout can go up to 600s; Pexels still uses the slider while LLM replies wait at least 3 minutes.
 
 ### v1.3.0 - Search Modes, Safer Persistence & Agent Hardening (2026-09-20)
 
