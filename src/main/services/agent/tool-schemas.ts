@@ -45,13 +45,20 @@ export const SelectAssetsForDownloadArgsSchema = z.object({
 })
 
 export const DownloadSelectedAssetsArgsSchema = z.object({
-  assetIds: z.array(
-    z.object({
-      assetType: z.enum(['photo', 'video']),
-      pexelsId: z.number().int().positive()
-    })
-  )
+  assetIds: z
+    .array(
+      z.object({
+        assetType: z.enum(['photo', 'video']),
+        pexelsId: z.number().int().positive()
+      })
+    )
+    .default([])
 })
+
+export type SearchPexelsPhotosArgs = z.infer<typeof SearchPexelsPhotosArgsSchema>
+export type SearchPexelsVideosArgs = z.infer<typeof SearchPexelsVideosArgsSchema>
+export type SelectAssetsForDownloadArgs = z.infer<typeof SelectAssetsForDownloadArgsSchema>
+export type DownloadSelectedAssetsArgs = z.infer<typeof DownloadSelectedAssetsArgsSchema>
 
 export const AGENT_TOOLS: NormalizedToolDefinition[] = [
   {

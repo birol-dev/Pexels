@@ -1,6 +1,6 @@
 import { app, safeStorage } from 'electron'
-import { dirname, join } from 'path'
-import { promises as fs } from 'fs'
+import { join } from 'path'
+import { loadRecoverableJson, writeJsonAtomic } from './state-file-recovery.ts'
 
 const ENCRYPTED_PREFIX = 'encrypted:'
 
@@ -15,25 +15,21 @@ function getSecretsFile(): string {
 export class SecureSecrets {
   private static writeQueue: Promise<void> = Promise.resolve()
 
+  private static isSecretMap(value: unknown): value is Record<string, string> {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+  }
+
   private static async readSecretsFile(): Promise<Record<string, string>> {
     const filePath = getSecretsFile()
-    try {
-      const data = await fs.readFile(filePath, 'utf-8')
-      const parsed = JSON.parse(data)
-      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
-    } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code
-      if (code === 'ENOENT') {
-        return {}
-      }
-      throw error
+    const result = await loadRecoverableJson(filePath, this.isSecretMap)
+    if (result.status === 'unavailable') {
+      throw result.error
     }
+    return result.status === 'ok' ? result.value : {}
   }
 
   private static async writeSecretsFile(secrets: Record<string, string>): Promise<void> {
-    const filePath = getSecretsFile()
-    await fs.mkdir(dirname(filePath), { recursive: true })
-    await fs.writeFile(filePath, JSON.stringify(secrets, null, 2), 'utf-8')
+    await writeJsonAtomic(getSecretsFile(), secrets)
   }
 
   public static async hasSecret(key: string): Promise<boolean> {

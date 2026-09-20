@@ -15,6 +15,12 @@ import { ProjectStore, JobSummary } from '../storage/project-store.ts'
 import { SecureSecrets } from '../storage/secure-secrets.ts'
 import { SettingsStore } from '../storage/settings-store.ts'
 import { extractToolCallsFromText } from './tool-parser.ts'
+import { compactToolResultsForProvider } from './message-compaction.ts'
+import {
+  loadAgentConversationState,
+  persistAgentConversationState,
+  shouldEmbedConversationInManifest
+} from './agent-state.ts'
 import {
   AGENT_TOOLS,
   SearchPexelsPhotosArgsSchema,
@@ -34,6 +40,26 @@ import {
   shouldInjectPostToolBroadNudge,
   type SearchMode
 } from './search-mode.ts'
+
+export interface PexelsCandidate {
+  pexelsId: number
+  type: 'photo' | 'video'
+  photographer: string
+  photographerUrl?: string
+  width: number
+  height: number
+  imageUrl: string
+  duration?: number
+  query: string
+  variants: Array<{
+    label?: string
+    quality?: string
+    fileType?: string
+    url: string
+    width?: number
+    height?: number
+  }>
+}
 
 export interface VisualBeat {
   id: string
@@ -152,28 +178,9 @@ export class AgentRunner extends EventEmitter {
     avoidPeople: false
   }
 
-  private pexelsCandidates = new Map<
-    string,
-    {
-      pexelsId: number
-      type: 'photo' | 'video'
-      photographer: string
-      photographerUrl?: string
-      width: number
-      height: number
-      imageUrl: string
-      duration?: number
-      query: string
-      variants: Array<{
-        label?: string
-        quality?: string
-        fileType?: string
-        url: string
-        width?: number
-        height?: number
-      }>
-    }
-  >()
+  private pexelsCandidates = new Map<string, PexelsCandidate>()
+  private agentStateFileTrusted = false
+  private persistAgentStateEnabled = true
 
   private assetLookup = new Map<string, { asset: AssetRecord; beat: VisualBeat }>()
 
@@ -263,6 +270,7 @@ export class AgentRunner extends EventEmitter {
         await ManifestWriter.flushPendingWrites(this.projectDir)
       }
       await this.saveRegistry()
+      await this.writeAgentState()
       await this.writeManifest(true)
       this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
     }
@@ -371,9 +379,6 @@ export class AgentRunner extends EventEmitter {
       if (manifest.visualConcept) {
         this.input.visualConcept = manifest.visualConcept
       }
-      if (manifest.pexelsCandidates) {
-        this.pexelsCandidates = new Map(manifest.pexelsCandidates)
-      }
       if (manifest.beats && manifest.beats.length > 0) {
         this.beats = (manifest.beats as VisualBeat[]).map((beat: VisualBeat) => {
           // Reset any beat stuck in downloading/searching/selecting back to a clean state
@@ -398,9 +403,8 @@ export class AgentRunner extends EventEmitter {
         this.log('info', `Loaded ${this.beats.length} beats from existing manifest.`)
       }
 
-      if (manifest.messages) {
-        this.messages = manifest.messages as AgentMessage[]
-      }
+      await this.loadAgentState(manifest)
+      await this.writeAgentState()
 
       // Load logs
       try {
@@ -439,6 +443,42 @@ export class AgentRunner extends EventEmitter {
       this.rebuildAssetLookup()
     } catch {
       // Manifest doesn't exist yet, which is normal for new runs
+    }
+  }
+
+  /**
+   * Conversation state (messages + Pexels candidate index) is persisted to a
+   * dedicated file so it is not rewritten with manifest.json on every download
+   * progress tick, which would serialize megabytes on a hot path.
+   */
+  private async loadAgentState(manifest: Record<string, unknown>): Promise<void> {
+    if (!this.projectDir) return
+
+    const loaded = await loadAgentConversationState(this.projectDir, manifest)
+    this.persistAgentStateEnabled = loaded.persistToAgentStateFile
+    this.agentStateFileTrusted = loaded.source === 'agent-state'
+
+    if (Array.isArray(loaded.messages)) {
+      this.messages = loaded.messages as AgentMessage[]
+    }
+    if (Array.isArray(loaded.pexelsCandidates)) {
+      this.pexelsCandidates = new Map(loaded.pexelsCandidates as Array<[string, PexelsCandidate]>)
+    }
+  }
+
+  private async writeAgentState(): Promise<boolean> {
+    if (!this.projectDir || !this.persistAgentStateEnabled) return false
+    try {
+      await persistAgentConversationState(
+        this.projectDir,
+        this.messages,
+        Array.from(this.pexelsCandidates.entries())
+      )
+      this.agentStateFileTrusted = true
+      return true
+    } catch (err) {
+      console.error('Failed to write agent state file:', err)
+      return false
     }
   }
 
@@ -518,6 +558,7 @@ export class AgentRunner extends EventEmitter {
     }
     if (!this.activePromise) {
       await this.saveRegistry()
+      await this.writeAgentState()
       await this.writeManifest()
     }
     this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
@@ -557,6 +598,7 @@ export class AgentRunner extends EventEmitter {
     }
     if (!this.activePromise) {
       await this.saveRegistry()
+      await this.writeAgentState()
       await this.writeManifest()
     }
     this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
@@ -651,10 +693,14 @@ export class AgentRunner extends EventEmitter {
       // Prefer beat-level records so counts survive resume with a fresh downloader.
       assets: completedAssets,
       failures: failedAssets,
-      messages: this.messages,
-      pexelsCandidates: Array.from(this.pexelsCandidates.entries()),
+      sourceDocsCheckedAt: new Date().toISOString(),
       attribution: buildManifestAttribution(allAssetSnapshots),
       pexelsQuotaSnapshot: PexelsClient.getQuotaSnapshot() || undefined
+    }
+
+    if (shouldEmbedConversationInManifest(this.agentStateFileTrusted)) {
+      manifest.messages = this.messages
+      manifest.pexelsCandidates = Array.from(this.pexelsCandidates.entries())
     }
 
     if (immediate) {
@@ -855,7 +901,7 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
           {
             model: this.modelId,
             systemPrompt,
-            messages: this.messages,
+            messages: compactToolResultsForProvider(this.messages),
             tools,
             toolChoice: 'auto',
             temperature: 0.3,
@@ -1010,6 +1056,8 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
           }
         }
       }
+
+      await this.writeAgentState()
     }
 
     if (iteration >= this.maxIterations) {

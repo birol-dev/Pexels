@@ -28,8 +28,11 @@ export interface ManifestData {
   beats: unknown[]
   assets: unknown[]
   failures: unknown[]
+  // Kept until agent-state.json has been written successfully so a crash
+  // between the two files cannot drop conversation / candidate state.
   messages?: unknown[]
   pexelsCandidates?: Array<[string, unknown]>
+  sourceDocsCheckedAt?: string
   attribution?: PexelsManifestAttribution
   pexelsQuotaSnapshot?: {
     limit: number

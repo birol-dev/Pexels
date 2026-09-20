@@ -36,6 +36,7 @@ $RECYCLE.BIN/
 # Editor and local IDE
 .idea/
 .cursor/
+.commandcode/
 .vscode/*.local.json
 *.swp
 *.swo
@@ -54,3 +55,11 @@ stitch_pexels_final/
 *.tmp
 *.temp
 *.bak
+
+# --- auto-added by cleanup (missing patterns) ---
+.next/
+.open-next/
+.turbo/
+.vercel/
+.venv/
+.opencode/

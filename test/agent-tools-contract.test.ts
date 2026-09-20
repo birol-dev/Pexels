@@ -4,6 +4,7 @@ import {
   SearchPexelsPhotosArgsSchema,
   SearchPexelsVideosArgsSchema,
   SelectAssetsForDownloadArgsSchema,
+  DownloadSelectedAssetsArgsSchema,
   areAllBeatsDownloaded
 } from '../src/main/services/agent/tool-schemas.ts'
 
@@ -147,6 +148,34 @@ describe('Agent Tools Contract & Validation', () => {
           { status: 'downloading', assets: [{ status: 'completed' }] }
         ]),
         false
+      )
+    })
+  })
+
+  describe('download_selected_assets validation', () => {
+    it('accepts a valid asset id list', () => {
+      const parsed = DownloadSelectedAssetsArgsSchema.parse({
+        assetIds: [
+          { assetType: 'photo', pexelsId: 11 },
+          { assetType: 'video', pexelsId: 22 }
+        ]
+      })
+      assert.equal(parsed.assetIds.length, 2)
+      assert.equal(parsed.assetIds[0].pexelsId, 11)
+    })
+
+    it('defaults to an empty list when assetIds is omitted', () => {
+      const parsed = DownloadSelectedAssetsArgsSchema.parse({})
+      assert.deepEqual(parsed.assetIds, [])
+    })
+
+    it('rejects non-positive pexels ids', () => {
+      assert.throws(
+        () =>
+          DownloadSelectedAssetsArgsSchema.parse({
+            assetIds: [{ assetType: 'photo', pexelsId: 0 }]
+          }),
+        /too_small/
       )
     })
   })

@@ -1,7 +1,7 @@
 import * as electron from 'electron'
-import { dirname, join } from 'path'
-import { promises as fs } from 'fs'
+import { join } from 'path'
 import os from 'os'
+import { loadRecoverableJson, writeJsonAtomic } from './state-file-recovery.ts'
 
 export interface PublicSettings {
   llmProvider: 'openai' | 'openrouter' | 'gemini'
@@ -74,23 +74,20 @@ export class SettingsStore {
 
     const filePath = getSettingsFile()
     const fallback = getDefaultSettings()
-    try {
-      const data = await fs.readFile(filePath, 'utf-8')
-      const parsed = JSON.parse(data)
-      this.cachedSettings = {
-        ...fallback,
-        ...(parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {})
-      }
-    } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code
-      if (code === 'ENOENT') {
-        this.cachedSettings = { ...fallback }
-      } else {
-        throw error
-      }
+    const result = await loadRecoverableJson<Record<string, unknown>>(
+      filePath,
+      (value): value is Record<string, unknown> =>
+        Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+    )
+    if (result.status === 'unavailable') {
+      throw result.error
+    }
+    this.cachedSettings = {
+      ...fallback,
+      ...(result.status === 'ok' ? (result.value as Partial<PublicSettings>) : {})
     }
 
-    return this.cachedSettings!
+    return this.cachedSettings
   }
 
   public static async updateSettings(updates: Partial<PublicSettings>): Promise<PublicSettings> {
@@ -101,10 +98,7 @@ export class SettingsStore {
       .then(async () => {
         const current = await this.getSettings()
         const updated = { ...current, ...updates }
-        const filePath = getSettingsFile()
-
-        await fs.mkdir(dirname(filePath), { recursive: true })
-        await fs.writeFile(filePath, JSON.stringify(updated, null, 2), 'utf-8')
+        await writeJsonAtomic(getSettingsFile(), updated)
         this.cachedSettings = updated
       })
     await this.writeQueue

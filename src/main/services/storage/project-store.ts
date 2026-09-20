@@ -1,6 +1,6 @@
 import { app } from 'electron'
-import { dirname, join } from 'path'
-import { promises as fs } from 'fs'
+import { join } from 'path'
+import { loadRecoverableJson, writeJsonAtomic } from './state-file-recovery.ts'
 
 export interface JobSummary {
   jobId: string
@@ -29,22 +29,16 @@ export class ProjectStore {
   private static async readProjectsFile(): Promise<JobSummary[]> {
     if (this.cachedProjects) return this.cachedProjects
     const filePath = getProjectsFile()
-    try {
-      const data = await fs.readFile(filePath, 'utf-8')
-      const parsed = JSON.parse(data)
-      this.cachedProjects = Array.isArray(parsed) ? parsed : []
-    } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code
-      // Missing file is a normal first-run state. Any other I/O or parse
-      // failure must surface — treating it as [] would overwrite real data
-      // on the next successful save.
-      if (code === 'ENOENT') {
-        this.cachedProjects = []
-      } else {
-        throw error
-      }
+    const result = await loadRecoverableJson(filePath, (value): value is JobSummary[] =>
+      Array.isArray(value)
+    )
+    if (result.status === 'unavailable') {
+      // Transient I/O must surface. Treating it as [] would overwrite a live
+      // registry on the next successful save.
+      throw result.error
     }
-    return this.cachedProjects!
+    this.cachedProjects = result.status === 'ok' ? result.value : []
+    return this.cachedProjects
   }
 
   private static enqueueWrite(op: () => Promise<void>): Promise<void> {
@@ -59,10 +53,7 @@ export class ProjectStore {
   private static async persistProjects(projects: JobSummary[]): Promise<void> {
     const filePath = getProjectsFile()
     const snapshot = projects.map((p) => ({ ...p }))
-    await fs.mkdir(dirname(filePath), { recursive: true })
-    const tempPath = `${filePath}.tmp`
-    await fs.writeFile(tempPath, JSON.stringify(snapshot, null, 2), 'utf-8')
-    await fs.rename(tempPath, filePath)
+    await writeJsonAtomic(filePath, snapshot)
     this.cachedProjects = snapshot
   }
 
