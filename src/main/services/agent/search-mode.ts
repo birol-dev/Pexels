@@ -27,7 +27,12 @@ export type BuildStockScoutSystemPromptInput = {
   maxTotalDownloads: number
   skipExplicit: boolean
   avoidPeople: boolean
-  beats: SystemPromptBeat[]
+}
+
+export type BeatCatalogItem = {
+  id: string
+  text?: string
+  visualPrompt: string
 }
 
 export function buildStockScoutSystemPrompt(input: BuildStockScoutSystemPromptInput): string {
@@ -80,17 +85,9 @@ Script configuration:
 - Max assets per beat: ${input.maxAssetsPerBeat}
 - Max total downloads allowed: ${input.maxTotalDownloads}
 - Safety controls: ${input.skipExplicit ? 'Skip explicit/adult keywords.' : 'No strict content filtering.'} ${input.avoidPeople ? 'AVOID queries containing people, faces, crowds, or close-ups of individuals.' : ''}
-Here is the parsed list of visual beats:
-${JSON.stringify(
-  input.beats.map((b) => ({
-    id: b.id,
-    visualPrompt: b.visualPrompt,
-    status: b.status,
-    assets: b.assets.map((a) => ({ id: a.id, type: a.type, status: a.status }))
-  })),
-  null,
-  2
-)}
+
+The visual beat catalog is provided in the first user message and does not change during the job.
+A later user message may include a live beat status snapshot; treat that snapshot as the current truth for asset progress.
 
 Your workflow:
 1. For each beat, call Pexels search tools ('search_pexels_photos' or 'search_pexels_videos') to look for matching items. Use simple keyword queries matching the beat's visualPrompt.
@@ -120,6 +117,41 @@ export function getBeatsNeedingBroaderSearch(beats: BroadNudgeBeat[]): BroadNudg
     const uniqueQueries = new Set((b.searchQueries || []).map((q) => q.trim().toLowerCase()))
     return uniqueQueries.size <= 1
   })
+}
+
+export function buildBeatCatalogUserContent(beats: BeatCatalogItem[]): string {
+  const catalog = beats.map((beat) => ({
+    id: beat.id,
+    text: beat.text,
+    visualPrompt: beat.visualPrompt
+  }))
+  return `Visual beat catalog (stable for this job):
+${JSON.stringify(catalog, null, 2)}`
+}
+
+export function buildLiveBeatStatusUserContent(beats: SystemPromptBeat[]): string {
+  const snapshot = beats.map((beat) => ({
+    id: beat.id,
+    status: beat.status,
+    assets: beat.assets.map((asset) => ({
+      id: asset.id,
+      type: asset.type,
+      status: asset.status
+    }))
+  }))
+  return `Live beat status snapshot (variable; prefer this over earlier status):
+${JSON.stringify(snapshot, null, 2)}`
+}
+
+export function messagesWithCacheStablePrefix<T extends { role: string; content: string | null }>(
+  conversation: T[],
+  beats: Array<BeatCatalogItem & SystemPromptBeat>
+): Array<T | { role: 'user'; content: string }> {
+  return [
+    { role: 'user', content: buildBeatCatalogUserContent(beats) },
+    ...conversation,
+    { role: 'user', content: buildLiveBeatStatusUserContent(beats) }
+  ]
 }
 
 export function buildBroadSearchNudgeMessage(beats: BroadNudgeBeat[]): string | null {

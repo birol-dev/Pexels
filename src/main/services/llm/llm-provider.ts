@@ -32,6 +32,8 @@ export interface LlmToolTurnInput {
   temperature: number
   maxOutputTokens: number
   abortSignal?: AbortSignal
+  /** OpenRouter sticky-routing / prompt-cache key. Ignored by other providers. */
+  sessionId?: string
 }
 
 export interface LlmToolTurnResult {
@@ -56,6 +58,7 @@ export interface ProviderTestResult {
 }
 
 import { llmFetch } from './llm-fetch.ts'
+import { applyOpenRouterPromptCache } from './openrouter-cache.ts'
 
 export interface LlmProvider {
   id: 'openai' | 'openrouter' | 'gemini'
@@ -159,6 +162,7 @@ async function createOpenAiCompatibleToolTurn(
     maxTokensField: 'max_completion_tokens' | 'max_tokens'
     extraHeaders?: Record<string, string>
     rejectErrorField?: boolean
+    promptCache?: boolean
   }
 ): Promise<LlmToolTurnResult> {
   const trimmedKey = credentials.apiKey?.trim() || ''
@@ -191,6 +195,10 @@ async function createOpenAiCompatibleToolTurn(
         function: { name: input.toolChoice.name }
       }
     }
+  }
+
+  if (options.promptCache) {
+    applyOpenRouterPromptCache(payload, input.sessionId)
   }
 
   const response = await llmFetch({
@@ -353,7 +361,8 @@ class OpenRouterProvider implements LlmProvider {
         'HTTP-Referer': 'https://github.com/birol-dev/Pexels',
         'X-Title': 'AI Stock Asset Finder'
       },
-      rejectErrorField: true
+      rejectErrorField: true,
+      promptCache: true
     })
   }
 

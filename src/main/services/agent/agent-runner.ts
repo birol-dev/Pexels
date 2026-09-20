@@ -8,6 +8,10 @@ import { validateDownloadUrl } from '../pexels/download-url-validation.ts'
 import { buildManifestAttribution } from '../pexels/pexels-attribution.ts'
 import { SUBMIT_SCRIPT_BEATS_TOOL, parseBeatsFromToolCall } from '../llm/beat-parse-tool.ts'
 import { expandIdeaToScript } from '../llm/idea-expander.ts'
+import {
+  MIN_LLM_REQUEST_TIMEOUT_SECONDS,
+  resolveLlmRequestTimeoutSeconds
+} from '../llm/llm-timeout.ts'
 import { ApiError } from '../http/api-errors.ts'
 import { createTimeoutLinkedSignal } from '../http/abort-signal.ts'
 import { ManifestWriter, ManifestData } from '../files/manifest-writer.ts'
@@ -37,6 +41,7 @@ import {
   DEFAULT_SEARCH_MODE,
   buildBroadSearchNudgeMessage,
   buildStockScoutSystemPrompt,
+  messagesWithCacheStablePrefix,
   shouldInjectPostToolBroadNudge,
   type SearchMode
 } from './search-mode.ts'
@@ -173,6 +178,7 @@ export class AgentRunner extends EventEmitter {
   private providerId: 'openai' | 'gemini' | 'openrouter' = 'openai'
   private maxIterations = 30
   private requestTimeoutSeconds = 60
+  private llmRequestTimeoutSeconds = MIN_LLM_REQUEST_TIMEOUT_SECONDS
   private safetySettings = {
     skipExplicit: true,
     avoidPeople: false
@@ -209,6 +215,7 @@ export class AgentRunner extends EventEmitter {
     this.providerId = settings.llmProvider
     this.maxIterations = settings.maxAgentIterations
     this.requestTimeoutSeconds = settings.requestTimeoutSeconds
+    this.llmRequestTimeoutSeconds = resolveLlmRequestTimeoutSeconds(settings.requestTimeoutSeconds)
     this.safetySettings = {
       skipExplicit: settings.skipExplicitQueries,
       avoidPeople: settings.avoidPeopleAndFaces
@@ -219,7 +226,7 @@ export class AgentRunner extends EventEmitter {
         (task) => {
           this.handleDownloadProgress(task)
         },
-        settings.requestTimeoutSeconds,
+        this.requestTimeoutSeconds,
         (type, assetId, currentUrl) => this.refreshDownloadUrl(type, assetId, currentUrl)
       )
     }
@@ -736,11 +743,12 @@ export class AgentRunner extends EventEmitter {
       targetDuration: this.input.targetDuration,
       tone: this.input.tone,
       title: this.input.title,
-      timeoutSeconds: this.requestTimeoutSeconds,
+      timeoutSeconds: this.llmRequestTimeoutSeconds,
       providerId: this.providerId,
       modelId: this.modelId,
       apiKey: providerKey,
-      abortSignal: this.abortController?.signal
+      abortSignal: this.abortController?.signal,
+      sessionId: `stockfinder:${this.jobId}`
     })
 
     this.input.script = expanded.script
@@ -788,7 +796,7 @@ For each beat:
 
 Call the submit_script_beats tool once with the complete ordered beats array.`
 
-    const response = await this.executeWithTimeout(this.requestTimeoutSeconds, (signal) =>
+    const response = await this.executeWithTimeout(this.llmRequestTimeoutSeconds, (signal) =>
       provider.createToolTurn(
         {
           model: this.modelId,
@@ -798,7 +806,8 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
           toolChoice: { name: 'submit_script_beats' },
           temperature: 0.2,
           maxOutputTokens: 4000,
-          abortSignal: signal
+          abortSignal: signal,
+          sessionId: `stockfinder:${this.jobId}`
         },
         { apiKey: providerKey }
       )
@@ -851,13 +860,7 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
       maxAssetsPerBeat: this.input.maxAssetsPerBeat,
       maxTotalDownloads: this.input.maxTotalDownloads,
       skipExplicit: this.safetySettings.skipExplicit,
-      avoidPeople: this.safetySettings.avoidPeople,
-      beats: this.beats.map((b) => ({
-        id: b.id,
-        visualPrompt: b.visualPrompt,
-        status: b.status,
-        assets: b.assets.map((a) => ({ id: a.id, type: a.type, status: a.status }))
-      }))
+      avoidPeople: this.safetySettings.avoidPeople
     })
 
     const tools = AGENT_TOOLS
@@ -896,17 +899,27 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
         this.loopProgress()
       )
 
-      const turnResult = await this.executeWithTimeout(this.requestTimeoutSeconds, (signal) =>
+      const turnResult = await this.executeWithTimeout(this.llmRequestTimeoutSeconds, (signal) =>
         provider.createToolTurn(
           {
             model: this.modelId,
             systemPrompt,
-            messages: compactToolResultsForProvider(this.messages),
+            messages: messagesWithCacheStablePrefix(
+              compactToolResultsForProvider(this.messages),
+              this.beats.map((b) => ({
+                id: b.id,
+                text: b.text,
+                visualPrompt: b.visualPrompt,
+                status: b.status,
+                assets: b.assets.map((a) => ({ id: a.id, type: a.type, status: a.status }))
+              }))
+            ),
             tools,
             toolChoice: 'auto',
             temperature: 0.3,
             maxOutputTokens: 2000,
-            abortSignal: signal
+            abortSignal: signal,
+            sessionId: `stockfinder:${this.jobId}`
           },
           { apiKey: providerKey }
         )

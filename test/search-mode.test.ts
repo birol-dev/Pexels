@@ -4,9 +4,12 @@ import { z } from 'zod'
 import {
   BROAD_SEARCH_GUIDANCE,
   DEFAULT_SEARCH_MODE,
+  buildBeatCatalogUserContent,
   buildBroadSearchNudgeMessage,
+  buildLiveBeatStatusUserContent,
   buildStockScoutSystemPrompt,
   getBeatsNeedingBroaderSearch,
+  messagesWithCacheStablePrefix,
   resolveSearchModeFromSnapshot,
   shouldInjectPostToolBroadNudge
 } from '../src/main/services/agent/search-mode.ts'
@@ -77,15 +80,7 @@ describe('StockScout system prompt search modes', () => {
     maxAssetsPerBeat: 3,
     maxTotalDownloads: 15,
     skipExplicit: true,
-    avoidPeople: false,
-    beats: [
-      {
-        id: 'beat_1',
-        visualPrompt: 'ocean sunrise',
-        status: 'pending',
-        assets: [] as Array<{ id: string; type: string; status: string }>
-      }
-    ]
+    avoidPeople: false
   }
 
   it('Focused prompt surfaces mode and does not include Broad guidance block', () => {
@@ -113,6 +108,52 @@ describe('StockScout system prompt search modes', () => {
       avoidPeople: true
     })
     assert.match(prompt, /AVOID queries containing people/)
+  })
+
+  it('keeps the system prompt identical when only live beat status changes', () => {
+    const first = buildStockScoutSystemPrompt({ ...promptInput, searchMode: 'focused' })
+    const second = buildStockScoutSystemPrompt({ ...promptInput, searchMode: 'focused' })
+    assert.equal(first, second)
+    assert.equal(first.includes('"status": "completed"'), false)
+    assert.equal(first.includes('ocean sunrise'), false)
+    assert.match(first, /visual beat catalog is provided in the first user message/)
+  })
+})
+
+describe('cache-stable beat catalog vs live status', () => {
+  const pendingBeat = {
+    id: 'beat_1',
+    text: 'A calm ocean at sunrise.',
+    visualPrompt: 'ocean sunrise',
+    status: 'pending',
+    assets: [] as Array<{ id: string; type: string; status: string }>
+  }
+  const completedBeat = {
+    ...pendingBeat,
+    status: 'completed',
+    assets: [{ id: 'video_1', type: 'video', status: 'completed' }]
+  }
+
+  it('keeps catalog text stable while status snapshots change', () => {
+    assert.equal(
+      buildBeatCatalogUserContent([pendingBeat]),
+      buildBeatCatalogUserContent([completedBeat])
+    )
+    assert.match(buildBeatCatalogUserContent([pendingBeat]), /ocean sunrise/)
+    assert.equal(buildBeatCatalogUserContent([pendingBeat]).includes('"status"'), false)
+    assert.match(buildLiveBeatStatusUserContent([completedBeat]), /"status": "completed"/)
+    assert.equal(buildLiveBeatStatusUserContent([completedBeat]).includes('ocean sunrise'), false)
+  })
+
+  it('puts the catalog before conversation and live status after it', () => {
+    const messages = messagesWithCacheStablePrefix(
+      [{ role: 'user' as const, content: 'Begin searching' }],
+      [completedBeat]
+    )
+    assert.equal(messages.length, 3)
+    assert.match(messages[0].content || '', /Visual beat catalog/)
+    assert.equal(messages[1].content, 'Begin searching')
+    assert.match(messages[2].content || '', /Live beat status snapshot/)
   })
 })
 

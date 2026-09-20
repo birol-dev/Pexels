@@ -263,10 +263,11 @@ export function registerJobsHandlers(): void {
       targetDuration: input.targetDuration,
       tone: input.tone,
       title: input.title,
-      timeoutSeconds: settings.requestTimeoutSeconds || 60,
+      timeoutSeconds: settings.requestTimeoutSeconds,
       providerId,
       modelId,
-      apiKey: providerKey
+      apiKey: providerKey,
+      sessionId: 'stockfinder:expand'
     })
   })
 

@@ -111,6 +111,8 @@ describe('OpenAiProvider', () => {
     assert.equal(capturedPayload?.model, 'gpt-4o')
     assert.equal(capturedPayload?.max_completion_tokens, 1000)
     assert.equal(capturedPayload?.max_tokens, undefined)
+    assert.equal(capturedPayload?.cache_control, undefined)
+    assert.equal(capturedPayload?.session_id, undefined)
     const messages = capturedPayload?.messages as Array<{ role: string }>
     assert.equal(messages?.[0]?.role, 'system')
     assert.equal(messages?.[1]?.role, 'user')
@@ -311,6 +313,50 @@ describe('OpenRouterProvider', () => {
     assert.equal(capturedPayload?.max_tokens, 800)
     assert.equal(capturedPayload?.max_completion_tokens, undefined)
     assert.equal(capturedPayload?.model, 'google/gemini-2.5-flash')
+    assert.deepEqual(capturedPayload?.cache_control, { type: 'ephemeral' })
+  })
+
+  it('pins OpenRouter sticky routing with session_id and prompt_cache_key', async () => {
+    let capturedPayload: Record<string, unknown> | null = null
+
+    globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+      capturedPayload = JSON.parse(init?.body as string) as Record<string, unknown>
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          choices: [
+            {
+              message: { content: 'ok', tool_calls: undefined },
+              finish_reason: 'stop'
+            }
+          ]
+        })
+      } as Response
+    }) as typeof globalThis.fetch
+
+    await provider.createToolTurn(
+      {
+        model: 'deepseek/deepseek-v4.1-flash:floor',
+        systemPrompt: 'You are StockScout',
+        messages: [{ role: 'user', content: 'search now' }],
+        tools: sampleTools,
+        toolChoice: 'auto',
+        temperature: 0.2,
+        maxOutputTokens: 800,
+        sessionId: `stockfinder:job_123`
+      },
+      { apiKey: 'sk-or-v1-test' }
+    )
+
+    assert.equal(capturedPayload?.session_id, 'stockfinder:job_123')
+    assert.equal(capturedPayload?.prompt_cache_key, 'stockfinder:job_123')
+    assert.deepEqual(capturedPayload?.cache_control, { type: 'ephemeral' })
+    const messages = capturedPayload?.messages as Array<{ role: string; content: string }>
+    assert.equal(messages?.[0]?.role, 'system')
+    assert.equal(messages?.[0]?.content, 'You are StockScout')
+    assert.equal(messages?.[1]?.content, 'search now')
   })
 })
 

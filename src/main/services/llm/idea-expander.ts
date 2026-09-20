@@ -1,6 +1,7 @@
 import { LlmProviderFactory } from './llm-provider.ts'
 import type { NormalizedToolDefinition } from './llm-provider.ts'
 import { createTimeoutLinkedSignal } from '../http/abort-signal.ts'
+import { resolveLlmRequestTimeoutSeconds } from './llm-timeout.ts'
 
 export interface ExpandedScriptResult {
   title?: string
@@ -21,6 +22,7 @@ export interface ExpandIdeaParams {
   modelId: string
   apiKey: string
   abortSignal?: AbortSignal
+  sessionId?: string
 }
 
 export const SUBMIT_EXPANDED_SCRIPT_TOOL: NormalizedToolDefinition = {
@@ -122,7 +124,7 @@ export function parseFallbackExpandedScript(rawText: string): ExpandedScriptResu
 export async function expandIdeaToScript(params: ExpandIdeaParams): Promise<ExpandedScriptResult> {
   const providerId = params.providerId || 'openai'
   const modelId = params.modelId || 'gpt-4o'
-  const timeoutSeconds = params.timeoutSeconds || 60
+  const timeoutSeconds = resolveLlmRequestTimeoutSeconds(params.timeoutSeconds)
   const apiKey = params.apiKey
 
   if (!apiKey) {
@@ -160,12 +162,6 @@ Your mission is to take a creator's short idea, topic, or premise and expand it 
 2. A clear visual concept strategy optimized for stock footage curation on Pexels.
 3. A catchy, high-CTR video title.
 
-Format and Pacing Guidelines:
-- Platform: ${platform} (${isVertical ? 'Vertical 9:16 format — fast hook in first 3 seconds, high retention flow, vivid visual cues' : 'Horizontal 16:9 format — clear narrative progression, immersive pacing'})
-- Visual Mood/Style: ${style}
-- Target Duration: ${targetDuration} (${wordGuidance})
-- Narrative Tone: ${tone}
-
 Scriptwriting Rules:
 - Write natural spoken English meant to be read as a voiceover narration.
 - Do NOT include bracketed video directions or timestamps inside the "script" field (e.g. do NOT write "[Cut to drone shot]" or "0:05"). Put purely the spoken voiceover text in "script" so it can be cleanly broken into visual beats.
@@ -174,7 +170,13 @@ Scriptwriting Rules:
 
 Call the submit_expanded_script tool once with the complete output.`
 
-  const userPrompt = `Video Idea / Topic:
+  const userPrompt = `Format and Pacing Guidelines:
+- Platform: ${platform} (${isVertical ? 'Vertical 9:16 format — fast hook in first 3 seconds, high retention flow, vivid visual cues' : 'Horizontal 16:9 format — clear narrative progression, immersive pacing'})
+- Visual Mood/Style: ${style}
+- Target Duration: ${targetDuration} (${wordGuidance})
+- Narrative Tone: ${tone}
+
+Video Idea / Topic:
 "${params.idea}"
 ${params.title ? `Working Title: "${params.title}"` : ''}
 
@@ -192,7 +194,8 @@ Please expand this idea into a full narration script and visual strategy.`
         toolChoice: { name: 'submit_expanded_script' },
         temperature: 0.7,
         maxOutputTokens: 3000,
-        abortSignal: signal
+        abortSignal: signal,
+        sessionId: params.sessionId
       },
       { apiKey }
     )

@@ -540,9 +540,15 @@ export default function SettingsView(): React.JSX.Element {
           {/* Slider 3: Request Timeout (Secs) */}
           <div className="flex flex-col gap-3">
             <div className="flex justify-between items-center">
-              <label className="font-label-sm text-label-sm text-ink-black uppercase">
-                Request Timeout (Secs)
-              </label>
+              <div>
+                <label className="font-label-sm text-label-sm text-ink-black uppercase">
+                  Request Timeout (Secs)
+                </label>
+                <div className="text-[10px] text-risograph-gray select-none">
+                  Pexels searches use this value. LLM replies wait at least 3 minutes because slower
+                  OpenRouter models can keep generating after 60s.
+                </div>
+              </div>
               <span className="font-mono text-electric-purple font-bold">
                 {localSettings.requestTimeoutSeconds}
               </span>
@@ -550,7 +556,7 @@ export default function SettingsView(): React.JSX.Element {
             <input
               type="range"
               min="10"
-              max="180"
+              max="600"
               step="5"
               value={localSettings.requestTimeoutSeconds}
               onChange={(e) => {

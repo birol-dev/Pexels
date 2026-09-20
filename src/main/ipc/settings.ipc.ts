@@ -12,7 +12,7 @@ const SettingsUpdateSchema = z.object({
   downloadFolder: z.string().optional(),
   maxConcurrentDownloads: z.number().min(1).max(10).optional(),
   maxAgentIterations: z.number().min(5).max(50).optional(),
-  requestTimeoutSeconds: z.number().min(10).max(180).optional(),
+  requestTimeoutSeconds: z.number().min(10).max(600).optional(),
   requestsPerMinute: z.number().min(0).max(300).optional(),
   skipExplicitQueries: z.boolean().optional(),
   requireApprovalBeforeDownload: z.boolean().optional(),
