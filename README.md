@@ -8,7 +8,7 @@ StockFinder AI is a free, open-source desktop app for YouTube creators, short-fo
 
 [![Website](https://img.shields.io/badge/website-stockfinderai.birol.tech-05df72)](https://stockfinderai.birol.tech)
 [![Developer](https://img.shields.io/badge/developer-birol.tech-purple)](https://birol.tech)
-[![Version](https://img.shields.io/badge/version-1.3.1-cyber)](https://github.com/birol-dev/Pexels/releases)
+[![Version](https://img.shields.io/badge/version-1.3.2-cyber)](https://github.com/birol-dev/Pexels/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](#download)
 [![License](https://img.shields.io/badge/license-Open%20Source-blue)](https://github.com/birol-dev/Pexels)
 
@@ -179,6 +179,12 @@ StockFinder AI is created and maintained by [Birol](https://birol.tech).
 ---
 
 ## Changelog
+
+### v1.3.2 - DeepSeek Reasoning Budget (2026-09-20)
+
+- **Reasoning vs tool calls**: OpenRouter DeepSeek V4.1 Flash defaults to high reasoning, which spent the whole 4,000-token cap thinking (`finish_reason: length`) and never called `submit_script_beats`. Structured turns now send `reasoning.enabled=false` / `effort=low`.
+- **32,768 output tokens**: Beat parsing, idea expand, and agent turns use the completion budget OpenRouter documents for reasoning models (`max_tokens` covers thinking + visible tokens).
+- **10-minute LLM wait**: LLM replies wait at least 600 seconds so a full 32k generation on a ~60 tok/s OpenRouter route can finish. Pexels still uses the timeout slider.
 
 ### v1.3.1 - LLM Timeout Floor & OpenRouter Cache (2026-09-20)
 
