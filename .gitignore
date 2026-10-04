@@ -63,3 +63,6 @@ stitch_pexels_final/
 .vercel/
 .venv/
 .opencode/
+
+# Wrangler local state
+.wrangler/

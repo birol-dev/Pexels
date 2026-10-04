@@ -24,7 +24,9 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "npm run build && electron-builder --mac",
-    "build:linux": "npm run build && electron-builder --linux AppImage deb"
+    "build:linux": "npm run build && electron-builder --linux AppImage deb",
+    "site:dev": "npx wrangler dev",
+    "site:deploy": "node website/validate-seo.js && npx wrangler deploy"
   },
   "dependencies": {
     "@electron-toolkit/utils": "^4.0.0",
