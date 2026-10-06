@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useAppStore, PublicSettings } from '../lib/store'
 import { api } from '../lib/api-client'
-import { BrandLogo } from '../components/BrandLogo'
+import { BrandLogo } from '@renderer/components/common/BrandLogo'
 
 // SVGs for the Providers
 const OpenAIIcon = (): React.JSX.Element => (

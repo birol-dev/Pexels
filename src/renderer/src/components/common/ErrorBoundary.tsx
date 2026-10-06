@@ -1,4 +1,6 @@
 import React from 'react'
+import { WarningCircleIcon } from '@phosphor-icons/react'
+import { Button } from '@renderer/components/ui/button'
 
 interface Props {
   children: React.ReactNode
@@ -23,20 +25,22 @@ export default class ErrorBoundary extends React.Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="flex h-screen items-center justify-center bg-black p-8">
-          <div className="max-w-md text-center flex flex-col items-center gap-4">
-            <span className="material-symbols-outlined text-[64px] text-error">error</span>
-            <h1 className="font-headline-lg text-headline-lg text-paper-white uppercase">
+          <div className="flex max-w-md flex-col items-center gap-4 text-center">
+            <WarningCircleIcon size={64} className="text-error" />
+            <h1 className="font-headline-lg text-headline-lg uppercase text-paper-white">
               Something went wrong
             </h1>
             <p className="font-body-md text-body-md text-risograph-gray">
               {this.state.error?.message || 'An unexpected error occurred.'}
             </p>
-            <button
+            <Button
+              variant="secondary"
+              size="lg"
+              className="mt-4 uppercase"
               onClick={() => this.setState({ hasError: false, error: undefined })}
-              className="btn-secondary rounded-DEFAULT px-6 py-3 mt-4"
             >
-              <span className="font-label-sm text-label-sm uppercase">Try again</span>
-            </button>
+              Try again
+            </Button>
           </div>
         </div>
       )

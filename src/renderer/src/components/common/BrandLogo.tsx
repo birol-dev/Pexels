@@ -1,6 +1,7 @@
 import React from 'react'
-import brandLogoFull from '../assets/brand/stockfinder-logo.png'
-import brandIconSquare from '../assets/brand/stockfinder-icon.png'
+import { cn } from '@renderer/lib/utils'
+import brandLogoFull from '@renderer/assets/brand/stockfinder-logo.png'
+import brandIconSquare from '@renderer/assets/brand/stockfinder-icon.png'
 
 type BrandLogoSize = 'sm' | 'md' | 'lg' | 'xl'
 
@@ -28,25 +29,28 @@ const iconSizeClass: Record<BrandLogoSize, string> = {
 export function BrandLogo({
   variant = 'lockup',
   size = 'md',
-  className = '',
+  className,
   alt = 'StockFinder AI'
 }: BrandLogoProps): React.JSX.Element {
   if (variant === 'icon') {
-    const iconClass = `${iconSizeClass[size]} shrink-0 object-contain brand-logo-stroke`
     return (
       <img
         src={brandIconSquare}
         alt={alt}
-        className={`${iconClass} ${className}`}
+        className={cn(iconSizeClass[size], 'shrink-0 object-contain brand-logo-stroke', className)}
         draggable={false}
       />
     )
   }
 
-  const logoClass = `${fullSizeClass[size]} shrink-0 object-contain brand-logo-stroke`
   return (
-    <div className={`flex items-center shrink-0 ${className}`}>
-      <img src={brandLogoFull} alt={alt} className={logoClass} draggable={false} />
+    <div className={cn('flex items-center shrink-0', className)}>
+      <img
+        src={brandLogoFull}
+        alt={alt}
+        className={cn(fullSizeClass[size], 'shrink-0 object-contain brand-logo-stroke')}
+        draggable={false}
+      />
     </div>
   )
 }

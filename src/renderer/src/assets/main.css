@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
@@ -139,6 +140,20 @@
   --color-steel-secondary: var(--steel-secondary-color);
   --color-paper-white: var(--paper-white-color);
   --color-ink-black: var(--ink-black-color);
+
+  /* shadcn/ui token mapping (resolved against the active theme) */
+  --color-foreground: var(--color-on-surface);
+  --color-card: var(--color-surface-container-low);
+  --color-card-foreground: var(--color-on-surface);
+  --color-popover: var(--color-surface-container-high);
+  --color-popover-foreground: var(--color-on-surface);
+  --color-primary-foreground: var(--color-on-primary);
+  --color-secondary-foreground: var(--color-on-secondary);
+  --color-muted: var(--color-surface-container);
+  --color-muted-foreground: var(--color-outline);
+  --color-accent: var(--color-surface-container-highest);
+  --color-accent-foreground: var(--color-on-surface);
+  --color-destructive: var(--color-error);
 
   --spacing-grid-margin: 2rem;
   --spacing-component-padding: 1.5rem;
