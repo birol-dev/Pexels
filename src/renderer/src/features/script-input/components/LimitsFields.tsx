@@ -28,9 +28,7 @@ function LimitSlider({
         <FieldLabel id={`${id}-label`} className="mb-0">
           {label}
         </FieldLabel>
-        <span className="font-mono text-sm font-bold text-primary dark:text-cyber-lime">
-          {value}
-        </span>
+        <span className="font-mono text-sm font-bold text-primary">{value}</span>
       </div>
       <Slider
         id={id}

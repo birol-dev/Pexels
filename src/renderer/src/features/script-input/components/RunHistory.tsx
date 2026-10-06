@@ -25,13 +25,13 @@ export function RunHistory(): React.JSX.Element {
   const { jobs, loading, openJob, rerunJob, deleteJob } = useJobHistory()
 
   return (
-    <Card className="gap-0 overflow-hidden rounded-xl border-2 border-ink-black py-0 shadow-none dark:border-surface-variant">
-      <div className="flex items-center justify-between border-b-2 border-ink-black bg-paper-white p-5 dark:border-surface-variant dark:bg-surface-container-lowest">
+    <Card className="gap-0 overflow-hidden rounded-xl border-2 border-edge py-0 shadow-none">
+      <div className="flex items-center justify-between border-b-2 border-edge bg-paper-white p-5 dark:bg-surface-container-lowest">
         <h3 className="flex items-center gap-2 font-title-md text-title-md text-on-surface">
           <ClockCounterClockwiseIcon
             size={28}
             weight="fill"
-            className="rounded bg-ink-black p-1.5 text-cyber-lime"
+            className="rounded bg-black p-1.5 text-cyber-lime"
           />
           Recent Pack Generations
         </h3>
@@ -45,7 +45,7 @@ export function RunHistory(): React.JSX.Element {
       ) : (
         <Table>
           <TableHeader>
-            <TableRow className="border-b-2 border-ink-black bg-surface-container-low dark:border-surface-variant">
+            <TableRow className="border-b-2 border-edge bg-surface-container-low">
               <TableHead className={HEAD_CLASS}>Project Title</TableHead>
               <TableHead className={HEAD_CLASS}>Status</TableHead>
               <TableHead className={HEAD_CLASS}>Assets</TableHead>

@@ -36,7 +36,7 @@ export function PexelsStep({
           label="Pexels API Key"
           htmlFor="onboarding-pexels-key"
           action={
-            <Button asChild variant="link" size="xs" className="h-auto p-0 font-mono text-[10px]">
+            <Button asChild variant="link" size="xs" className="h-auto p-0 font-mono text-xs">
               <a href="https://www.pexels.com/api/" target="_blank" rel="noreferrer">
                 Get Pexels API Key
                 <ArrowSquareOutIcon />
@@ -66,7 +66,7 @@ export function PexelsStep({
 
         <div className="flex items-start gap-3 rounded-lg border border-border bg-surface-container-low/50 p-4">
           <InfoIcon size={20} className="mt-0.5 shrink-0 text-primary" />
-          <p className="text-[11px] leading-relaxed text-on-surface-variant">
+          <p className="text-xs leading-relaxed text-on-surface-variant">
             Your API key is stored locally in your system&apos;s secure keychain. It is strictly
             used to fetch footage directly from Pexels and is never sent to external servers.
           </p>

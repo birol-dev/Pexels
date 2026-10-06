@@ -6,17 +6,15 @@ import { formatLogData, getLogColor } from '../utils'
 export function LogEntry({ log }: { log: AgentLogEvent }): React.JSX.Element {
   return (
     <div className="space-y-1">
-      <div className="flex items-center space-x-2 text-[10px] text-outline border-b border-black/5 dark:border-white/5 pb-1 font-semibold">
+      <div className="flex items-center space-x-2 text-xs text-outline border-b border-border pb-1 font-semibold">
         <span>[{new Date(log.timestamp).toLocaleTimeString()}]</span>
-        <span className="uppercase text-primary dark:text-cyber-lime font-bold">
-          {log.type.replace('_', ' ')}
-        </span>
+        <span className="uppercase text-primary font-bold">{log.type.replace('_', ' ')}</span>
       </div>
-      <div className={cn('leading-relaxed whitespace-pre-wrap text-[11px]', getLogColor(log.type))}>
+      <div className={cn('leading-relaxed whitespace-pre-wrap text-xs', getLogColor(log.type))}>
         {log.message}
       </div>
       {log.data ? (
-        <pre className="bg-surface-container/60 border border-white/50 rounded p-2.5 text-[10px] text-on-surface-variant leading-normal overflow-x-auto whitespace-pre font-mono mt-1.5 max-h-60">
+        <pre className="bg-surface-container/60 border border-border rounded p-2.5 text-xs text-on-surface-variant leading-normal overflow-x-auto whitespace-pre font-mono mt-1.5 max-h-60">
           {formatLogData(log.data)}
         </pre>
       ) : null}

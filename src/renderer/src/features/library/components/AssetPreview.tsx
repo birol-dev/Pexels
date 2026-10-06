@@ -22,9 +22,9 @@ export function AssetPreview({ asset }: { asset: FlatAsset }): React.JSX.Element
           />
         )
       ) : (
-        <div className="flex h-full w-full flex-col items-center justify-center bg-surface-container opacity-60">
+        <div className="flex h-full w-full flex-col items-center justify-center bg-surface-container">
           <ImageBrokenIcon size={36} className="text-muted-foreground" />
-          <span className="mt-1 font-mono text-[10px] font-bold text-muted-foreground">
+          <span className="mt-1 font-mono text-[11px] font-bold text-muted-foreground">
             {asset.status === 'downloading' ? 'File is downloading...' : 'Local file missing'}
           </span>
         </div>

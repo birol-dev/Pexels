@@ -24,28 +24,19 @@ export function SettingsSection({
 }: SettingsSectionProps): React.JSX.Element {
   return (
     <Card
-      className={cn(
-        'gap-5 rounded-md border-2 border-ink-black bg-card py-0 shadow-[4px_4px_0_var(--color-ink-black)]',
-        className
-      )}
+      className={cn('gap-5 rounded-md border-2 border-edge bg-card py-0 shadow-hard', className)}
     >
       <CardContent className={cn('flex flex-1 flex-col gap-5', compact ? 'p-5' : 'p-6')}>
-        <div
-          className={cn(
-            'flex items-center justify-between gap-2',
-            !compact && 'border-b-2 border-ink-black pb-4'
-          )}
-        >
+        <div className="flex items-center justify-between gap-2 border-b-2 border-edge pb-4">
           <h3
             className={cn(
               'flex items-center gap-2 uppercase',
-              compact
-                ? 'font-label-sm text-label-sm text-muted-foreground'
-                : 'font-title-md text-title-md text-foreground'
+              'font-title-md text-foreground',
+              compact ? 'text-base' : 'text-title-md'
             )}
           >
             <IconComponent
-              size={compact ? 18 : 22}
+              size={compact ? 20 : 22}
               weight="bold"
               className={cn(iconClassName)}
               aria-hidden

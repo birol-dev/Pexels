@@ -18,11 +18,11 @@ export function ToggleRow({
 }: ToggleRowProps): React.JSX.Element {
   return (
     <div className="flex items-center justify-between gap-4">
-      <Label htmlFor={id} className="flex cursor-pointer flex-col items-start gap-0.5">
+      <Label htmlFor={id} className="flex cursor-pointer flex-col items-start gap-1">
         <span className="font-body-md text-body-md font-bold leading-tight text-foreground">
           {label}
         </span>
-        <span className="text-[10px] font-normal text-muted-foreground">{description}</span>
+        <span className="text-xs font-normal text-muted-foreground">{description}</span>
       </Label>
       <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} aria-label={label} />
     </div>

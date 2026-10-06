@@ -26,7 +26,7 @@ const MODE_OPTIONS: { value: InputMode; label: React.ReactNode }[] = [
       <>
         <LightbulbIcon size={18} />
         <span>Idea / Concept Mode</span>
-        <Badge className="rounded bg-ink-black px-1.5 font-mono text-[10px] font-bold tracking-tight text-cyber-lime">
+        <Badge className="rounded bg-black px-1.5 font-mono text-[11px] font-bold tracking-tight text-cyber-lime">
           AI WRITER
         </Badge>
       </>
@@ -45,7 +45,7 @@ export function InputModeSwitch({ value, onChange }: InputModeSwitchProps): Reac
         ariaLabel="Input Mode"
         className="gap-2 p-1.5 border-2"
         itemClassName="h-12 rounded-lg font-title-md text-xs font-bold uppercase tracking-wider"
-        activeItemClassName="data-[state=on]:bg-cyber-lime data-[state=on]:text-ink-black"
+        activeItemClassName="data-[state=on]:bg-cyber-lime data-[state=on]:text-on-primary-container"
       />
     </div>
   )

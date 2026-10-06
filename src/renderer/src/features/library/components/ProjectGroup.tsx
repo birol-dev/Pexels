@@ -27,7 +27,7 @@ export function ProjectGroup({
           <h3 className="font-title-md text-[18px] leading-tight font-bold uppercase">
             {project.title}
           </h3>
-          <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+          <p className="mt-1 font-mono text-[11px] text-muted-foreground">
             Project ID: {project.jobId}
           </p>
         </div>

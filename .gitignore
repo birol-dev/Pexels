@@ -66,3 +66,4 @@ stitch_pexels_final/
 
 # Wrangler local state
 .wrangler/
+test-results/

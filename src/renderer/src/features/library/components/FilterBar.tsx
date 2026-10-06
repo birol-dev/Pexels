@@ -46,7 +46,7 @@ export function FilterBar({
           <ToggleGroupItem
             key={option.value}
             value={option.value}
-            className="rounded-sm! font-label-sm text-xs uppercase data-[state=on]:bg-foreground data-[state=on]:font-bold data-[state=on]:text-primary dark:data-[state=on]:bg-primary dark:data-[state=on]:text-primary-foreground"
+            className="rounded-sm! font-label-sm text-xs uppercase"
           >
             {option.label}
           </ToggleGroupItem>

@@ -1,6 +1,5 @@
-import { ArrowRightIcon } from '@phosphor-icons/react'
 import { BrandLogo } from '@renderer/components/common/BrandLogo'
-import { Button } from '@renderer/components/ui/button'
+import { LiquidMetalButton } from '@renderer/components/ui/liquid-metal-button'
 import { StepCard } from './StepCard'
 import { TOTAL_STEPS } from '../utils'
 
@@ -12,7 +11,7 @@ export function WelcomeStep({ onStart }: { onStart: () => void }): React.JSX.Ele
       </div>
 
       <div className="mx-auto flex max-w-md flex-col items-center">
-        <span className="mb-4 font-mono text-[11px] tracking-widest text-primary uppercase opacity-80">
+        <span className="mb-4 font-mono text-[11px] tracking-widest text-primary uppercase">
           Step 1 of {TOTAL_STEPS}
         </span>
         <h2 className="mb-6 text-3xl leading-tight font-extrabold text-on-surface">
@@ -23,10 +22,7 @@ export function WelcomeStep({ onStart }: { onStart: () => void }): React.JSX.Ele
           organized folders in minutes.
         </p>
 
-        <Button size="lg" onClick={onStart} className="px-8 uppercase tracking-wider">
-          Get Started
-          <ArrowRightIcon weight="bold" />
-        </Button>
+        <LiquidMetalButton label="Get Started" onClick={onStart} />
       </div>
     </StepCard>
   )

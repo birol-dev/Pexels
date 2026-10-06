@@ -19,7 +19,7 @@ const STATUS_STYLES: Record<
   },
   completed: {
     label: 'Completed',
-    badge: 'bg-cyber-lime text-ink-black',
+    badge: 'bg-cyber-lime text-on-primary-container',
     dot: 'bg-ink-black'
   },
   failed: {
@@ -40,7 +40,7 @@ export function JobStatusBadge({ status }: { status: JobSummary['status'] }): Re
   return (
     <Badge
       className={cn(
-        'gap-1.5 rounded border-2 border-ink-black px-2.5 py-1 font-label-sm text-[11px] shadow-[2px_2px_0px_var(--color-ink-black)]',
+        'gap-1.5 rounded border-2 border-ink-black px-2.5 py-1 font-label-sm text-[11px] shadow-hard-sm',
         style.badge
       )}
     >

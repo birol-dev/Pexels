@@ -8,7 +8,7 @@ interface AttributionBannerProps {
 
 export function AttributionBanner({ onDismiss }: AttributionBannerProps): React.JSX.Element {
   return (
-    <section className="flex flex-col gap-3 rounded-md border-2 border-border bg-primary/20 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <section className="flex flex-col gap-3 rounded-md border-2 border-edge bg-primary-container/30 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="text-sm text-on-surface">
         <span className="font-bold">Attribution required.</span> Credit photographers and link back
         to{' '}

@@ -13,7 +13,7 @@ export function Field({ label, htmlFor, action, children }: FieldProps): React.J
       <div className="flex items-center justify-between">
         <Label
           htmlFor={htmlFor}
-          className="pl-0.5 font-mono text-[10px] tracking-wider text-on-surface-variant uppercase"
+          className="pl-0.5 font-mono text-[11px] tracking-wider text-on-surface-variant uppercase"
         >
           {label}
         </Label>

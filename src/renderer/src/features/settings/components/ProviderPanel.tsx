@@ -56,10 +56,10 @@ export function ProviderPanel({
     <SettingsSection
       title="AI Provider Configuration"
       icon={CpuIcon}
-      iconClassName="text-electric-purple"
+      iconClassName="text-secondary"
       className={className}
       action={
-        <Badge className="rounded-md border-2 border-ink-black bg-electric-purple font-label-sm text-label-sm uppercase text-paper-white">
+        <Badge className="rounded-md border-2 border-ink-black bg-secondary-container font-label-sm text-label-sm uppercase text-on-secondary-container">
           Active
         </Badge>
       }

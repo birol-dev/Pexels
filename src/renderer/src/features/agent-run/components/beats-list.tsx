@@ -21,12 +21,12 @@ export function BeatsList({
     <div className="col-span-12 xl:col-span-8 flex flex-col gap-6">
       {(job.idea || job.visualConcept) && <ConceptCard job={job} />}
 
-      <h3 className="font-title-md text-title-md text-ink-black dark:text-paper-white border-b-2 border-ink-black dark:border-surface-variant pb-2 inline-block self-start">
+      <h3 className="font-title-md text-title-md text-on-surface border-b-2 border-edge pb-2 inline-block self-start">
         Script Beats
       </h3>
 
       {job.beats.length === 0 ? (
-        <div className="bg-surface border-2 border-ink-black rounded-xl p-12 text-center text-xs text-on-surface-variant font-medium shadow-[4px_4px_0px_var(--color-ink-black)]">
+        <div className="bg-surface border-2 border-ink-black rounded-xl p-12 text-center text-xs text-on-surface-variant font-medium shadow-hard">
           Parsing the script and generating visual scenes. Please wait...
         </div>
       ) : (

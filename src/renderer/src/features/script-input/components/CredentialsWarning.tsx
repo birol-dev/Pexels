@@ -18,7 +18,7 @@ export function CredentialsWarning(): React.JSX.Element | null {
   return (
     <div
       role="alert"
-      className="flex animate-pulse items-center justify-between gap-4 rounded-xl border-2 border-ink-black bg-tertiary-container p-4 font-label-sm text-xs text-on-tertiary-container shadow-[4px_4px_0px_var(--color-ink-black)]"
+      className="flex animate-pulse items-center justify-between gap-4 rounded-xl border-2 border-ink-black bg-tertiary-container p-4 font-label-sm text-xs text-on-tertiary-container shadow-hard"
     >
       <div className="flex items-center gap-3">
         <WarningIcon size={22} weight="fill" className="shrink-0" />

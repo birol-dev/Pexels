@@ -5,12 +5,8 @@ export function PipelineProgress({ progress }: { progress: number }): React.JSX.
   return (
     <section className="mb-gutter px-grid-margin mt-8">
       <div className="flex justify-between items-baseline mb-2">
-        <h3 className="font-title-md text-title-md text-ink-black dark:text-paper-white">
-          Pipeline Status
-        </h3>
-        <span className="font-label-sm text-label-sm text-ink-black dark:text-paper-white font-bold">
-          {progress}%
-        </span>
+        <h3 className="font-title-md text-title-md text-on-surface">Pipeline Status</h3>
+        <span className="font-label-sm text-label-sm text-on-surface font-bold">{progress}%</span>
       </div>
       <Progress
         value={progress}

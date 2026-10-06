@@ -13,9 +13,8 @@ interface SidebarProps {
 }
 
 const NAV_ACTIVE =
-  'bg-primary-container text-on-primary-container border-2 border-ink-black shadow-[4px_4px_0_var(--color-ink-black)] dark:shadow-[4px_4px_0_var(--color-cyber-lime)] -translate-x-0.5 -translate-y-0.5'
-const NAV_IDLE =
-  'text-outline dark:text-steel-secondary hover:bg-surface-variant hover:text-on-surface'
+  'bg-primary-container text-on-primary-container border-2 border-ink-black shadow-hard -translate-x-0.5 -translate-y-0.5'
+const NAV_IDLE = 'text-outline hover:bg-surface-variant hover:text-on-surface'
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps): React.JSX.Element {
   const currentRoute = useAppStore((s) => s.currentRoute)
@@ -51,9 +50,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps): React.JSX.Elemen
           ) : (
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <BrandLogo variant="lockup" size="lg" />
-              <p className="font-label-sm text-label-sm text-outline dark:text-steel-secondary">
-                AI Video Asset Engine
-              </p>
+              <p className="font-label-sm text-label-sm text-outline">AI Video Asset Engine</p>
             </div>
           )}
           <Button
@@ -108,14 +105,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps): React.JSX.Elemen
           {!collapsed && <span>New Project</span>}
         </Button>
         {collapsed ? (
-          <div className="flex select-none flex-col items-center gap-1 text-outline opacity-60 dark:text-steel-secondary">
+          <div className="flex select-none flex-col items-center gap-1 text-outline">
             <TerminalWindowIcon size={18} />
-            <span className="font-mono text-[8px]">v1.0</span>
+            <span className="font-mono text-[11px]">v1.0</span>
           </div>
         ) : (
-          <div className="pt-2 text-center font-mono text-[10px] text-outline opacity-60 dark:text-steel-secondary">
-            v1.0 Industrial
-          </div>
+          <div className="pt-2 text-center font-mono text-[11px] text-outline">v1.0 Industrial</div>
         )}
       </div>
     </aside>

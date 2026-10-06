@@ -31,7 +31,7 @@ export default function SettingsView(): React.JSX.Element {
         <p className="font-body-lg text-body-lg mt-3 max-w-2xl text-muted-foreground">
           Configure generation parameters, API keys, and safety controls for the core engine.
           Changes apply automatically.
-          {form.saving && <span className="ml-2 font-bold text-electric-purple">Saving…</span>}
+          {form.saving && <span className="ml-2 font-bold text-secondary">Saving…</span>}
         </p>
       </header>
 

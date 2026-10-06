@@ -30,7 +30,7 @@ export function StorageStep({
       <FormPanel className="gap-3 text-left">
         <Label
           htmlFor="onboarding-folder-path"
-          className="pl-0.5 font-mono text-[10px] tracking-wider text-on-surface-variant uppercase"
+          className="pl-0.5 font-mono text-xs tracking-wider text-on-surface-variant uppercase"
         >
           Default Storage Path
         </Label>
@@ -56,7 +56,7 @@ export function StorageStep({
 
         <div className="mt-1 flex items-center gap-2 pl-1 text-outline">
           <InfoIcon size={16} />
-          <span className="text-[10px]">Approximately 2.4GB of free space is recommended.</span>
+          <span className="text-xs">Approximately 2.4GB of free space is recommended.</span>
         </div>
       </FormPanel>
 

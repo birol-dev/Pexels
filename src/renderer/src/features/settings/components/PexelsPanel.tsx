@@ -28,7 +28,7 @@ export function PexelsPanel({ settings, form, className }: PexelsPanelProps): Re
     <SettingsSection
       title="Pexels API"
       icon={ImagesIcon}
-      iconClassName="text-cyber-lime"
+      iconClassName="text-primary"
       className={className}
     >
       <p className="font-body-md text-sm text-muted-foreground">

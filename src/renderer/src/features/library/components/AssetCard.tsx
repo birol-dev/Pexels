@@ -14,20 +14,20 @@ interface AssetCardProps {
 function StatusBadge({ status }: { status: FlatAsset['status'] }): React.JSX.Element {
   if (status === 'completed') {
     return (
-      <Badge className="border-2 border-foreground bg-primary text-[10px] font-bold tracking-widest text-primary-foreground uppercase shadow-[2px_2px_0px_#18181B]">
+      <Badge className="border-2 border-foreground bg-primary text-[11px] font-bold tracking-widest text-primary-foreground uppercase shadow-hard-sm">
         Ready
       </Badge>
     )
   }
   if (status === 'failed') {
     return (
-      <Badge className="border-2 border-foreground bg-error-container text-[10px] font-bold tracking-widest text-on-error-container uppercase shadow-[2px_2px_0px_#18181B]">
+      <Badge className="border-2 border-foreground bg-error-container text-[11px] font-bold tracking-widest text-on-error-container uppercase shadow-hard-sm">
         Failed
       </Badge>
     )
   }
   return (
-    <Badge className="animate-pulse border-2 border-foreground bg-muted text-[10px] font-bold tracking-widest text-foreground uppercase shadow-[2px_2px_0px_#18181B]">
+    <Badge className="animate-pulse border-2 border-foreground bg-muted text-[11px] font-bold tracking-widest text-foreground uppercase shadow-hard-sm">
       Active
     </Badge>
   )
@@ -49,7 +49,7 @@ export function AssetCard({ asset, selected, onSelect }: AssetCardProps): React.
         }
       }}
       className={cn(
-        'group relative flex h-[320px] cursor-pointer flex-col overflow-hidden rounded-xl border-2 border-border bg-card shadow-sm transition-all duration-300 hover:scale-[1.01] hover:shadow-[4px_4px_0px_#18181B]',
+        'group relative flex h-[320px] cursor-pointer flex-col overflow-hidden rounded-xl border-2 border-border bg-card shadow-sm transition-all duration-300 hover:scale-[1.01] hover:shadow-hard',
         selected && 'ring-4 ring-secondary'
       )}
     >
@@ -65,7 +65,7 @@ export function AssetCard({ asset, selected, onSelect }: AssetCardProps): React.
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
         {durationStr && (
-          <span className="absolute right-2 bottom-2 rounded border border-white/20 bg-black/80 px-2 py-0.5 font-label-sm text-[10px] text-white">
+          <span className="absolute right-2 bottom-2 rounded border border-white/20 bg-black/80 px-2 py-0.5 font-label-sm text-[11px] text-white">
             {durationStr}
           </span>
         )}

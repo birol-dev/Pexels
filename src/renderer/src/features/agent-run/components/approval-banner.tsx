@@ -15,10 +15,10 @@ export function ApprovalBanner({
   onRejectAll
 }: ApprovalBannerProps): React.JSX.Element {
   return (
-    <div className="mx-grid-margin p-4 border-2 border-ink-black rounded-xl bg-tertiary-container text-on-tertiary-container shadow-[4px_4px_0px_var(--color-ink-black)]">
+    <div className="mx-grid-margin p-4 border-2 border-ink-black rounded-xl bg-tertiary-container text-on-tertiary-container shadow-hard">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <div className="font-bold text-ink-black">Review selected assets before download</div>
+          <div className="font-bold text-on-surface">Review selected assets before download</div>
           <div className="mt-0.5 text-xs font-semibold opacity-90">
             {approvedCount} approved, {rejectedCount} rejected.
           </div>

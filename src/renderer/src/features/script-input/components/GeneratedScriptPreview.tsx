@@ -8,13 +8,13 @@ import { ScriptStats } from './ScriptStats'
 /** Editable preview of the AI-generated narration plus its visual direction. */
 export function GeneratedScriptPreview({ form, update }: FormSectionProps): React.JSX.Element {
   return (
-    <div className="animate-fade-in-up space-y-4 rounded-xl border-2 border-ink-black bg-paper-white p-5 shadow-[4px_4px_0px_var(--color-ink-black)] dark:border-surface-variant dark:bg-surface-container-lowest">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-ink-black pb-3 dark:border-surface-variant">
+    <div className="animate-fade-in-up space-y-4 rounded-xl border-2 border-edge bg-paper-white p-5 shadow-hard dark:bg-surface-container-lowest">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-edge pb-3">
         <div className="flex items-center gap-2">
           <CheckCircleIcon
             size={24}
             weight="fill"
-            className="rounded bg-ink-black p-1 text-cyber-lime"
+            className="rounded bg-black p-1 text-cyber-lime"
           />
           <span className="font-title-md text-xs font-bold uppercase text-on-surface">
             Generated Script Preview
@@ -35,8 +35,8 @@ export function GeneratedScriptPreview({ form, update }: FormSectionProps): Reac
       </div>
 
       {form.visualConcept && (
-        <div className="rounded-lg border-2 border-ink-black bg-surface-container-low p-3 dark:border-surface-variant dark:bg-surface-container-lowest">
-          <span className="mb-1 block font-mono text-[10px] font-bold uppercase text-primary dark:text-cyber-lime">
+        <div className="rounded-lg border-2 border-edge bg-surface-container-low p-3 dark:bg-surface-container-lowest">
+          <span className="mb-1 block font-mono text-[11px] font-bold uppercase text-primary">
             🎬 AI Visual & Media Direction:
           </span>
           <p className="text-xs leading-relaxed text-on-surface">{form.visualConcept}</p>

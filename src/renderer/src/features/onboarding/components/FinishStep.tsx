@@ -20,7 +20,7 @@ export function FinishStep({
     <StepCard centered className="p-8">
       <div className="relative mb-2 flex size-24 items-center justify-center">
         <div className="absolute inset-0 animate-pulse rounded-full bg-primary-container opacity-10 blur-xl" />
-        <div className="animate-float relative z-10 flex size-20 items-center justify-center rounded-full border-2 border-ink-black bg-card dark:border-surface-variant">
+        <div className="animate-float relative z-10 flex size-20 items-center justify-center rounded-full border-2 border-edge bg-card">
           <CheckCircleIcon size={42} weight="fill" className="text-primary" />
         </div>
       </div>

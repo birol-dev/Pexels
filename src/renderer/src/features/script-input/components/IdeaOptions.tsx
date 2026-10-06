@@ -15,7 +15,7 @@ import { FieldHint, FieldLabel } from './FieldLabel'
 /** Target duration and narrative tone controls for the AI scriptwriter. */
 export function IdeaOptions({ form, update }: FormSectionProps): React.JSX.Element {
   return (
-    <div className="grid grid-cols-1 gap-gutter rounded-xl border-2 border-ink-black bg-surface-container-low p-5 shadow-[2px_2px_0px_var(--color-ink-black)] md:grid-cols-2 dark:border-surface-variant dark:bg-surface-container-lowest">
+    <div className="grid grid-cols-1 gap-gutter rounded-xl border-2 border-edge bg-surface-container-low p-5 shadow-hard-sm md:grid-cols-2 dark:bg-surface-container-lowest">
       <div>
         <FieldLabel id="target-duration-label">Target Video Duration</FieldLabel>
         <div
@@ -37,7 +37,7 @@ export function IdeaOptions({ form, update }: FormSectionProps): React.JSX.Eleme
               >
                 <opt.icon size={18} />
                 <span className="text-xs font-bold leading-tight">{opt.label}</span>
-                <span className="font-mono text-[10px] opacity-80">{opt.words}</span>
+                <span className="font-mono text-[11px] ">{opt.words}</span>
               </Button>
             )
           })}

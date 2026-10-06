@@ -22,7 +22,7 @@ export function SettingsField({
         {label}
       </Label>
       {children}
-      {hint && <p className="select-none text-[10px] text-muted-foreground">{hint}</p>}
+      {hint && <p className="select-none text-xs text-muted-foreground">{hint}</p>}
     </div>
   )
 }

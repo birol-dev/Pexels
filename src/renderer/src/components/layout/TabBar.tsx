@@ -65,8 +65,8 @@ export function TabBar(): React.JSX.Element | null {
             className={cn(
               'flex cursor-pointer items-center gap-2 rounded border-2 px-3 py-1.5 font-label-sm text-xs transition-all',
               active
-                ? '-translate-x-px -translate-y-px border-ink-black bg-primary-container text-on-primary-container shadow-[2px_2px_0_var(--color-ink-black)] dark:shadow-[2px_2px_0_var(--color-cyber-lime)]'
-                : 'border-border bg-paper-white text-outline hover:bg-surface-variant hover:text-on-surface dark:bg-surface-container-lowest dark:text-steel-secondary'
+                ? '-translate-x-px -translate-y-px border-ink-black bg-primary-container text-on-primary-container shadow-hard-sm'
+                : 'border-border bg-paper-white text-outline hover:bg-surface-variant hover:text-on-surface dark:bg-surface-container-lowest'
             )}
           >
             <TabIcon size={16} weight={active ? 'fill' : 'regular'} />
@@ -82,7 +82,7 @@ export function TabBar(): React.JSX.Element | null {
                 e.stopPropagation()
                 closeTab(tab.id)
               }}
-              className="flex size-4 cursor-pointer items-center justify-center rounded-full text-outline transition-colors hover:bg-white/20 hover:text-error"
+              className="flex size-4 cursor-pointer items-center justify-center rounded-full text-outline transition-colors hover:bg-foreground/10 hover:text-error"
             >
               <XIcon size={12} weight="bold" />
             </button>

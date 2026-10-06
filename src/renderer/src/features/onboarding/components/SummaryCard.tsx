@@ -31,12 +31,12 @@ export function SummaryCard({
       </div>
       <div className="min-w-0 grow">
         <h4 className="mb-0.5 text-xs font-semibold text-on-surface">{title}</h4>
-        <p className={cn('truncate text-[10px] text-on-surface-variant', mono && 'font-mono')}>
+        <p className={cn('truncate text-xs text-on-surface-variant', mono && 'font-mono')}>
           {value}
         </p>
         <Badge
           variant="outline"
-          className="mt-1.5 gap-1 border-secondary/20 bg-secondary/10 font-mono text-[9px] text-secondary uppercase"
+          className="mt-1.5 gap-1 border-secondary/20 bg-secondary/10 font-mono text-[11px] text-secondary uppercase"
         >
           <CheckIcon size={10} weight="bold" />
           {status}
