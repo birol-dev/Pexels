@@ -172,15 +172,6 @@
   }
 }
 
-/* Material Symbols configuration */
-.material-symbols-outlined {
-  font-variation-settings:
-    'FILL' 0,
-    'wght' 400,
-    'GRAD' 0,
-    'opsz' 24;
-}
-
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;
@@ -196,132 +187,6 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
-}
-
-/* Glassmorphism Utilities */
-.glass-panel {
-  background: rgba(18, 18, 22, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0px 20px 40px rgba(0, 0, 0, 0.25),
-    0px 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.glass-panel-elevated {
-  background: rgba(24, 24, 30, 0.75);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow:
-    0px 30px 60px rgba(0, 0, 0, 0.35),
-    0px 8px 16px rgba(0, 0, 0, 0.2);
-}
-
-.glass-card {
-  background: rgba(30, 30, 38, 0.45);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.glass-input {
-  background: rgba(12, 12, 16, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #f4f4f5;
-  transition: all 0.2s ease;
-}
-
-.glass-input:focus {
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
-  outline: none;
-}
-
-/* Dark mode native dropdown styling fallback */
-select.glass-input option {
-  background-color: #121214;
-  color: #f4f4f5;
-}
-
-.tactile-button {
-  background: linear-gradient(180deg, #8b5cf6 0%, #6d28d9 100%);
-  color: #ffffff;
-  box-shadow:
-    0 2px 4px rgba(109, 40, 217, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.tactile-button:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow:
-    0 8px 20px rgba(109, 40, 217, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%);
-}
-
-.tactile-button:active {
-  transform: translateY(1px) scale(0.98);
-  box-shadow:
-    0 1px 2px rgba(109, 40, 217, 0.2),
-    inset 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.tactile-btn-secondary {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #f4f4f5;
-  transition: all 0.2s ease;
-}
-
-.tactile-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-}
-
-.btn-interactive {
-  transition: all 0.2s ease;
-}
-
-.btn-interactive:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  background-color: rgba(255, 255, 255, 0.08);
-}
-
-.btn-interactive:active {
-  transform: translateY(0);
-}
-
-.btn-gradient {
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.15) 100%);
-}
-
-/* Animations */
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-.animate-shimmer {
-  background-image: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.15) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite linear;
 }
 
 @keyframes float {
@@ -353,48 +218,6 @@ select.glass-input option {
   animation: fadeInUp 0.5s ease-out forwards;
 }
 
-@keyframes pulseGlow {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 12px 3px rgba(139, 92, 246, 0.2);
-  }
-}
-
-.animate-pulse-glow {
-  animation: pulseGlow 2s infinite ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes scaleUp {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.15s ease-out forwards;
-}
-
-.animate-scale-up {
-  animation: scaleUp 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
 /* Flat Black Theme overrides */
 .theme-flat-black {
   --color-border: #222222;
@@ -420,63 +243,6 @@ select.glass-input option {
   --color-outline: #717172;
   --color-outline-variant: #222222;
   --color-surface-variant: #181818;
-}
-
-.theme-flat-black .glass-panel {
-  background: #000000;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: 1px solid #222222;
-  box-shadow: none;
-}
-
-.theme-flat-black .glass-panel-elevated {
-  background: #080808;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: 1px solid #222222;
-  box-shadow: none;
-}
-
-.theme-flat-black .glass-card {
-  background: #101010;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: 1px solid #222222;
-  box-shadow: none;
-}
-
-.theme-flat-black .glass-input {
-  background: #000000;
-  border: 1px solid #222222;
-  color: #ffffff;
-  box-shadow: none;
-}
-
-.theme-flat-black select.glass-input option {
-  background-color: #000000;
-  color: #ffffff;
-}
-
-.theme-flat-black .tactile-button {
-  background: #8b5cf6;
-  box-shadow: none;
-}
-
-.theme-flat-black .tactile-button:hover {
-  background: #7c3aed;
-  transform: none;
-  box-shadow: none;
-}
-
-.theme-flat-black .tactile-button:active {
-  transform: none;
-}
-
-.theme-flat-black .btn-interactive:hover {
-  transform: none;
-  box-shadow: none;
-  background-color: rgba(255, 255, 255, 0.08);
 }
 
 /* Flat White Theme overrides */
@@ -506,72 +272,6 @@ select.glass-input option {
   --color-surface-variant: #f4f4f5;
 
   --color-primary-container: #c084fc;
-}
-
-.theme-flat-white .glass-panel {
-  background: #ffffff;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: 1px solid #e4e4e7;
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.05),
-    0 2px 4px -1px rgba(0, 0, 0, 0.03);
-}
-
-.theme-flat-white .glass-panel-elevated {
-  background: #fafafa;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: 1px solid #e4e4e7;
-  box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.05),
-    0 4px 6px -2px rgba(0, 0, 0, 0.03);
-}
-
-.theme-flat-white .glass-card {
-  background: #ffffff;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: 1px solid #e4e4e7;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.theme-flat-white .glass-input {
-  background: #ffffff;
-  border: 1px solid #d4d4d8;
-  color: #09090b;
-  box-shadow: none;
-}
-
-.theme-flat-white .glass-input:focus {
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
-}
-
-.theme-flat-white select.glass-input option {
-  background-color: #ffffff;
-  color: #09090b;
-}
-
-.theme-flat-white .tactile-button {
-  background: #8b5cf6;
-  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
-}
-
-.theme-flat-white .tactile-button:hover {
-  background: #7c3aed;
-  transform: none;
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-}
-
-.theme-flat-white .tactile-button:active {
-  transform: none;
-}
-
-.theme-flat-white .btn-interactive:hover {
-  transform: none;
-  box-shadow: none;
-  background-color: rgba(0, 0, 0, 0.05);
 }
 
 /* Light Mode transparency / overlay overrides */
@@ -638,14 +338,6 @@ select.glass-input option {
   letter-spacing: -0.02em;
   font-weight: 800;
 }
-.font-headline-lg-mobile {
-  font-family: 'Cabinet Grotesk', sans-serif;
-}
-.text-headline-lg-mobile {
-  font-size: 32px;
-  line-height: 1.2;
-  font-weight: 800;
-}
 .font-title-md {
   font-family: 'Cabinet Grotesk', sans-serif;
 }
@@ -710,58 +402,12 @@ select.glass-input option {
   z-index: 10;
 }
 
-/* Neo-Brutalist Input Shadows */
-.neo-brutalist-input {
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-}
-.neo-brutalist-input:focus {
-  box-shadow: 4px 4px 0px var(--color-ink-black);
-  transform: translate(-2px, -2px);
-  border-color: var(--color-ink-black) !important;
-}
-
-.theme-flat-black .neo-brutalist-input {
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.5);
-}
-.theme-flat-black .neo-brutalist-input:focus {
-  box-shadow: 4px 4px 0px #ccff00;
-  transform: translate(-2px, -2px);
-  border-color: #ccff00 !important;
-}
-
 /* Brutalist & Neumorphic Utilities */
 .brutal-border {
   border: 2px solid var(--color-ink-black) !important;
 }
 .brutal-shadow {
   box-shadow: 4px 4px 0px var(--color-ink-black);
-}
-.brutal-shadow-hover:hover {
-  box-shadow: none;
-  transform: translate(4px, 4px);
-}
-
-.neumorphic-inset {
-  box-shadow:
-    inset 6px 6px 12px rgba(0, 0, 0, 0.08),
-    inset -6px -6px 12px rgba(255, 255, 255, 0.8);
-}
-.neumorphic-outset {
-  box-shadow:
-    6px 6px 12px rgba(0, 0, 0, 0.06),
-    -6px -6px 12px rgba(255, 255, 255, 0.9);
-}
-
-.theme-flat-black .neumorphic-inset {
-  box-shadow:
-    inset 6px 6px 12px rgba(0, 0, 0, 0.5),
-    inset -6px -6px 12px rgba(255, 255, 255, 0.05);
-}
-.theme-flat-black .neumorphic-outset {
-  box-shadow:
-    6px 6px 12px rgba(0, 0, 0, 0.3),
-    -6px -6px 12px rgba(255, 255, 255, 0.05);
 }
 
 /* Custom Scrollbar */
@@ -846,27 +492,6 @@ select.glass-input option {
     0.25px 0.25px 0 rgba(22, 30, 0, 0.6);
 }
 
-.theme-flat-black .text-on-lime .material-symbols-outlined {
-  -webkit-text-stroke: 0;
-  text-shadow: none;
-}
-
-/* Neumorphic dark buttons — white text needs outline to stay legible */
-.theme-flat-black .btn-dark-surface-label {
-  -webkit-text-stroke: 0.2px #18181b;
-  paint-order: stroke fill;
-  text-shadow:
-    -0.25px -0.25px 0 rgba(0, 0, 0, 0.7),
-    0.25px -0.25px 0 rgba(0, 0, 0, 0.7),
-    -0.25px 0.25px 0 rgba(0, 0, 0, 0.7),
-    0.25px 0.25px 0 rgba(0, 0, 0, 0.7);
-}
-
-.theme-flat-black .btn-dark-surface-label .material-symbols-outlined {
-  -webkit-text-stroke: 0;
-  text-shadow: none;
-}
-
 /* Light mode overrides */
 .theme-flat-white {
   --paper-white-color: #f9fafb;
@@ -930,87 +555,6 @@ select.glass-input option {
   --inverse-surface-color: #2f3132;
   --inverse-on-surface-color: #f0f1f2;
   --inverse-primary-color: #abd600;
-}
-
-/* Redesign Bento Cards, Inputs, Buttons */
-.bento-card {
-  box-shadow:
-    6px 6px 12px rgba(0, 0, 0, 0.05),
-    -6px -6px 12px rgba(255, 255, 255, 0.8);
-  background-color: var(--color-surface);
-  border: 2px solid var(--color-ink-black);
-  border-radius: var(--radius-md);
-}
-.theme-flat-black .bento-card {
-  border-color: var(--color-secondary-container);
-  box-shadow:
-    6px 6px 12px rgba(0, 0, 0, 0.45),
-    -6px -6px 12px rgba(255, 255, 255, 0.03);
-}
-
-.neo-input {
-  box-shadow:
-    inset 4px 4px 8px rgba(0, 0, 0, 0.05),
-    inset -4px -4px 8px rgba(255, 255, 255, 0.5);
-  background-color: var(--color-surface);
-  border: 2px solid var(--color-ink-black);
-}
-.theme-flat-black .neo-input {
-  border-color: var(--color-secondary-container);
-  box-shadow:
-    inset 4px 4px 8px rgba(0, 0, 0, 0.4),
-    inset -4px -4px 8px rgba(255, 255, 255, 0.02);
-}
-
-.btn-primary {
-  background-color: var(--color-cyber-lime);
-  border: 2px solid var(--color-ink-black);
-  box-shadow: 4px 4px 0px var(--color-ink-black);
-  transition: all 0.1s ease;
-  color: var(--color-ink-black);
-  cursor: pointer;
-}
-.btn-primary:active {
-  box-shadow: 0px 0px 0px var(--color-ink-black);
-  transform: translate(4px, 4px);
-}
-.theme-flat-black .btn-primary {
-  border-color: var(--color-secondary-container);
-  box-shadow: 4px 4px 0px var(--color-primary-container);
-  color: var(--color-on-primary-fixed);
-}
-.theme-flat-black .btn-primary:active {
-  box-shadow: 0px 0px 0px var(--color-primary-container);
-}
-
-.btn-secondary {
-  background-color: var(--color-paper-white);
-  border: 2px solid var(--color-ink-black);
-  transition: all 0.1s ease;
-  color: var(--color-ink-black);
-  cursor: pointer;
-}
-.btn-secondary:active {
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.1);
-}
-.theme-flat-black .btn-secondary {
-  background-color: var(--color-surface-container-low);
-  border-color: var(--color-surface-variant);
-  color: var(--color-paper-white);
-  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 0.5);
-}
-.theme-flat-black .btn-secondary:hover {
-  color: var(--color-cyber-lime);
-  border-color: var(--color-cyber-lime);
-  background-color: var(--color-surface-container-high);
-}
-.theme-flat-black .btn-secondary .material-symbols-outlined,
-.theme-flat-black .btn-secondary span {
-  color: inherit;
-}
-.theme-flat-black .btn-secondary:active {
-  transform: translateY(2px);
-  box-shadow: none;
 }
 
 /* Stroke effect on light backgrounds */

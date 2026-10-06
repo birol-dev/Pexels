@@ -36,5 +36,13 @@ export default defineConfig(
     }
   },
 
+  {
+    // shadcn/ui generated primitives: keep close to upstream, don't lint-rewrite them
+    files: ['src/renderer/src/components/ui/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      'react-refresh/only-export-components': 'off'
+    }
+  },
   eslintConfigPrettier
 )
