@@ -59,7 +59,7 @@ export function ProviderPanel({
       iconClassName="text-secondary"
       className={className}
       action={
-        <Badge className="rounded-md border-2 border-ink-black bg-secondary-container font-label-sm text-label-sm uppercase text-on-secondary-container">
+        <Badge className="border-2 border-edge bg-secondary-container font-label-sm text-label-sm uppercase text-on-secondary-container">
           Active
         </Badge>
       }

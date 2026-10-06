@@ -26,7 +26,7 @@ export function SummaryCard({
         className
       )}
     >
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-secondary/20 bg-secondary/10 text-secondary [&_svg]:size-5">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-sm border border-secondary/20 bg-secondary/10 text-secondary [&_svg]:size-5">
         {icon}
       </div>
       <div className="min-w-0 grow">

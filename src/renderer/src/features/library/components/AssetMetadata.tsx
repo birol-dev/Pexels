@@ -1,5 +1,6 @@
 import React from 'react'
 import { ArrowSquareOutIcon } from '@phosphor-icons/react'
+import { Card } from '@renderer/components/ui/card'
 import { Separator } from '@renderer/components/ui/separator'
 import type { FlatAsset } from '../types'
 import { buildCreditLine, pexelsAssetPageUrl } from '../utils'
@@ -79,7 +80,7 @@ export function AssetMetadata({ asset }: { asset: FlatAsset }): React.JSX.Elemen
 
       <div>
         <FieldLabel>Script beat segment</FieldLabel>
-        <p className="mt-1 rounded border border-border/40 bg-surface-container-low p-2.5 text-xs leading-relaxed text-on-surface italic">
+        <p className="mt-1 rounded-md border border-border/40 bg-surface-container-low p-2.5 text-xs leading-relaxed text-on-surface italic">
           &ldquo;{asset.beatText}&rdquo;
         </p>
       </div>
@@ -87,17 +88,17 @@ export function AssetMetadata({ asset }: { asset: FlatAsset }): React.JSX.Elemen
       {asset.filePath && (
         <div>
           <FieldLabel>Local Disk Path</FieldLabel>
-          <p className="mt-1 rounded border border-border/40 bg-surface-container-low p-2.5 font-mono text-xs leading-normal break-all text-muted-foreground select-all">
+          <p className="mt-1 rounded-md border border-border/40 bg-surface-container-low p-2.5 font-mono text-xs leading-normal break-all text-muted-foreground select-all">
             {asset.filePath}
           </p>
         </div>
       )}
 
       {asset.error && (
-        <div className="rounded-md border-2 border-error bg-error-container p-3 text-xs leading-normal font-medium text-on-error-container shadow-hard-sm">
+        <Card variant="danger" className="gap-0 rounded-md p-3 text-xs leading-normal font-medium">
           <span className="mb-0.5 block font-bold">Download Error:</span>
           {asset.error}
-        </div>
+        </Card>
       )}
     </div>
   )

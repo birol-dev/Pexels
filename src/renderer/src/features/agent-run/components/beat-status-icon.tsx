@@ -30,7 +30,7 @@ export function BeatStatusIcon({ status }: { status: VisualBeat['status'] }): Re
   return (
     <div
       className={cn(
-        'absolute -left-4 -top-4 w-10 h-10 rounded-full brutal-border flex items-center justify-center z-10 shadow-md',
+        'absolute -left-4 -top-4 w-10 h-10 rounded-sm brutal-border flex items-center justify-center z-10 shadow-sm',
         getBeatIconBg(status)
       )}
     >

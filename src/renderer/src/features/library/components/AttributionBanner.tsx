@@ -1,6 +1,7 @@
 import React from 'react'
 import { XIcon } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
+import { Card } from '@renderer/components/ui/card'
 
 interface AttributionBannerProps {
   onDismiss: () => void
@@ -8,7 +9,7 @@ interface AttributionBannerProps {
 
 export function AttributionBanner({ onDismiss }: AttributionBannerProps): React.JSX.Element {
   return (
-    <section className="flex flex-col gap-3 rounded-md border-2 border-edge bg-primary-container/30 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <Card variant="accent" className="gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="text-sm text-on-surface">
         <span className="font-bold">Attribution required.</span> Credit photographers and link back
         to{' '}
@@ -42,6 +43,6 @@ export function AttributionBanner({ onDismiss }: AttributionBannerProps): React.
           <XIcon size={16} />
         </Button>
       </div>
-    </section>
+    </Card>
   )
 }

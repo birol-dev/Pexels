@@ -1,12 +1,13 @@
 import React from 'react'
 import { TerminalWindowIcon } from '@phosphor-icons/react'
+import { Card } from '@renderer/components/ui/card'
 import type { AgentLogEvent } from '@renderer/lib/store'
 import { LogEntry } from './log-entry'
 
 export function AgentConsole({ logs }: { logs: AgentLogEvent[] }): React.JSX.Element {
   return (
     <div className="col-span-12 xl:col-span-4 flex flex-col">
-      <div className="bg-surface border-2 border-edge rounded flex flex-col overflow-hidden max-h-[750px] shadow-hard">
+      <Card variant="raised" className="max-h-[750px] gap-0 overflow-hidden py-0">
         <div className="px-5 py-4 border-b-2 border-edge bg-surface-container-lowest flex justify-between items-center">
           <h3 className="font-title-md text-title-md text-on-surface flex items-center gap-2">
             <TerminalWindowIcon size={20} className="text-primary" />
@@ -26,7 +27,7 @@ export function AgentConsole({ logs }: { logs: AgentLogEvent[] }): React.JSX.Ele
             <LogEntry key={index} log={log} />
           ))}
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

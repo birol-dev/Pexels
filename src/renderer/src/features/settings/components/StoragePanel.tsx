@@ -1,5 +1,6 @@
 import { FolderIcon, PencilSimpleIcon } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
+import { Card } from '@renderer/components/ui/card'
 import { api } from '@renderer/lib/api-client'
 import type { PublicSettings } from '@renderer/lib/store'
 import type { SettingsForm } from '../hooks/useSettingsForm'
@@ -18,7 +19,7 @@ export function StoragePanel({ settings, form }: StoragePanelProps): React.JSX.E
 
   return (
     <SettingsSection title="Storage Path" icon={FolderIcon} compact>
-      <div className="flex items-center gap-3 rounded-md border-2 border-ink-black bg-surface-container-low p-2">
+      <Card variant="sunken" className="flex-row items-center gap-3 rounded-md p-2">
         <p
           className="flex-1 truncate px-2 font-mono text-sm text-foreground"
           title={settings.downloadFolder}
@@ -34,7 +35,7 @@ export function StoragePanel({ settings, form }: StoragePanelProps): React.JSX.E
         >
           <PencilSimpleIcon size={16} weight="bold" aria-hidden />
         </Button>
-      </div>
+      </Card>
     </SettingsSection>
   )
 }

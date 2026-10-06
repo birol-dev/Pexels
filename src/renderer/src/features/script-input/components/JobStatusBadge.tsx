@@ -40,7 +40,7 @@ export function JobStatusBadge({ status }: { status: JobSummary['status'] }): Re
   return (
     <Badge
       className={cn(
-        'gap-1.5 rounded border-2 border-ink-black px-2.5 py-1 font-label-sm text-[11px] shadow-hard-sm',
+        'gap-1.5 border-2 border-edge px-2.5 py-1 font-label-sm text-[11px] shadow-sm',
         style.badge
       )}
     >

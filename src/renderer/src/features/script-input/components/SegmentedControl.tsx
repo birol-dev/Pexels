@@ -34,7 +34,7 @@ export function SegmentedControl<T extends string>({
       }}
       aria-label={ariaLabel}
       className={cn(
-        'w-full overflow-hidden rounded-lg border-2 border-edge bg-paper-white dark:bg-surface-container-lowest',
+        'w-full overflow-hidden rounded-md border-2 border-edge bg-paper-white dark:bg-surface-container-lowest',
         className
       )}
     >

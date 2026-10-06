@@ -1,5 +1,5 @@
 import React from 'react'
-import { CaretLeftIcon, CaretRightIcon, PlusIcon, TerminalWindowIcon } from '@phosphor-icons/react'
+import { CaretLeftIcon, CaretRightIcon, PlusIcon } from '@phosphor-icons/react'
 import { BrandLogo } from '@renderer/components/common/BrandLogo'
 import { Button } from '@renderer/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
@@ -12,9 +12,9 @@ interface SidebarProps {
   onToggle: () => void
 }
 
-const NAV_ACTIVE =
-  'bg-primary-container text-on-primary-container border-2 border-ink-black shadow-hard -translate-x-0.5 -translate-y-0.5'
-const NAV_IDLE = 'text-outline hover:bg-surface-variant hover:text-on-surface'
+const NAV_ACTIVE = 'border-ink-black bg-primary-container text-on-primary-container shadow-md'
+const NAV_IDLE =
+  'border-transparent text-outline hover:bg-surface-variant hover:text-on-surface'
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps): React.JSX.Element {
   const currentRoute = useAppStore((s) => s.currentRoute)
@@ -34,85 +34,117 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps): React.JSX.Elemen
   return (
     <aside
       className={cn(
-        'relative z-20 flex shrink-0 select-none flex-col justify-between border-r-2 border-border bg-surface-container-low shadow-[inset_6px_6px_12px_rgba(0,0,0,0.1)] transition-all duration-300 dark:shadow-[inset_6px_6px_12px_rgba(0,0,0,0.5)]',
+        'relative z-20 flex shrink-0 select-none flex-col justify-between overflow-hidden border-r-2 border-border bg-surface-container-low shadow-[inset_6px_6px_12px_rgba(0,0,0,0.1)] transition-[width] duration-300 ease-in-out dark:shadow-[inset_6px_6px_12px_rgba(0,0,0,0.5)]',
         collapsed ? 'w-20' : 'w-[280px]'
       )}
     >
-      <div className={collapsed ? 'flex flex-col items-center p-4' : 'p-component-padding'}>
-        <div
-          className={cn(
-            'flex items-center border-b-2 border-border pb-6',
-            collapsed ? 'mb-8 flex-col gap-4' : 'mb-10 justify-between'
-          )}
-        >
-          {collapsed ? (
-            <BrandLogo variant="icon" size="lg" className="rounded-lg" />
-          ) : (
-            <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <BrandLogo variant="lockup" size="lg" />
-              <p className="font-label-sm text-label-sm text-outline">AI Video Asset Engine</p>
-            </div>
-          )}
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="text-outline"
-            onClick={onToggle}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      <div className="p-4">
+        {/* Both header layouts stay mounted and cross-fade, so nothing reflows mid-animation. */}
+        <div className="mb-8 grid border-b-2 border-border pb-6">
+          <div
+            className={cn(
+              'col-start-1 row-start-1 flex items-start justify-between gap-2 pl-2 transition-opacity duration-200',
+              collapsed && 'pointer-events-none opacity-0'
+            )}
+            aria-hidden={collapsed}
           >
-            {collapsed ? <CaretRightIcon size={20} /> : <CaretLeftIcon size={20} />}
-          </Button>
+            <div className="flex min-w-0 flex-col gap-2">
+              <BrandLogo variant="lockup" size="lg" />
+              <p className="whitespace-nowrap font-label-sm text-label-sm text-outline">
+                AI Video Asset Engine
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-outline"
+              onClick={onToggle}
+              tabIndex={collapsed ? -1 : 0}
+              aria-label="Collapse sidebar"
+            >
+              <CaretLeftIcon size={20} />
+            </Button>
+          </div>
+          <div
+            className={cn(
+              'col-start-1 row-start-1 flex flex-col items-center gap-4 transition-opacity duration-200',
+              !collapsed && 'pointer-events-none opacity-0'
+            )}
+            style={{ width: 48 }}
+            aria-hidden={!collapsed}
+          >
+            <BrandLogo variant="icon" size="lg" className="rounded-lg" />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-outline"
+              onClick={onToggle}
+              tabIndex={collapsed ? 0 : -1}
+              aria-label="Expand sidebar"
+            >
+              <CaretRightIcon size={20} />
+            </Button>
+          </div>
         </div>
 
-        <nav className={cn('space-y-2.5', collapsed && 'flex w-full flex-col items-center')}>
+        <nav className="space-y-2.5">
           {NAV_ITEMS.map(({ route, label, icon: NavIcon }) => {
             const active = currentRoute === route
-            const button = (
-              <button
-                type="button"
-                onClick={() => go(route)}
-                className={cn(
-                  'flex cursor-pointer items-center transition-all',
-                  collapsed
-                    ? 'justify-center rounded-xl p-3'
-                    : 'w-full gap-4 rounded px-component-padding py-3 font-label-sm text-label-sm',
-                  active ? NAV_ACTIVE : NAV_IDLE
-                )}
-              >
-                <NavIcon size={24} weight={active ? 'fill' : 'regular'} />
-                {!collapsed && <span>{label}</span>}
-              </button>
-            )
-            if (!collapsed) return <React.Fragment key={route}>{button}</React.Fragment>
             return (
               <Tooltip key={route}>
-                <TooltipTrigger asChild>{button}</TooltipTrigger>
-                <TooltipContent side="right">{label}</TooltipContent>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => go(route)}
+                    aria-label={label}
+                    className={cn(
+                      'flex w-full cursor-pointer items-center rounded-md border-2 px-3 py-3 font-label-sm text-label-sm transition-colors',
+                      active ? NAV_ACTIVE : NAV_IDLE
+                    )}
+                  >
+                    <NavIcon size={24} weight={active ? 'fill' : 'regular'} className="shrink-0" />
+                    <CollapsibleLabel collapsed={collapsed}>{label}</CollapsibleLabel>
+                  </button>
+                </TooltipTrigger>
+                {collapsed && <TooltipContent side="right">{label}</TooltipContent>}
               </Tooltip>
             )
           })}
         </nav>
       </div>
 
-      <div className="flex flex-col gap-3 border-t-2 border-border bg-surface-container p-4">
+      <div className="border-t-2 border-border bg-surface-container p-4">
         <Button
           variant="secondary"
           size="lg"
-          className={cn('w-full', collapsed && 'px-2')}
+          className="w-full justify-start gap-0 px-3"
           onClick={() => openTab('input', undefined, true)}
         >
-          <PlusIcon size={20} weight="bold" />
-          {!collapsed && <span>New Project</span>}
+          <PlusIcon size={20} weight="bold" className="shrink-0" />
+          <CollapsibleLabel collapsed={collapsed}>New Project</CollapsibleLabel>
         </Button>
-        {collapsed ? (
-          <div className="flex select-none flex-col items-center gap-1 text-outline">
-            <TerminalWindowIcon size={18} />
-            <span className="font-mono text-[11px]">v1.0</span>
-          </div>
-        ) : (
-          <div className="pt-2 text-center font-mono text-[11px] text-outline">v1.0 Industrial</div>
-        )}
       </div>
     </aside>
+  )
+}
+
+/** Text that slides and fades away with the sidebar width instead of popping in and out. */
+function CollapsibleLabel({
+  collapsed,
+  children
+}: {
+  collapsed: boolean
+  children: React.ReactNode
+}): React.JSX.Element {
+  return (
+    <span
+      className={cn(
+        'overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-300 ease-in-out',
+        collapsed ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'
+      )}
+      aria-hidden={collapsed}
+    >
+      <span className="block pl-4">{children}</span>
+    </span>
   )
 }

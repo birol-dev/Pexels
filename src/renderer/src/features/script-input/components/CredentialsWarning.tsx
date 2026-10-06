@@ -1,6 +1,7 @@
 import React from 'react'
 import { WarningIcon } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
+import { Card } from '@renderer/components/ui/card'
 import { useAppStore } from '@renderer/lib/store'
 import { getActiveProvider, getMissingCredentials } from '../utils'
 
@@ -16,9 +17,10 @@ export function CredentialsWarning(): React.JSX.Element | null {
   const llm = <strong>{provider} API Key</strong>
 
   return (
-    <div
+    <Card
       role="alert"
-      className="flex animate-pulse items-center justify-between gap-4 rounded-xl border-2 border-ink-black bg-tertiary-container p-4 font-label-sm text-xs text-on-tertiary-container shadow-hard"
+      variant="info"
+      className="animate-pulse flex-row items-center justify-between gap-4 p-4 font-label-sm text-xs"
     >
       <div className="flex items-center gap-3">
         <WarningIcon size={22} weight="fill" className="shrink-0" />
@@ -40,6 +42,6 @@ export function CredentialsWarning(): React.JSX.Element | null {
       <Button size="sm" className="shrink-0" onClick={() => navigate('settings')}>
         Configure
       </Button>
-    </div>
+    </Card>
   )
 }

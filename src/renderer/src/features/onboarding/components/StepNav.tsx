@@ -1,5 +1,6 @@
-import { ArrowLeftIcon, ArrowRightIcon } from '@phosphor-icons/react'
+import { ArrowLeftIcon } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
+import { LiquidMetalButton } from '@renderer/components/ui/liquid-metal-button'
 
 interface StepNavProps {
   onBack: () => void
@@ -18,10 +19,7 @@ export function StepNav({ onBack, onNext }: StepNavProps): React.JSX.Element {
         <Button variant="link" size="sm" onClick={onNext} className="text-outline">
           Skip for now
         </Button>
-        <Button onClick={onNext}>
-          Next Step
-          <ArrowRightIcon weight="bold" />
-        </Button>
+        <LiquidMetalButton label="Next Step" width={140} onClick={onNext} />
       </div>
     </div>
   )

@@ -1,13 +1,7 @@
 import React from 'react'
-import {
-  ArrowCounterClockwiseIcon,
-  EyeIcon,
-  PauseIcon,
-  PlayIcon,
-  SealCheckIcon,
-  XIcon
-} from '@phosphor-icons/react'
+import { EyeIcon, PauseIcon, XIcon } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
+import { LiquidMetalButton } from '@renderer/components/ui/liquid-metal-button'
 import type { JobSnapshot } from '@renderer/lib/store'
 
 interface RunActionsProps {
@@ -40,10 +34,11 @@ export function RunActions({
         </Button>
       )}
       {status === 'paused' && (
-        <Button size="lg" onClick={onResumeOrApprove}>
-          {hasPendingAssets ? <SealCheckIcon weight="fill" /> : <PlayIcon weight="fill" />}
-          {hasPendingAssets ? 'Approve Selected' : 'Resume Run'}
-        </Button>
+        <LiquidMetalButton
+          label={hasPendingAssets ? 'Approve Selected' : 'Resume Run'}
+          width={hasPendingAssets ? 190 : 150}
+          onClick={onResumeOrApprove}
+        />
       )}
       {(status === 'running' || status === 'paused') && (
         <Button variant="destructive" size="lg" onClick={onCancel}>
@@ -51,10 +46,7 @@ export function RunActions({
         </Button>
       )}
       {(status === 'completed' || status === 'failed' || status === 'cancelled') && (
-        <Button size="lg" onClick={onRerun} disabled={loading}>
-          <ArrowCounterClockwiseIcon weight="bold" />
-          Rerun Agent
-        </Button>
+        <LiquidMetalButton label="Rerun Agent" width={160} onClick={onRerun} disabled={loading} />
       )}
       {status === 'completed' && (
         <Button variant="secondary" size="lg" onClick={onInspect}>

@@ -1,4 +1,5 @@
 import React from 'react'
+import { Card } from '@renderer/components/ui/card'
 import type { JobSnapshot } from '@renderer/lib/store'
 import type { ApprovalSelection } from '../utils'
 import { BeatCard } from './beat-card'
@@ -26,9 +27,9 @@ export function BeatsList({
       </h3>
 
       {job.beats.length === 0 ? (
-        <div className="bg-surface border-2 border-ink-black rounded-xl p-12 text-center text-xs text-on-surface-variant font-medium shadow-hard">
+        <Card variant="raised" className="gap-0 p-12 text-center text-xs font-medium text-on-surface-variant">
           Parsing the script and generating visual scenes. Please wait...
-        </div>
+        </Card>
       ) : (
         job.beats.map((beat) => (
           <BeatCard

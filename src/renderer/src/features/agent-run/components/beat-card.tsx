@@ -1,5 +1,6 @@
 import React from 'react'
 import { Badge } from '@renderer/components/ui/badge'
+import { Card } from '@renderer/components/ui/card'
 import type { VisualBeat } from '@renderer/lib/store'
 import type { ApprovalSelection } from '../utils'
 import { AssetTile } from './asset-tile'
@@ -22,7 +23,7 @@ export function BeatCard({
   onReject
 }: BeatCardProps): React.JSX.Element {
   return (
-    <div className="bg-surface border-2 border-edge rounded-xl p-6 relative shadow-hard">
+    <Card variant="raised" className="relative gap-0 p-6">
       <BeatStatusIcon status={beat.status} />
 
       <div className="flex flex-col gap-4">
@@ -32,7 +33,7 @@ export function BeatCard({
           </span>
           <Badge
             variant="outline"
-            className="rounded border-2 border-edge bg-surface-variant px-2.5 py-1 font-label-sm text-xs font-bold uppercase tracking-wider text-on-surface dark:bg-surface-container-lowest"
+            className="border-2 border-edge bg-surface-variant px-2.5 py-1 font-label-sm text-xs font-bold uppercase tracking-wider text-on-surface dark:bg-surface-container-lowest"
           >
             {beat.status}
           </Badge>
@@ -42,7 +43,7 @@ export function BeatCard({
           &ldquo;{beat.text}&rdquo;
         </p>
 
-        <div className="p-4 bg-surface-container-low dark:bg-surface-container-lowest rounded border-2 border-edge shadow-inner">
+        <Card variant="sunken" className="gap-0 rounded-md p-4">
           <span className="font-mono text-[11px] text-primary uppercase font-bold block mb-1.5">
             Visual Direction:
           </span>
@@ -54,13 +55,13 @@ export function BeatCard({
               <Badge
                 key={query}
                 variant="outline"
-                className="rounded border-2 border-edge bg-paper-white px-3 py-1 font-label-sm text-[12px] uppercase tracking-wider text-on-surface dark:bg-surface-container-lowest"
+                className="border-2 border-edge bg-paper-white px-3 py-1 font-label-sm text-[12px] uppercase tracking-wider text-on-surface dark:bg-surface-container-lowest"
               >
                 {query}
               </Badge>
             ))}
           </div>
-        </div>
+        </Card>
 
         {beat.assets && beat.assets.length > 0 && (
           <div className="mt-4 pt-4 border-t-2 border-edge border-dashed flex gap-4 overflow-x-auto pb-2 scrollbar">
@@ -81,6 +82,6 @@ export function BeatCard({
           <RejectedAssets items={beat.rejectedAssets} />
         )}
       </div>
-    </div>
+    </Card>
   )
 }

@@ -82,7 +82,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
   }
 
   return (
-    <div className="relative z-10 mx-auto flex w-full max-w-[1280px] animate-fade-in-up flex-col gap-8 px-grid-margin py-8">
+    <div className="relative z-10 flex flex-col gap-8">
       <LibraryHeader
         activeJobId={activeJobId}
         title={activeJobId ? activeJob?.title || 'test' : 'Media Library'}

@@ -1,5 +1,5 @@
-import { ArrowRightIcon, CheckCircleIcon, FolderIcon, ImagesIcon } from '@phosphor-icons/react'
-import { Button } from '@renderer/components/ui/button'
+import { CheckCircleIcon, FolderIcon, ImagesIcon } from '@phosphor-icons/react'
+import { LiquidMetalButton } from '@renderer/components/ui/liquid-metal-button'
 import type { OnboardingController } from '../hooks/useOnboarding'
 import { ProviderLogo } from './ProviderLogo'
 import { StepCard } from './StepCard'
@@ -20,7 +20,7 @@ export function FinishStep({
     <StepCard centered className="p-8">
       <div className="relative mb-2 flex size-24 items-center justify-center">
         <div className="absolute inset-0 animate-pulse rounded-full bg-primary-container opacity-10 blur-xl" />
-        <div className="animate-float relative z-10 flex size-20 items-center justify-center rounded-full border-2 border-edge bg-card">
+        <div className="animate-float relative z-10 flex size-20 items-center justify-center rounded-sm border-2 border-edge bg-card">
           <CheckCircleIcon size={42} weight="fill" className="text-primary" />
         </div>
       </div>
@@ -55,14 +55,9 @@ export function FinishStep({
         />
       </div>
 
-      <Button
-        size="lg"
-        onClick={finish}
-        className="mt-2 w-full px-8 uppercase tracking-wider sm:w-auto"
-      >
-        Start Using StockFinder
-        <ArrowRightIcon weight="bold" />
-      </Button>
+      <div className="mt-2">
+        <LiquidMetalButton label="Start Using StockFinder" width={230} onClick={finish} />
+      </div>
     </StepCard>
   )
 }

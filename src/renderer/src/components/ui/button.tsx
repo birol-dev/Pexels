@@ -10,17 +10,17 @@ const buttonVariants = cva(
       variant: {
         // Lime brutalist call-to-action: selected / main action
         default:
-          'border-2 border-edge bg-primary-container text-on-primary-container shadow-hard hover:brightness-95 active:translate-x-1 active:translate-y-1 active:shadow-none',
+          'border-2 border-edge bg-primary-container text-on-primary-container shadow-md hover:brightness-95 active:translate-y-px active:shadow-xs',
         // Paper / dark-surface button with hard border
         secondary:
-          'border-2 border-edge bg-paper-white text-on-surface shadow-hard-sm hover:bg-accent active:translate-x-px active:translate-y-px active:shadow-none',
+          'border-2 border-edge bg-paper-white text-on-surface shadow-sm hover:bg-accent active:translate-y-px active:shadow-xs',
         // Violet AI-action button
         violet:
           'bg-secondary-container text-on-secondary-container shadow-sm hover:brightness-110 active:brightness-95',
         destructive:
           'bg-destructive text-on-error hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40',
         outline:
-          'border border-control bg-transparent hover:bg-accent hover:text-accent-foreground',
+          'border-2 border-control bg-transparent hover:bg-accent hover:text-accent-foreground',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline'
       },

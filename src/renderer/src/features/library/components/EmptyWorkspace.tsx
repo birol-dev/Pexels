@@ -1,6 +1,6 @@
 import React from 'react'
 import { ImagesIcon } from '@phosphor-icons/react'
-import { Button } from '@renderer/components/ui/button'
+import { LiquidMetalButton } from '@renderer/components/ui/liquid-metal-button'
 
 export function EmptyWorkspace({ onBack }: { onBack: () => void }): React.JSX.Element {
   return (
@@ -12,9 +12,7 @@ export function EmptyWorkspace({ onBack }: { onBack: () => void }): React.JSX.El
           Select a running or completed project from history to inspect downloaded files.
         </p>
       </div>
-      <Button size="lg" onClick={onBack}>
-        Back to Dashboard
-      </Button>
+      <LiquidMetalButton label="Back to Dashboard" width={190} onClick={onBack} />
     </div>
   )
 }

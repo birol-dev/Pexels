@@ -25,13 +25,13 @@ export function RunHistory(): React.JSX.Element {
   const { jobs, loading, openJob, rerunJob, deleteJob } = useJobHistory()
 
   return (
-    <Card className="gap-0 overflow-hidden rounded-xl border-2 border-edge py-0 shadow-none">
+    <Card className="gap-0 overflow-hidden py-0">
       <div className="flex items-center justify-between border-b-2 border-edge bg-paper-white p-5 dark:bg-surface-container-lowest">
         <h3 className="flex items-center gap-2 font-title-md text-title-md text-on-surface">
           <ClockCounterClockwiseIcon
             size={28}
             weight="fill"
-            className="rounded bg-black p-1.5 text-cyber-lime"
+            className="rounded-sm bg-black p-1.5 text-cyber-lime"
           />
           Recent Pack Generations
         </h3>

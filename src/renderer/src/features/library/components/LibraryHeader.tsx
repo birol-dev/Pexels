@@ -1,11 +1,11 @@
 import React from 'react'
 import {
   DownloadSimpleIcon,
-  FolderOpenIcon,
   MagnifyingGlassIcon,
   TreeStructureIcon
 } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
+import { LiquidMetalButton } from '@renderer/components/ui/liquid-metal-button'
 import { Input } from '@renderer/components/ui/input'
 
 interface LibraryHeaderProps {
@@ -62,11 +62,8 @@ export function LibraryHeader({
 
         {activeJobId && (
           <>
-            <Button variant="secondary" onClick={onOpenFolder}>
-              <FolderOpenIcon size={18} />
-              Open Folder
-            </Button>
-            <Button onClick={onExportManifest}>
+            <LiquidMetalButton label="Open Folder" width={150} onClick={onOpenFolder} />
+            <Button variant="secondary" onClick={onExportManifest}>
               <DownloadSimpleIcon size={18} />
               Export Manifest
             </Button>

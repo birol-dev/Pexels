@@ -23,7 +23,7 @@ export default function SettingsView(): React.JSX.Element {
   }
 
   return (
-    <div className="relative z-10 mx-auto flex w-full max-w-[1160px] animate-fade-in-up flex-col gap-8 px-grid-margin py-8">
+    <div className="relative z-10 flex flex-col gap-8">
       <header className="mb-4">
         <h2 className="font-headline-lg text-headline-lg uppercase leading-none text-foreground">
           Settings

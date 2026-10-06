@@ -24,7 +24,8 @@ export function SettingsSection({
 }: SettingsSectionProps): React.JSX.Element {
   return (
     <Card
-      className={cn('gap-5 rounded-md border-2 border-edge bg-card py-0 shadow-hard', className)}
+      variant="raised"
+      className={cn('gap-5 py-0', className)}
     >
       <CardContent className={cn('flex flex-1 flex-col gap-5', compact ? 'p-5' : 'p-6')}>
         <div className="flex items-center justify-between gap-2 border-b-2 border-edge pb-4">

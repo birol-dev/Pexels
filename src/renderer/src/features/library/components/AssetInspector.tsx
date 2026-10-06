@@ -33,7 +33,7 @@ export function AssetInspector({
 
       {!asset ? (
         <div className="flex min-h-[300px] flex-col items-center justify-center p-8 text-center">
-          <div className="mb-4 flex size-16 items-center justify-center rounded-full border-2 border-border bg-card">
+          <div className="mb-4 flex size-16 items-center justify-center rounded-sm border-2 border-border bg-card">
             <CursorClickIcon size={32} />
           </div>
           <h4 className="mb-2 font-title-md text-[18px] uppercase">No Asset Selected</h4>

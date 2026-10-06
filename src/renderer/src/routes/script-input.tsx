@@ -9,7 +9,7 @@ export default function ScriptInputView(): React.JSX.Element {
   useScriptInputBootstrap()
 
   return (
-    <div className="relative w-full animate-fade-in-up space-y-8 p-8 pb-12 lg:p-10 risograph-overlay">
+    <div className="space-y-8">
       <PageHeader />
       <CredentialsWarning />
       <CreatePackForm />

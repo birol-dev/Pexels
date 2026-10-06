@@ -5,9 +5,9 @@ import { GITHUB_REPO_URL } from '../utils'
 
 export function GithubCard(): React.JSX.Element {
   return (
-    <Card className="flex-col gap-5 rounded-md border-2 border-ink-black p-6 shadow-hard sm:flex-row sm:items-center sm:justify-between">
+    <Card variant="raised" className="gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex gap-4">
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-md border-2 border-ink-black bg-surface-container-high">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-md border-2 border-edge bg-surface-container-high">
           <CodeIcon size={22} weight="bold" aria-hidden />
         </div>
         <div>

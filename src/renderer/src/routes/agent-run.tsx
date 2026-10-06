@@ -46,7 +46,7 @@ export default function AgentRunView(): React.JSX.Element {
   }
 
   return (
-    <div className="w-full space-y-6 pb-12 animate-fade-in-up relative risograph-overlay">
+    <div className="space-y-6">
       <RunHeader
         job={activeJob}
         onBack={() => navigate('input')}
@@ -75,7 +75,7 @@ export default function AgentRunView(): React.JSX.Element {
         />
       )}
 
-      <div className="grid grid-cols-12 gap-gutter px-grid-margin mt-8 items-start">
+      <div className="mt-8 grid grid-cols-12 items-start gap-gutter">
         <BeatsList
           job={activeJob}
           selection={approval.selection}

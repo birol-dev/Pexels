@@ -49,7 +49,7 @@ export function TabBar(): React.JSX.Element | null {
   }
 
   return (
-    <div className="scrollbar-none flex select-none items-center gap-3 overflow-x-auto border-b-2 border-border bg-surface-container px-6 py-2.5">
+    <div className="scrollbar-none flex shrink-0 select-none items-center gap-3 overflow-x-auto overflow-y-hidden border-b-2 border-border bg-surface-container px-6 py-2.5">
       {tabs.map((tab) => {
         const active = tab.id === activeTabId
         const TabIcon = TAB_ICONS[tab.type]
@@ -63,9 +63,9 @@ export function TabBar(): React.JSX.Element | null {
               if (tab.type === 'input') setEditingTabId(tab.id)
             }}
             className={cn(
-              'flex cursor-pointer items-center gap-2 rounded border-2 px-3 py-1.5 font-label-sm text-xs transition-all',
+              'flex cursor-pointer items-center gap-2 rounded-md border-2 px-3 py-1.5 font-label-sm text-xs transition-all',
               active
-                ? '-translate-x-px -translate-y-px border-ink-black bg-primary-container text-on-primary-container shadow-hard-sm'
+                ? 'border-ink-black bg-primary-container text-on-primary-container shadow-sm'
                 : 'border-border bg-paper-white text-outline hover:bg-surface-variant hover:text-on-surface dark:bg-surface-container-lowest'
             )}
           >
@@ -82,7 +82,7 @@ export function TabBar(): React.JSX.Element | null {
                 e.stopPropagation()
                 closeTab(tab.id)
               }}
-              className="flex size-4 cursor-pointer items-center justify-center rounded-full text-outline transition-colors hover:bg-foreground/10 hover:text-error"
+              className="flex size-4 cursor-pointer items-center justify-center rounded-sm text-outline transition-colors hover:bg-foreground/10 hover:text-error"
             >
               <XIcon size={12} weight="bold" />
             </button>

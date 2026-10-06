@@ -1,6 +1,7 @@
 import React from 'react'
 import { InfoIcon } from '@phosphor-icons/react'
 import { Badge } from '@renderer/components/ui/badge'
+import { Card } from '@renderer/components/ui/card'
 import { cn } from '@renderer/lib/utils'
 import type { FlatAsset } from '../types'
 import { assetFilename, buildCreditLine, formatDuration, pexelsAssetPageUrl } from '../utils'
@@ -14,20 +15,20 @@ interface AssetCardProps {
 function StatusBadge({ status }: { status: FlatAsset['status'] }): React.JSX.Element {
   if (status === 'completed') {
     return (
-      <Badge className="border-2 border-foreground bg-primary text-[11px] font-bold tracking-widest text-primary-foreground uppercase shadow-hard-sm">
+      <Badge className="border-2 border-foreground bg-primary text-[11px] font-bold tracking-widest text-primary-foreground uppercase shadow-sm">
         Ready
       </Badge>
     )
   }
   if (status === 'failed') {
     return (
-      <Badge className="border-2 border-foreground bg-error-container text-[11px] font-bold tracking-widest text-on-error-container uppercase shadow-hard-sm">
+      <Badge className="border-2 border-foreground bg-error-container text-[11px] font-bold tracking-widest text-on-error-container uppercase shadow-sm">
         Failed
       </Badge>
     )
   }
   return (
-    <Badge className="animate-pulse border-2 border-foreground bg-muted text-[11px] font-bold tracking-widest text-foreground uppercase shadow-hard-sm">
+    <Badge className="animate-pulse border-2 border-foreground bg-muted text-[11px] font-bold tracking-widest text-foreground uppercase shadow-sm">
       Active
     </Badge>
   )
@@ -38,7 +39,7 @@ export function AssetCard({ asset, selected, onSelect }: AssetCardProps): React.
   const durationStr = formatDuration(asset.duration)
 
   return (
-    <div
+    <Card
       role="button"
       tabIndex={0}
       onClick={() => onSelect(asset)}
@@ -49,7 +50,7 @@ export function AssetCard({ asset, selected, onSelect }: AssetCardProps): React.
         }
       }}
       className={cn(
-        'group relative flex h-[320px] cursor-pointer flex-col overflow-hidden rounded-xl border-2 border-border bg-card shadow-sm transition-all duration-300 hover:scale-[1.01] hover:shadow-hard',
+        'group relative h-[320px] cursor-pointer gap-0 overflow-hidden border-border p-0 transition-all duration-300 hover:scale-[1.01] hover:shadow-md',
         selected && 'ring-4 ring-secondary'
       )}
     >
@@ -65,7 +66,7 @@ export function AssetCard({ asset, selected, onSelect }: AssetCardProps): React.
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
         {durationStr && (
-          <span className="absolute right-2 bottom-2 rounded border border-white/20 bg-black/80 px-2 py-0.5 font-label-sm text-[11px] text-white">
+          <span className="absolute right-2 bottom-2 rounded-sm border border-white/20 bg-black/80 px-2 py-0.5 font-label-sm text-[11px] text-white">
             {durationStr}
           </span>
         )}
@@ -93,6 +94,6 @@ export function AssetCard({ asset, selected, onSelect }: AssetCardProps): React.
           <InfoIcon size={16} className="shrink-0 text-foreground" />
         </div>
       </div>
-    </div>
+    </Card>
   )
 }

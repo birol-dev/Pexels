@@ -14,7 +14,7 @@ export function LogEntry({ log }: { log: AgentLogEvent }): React.JSX.Element {
         {log.message}
       </div>
       {log.data ? (
-        <pre className="bg-surface-container/60 border border-border rounded p-2.5 text-xs text-on-surface-variant leading-normal overflow-x-auto whitespace-pre font-mono mt-1.5 max-h-60">
+        <pre className="bg-surface-container/60 border border-border rounded-md p-2.5 text-xs text-on-surface-variant leading-normal overflow-x-auto whitespace-pre font-mono mt-1.5 max-h-60">
           {formatLogData(log.data)}
         </pre>
       ) : null}

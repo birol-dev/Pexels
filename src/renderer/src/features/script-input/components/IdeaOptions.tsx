@@ -1,5 +1,6 @@
 import React from 'react'
 import { Button } from '@renderer/components/ui/button'
+import { Card } from '@renderer/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -15,7 +16,7 @@ import { FieldHint, FieldLabel } from './FieldLabel'
 /** Target duration and narrative tone controls for the AI scriptwriter. */
 export function IdeaOptions({ form, update }: FormSectionProps): React.JSX.Element {
   return (
-    <div className="grid grid-cols-1 gap-gutter rounded-xl border-2 border-edge bg-surface-container-low p-5 shadow-hard-sm md:grid-cols-2 dark:bg-surface-container-lowest">
+    <Card variant="sunken" className="grid grid-cols-1 gap-gutter p-5 shadow-sm md:grid-cols-2">
       <div>
         <FieldLabel id="target-duration-label">Target Video Duration</FieldLabel>
         <div
@@ -60,6 +61,6 @@ export function IdeaOptions({ form, update }: FormSectionProps): React.JSX.Eleme
         </Select>
         <FieldHint>Defines pacing, vocabulary, and visual storytelling hooks.</FieldHint>
       </div>
-    </div>
+    </Card>
   )
 }

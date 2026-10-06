@@ -26,7 +26,7 @@ const MODE_OPTIONS: { value: InputMode; label: React.ReactNode }[] = [
       <>
         <LightbulbIcon size={18} />
         <span>Idea / Concept Mode</span>
-        <Badge className="rounded bg-black px-1.5 font-mono text-[11px] font-bold tracking-tight text-cyber-lime">
+        <Badge className="bg-black px-1.5 font-mono text-[11px] font-bold tracking-tight text-cyber-lime">
           AI WRITER
         </Badge>
       </>

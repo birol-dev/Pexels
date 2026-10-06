@@ -1,5 +1,5 @@
 import { CheckCircleIcon, WarningCircleIcon } from '@phosphor-icons/react'
-import { cn } from '@renderer/lib/utils'
+import { Card } from '@renderer/components/ui/card'
 import type { TestResultState } from '../utils'
 
 interface TestResultProps {
@@ -11,14 +11,10 @@ export function TestResult({ title, result }: TestResultProps): React.JSX.Elemen
   if (!result) return null
   const StatusIcon = result.success ? CheckCircleIcon : WarningCircleIcon
   return (
-    <div
+    <Card
       role="status"
-      className={cn(
-        'flex items-start gap-3 rounded-md border-2 border-ink-black p-3',
-        result.success
-          ? 'bg-cyber-lime/10 text-foreground'
-          : 'bg-error-container text-on-error-container'
-      )}
+      variant={result.success ? 'accent' : 'danger'}
+      className="flex-row items-start gap-3 rounded-md p-3 shadow-none"
     >
       <StatusIcon size={20} weight="fill" className="mt-0.5 shrink-0" aria-hidden />
       <div>
@@ -27,6 +23,6 @@ export function TestResult({ title, result }: TestResultProps): React.JSX.Elemen
           {result.message}
         </div>
       </div>
-    </div>
+    </Card>
   )
 }

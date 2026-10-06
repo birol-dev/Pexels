@@ -18,7 +18,7 @@ export function CreatePackForm(): React.JSX.Element {
   const handleSubmit = useStartJob(form)
 
   return (
-    <Card className="max-w-5xl gap-0 rounded-xl border-2 border-edge p-component-padding shadow-none">
+    <Card className="max-w-5xl gap-0 p-component-padding">
       <form onSubmit={handleSubmit} className="space-y-8">
         <InputModeSwitch value={form.inputMode} onChange={(inputMode) => update({ inputMode })} />
         <ProjectTitleField form={form} update={update} />

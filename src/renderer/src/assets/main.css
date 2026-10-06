@@ -71,18 +71,34 @@
   --color-cyber-lime: #ccff00;
   --color-electric-purple: #a855f7;
 
-  --shadow-hard: 4px 4px 0 var(--color-hard-shadow);
-  --shadow-hard-sm: 2px 2px 0 var(--color-hard-shadow);
-  --shadow-hard-xs: 1px 1px 0 var(--color-hard-shadow);
+  /* Elevation scale: soft, layered, neutral shadows (a tight contact shadow plus a
+     wide ambient one). xs = small chips/thumbs, sm = buttons and small tiles,
+     md = cards, lg = floating layers (dialogs, menus, popovers, sheets). */
+  --shadow-ink: 24 24 27;
+  --shadow-xs: 0 1px 2px rgb(var(--shadow-ink) / 0.08);
+  --shadow-sm: 0 1px 2px rgb(var(--shadow-ink) / 0.08), 0 2px 6px rgb(var(--shadow-ink) / 0.06);
+  --shadow-md: 0 1px 2px rgb(var(--shadow-ink) / 0.06), 0 4px 12px rgb(var(--shadow-ink) / 0.08),
+    0 12px 24px -8px rgb(var(--shadow-ink) / 0.08);
+  --shadow-lg: 0 2px 4px rgb(var(--shadow-ink) / 0.06), 0 8px 24px rgb(var(--shadow-ink) / 0.12),
+    0 24px 48px -12px rgb(var(--shadow-ink) / 0.16);
 
   --spacing-grid-margin: 2rem;
   --spacing-component-padding: 1.5rem;
   --spacing-gutter: 1.5rem;
   --spacing-section-gap: 4rem;
 
-  --radius-lg: 0.25rem;
-  --radius-md: 0.125rem;
-  --radius-sm: 0.125rem;
+  /* Two-tier radius scale. Controls (buttons, inputs, badges, tabs) use md (8px);
+     containers (cards, dialogs, popovers) use xl (12px). Use sm (6px) for small
+     tiles nested inside a control. Only true circles (status dots, radio) are
+     rounded-full; nothing else is a pill. */
+  --radius: 0.5rem;
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1rem;
 }
 
 .theme-flat-black {
@@ -122,6 +138,15 @@
   --color-ink-black: #f4f4f5;
   --color-paper-white: #060607;
   --color-hard-shadow: #ccff00;
+  /* Dark surfaces swallow soft shadows, so use pure black at higher alpha and add a
+     faint top highlight to the raised layers. */
+  --shadow-ink: 0 0 0;
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5), 0 2px 8px rgb(0 0 0 / 0.35);
+  --shadow-md: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 1px 2px rgb(0 0 0 / 0.5),
+    0 6px 16px rgb(0 0 0 / 0.45), 0 16px 32px -8px rgb(0 0 0 / 0.5);
+  --shadow-lg: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 2px 4px rgb(0 0 0 / 0.5),
+    0 12px 32px rgb(0 0 0 / 0.6), 0 32px 64px -12px rgb(0 0 0 / 0.7);
   --color-edge: #3b3b45;
   --color-control: #70707d;
   --color-card: #111114;
@@ -194,6 +219,20 @@
   }
 }
 
+/* Route/tab switch: opacity only, so the page never shifts position. */
+@keyframes pageIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-page-in {
+  animation: pageIn 0.18s ease-out;
+}
+
 .animate-fade-in-up {
   animation: fadeInUp 0.5s ease-out forwards;
 }
@@ -251,42 +290,12 @@
   font-weight: 700;
 }
 
-/* Risograph Grain Overlay */
-.riso-grain {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: 50;
-  opacity: 0.03;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-}
-
-/* Risograph Overlay on Card level */
-.risograph-overlay::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: repeating-radial-gradient(
-    circle at 17% 32%,
-    rgba(0, 0, 0, 0.03) 0,
-    rgba(0, 0, 0, 0.03) 1px,
-    transparent 1px,
-    transparent 2px
-  );
-  opacity: 0.5;
-  z-index: 10;
-}
-
 /* Brutalist utilities */
 .brutal-border {
   border: 2px solid var(--color-ink-black) !important;
 }
 .brutal-shadow {
-  box-shadow: var(--shadow-hard);
+  box-shadow: var(--shadow-md);
 }
 
 /* Dark text on lime fills in both themes */

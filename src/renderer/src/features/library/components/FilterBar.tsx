@@ -1,4 +1,5 @@
 import React from 'react'
+import { Card } from '@renderer/components/ui/card'
 import { ToggleGroup, ToggleGroupItem } from '@renderer/components/ui/toggle-group'
 import {
   Select,
@@ -31,7 +32,7 @@ export function FilterBar({
   showStatus
 }: FilterBarProps): React.JSX.Element {
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-md border-2 border-border bg-surface-container-low px-6 py-4">
+    <Card variant="sunken" className="flex-row flex-wrap items-center gap-4 px-6 py-4">
       <ToggleGroup
         type="single"
         value={typeFilter}
@@ -65,6 +66,6 @@ export function FilterBar({
           </SelectContent>
         </Select>
       )}
-    </div>
+    </Card>
   )
 }

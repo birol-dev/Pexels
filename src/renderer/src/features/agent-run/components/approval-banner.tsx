@@ -1,5 +1,6 @@
 import React from 'react'
 import { Button } from '@renderer/components/ui/button'
+import { Card } from '@renderer/components/ui/card'
 
 interface ApprovalBannerProps {
   approvedCount: number
@@ -15,7 +16,7 @@ export function ApprovalBanner({
   onRejectAll
 }: ApprovalBannerProps): React.JSX.Element {
   return (
-    <div className="mx-grid-margin p-4 border-2 border-ink-black rounded-xl bg-tertiary-container text-on-tertiary-container shadow-hard">
+    <Card variant="info" className="mx-grid-margin gap-0 p-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="font-bold text-on-surface">Review selected assets before download</div>
@@ -32,6 +33,6 @@ export function ApprovalBanner({
           </Button>
         </div>
       </div>
-    </div>
+    </Card>
   )
 }

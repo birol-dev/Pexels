@@ -9,7 +9,7 @@ export function StepCard({ centered, className, ...props }: StepCardProps): Reac
   return (
     <Card
       className={cn(
-        'gap-6 border-2 border-edge p-10 shadow-[6px_6px_0_var(--color-hard-shadow)] dark:shadow-[6px_6px_0_rgba(0,0,0,0.5)]',
+        'gap-6 p-10 shadow-lg',
         centered && 'items-center text-center',
         className
       )}

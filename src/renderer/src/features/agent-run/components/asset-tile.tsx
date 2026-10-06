@@ -21,7 +21,7 @@ export function AssetTile({
   onReject
 }: AssetTileProps): React.JSX.Element {
   return (
-    <div className="relative w-48 aspect-video shrink-0 bg-black brutal-border overflow-hidden group">
+    <div className="relative w-48 aspect-video shrink-0 rounded-md bg-black brutal-border overflow-hidden group">
       <img
         src={asset.imageUrl}
         className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"

@@ -18,7 +18,7 @@ export function PageHeader(): React.JSX.Element {
       <Button
         variant="secondary"
         size="icon-lg"
-        className="rounded-full"
+        className="rounded-sm"
         onClick={() => navigate('settings')}
         aria-label="Help & Settings"
         title="Help & Settings"
