@@ -241,6 +241,42 @@ export function decideRunFinalize(input: {
   hitIterationLimit: boolean
   maxTotalDownloads: number
   maxIterations: number
+  /** Error that aborted the agent loop (LLM timeout, auth failure, ...), if any. */
+  loopError?: string
+}): RunFinalizeDecision {
+  const decision = decideRunFinalizeFromBeats(input)
+  if (input.loopError && decision.status === 'failed') {
+    return {
+      status: 'failed',
+      reason: 'agent_error',
+      progressLabel: 'Failed — agent error',
+      logMessage: `Agent stopped because of an error: ${input.loopError}`,
+      logType: 'error'
+    }
+  }
+  return decision
+}
+
+/**
+ * What to do with an error thrown out of the agent loop. Pause/cancel abort the
+ * in-flight request on purpose, so those are not errors. Returns the message to
+ * record, or null when the error should be ignored.
+ */
+export function loopErrorToRecord(status: string, error: unknown): string | null {
+  if (status !== 'running') return null
+  return error instanceof Error ? error.message : String(error)
+}
+
+/** Iterations left in the job-wide budget (persisted across pause/resume). */
+export function remainingIterations(maxIterations: number, iterationsUsed: number): number {
+  return Math.max(0, maxIterations - Math.max(0, iterationsUsed))
+}
+
+function decideRunFinalizeFromBeats(input: {
+  beats: BeatAssetStatus[]
+  hitIterationLimit: boolean
+  maxTotalDownloads: number
+  maxIterations: number
 }): RunFinalizeDecision {
   const unfinished = input.beats
     .flatMap((b) => b.assets || [])

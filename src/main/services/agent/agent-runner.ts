@@ -46,6 +46,8 @@ import {
   areAllBeatsDownloaded,
   areBeatsSatisfiedForLoop,
   decideRunFinalize,
+  loopErrorToRecord,
+  remainingIterations,
   getUnfulfilledBeats,
   hasPendingUnqueuedAssets
 } from './tool-schemas.ts'
@@ -186,6 +188,8 @@ export class AgentRunner extends EventEmitter {
   private projectDir = ''
   private createdAt = new Date().toISOString()
   private hitIterationLimit = false
+  private iterationsUsed = 0
+  private loopError: string | null = null
   private modelId = 'gpt-4o'
   private providerId: 'openai' | 'gemini' | 'openrouter' = 'openai'
   private maxIterations = 30
@@ -483,6 +487,7 @@ export class AgentRunner extends EventEmitter {
     if (Array.isArray(loaded.pexelsCandidates)) {
       this.pexelsCandidates = new Map(loaded.pexelsCandidates as Array<[string, PexelsCandidate]>)
     }
+    this.iterationsUsed = loaded.iterationsUsed
   }
 
   private async writeAgentState(): Promise<boolean> {
@@ -491,7 +496,8 @@ export class AgentRunner extends EventEmitter {
       await persistAgentConversationState(
         this.projectDir,
         this.messages,
-        Array.from(this.pexelsCandidates.entries())
+        Array.from(this.pexelsCandidates.entries()),
+        this.iterationsUsed
       )
       this.agentStateFileTrusted = true
       return true
@@ -516,7 +522,8 @@ export class AgentRunner extends EventEmitter {
       beats: this.beats,
       hitIterationLimit: this.hitIterationLimit,
       maxTotalDownloads: this.input.maxTotalDownloads,
-      maxIterations: this.maxIterations
+      maxIterations: this.maxIterations,
+      loopError: this.loopError ?? undefined
     })
     this.status = decision.status
     this.log(decision.logType, decision.logMessage)
@@ -548,11 +555,16 @@ export class AgentRunner extends EventEmitter {
 
       await this.expandIdeaIfNeeded()
       await this.parseScriptIntoBeats()
+      this.loopError = null
       try {
         await this.runAgentLoop()
       } catch (loopErr) {
-        const errMsg = loopErr instanceof Error ? loopErr.message : String(loopErr)
-        this.log('error', `Agent loop encountered an error: ${errMsg}`)
+        // Pause/cancel abort the in-flight request on purpose; only real failures count.
+        const errMsg = loopErrorToRecord(this.status, loopErr)
+        if (errMsg) {
+          this.loopError = errMsg
+          this.log('error', `Agent loop encountered an error: ${errMsg}`)
+        }
       }
 
       if (this.status === 'running') {
@@ -895,11 +907,11 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
         }
       ]
     }
-    let iteration = 0
+    this.hitIterationLimit = false
     let emptyToolTurnCount = 0
     const maxEmptyToolNudges = 3
 
-    while (iteration < this.maxIterations && this.status === 'running') {
+    while (this.iterationsUsed < this.maxIterations && this.status === 'running') {
       const allBeatsFulfilled = areBeatsSatisfiedForLoop(this.beats, this.input.maxTotalDownloads)
       const hasUnqueuedPendingAssets = hasPendingUnqueuedAssets(this.beats)
 
@@ -911,7 +923,7 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
         break
       }
 
-      iteration++
+      const iteration = ++this.iterationsUsed
       this.log(
         'info',
         `Agent turn ${iteration}/${this.maxIterations}: Consulting StockScout AI (${this.providerId} / ${this.modelId})...`
@@ -1096,7 +1108,7 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
       await this.writeAgentState()
     }
 
-    if (iteration >= this.maxIterations) {
+    if (remainingIterations(this.maxIterations, this.iterationsUsed) === 0) {
       this.hitIterationLimit = true
       this.log('error', `Agent reached maximum iterations limit (${this.maxIterations})`)
     }

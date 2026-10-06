@@ -7,6 +7,7 @@ export type AgentStateSource = 'agent-state' | 'manifest' | 'none'
 export interface LoadedAgentConversation {
   messages?: unknown
   pexelsCandidates?: unknown
+  iterationsUsed: number
   source: AgentStateSource
   persistToAgentStateFile: boolean
 }
@@ -14,6 +15,11 @@ export interface LoadedAgentConversation {
 interface AgentStateFile {
   messages?: unknown
   pexelsCandidates?: unknown
+  iterationsUsed?: unknown
+}
+
+function toIterationCount(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.floor(value) : 0
 }
 
 function isAgentStateFile(value: unknown): value is AgentStateFile {
@@ -42,6 +48,7 @@ export async function loadAgentConversationState(
     return {
       messages: manifest.messages,
       pexelsCandidates: manifest.pexelsCandidates,
+      iterationsUsed: 0,
       source: fromManifest ? 'manifest' : 'none',
       persistToAgentStateFile: false
     }
@@ -53,6 +60,7 @@ export async function loadAgentConversationState(
       pexelsCandidates: Array.isArray(result.value.pexelsCandidates)
         ? result.value.pexelsCandidates
         : manifest.pexelsCandidates,
+      iterationsUsed: toIterationCount(result.value.iterationsUsed),
       source: 'agent-state',
       persistToAgentStateFile: true
     }
@@ -62,6 +70,7 @@ export async function loadAgentConversationState(
   return {
     messages: manifest.messages,
     pexelsCandidates: manifest.pexelsCandidates,
+    iterationsUsed: 0,
     source: fromManifest ? 'manifest' : 'none',
     persistToAgentStateFile: true
   }
@@ -70,11 +79,13 @@ export async function loadAgentConversationState(
 export async function persistAgentConversationState(
   projectDir: string,
   messages: unknown,
-  pexelsCandidates: Array<[string, unknown]>
+  pexelsCandidates: Array<[string, unknown]>,
+  iterationsUsed = 0
 ): Promise<void> {
   await ManifestWriter.writeJsonFile(projectDir, 'agent-state.json', {
     schemaVersion: 1,
     messages,
-    pexelsCandidates
+    pexelsCandidates,
+    iterationsUsed
   })
 }
