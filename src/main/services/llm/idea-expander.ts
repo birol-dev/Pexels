@@ -6,6 +6,7 @@ import {
 } from './llm-provider.ts'
 import { createTimeoutLinkedSignal } from '../http/abort-signal.ts'
 import { resolveLlmRequestTimeoutSeconds } from './llm-timeout.ts'
+import { wordGuidanceForDuration } from './duration-guidance.ts'
 
 export interface ExpandedScriptResult {
   title?: string
@@ -144,18 +145,7 @@ export async function expandIdeaToScript(params: ExpandIdeaParams): Promise<Expa
   const targetDuration = params.targetDuration || '60s'
   const tone = params.tone || 'engaging & hook-first'
 
-  // Provide duration word count guidelines
-  let wordGuidance = 'approximately 120-160 words (around 60 seconds)'
-  if (targetDuration.includes('30') || targetDuration.toLowerCase().includes('short')) {
-    wordGuidance = 'approximately 60-85 words (fast-paced 30 seconds)'
-  } else if (
-    targetDuration.includes('2') ||
-    targetDuration.includes('3') ||
-    targetDuration.toLowerCase().includes('deep') ||
-    targetDuration.toLowerCase().includes('long')
-  ) {
-    wordGuidance = 'approximately 300-450 words (2-3 minutes)'
-  }
+  const wordGuidance = wordGuidanceForDuration(targetDuration)
 
   const isVertical =
     platform === 'Shorts' || platform === 'TikTok' || platform === 'Instagram Reels'

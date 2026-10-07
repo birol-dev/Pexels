@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { NormalizedToolDefinition } from '../llm/llm-provider.ts'
+import { ApiError } from '../http/api-errors.ts'
 
 export const SearchPexelsPhotosArgsSchema = z.object({
   beatId: z.string().min(1),
@@ -270,6 +271,113 @@ export function loopErrorToRecord(status: string, error: unknown): string | null
 /** Iterations left in the job-wide budget (persisted across pause/resume). */
 export function remainingIterations(maxIterations: number, iterationsUsed: number): number {
   return Math.max(0, maxIterations - Math.max(0, iterationsUsed))
+}
+
+/** Reason stored on a beat when the user rejects a pending asset in the approval UI. */
+export const USER_REJECTION_REASON = 'Rejected by user'
+
+/**
+ * True when the user (not the model) rejected this asset for this beat. A user
+ * rejection is final: the model may not re-select or download it, even though
+ * the failed asset record is still on the beat.
+ */
+export function isAssetRejectedByUser(
+  beat: { rejectedAssets?: Array<{ type: string; pexelsId: number; reason: string }> },
+  type: string,
+  pexelsId: number
+): boolean {
+  return (beat.rejectedAssets || []).some(
+    (r) => r.type === type && r.pexelsId === pexelsId && r.reason === USER_REJECTION_REASON
+  )
+}
+
+/**
+ * Why a new selection for `beatId` must be refused, or null when it is allowed.
+ * Besides the per-beat and total caps, a beat that already has an asset may not
+ * take the last slots of the total budget while other beats still have none —
+ * otherwise a greedy model starves the later beats of the script.
+ */
+export function selectionBudgetViolation(input: {
+  beats: Array<BeatAssetStatus & { id: string }>
+  beatId: string
+  maxAssetsPerBeat: number
+  maxTotalDownloads: number
+}): string | null {
+  const beat = input.beats.find((b) => b.id === input.beatId)
+  if (!beat) return null
+
+  const activeInBeat = (beat.assets || []).filter((a) => a.status !== 'failed').length
+  if (activeInBeat >= input.maxAssetsPerBeat) {
+    return `Beat cap of ${input.maxAssetsPerBeat} assets reached.`
+  }
+
+  const selected = countNonFailedAssets(input.beats)
+  if (selected >= input.maxTotalDownloads) {
+    return `Total download cap of ${input.maxTotalDownloads} assets reached.`
+  }
+
+  if (activeInBeat > 0) {
+    const beatsWithoutAssets = getUnfulfilledBeats(input.beats).filter(
+      (b) => b.id !== beat.id
+    ).length
+    if (input.maxTotalDownloads - selected <= beatsWithoutAssets) {
+      return `Remaining download budget is reserved so every beat gets at least one asset (${beatsWithoutAssets} other beat(s) still have none).`
+    }
+  }
+
+  return null
+}
+
+export type ToolFailure = {
+  /** True when pause/cancel aborted the call on purpose — not a real failure. */
+  interrupted: boolean
+  message: string
+  /** Payload returned to the model as the tool result. */
+  result: Record<string, unknown>
+}
+
+/**
+ * Turns an error thrown while executing a tool into a log message and a tool
+ * result. Pause/cancel abort in-flight requests on purpose; recording that as a
+ * permanent failure would teach the model on resume that the call is hopeless.
+ */
+export function describeToolFailure(status: string, error: unknown): ToolFailure {
+  if (status !== 'running') {
+    return {
+      interrupted: true,
+      message: `Tool call interrupted because the run was ${status}.`,
+      result: {
+        interrupted: true,
+        note: `This call was interrupted because the run was ${status}. Repeat it if the result is still needed.`
+      }
+    }
+  }
+
+  const message =
+    error instanceof ApiError
+      ? `${error.message}${error.isRetryable ? ' (retryable)' : ''}`
+      : error instanceof Error
+        ? error.message
+        : String(error)
+  return {
+    interrupted: false,
+    message,
+    result: { error: message, retryable: error instanceof ApiError ? error.isRetryable : false }
+  }
+}
+
+/**
+ * Status a beat should return to when its search was interrupted. Searching is
+ * transient, so derive the status from what the beat actually holds.
+ */
+export function statusAfterInterruptedSearch(beat: {
+  assets?: Array<{ status: string }>
+}): 'pending' | 'selecting' | 'downloading' | 'completed' {
+  const usable = (beat.assets || []).filter((a) => a.status !== 'failed')
+  if (usable.length === 0) return 'pending'
+  if (usable.every((a) => a.status === 'completed')) return 'completed'
+  if (usable.some((a) => a.status === 'downloading')) return 'downloading'
+  return 'selecting'
 }
 
 function decideRunFinalizeFromBeats(input: {

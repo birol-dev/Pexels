@@ -8,6 +8,7 @@ import { registerSettingsHandlers } from './ipc/settings.ipc'
 import { registerJobsHandlers } from './ipc/jobs.ipc'
 import { registerAssetsHandlers } from './ipc/assets.ipc'
 import { ProjectStore } from './services/storage/project-store'
+import { AgentRunner } from './services/agent/agent-runner'
 import { filePathFromMediaUrl, isPathInside } from './services/files/path-safety'
 import { isAllowedExternalUrl } from './services/files/external-url'
 
@@ -126,7 +127,7 @@ function createWindow(): void {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   // Register media protocol to serve local files securely
   protocol.handle('media', async (request) => {
     try {
@@ -165,6 +166,15 @@ app.whenReady().then(() => {
     })
   })
 
+  // No runner exists yet, so any job still marked "running" was cut off by a quit
+  // or crash. Mark it paused before the renderer's first jobs:list so it can resume.
+  try {
+    const recovered = await ProjectStore.recoverInterruptedJobs()
+    if (recovered > 0) console.log(`Recovered ${recovered} interrupted job(s) as paused.`)
+  } catch (err) {
+    console.error('Failed to recover interrupted jobs:', err)
+  }
+
   // Register IPC Handlers
   registerSettingsHandlers()
   registerJobsHandlers()
@@ -184,6 +194,19 @@ app.whenReady().then(() => {
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+
+// Pause running jobs and persist them before the process exits, so they come back
+// as resumable instead of stuck on "running". Quit is held until that finishes
+// (bounded by pauseAll's timeout), then re-issued.
+let shutdownStarted = false
+app.on('before-quit', (event) => {
+  if (shutdownStarted) return
+  shutdownStarted = true
+  event.preventDefault()
+  AgentRunner.pauseAll()
+    .catch((err) => console.error('Failed to pause running jobs on quit:', err))
+    .finally(() => app.quit())
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common

@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { join } from 'path'
 import { loadRecoverableJson, writeJsonAtomic } from './state-file-recovery.ts'
+import { recoverInterruptedJobs } from './job-recovery.ts'
 
 export interface JobSummary {
   jobId: string
@@ -79,6 +80,19 @@ export class ProjectStore {
       }
       await this.persistProjects(list)
     })
+  }
+
+  /**
+   * Startup only: no runner exists yet, so any job still marked `running` was
+   * interrupted by a quit or crash. Mark those paused so they can be resumed.
+   * Returns how many jobs were recovered.
+   */
+  public static async recoverInterruptedJobs(): Promise<number> {
+    const interrupted = recoverInterruptedJobs(await this.list())
+    for (const job of interrupted) {
+      await this.save(job)
+    }
+    return interrupted.length
   }
 
   public static async delete(jobId: string): Promise<void> {
