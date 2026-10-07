@@ -1,4 +1,5 @@
 import type { PublicSettings } from '@renderer/lib/store'
+import { DEFAULT_MODEL_IDS } from '../../../../shared/llm-defaults'
 
 export type SecretKeyField = 'openaiKey' | 'geminiKey' | 'openrouterKey' | 'pexelsKey'
 export type LlmProvider = PublicSettings['llmProvider']
@@ -27,11 +28,7 @@ export const EMPTY_SECRET_KEYS: SecretKeys = {
   pexelsKey: ''
 }
 
-export const DEFAULT_MODEL_BY_PROVIDER: Record<LlmProvider, string> = {
-  openai: 'gpt-4o',
-  gemini: 'gemini-3.8-flash',
-  openrouter: 'google/gemini-2.5-flash'
-}
+export const DEFAULT_MODEL_BY_PROVIDER: Record<LlmProvider, string> = DEFAULT_MODEL_IDS
 
 export const PROVIDER_OPTIONS: { value: LlmProvider; label: string }[] = [
   { value: 'openrouter', label: 'OpenRouter' },

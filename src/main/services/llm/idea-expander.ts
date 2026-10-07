@@ -7,6 +7,7 @@ import {
 import { createTimeoutLinkedSignal } from '../http/abort-signal.ts'
 import { resolveLlmRequestTimeoutSeconds } from './llm-timeout.ts'
 import { wordGuidanceForDuration } from './duration-guidance.ts'
+import { DEFAULT_LLM_PROVIDER, DEFAULT_MODEL_IDS } from '../../../shared/llm-defaults.ts'
 
 export interface ExpandedScriptResult {
   title?: string
@@ -127,8 +128,8 @@ export function parseFallbackExpandedScript(rawText: string): ExpandedScriptResu
 }
 
 export async function expandIdeaToScript(params: ExpandIdeaParams): Promise<ExpandedScriptResult> {
-  const providerId = params.providerId || 'openai'
-  const modelId = params.modelId || 'gpt-4o'
+  const providerId = params.providerId || DEFAULT_LLM_PROVIDER
+  const modelId = params.modelId || DEFAULT_MODEL_IDS[providerId]
   const timeoutSeconds = resolveLlmRequestTimeoutSeconds(params.timeoutSeconds)
   const apiKey = params.apiKey
 

@@ -33,6 +33,11 @@ import { ManifestWriter, ManifestData } from '../files/manifest-writer.ts'
 import { ProjectStore, JobSummary } from '../storage/project-store.ts'
 import { SecureSecrets } from '../storage/secure-secrets.ts'
 import { SettingsStore } from '../storage/settings-store.ts'
+import {
+  DEFAULT_LLM_PROVIDER,
+  DEFAULT_MODEL_IDS,
+  type LlmProviderId
+} from '../../../shared/llm-defaults.ts'
 import { extractToolCallsFromText } from './tool-parser.ts'
 import { compactToolResultsForProvider } from './message-compaction.ts'
 import {
@@ -222,8 +227,8 @@ export class AgentRunner extends EventEmitter {
   private hitIterationLimit = false
   private iterationsUsed = 0
   private loopError: string | null = null
-  private modelId = 'gpt-4o'
-  private providerId: 'openai' | 'gemini' | 'openrouter' = 'openai'
+  private modelId = DEFAULT_MODEL_IDS[DEFAULT_LLM_PROVIDER]
+  private providerId: LlmProviderId = DEFAULT_LLM_PROVIDER
   private maxIterations = 30
   private requestTimeoutSeconds = 60
   private llmRequestTimeoutSeconds = MIN_LLM_REQUEST_TIMEOUT_SECONDS

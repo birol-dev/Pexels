@@ -9,11 +9,7 @@ export const PROVIDER_OPTIONS: { id: LlmProvider; label: string }[] = [
   { id: 'openrouter', label: 'OpenRouter' }
 ]
 
-export const DEFAULT_MODEL_IDS: Record<LlmProvider, string> = {
-  openai: 'gpt-4o',
-  gemini: 'gemini-3.8-flash',
-  openrouter: 'google/gemini-2.5-flash'
-}
+export { DEFAULT_MODEL_IDS } from '../../../../shared/llm-defaults'
 
 /** Sentinel understood by the main process: "test the key already stored on disk". */
 export const CURRENT_KEY_ON_DISK = 'CURRENT_KEY_ON_DISK'

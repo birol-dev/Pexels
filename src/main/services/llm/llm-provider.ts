@@ -5,6 +5,8 @@ export interface AgentMessage {
   tool_call_id?: string
   tool_calls?: NormalizedToolCall[]
   rawParts?: unknown[]
+  /** OpenAI Responses API output items for this turn, replayed as-is (they carry reasoning). */
+  responseItems?: unknown[]
 }
 
 export interface NormalizedToolDefinition {
@@ -85,6 +87,122 @@ export interface ProviderTestResult {
 
 import { llmFetch } from './llm-fetch.ts'
 import { applyOpenRouterPromptCache } from './openrouter-cache.ts'
+import {
+  buildResponsesPayload,
+  parseResponsesResult,
+  type ResponsesApiBody
+} from './openai-responses.ts'
+import { ApiError } from '../http/api-errors.ts'
+import { DEFAULT_MODEL_IDS } from '../../../shared/llm-defaults.ts'
+
+/**
+ * Request limits learned from a provider's own 400 responses, per endpoint + model.
+ * Model ids are free text, so there is no table to look these up in: gpt-4o caps
+ * completions at 16,384 while our budget is 32,768, OpenAI reasoning models reject
+ * any non-default temperature, and the GPT-6 family sends tool calling to the
+ * Responses API. The first rejected turn teaches the limit; later turns start from it.
+ */
+interface ModelRequestQuirks {
+  maxOutputTokens?: number
+  omitTemperature?: boolean
+  /** Chat Completions refuses function tools for this model; use the Responses API. */
+  useResponsesApi?: boolean
+}
+
+/** One correction per kind of quirk a single turn can run into. */
+const MAX_QUIRK_CORRECTIONS = 3
+
+/**
+ * "Function tools with reasoning_effort are not supported for gpt-6-luna in
+ * /v1/chat/completions. To use function tools, use /v1/responses or set
+ * reasoning_effort to 'none'."
+ */
+const TOOLS_NEED_RESPONSES_API = /function tools[\s\S]*\/v1\/responses/i
+
+const modelRequestQuirks = new Map<string, ModelRequestQuirks>()
+
+export function resetModelRequestQuirks(): void {
+  modelRequestQuirks.clear()
+}
+
+/**
+ * The output-token cap a provider's error message states, or null when the message
+ * only says the value is too large (the caller then halves what it sent).
+ */
+export function statedTokenCap(message: string): number | null {
+  const stated = message.match(/(?:at most|maximum of|up to)\s+(\d[\d,]*)/i)
+  if (stated) return Number(stated[1].replace(/,/g, ''))
+  // Gemini: "...the supported range is from 1 (inclusive) to 8193 (exclusive)".
+  const range = message.match(
+    /range is from\s+\d[\d,]*.*?\bto\s+(\d[\d,]*)\s*\((inclusive|exclusive)\)/i
+  )
+  if (!range) return null
+  const bound = Number(range[1].replace(/,/g, ''))
+  return range[2].toLowerCase() === 'exclusive' ? bound - 1 : bound
+}
+
+/** Returns the adjustment a 400 message asks for, or null when it is unrelated. */
+export function learnModelRequestQuirk(
+  message: string,
+  sentMaxTokens: number,
+  known: ModelRequestQuirks = {}
+): ModelRequestQuirks | null {
+  if (!known.useResponsesApi && TOOLS_NEED_RESPONSES_API.test(message)) {
+    return { useResponsesApi: true }
+  }
+
+  if (
+    !known.omitTemperature &&
+    /temperature/i.test(message) &&
+    /unsupported|not support|only the default/i.test(message)
+  ) {
+    return { omitTemperature: true }
+  }
+
+  // Covers max_tokens, max_completion_tokens, max_output_tokens and Gemini's maxOutputTokens.
+  if (/max_?(?:completion_?|output_?)?tokens|completion tokens|output tokens/i.test(message)) {
+    const cap = statedTokenCap(message) ?? Math.floor(sentMaxTokens / 2)
+    if (Number.isFinite(cap) && cap >= 1 && cap < sentMaxTokens) {
+      return { maxOutputTokens: cap }
+    }
+  }
+
+  return null
+}
+
+/**
+ * Sends a turn with the limits already learned for this endpoint + model. When the
+ * provider answers 400 with a limit we can read, the limit is remembered and the
+ * turn is resent. At most MAX_QUIRK_CORRECTIONS corrections per turn.
+ */
+async function sendWithLearnedQuirks(
+  quirkKey: string,
+  requestedMaxTokens: number,
+  send: (limits: {
+    maxOutputTokens: number
+    omitTemperature: boolean
+    useResponsesApi: boolean
+  }) => Promise<Response>
+): Promise<Response> {
+  for (let correction = 0; ; correction++) {
+    const quirks = modelRequestQuirks.get(quirkKey)
+    const maxOutputTokens = Math.min(requestedMaxTokens, quirks?.maxOutputTokens ?? Infinity)
+    try {
+      return await send({
+        maxOutputTokens,
+        omitTemperature: Boolean(quirks?.omitTemperature),
+        useResponsesApi: Boolean(quirks?.useResponsesApi)
+      })
+    } catch (error) {
+      const learned =
+        correction < MAX_QUIRK_CORRECTIONS && error instanceof ApiError && error.statusCode === 400
+          ? learnModelRequestQuirk(error.message, maxOutputTokens, quirks)
+          : null
+      if (!learned) throw error
+      modelRequestQuirks.set(quirkKey, { ...quirks, ...learned })
+    }
+  }
+}
 
 export interface LlmProvider {
   id: 'openai' | 'openrouter' | 'gemini'
@@ -228,6 +346,8 @@ async function createOpenAiCompatibleToolTurn(
     extraHeaders?: Record<string, string>
     rejectErrorField?: boolean
     promptCache?: boolean
+    /** Responses API endpoint, for models that only do tool calling there. */
+    responsesUrl?: string
   }
 ): Promise<LlmToolTurnResult> {
   const trimmedKey = credentials.apiKey?.trim() || ''
@@ -241,11 +361,10 @@ async function createOpenAiCompatibleToolTurn(
     ...options.extraHeaders
   }
 
+  const model = input.model?.trim() || options.defaultModel
   const payload: Record<string, unknown> = {
-    model: input.model?.trim() || options.defaultModel,
-    messages: toOpenAiMessages(input.messages, input.systemPrompt),
-    temperature: input.temperature,
-    [options.maxTokensField]: input.maxOutputTokens
+    model,
+    messages: toOpenAiMessages(input.messages, input.systemPrompt)
   }
 
   if (input.tools.length > 0) {
@@ -269,16 +388,46 @@ async function createOpenAiCompatibleToolTurn(
     }
   }
 
-  const response = await llmFetch({
-    url: options.url,
-    label: options.label,
-    init: {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-      signal: input.abortSignal
+  let answeredByResponsesApi = false
+  const response = await sendWithLearnedQuirks(
+    `${options.url}::${model}`,
+    input.maxOutputTokens,
+    (limits) => {
+      if (limits.useResponsesApi && options.responsesUrl) {
+        answeredByResponsesApi = true
+        return llmFetch({
+          url: options.responsesUrl,
+          label: options.label,
+          init: {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(buildResponsesPayload(input, model, limits.maxOutputTokens)),
+            signal: input.abortSignal
+          }
+        })
+      }
+      payload[options.maxTokensField] = limits.maxOutputTokens
+      if (limits.omitTemperature) {
+        delete payload.temperature
+      } else {
+        payload.temperature = input.temperature
+      }
+      return llmFetch({
+        url: options.url,
+        label: options.label,
+        init: {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+          signal: input.abortSignal
+        }
+      })
     }
-  })
+  )
+
+  if (answeredByResponsesApi) {
+    return parseResponsesResult((await response.json()) as ResponsesApiBody, options.providerName)
+  }
 
   const data = (await response.json()) as {
     error?: { message?: string }
@@ -393,9 +542,10 @@ class OpenAiProvider implements LlmProvider {
     return createOpenAiCompatibleToolTurn(input, credentials, {
       providerName: 'OpenAI',
       url: 'https://api.openai.com/v1/chat/completions',
-      defaultModel: 'gpt-4o',
+      defaultModel: DEFAULT_MODEL_IDS.openai,
       label: 'OpenAI chat completions',
-      maxTokensField: 'max_completion_tokens'
+      maxTokensField: 'max_completion_tokens',
+      responsesUrl: 'https://api.openai.com/v1/responses'
     })
   }
 
@@ -405,7 +555,7 @@ class OpenAiProvider implements LlmProvider {
   ): Promise<ProviderTestResult> {
     return testConnectionWithPing(this, credentials, modelId, {
       providerName: 'OpenAI',
-      defaultModel: 'gpt-4o-mini'
+      defaultModel: DEFAULT_MODEL_IDS.openai
     })
   }
 }
@@ -420,7 +570,7 @@ class OpenRouterProvider implements LlmProvider {
     return createOpenAiCompatibleToolTurn(input, credentials, {
       providerName: 'OpenRouter',
       url: 'https://openrouter.ai/api/v1/chat/completions',
-      defaultModel: 'google/gemini-2.5-flash',
+      defaultModel: DEFAULT_MODEL_IDS.openrouter,
       label: 'OpenRouter chat completions',
       maxTokensField: 'max_tokens',
       extraHeaders: {
@@ -438,7 +588,7 @@ class OpenRouterProvider implements LlmProvider {
   ): Promise<ProviderTestResult> {
     return testConnectionWithPing(this, credentials, modelId, {
       providerName: 'OpenRouter',
-      defaultModel: 'google/gemini-2.5-flash'
+      defaultModel: DEFAULT_MODEL_IDS.openrouter
     })
   }
 }
@@ -583,7 +733,7 @@ class GeminiProvider implements LlmProvider {
     if (!trimmedKey) {
       throw new Error('Gemini API key is missing.')
     }
-    const rawModel = (input.model || 'gemini-3.8-flash').trim()
+    const rawModel = (input.model || DEFAULT_MODEL_IDS.gemini).trim()
     const cleanModel = rawModel.startsWith('models/') ? rawModel : `models/${rawModel}`
     const url = `https://generativelanguage.googleapis.com/v1beta/${cleanModel}:generateContent`
     const headers = {
@@ -593,13 +743,8 @@ class GeminiProvider implements LlmProvider {
 
     const contents = this.toGeminiContents(input.messages)
 
-    const payload: Record<string, unknown> = {
-      contents,
-      generationConfig: {
-        temperature: input.temperature,
-        maxOutputTokens: input.maxOutputTokens
-      }
-    }
+    // generationConfig is filled in per attempt by sendWithLearnedQuirks below.
+    const payload: Record<string, unknown> = { contents }
 
     if (input.systemPrompt) {
       payload.systemInstruction = {
@@ -632,15 +777,20 @@ class GeminiProvider implements LlmProvider {
       }
     }
 
-    const response = await llmFetch({
-      url,
-      label: 'Gemini generateContent',
-      init: {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload),
-        signal: input.abortSignal
-      }
+    const response = await sendWithLearnedQuirks(url, input.maxOutputTokens, (limits) => {
+      // No temperature: Google recommends the default (1.0) for Gemini 3 models and
+      // warns that lower values can cause looping.
+      payload.generationConfig = { maxOutputTokens: limits.maxOutputTokens }
+      return llmFetch({
+        url,
+        label: 'Gemini generateContent',
+        init: {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+          signal: input.abortSignal
+        }
+      })
     })
 
     interface GeminiResponseCandidate {
@@ -741,7 +891,7 @@ class GeminiProvider implements LlmProvider {
   ): Promise<ProviderTestResult> {
     return testConnectionWithPing(this, credentials, modelId, {
       providerName: 'Gemini',
-      defaultModel: 'gemini-3.8-flash'
+      defaultModel: DEFAULT_MODEL_IDS.gemini
     })
   }
 }

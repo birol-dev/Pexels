@@ -10,6 +10,7 @@ import { expandIdeaToScript, ExpandedScriptResult } from '../services/llm/idea-e
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { z } from 'zod'
+import { DEFAULT_LLM_PROVIDER, DEFAULT_MODEL_IDS } from '../../shared/llm-defaults'
 
 function createJobId(): string {
   // Millisecond timestamps alone can collide under rapid start/rerun clicks.
@@ -246,8 +247,8 @@ export function registerJobsHandlers(): void {
   ipcMain.handle('jobs:expandIdea', async (_, rawInput: unknown): Promise<ExpandedScriptResult> => {
     const input = ExpandIdeaInputSchema.parse(rawInput)
     const settings = await SettingsStore.getSettings()
-    const providerId = settings.llmProvider || 'openai'
-    const modelId = settings.modelId || 'gpt-4o'
+    const providerId = settings.llmProvider || DEFAULT_LLM_PROVIDER
+    const modelId = settings.modelId || DEFAULT_MODEL_IDS[providerId]
     const providerKey = await SecureSecrets.getSecret(`${providerId}Key`)
 
     if (!providerKey) {

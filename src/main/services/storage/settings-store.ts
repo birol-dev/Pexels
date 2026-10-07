@@ -2,10 +2,17 @@ import * as electron from 'electron'
 import { join } from 'path'
 import os from 'os'
 import { loadRecoverableJson, writeJsonAtomic } from './state-file-recovery.ts'
+import {
+  DEFAULT_LLM_PROVIDER,
+  DEFAULT_MODEL_IDS,
+  type LlmProviderId
+} from '../../../shared/llm-defaults.ts'
 
 export interface PublicSettings {
-  llmProvider: 'openai' | 'openrouter' | 'gemini'
+  llmProvider: LlmProviderId
   modelId: string
+  /** Last model id used with each provider, restored when the user switches back. */
+  modelIdByProvider?: Partial<Record<LlmProviderId, string>>
   downloadFolder: string
   maxConcurrentDownloads: number
   maxAgentIterations: number
@@ -47,8 +54,8 @@ let defaultSettings: PublicSettings | null = null
 export function getDefaultSettings(): PublicSettings {
   if (!defaultSettings) {
     defaultSettings = {
-      llmProvider: 'openai',
-      modelId: 'gpt-4o',
+      llmProvider: DEFAULT_LLM_PROVIDER,
+      modelId: DEFAULT_MODEL_IDS[DEFAULT_LLM_PROVIDER],
       downloadFolder: getAppPath('downloads'),
       maxConcurrentDownloads: 3,
       maxAgentIterations: 30,
