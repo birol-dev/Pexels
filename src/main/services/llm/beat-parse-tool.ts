@@ -72,6 +72,61 @@ export function parseBeatsFromToolCall(argumentsJson: string): ParsedScriptBeat[
   })
 }
 
+export type BeatSplitPromptInput = {
+  /** Total download cap for the job; every beat needs at least one asset. */
+  maxTotalDownloads: number
+  avoidPeople: boolean
+}
+
+export function buildBeatSplitSystemPrompt(input: BeatSplitPromptInput): string {
+  const peopleRule = input.avoidPeople
+    ? '\n6. The user wants no people in the footage: describe objects, places, nature, hands, or silhouettes instead of faces, crowds, or close-ups of individuals.'
+    : ''
+
+  return `You are a professional video editor and script analyzer.
+Break the provided script into visual beats (scenes or moments of visual focus).
+
+Rules:
+1. Cover the whole script, in order. Copy each beat's text exactly from the script: do not omit, reorder, summarize, or reword anything. Joined together, the beats' text must reproduce the full script.
+2. Size beats by visual change: roughly one beat per sentence, or per 3-6 seconds of narration (about 8-15 spoken words). Merge short sentences that share one image.
+3. Use at most ${input.maxTotalDownloads} beats. The job can download only ${input.maxTotalDownloads} assets in total and every beat needs at least one, so for a long script make beats longer instead of adding more.
+4. Write each visualPrompt as a concrete, filmable stock-search description in English: a visible subject plus an action or setting, 3-8 words (for example "empty trading floor at dusk"). For abstract narration such as "freedom" or "growth", pick a literal image a stock library would have, such as an open road or a seedling in sunlight.
+5. Never put brand names, logos, or named people in a visualPrompt.${peopleRule}
+
+Call the submit_script_beats tool once with the complete ordered beats array.`
+}
+
+function scriptWords(text: string): string[] {
+  return text
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean)
+}
+
+/**
+ * Check that the beats, joined in order, reproduce the script (ignoring case, punctuation and
+ * whitespace). Returns null when they do, or a description of the first difference that is
+ * written to be fed back to the model.
+ */
+export function findScriptMismatch(script: string, beats: ParsedScriptBeat[]): string | null {
+  const expected = scriptWords(script)
+  const actual = scriptWords(beats.map((beat) => beat.text).join(' '))
+
+  const limit = Math.min(expected.length, actual.length)
+  let index = 0
+  while (index < limit && expected[index] === actual[index]) index++
+
+  if (index === expected.length && index === actual.length) return null
+
+  const around = (words: string[]): string =>
+    words.slice(Math.max(0, index - 3), index + 4).join(' ')
+  return `The beats do not reproduce the script. The script has ${expected.length} words and the beats have ${actual.length}. They first differ at word ${index + 1}: the script reads "${around(expected)}" but the beats read "${around(actual)}".`
+}
+
+export function buildBeatCorrectionMessage(mismatch: string): string {
+  return `${mismatch} Call submit_script_beats again. Copy the script verbatim into the beats' text fields, in order, without dropping or rewording anything.`
+}
+
 export function missingBeatToolCallError(input: {
   stopReason: 'tool_calls' | 'final' | 'length' | 'error'
   usage?: { outputTokens?: number; reasoningTokens?: number }

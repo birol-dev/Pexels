@@ -16,15 +16,18 @@ import { validateDownloadUrl } from '../pexels/download-url-validation.ts'
 import { buildManifestAttribution } from '../pexels/pexels-attribution.ts'
 import {
   SUBMIT_SCRIPT_BEATS_TOOL,
+  buildBeatCorrectionMessage,
+  buildBeatSplitSystemPrompt,
+  findScriptMismatch,
   missingBeatToolCallError,
-  parseBeatsFromToolCall
+  parseBeatsFromToolCall,
+  type ParsedScriptBeat
 } from '../llm/beat-parse-tool.ts'
 import { expandIdeaToScript } from '../llm/idea-expander.ts'
 import {
   MIN_LLM_REQUEST_TIMEOUT_SECONDS,
   resolveLlmRequestTimeoutSeconds
 } from '../llm/llm-timeout.ts'
-import { ApiError } from '../http/api-errors.ts'
 import { createTimeoutLinkedSignal } from '../http/abort-signal.ts'
 import { ManifestWriter, ManifestData } from '../files/manifest-writer.ts'
 import { ProjectStore, JobSummary } from '../storage/project-store.ts'
@@ -46,11 +49,18 @@ import {
   areAllBeatsDownloaded,
   areBeatsSatisfiedForLoop,
   decideRunFinalize,
-  loopErrorToRecord,
+  describeToolFailure,
+  isAssetRejectedByUser,
   remainingIterations,
+  selectionBudgetViolation,
+  statusAfterInterruptedSearch,
   getUnfulfilledBeats,
-  hasPendingUnqueuedAssets
+  hasPendingUnqueuedAssets,
+  USER_REJECTION_REASON
 } from './tool-schemas.ts'
+import { runLoopThenFinalize } from './run-tail.ts'
+import { createTrailingThrottle } from './progress-throttle.ts'
+import { removeStaleDownloadTemps } from '../files/temp-cleanup.ts'
 import {
   DEFAULT_SEARCH_MODE,
   buildBroadSearchNudgeMessage,
@@ -165,6 +175,28 @@ export class AgentRunner extends EventEmitter {
     return this.activeRunners.get(jobId)
   }
 
+  /**
+   * Quit path: pause every running job and persist its state so it is resumable
+   * next launch instead of being left as a stale `running` job. In-flight
+   * downloads are not awaited (a large video could stall quit); their assets are
+   * saved as `downloading` and reset to pending on resume. Bounded by `timeoutMs`.
+   */
+  public static async pauseAll(timeoutMs = 5000): Promise<void> {
+    const running = [...this.activeRunners.values()].filter((r) => r.status === 'running')
+    await Promise.all(
+      running.map(async (runner) => {
+        await runner.pause()
+        let timer: ReturnType<typeof setTimeout> | undefined
+        const timeout = new Promise<void>((resolve) => {
+          timer = setTimeout(resolve, timeoutMs)
+        })
+        await Promise.race([runner.activePromise?.catch(() => undefined), timeout])
+        clearTimeout(timer)
+        await runner.persistSnapshot()
+      })
+    )
+  }
+
   private jobId: string
   private input: StartJobInput
   private status: JobSnapshot['status'] = 'running'
@@ -205,6 +237,21 @@ export class AgentRunner extends EventEmitter {
   private persistAgentStateEnabled = true
 
   private assetLookup = new Map<string, { asset: AssetRecord; beat: VisualBeat }>()
+
+  // Download progress ticks once per percent per file. Coalesce the full-beats
+  // broadcast and manifest rebuild they trigger instead of doing both every tick.
+  private progressFlush = createTrailingThrottle(() => {
+    this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
+    this.writeManifest(false).catch((err) =>
+      console.error('Failed to write throttled manifest on progress update:', err)
+    )
+  }, 250)
+
+  private async persistSnapshot(): Promise<void> {
+    await this.saveRegistry()
+    await this.writeAgentState()
+    await this.writeManifest(true)
+  }
 
   private rebuildAssetLookup(): void {
     this.assetLookup.clear()
@@ -289,12 +336,12 @@ export class AgentRunner extends EventEmitter {
           AgentRunner.activeRunners.delete(this.jobId)
         }
       }
+      // The snapshot below supersedes any pending progress broadcast.
+      this.progressFlush.cancel()
       if (this.projectDir) {
         await ManifestWriter.flushPendingWrites(this.projectDir)
       }
-      await this.saveRegistry()
-      await this.writeAgentState()
-      await this.writeManifest(true)
+      await this.persistSnapshot()
       this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
     }
   }
@@ -310,6 +357,8 @@ export class AgentRunner extends EventEmitter {
     if (this.downloader) {
       await this.downloader.waitForIdle()
     }
+    // A pending progress write would recreate the project folder after delete.
+    this.progressFlush.cancel()
     if (this.projectDir) {
       await ManifestWriter.flushPendingWrites(this.projectDir)
     }
@@ -380,7 +429,18 @@ export class AgentRunner extends EventEmitter {
     this.abortController = new AbortController()
     const settings = await this.applyRuntimeSettings()
     this.projectDir = await this.resolveProjectDirectory(settings.downloadFolder)
+    // A fresh runner means the previous process is gone, so no download can be
+    // writing these partials. (A paused runner that is still in memory skips this.)
+    let removedPartials = 0
+    try {
+      removedPartials = await removeStaleDownloadTemps(this.projectDir)
+    } catch (err) {
+      console.warn('Failed to clean stale download partials:', err)
+    }
     await this.loadStateFromManifest()
+    if (removedPartials > 0) {
+      this.log('info', `Removed ${removedPartials} partial download(s) left by an interrupted run.`)
+    }
     this.status = 'paused'
   }
 
@@ -555,29 +615,26 @@ export class AgentRunner extends EventEmitter {
 
       await this.expandIdeaIfNeeded()
       await this.parseScriptIntoBeats()
-      this.loopError = null
-      try {
-        await this.runAgentLoop()
-      } catch (loopErr) {
-        // Pause/cancel abort the in-flight request on purpose; only real failures count.
-        const errMsg = loopErrorToRecord(this.status, loopErr)
-        if (errMsg) {
-          this.loopError = errMsg
-          this.log('error', `Agent loop encountered an error: ${errMsg}`)
-        }
-      }
-
-      if (this.status === 'running') {
-        await this.waitForDownloadsToSettle()
-      }
-
-      if (this.status === 'running') {
-        this.finalizeSuccessfulRun()
-      }
+      await this.runLoopAndFinalize()
     }
 
     this.activePromise = this.runBackground(task)
     await this.activePromise
+  }
+
+  /** Loop + settle downloads + finalize; shared by start() and approveAndResume(). */
+  private async runLoopAndFinalize(): Promise<void> {
+    this.loopError = null
+    await runLoopThenFinalize({
+      getStatus: () => this.status,
+      runLoop: () => this.runAgentLoop(),
+      onLoopError: (message) => {
+        this.loopError = message
+        this.log('error', `Agent loop encountered an error: ${message}`)
+      },
+      settleDownloads: () => this.waitForDownloadsToSettle(),
+      finalize: () => this.finalizeSuccessfulRun()
+    })
   }
 
   public async pause(): Promise<void> {
@@ -812,55 +869,81 @@ export class AgentRunner extends EventEmitter {
     }
 
     const provider = LlmProviderFactory.getProvider(this.providerId)
-    const systemPrompt = `You are a professional video editor and script analyzer.
-Break the provided script into logical visual beats (scenes or moments of visual focus).
-For each beat:
-1. Preserve the script text exactly — do not omit or rewrite words.
-2. Write a concrete Pexels-friendly visualPrompt for stock photo/video search.
+    const systemPrompt = buildBeatSplitSystemPrompt({
+      maxTotalDownloads: this.input.maxTotalDownloads,
+      avoidPeople: this.safetySettings.avoidPeople
+    })
 
-Call the submit_script_beats tool once with the complete ordered beats array.`
-
-    const response = await this.executeWithTimeout(this.llmRequestTimeoutSeconds, (signal) =>
-      provider.createToolTurn(
-        {
-          model: this.modelId,
-          systemPrompt,
-          messages: [{ role: 'user', content: this.input.script }],
-          tools: [SUBMIT_SCRIPT_BEATS_TOOL],
-          toolChoice: { name: 'submit_script_beats' },
-          temperature: 0.2,
-          maxOutputTokens: LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
-          abortSignal: signal,
-          sessionId: `stockfinder:${this.jobId}`,
-          reasoning: LLM_STRUCTURED_REASONING
-        },
-        { apiKey: providerKey }
+    const requestBeats = async (userContent: string): Promise<ParsedScriptBeat[]> => {
+      const response = await this.executeWithTimeout(this.llmRequestTimeoutSeconds, (signal) =>
+        provider.createToolTurn(
+          {
+            model: this.modelId,
+            systemPrompt,
+            messages: [{ role: 'user', content: userContent }],
+            tools: [SUBMIT_SCRIPT_BEATS_TOOL],
+            toolChoice: { name: 'submit_script_beats' },
+            temperature: 0.2,
+            maxOutputTokens: LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
+            abortSignal: signal,
+            sessionId: `stockfinder:${this.jobId}`,
+            reasoning: LLM_STRUCTURED_REASONING
+          },
+          { apiKey: providerKey }
+        )
       )
-    )
 
-    if (response.usage) {
-      this.usage.inputTokens += response.usage.inputTokens || 0
-      this.usage.outputTokens += response.usage.outputTokens || 0
-      this.usage.totalTokens += response.usage.totalTokens || 0
+      if (response.usage) {
+        this.usage.inputTokens += response.usage.inputTokens || 0
+        this.usage.outputTokens += response.usage.outputTokens || 0
+        this.usage.totalTokens += response.usage.totalTokens || 0
+      }
+
+      let beatToolCall = response.toolCalls.find((tc) => tc.name === 'submit_script_beats')
+      if (!beatToolCall && response.assistantMessage.content) {
+        const extracted = extractToolCallsFromText(response.assistantMessage.content, [
+          'submit_script_beats'
+        ])
+        beatToolCall = extracted.find((tc) => tc.name === 'submit_script_beats')
+      }
+      if (!beatToolCall) {
+        const fallbackContent = response.assistantMessage.content || ''
+        this.log(
+          'error',
+          `Model did not call submit_script_beats (stop=${response.stopReason}, output=${response.usage?.outputTokens ?? '?'}, reasoning=${response.usage?.reasoningTokens ?? '?'}). Raw content: ${fallbackContent}`
+        )
+        throw missingBeatToolCallError(response)
+      }
+
+      return parseBeatsFromToolCall(beatToolCall.arguments)
     }
 
-    let beatToolCall = response.toolCalls.find((tc) => tc.name === 'submit_script_beats')
-    if (!beatToolCall && response.assistantMessage.content) {
-      const extracted = extractToolCallsFromText(response.assistantMessage.content, [
-        'submit_script_beats'
-      ])
-      beatToolCall = extracted.find((tc) => tc.name === 'submit_script_beats')
+    let parsedBeats = await requestBeats(this.input.script)
+    const mismatch = findScriptMismatch(this.input.script, parsedBeats)
+    if (mismatch) {
+      // Beat text drives the catalog the agent works from, so a dropped sentence would
+      // silently never get footage. Ask once for a faithful copy; keep going if still off.
+      this.log('info', `Warning: beat segmentation changed the script. Retrying once. ${mismatch}`)
+      const retried = await requestBeats(
+        `${this.input.script}\n\n---\n${buildBeatCorrectionMessage(mismatch)}`
+      )
+      const retryMismatch = findScriptMismatch(this.input.script, retried)
+      if (!retryMismatch) {
+        parsedBeats = retried
+      } else {
+        this.log(
+          'info',
+          `Warning: beats still do not match the script after a retry; continuing with the first attempt. ${retryMismatch}`
+        )
+      }
     }
-    if (!beatToolCall) {
-      const fallbackContent = response.assistantMessage.content || ''
+
+    if (parsedBeats.length > this.input.maxTotalDownloads) {
       this.log(
-        'error',
-        `Model did not call submit_script_beats (stop=${response.stopReason}, output=${response.usage?.outputTokens ?? '?'}, reasoning=${response.usage?.reasoningTokens ?? '?'}). Raw content: ${fallbackContent}`
+        'info',
+        `Warning: the script has ${parsedBeats.length} beats but the download cap is ${this.input.maxTotalDownloads}, so some beats will get no footage. Raise the cap to cover every beat.`
       )
-      throw missingBeatToolCallError(response)
     }
-
-    const parsedBeats = parseBeatsFromToolCall(beatToolCall.arguments)
 
     this.beats = parsedBeats.map((beat, index) => ({
       id: `beat_${index + 1}`,
@@ -894,7 +977,9 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
       maxAssetsPerBeat: this.input.maxAssetsPerBeat,
       maxTotalDownloads: this.input.maxTotalDownloads,
       skipExplicit: this.safetySettings.skipExplicit,
-      avoidPeople: this.safetySettings.avoidPeople
+      avoidPeople: this.safetySettings.avoidPeople,
+      beatCount: this.beats.length,
+      maxIterations: this.maxIterations
     })
 
     const tools = AGENT_TOOLS
@@ -946,7 +1031,8 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
                 visualPrompt: b.visualPrompt,
                 status: b.status,
                 assets: b.assets.map((a) => ({ id: a.id, type: a.type, status: a.status }))
-              }))
+              })),
+              { used: iteration, max: this.maxIterations }
             ),
             tools,
             toolChoice: 'auto',
@@ -1112,10 +1198,6 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
       this.hitIterationLimit = true
       this.log('error', `Agent reached maximum iterations limit (${this.maxIterations})`)
     }
-  }
-
-  private getSelectedAssetCount(): number {
-    return this.beats.flatMap((b) => b.assets || []).filter((a) => a.status !== 'failed').length
   }
 
   // ponytail: O(n) scan; fine until jobs have hundreds of beats
@@ -1388,25 +1470,32 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
             continue
           }
 
+          // The failed record of a user-rejected asset is still on the beat; without
+          // this check it would be reported as selected and later re-downloaded.
+          if (isAssetRejectedByUser(beat, sel.assetType, sel.pexelsId)) {
+            selectionResults.push({
+              pexelsId: sel.pexelsId,
+              status: 'rejected',
+              reason: `The user rejected asset ${sel.pexelsId} for ${beat.id}. Choose a different asset.`
+            })
+            continue
+          }
+
           const recordId = `${sel.assetType}_${sel.pexelsId}`
           const existingRecord = beat.assets.find((a) => a.id === recordId)
 
           if (!existingRecord) {
-            const activeBeatAssets = beat.assets.filter((a) => a.status !== 'failed').length
-            if (activeBeatAssets >= this.input.maxAssetsPerBeat) {
+            const budgetViolation = selectionBudgetViolation({
+              beats: this.beats,
+              beatId: beat.id,
+              maxAssetsPerBeat: this.input.maxAssetsPerBeat,
+              maxTotalDownloads: this.input.maxTotalDownloads
+            })
+            if (budgetViolation) {
               selectionResults.push({
                 pexelsId: sel.pexelsId,
                 status: 'rejected',
-                reason: `Beat cap of ${this.input.maxAssetsPerBeat} assets reached.`
-              })
-              continue
-            }
-
-            if (this.getSelectedAssetCount() >= this.input.maxTotalDownloads) {
-              selectionResults.push({
-                pexelsId: sel.pexelsId,
-                status: 'rejected',
-                reason: `Total download cap of ${this.input.maxTotalDownloads} assets reached.`
+                reason: budgetViolation
               })
               continue
             }
@@ -1535,6 +1624,16 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
             continue
           }
 
+          if (isAssetRejectedByUser(parentBeat, assetRef.assetType, assetRef.pexelsId)) {
+            failed.push({
+              assetType: assetRef.assetType,
+              pexelsId: assetRef.pexelsId,
+              reason: `The user rejected this asset. Choose a different asset.`,
+              retryable: false
+            })
+            continue
+          }
+
           if (settings.requireApprovalBeforeDownload && assetRecord.status === 'pending') {
             failed.push({
               assetType: assetRef.assetType,
@@ -1595,17 +1694,17 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
         throw new Error(`Unknown tool: ${tc.name}`)
       }
     } catch (error) {
-      const errMsg =
-        error instanceof ApiError
-          ? `${error.message}${error.isRetryable ? ' (retryable)' : ''}`
-          : error instanceof Error
-            ? error.message
-            : String(error)
-      this.log('error', `Tool execution ${tc.name} failed: ${errMsg}`)
-      result = {
-        error: errMsg,
-        retryable: error instanceof ApiError ? error.isRetryable : false
+      const failure = describeToolFailure(this.status, error)
+      if (failure.interrupted) {
+        // A search aborted by pause/cancel leaves its beat stuck on "searching".
+        for (const beat of this.beats) {
+          if (beat.status === 'searching') beat.status = statusAfterInterruptedSearch(beat)
+        }
+        this.log('info', `${tc.name}: ${failure.message}`)
+      } else {
+        this.log('error', `Tool execution ${tc.name} failed: ${failure.message}`)
       }
+      result = failure.result
     }
 
     this.log('tool_result', `Result for ${tc.name}`, result)
@@ -1647,17 +1746,21 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
       if (!rejectedSet.has(asset.id)) continue
 
       asset.status = 'failed'
-      asset.error = 'Rejected by user'
+      asset.error = USER_REJECTION_REASON
       if (!beat.rejectedAssets) {
         beat.rejectedAssets = []
       }
-      if (
-        !beat.rejectedAssets.some((r) => r.type === asset.type && r.pexelsId === asset.pexelsId)
-      ) {
+      const priorRejection = beat.rejectedAssets.find(
+        (r) => r.type === asset.type && r.pexelsId === asset.pexelsId
+      )
+      if (priorRejection) {
+        // The model may have rejected it earlier; the user's decision takes over.
+        priorRejection.reason = USER_REJECTION_REASON
+      } else {
         beat.rejectedAssets.push({
           type: asset.type,
           pexelsId: asset.pexelsId,
-          reason: 'Rejected by user'
+          reason: USER_REJECTION_REASON
         })
       }
     }
@@ -1710,20 +1813,7 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
         this.status = 'running'
       }
 
-      try {
-        await this.runAgentLoop()
-      } catch (loopErr) {
-        const errMsg = loopErr instanceof Error ? loopErr.message : String(loopErr)
-        this.log('error', `Agent loop encountered an error: ${errMsg}`)
-      }
-
-      if (this.status === 'running') {
-        await this.waitForDownloadsToSettle()
-      }
-
-      if (this.status === 'running') {
-        this.finalizeSuccessfulRun()
-      }
+      await this.runLoopAndFinalize()
     }
 
     this.activePromise = this.runBackground(task)
@@ -1849,6 +1939,9 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
         }
       }
 
+      // The immediate write and broadcast below supersede any pending progress flush.
+      this.progressFlush.cancel()
+
       // Write manifest update immediately on state changes
       this.writeManifest(true).catch((err) =>
         console.error('Failed to write manifest on state transition:', err)
@@ -1858,11 +1951,8 @@ Call the submit_script_beats tool once with the complete ordered beats array.`
       this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
       this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
     } else {
-      // Progress-only update (e.g. 34% -> 35%): throttled manifest update
-      this.writeManifest(false).catch((err) =>
-        console.error('Failed to write throttled manifest on progress update:', err)
-      )
-      this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
+      // Progress-only update (e.g. 34% -> 35%): coalesced broadcast + throttled manifest write
+      this.progressFlush.schedule()
     }
   }
 
