@@ -8,6 +8,8 @@ export interface LoadedAgentConversation {
   messages?: unknown
   pexelsCandidates?: unknown
   iterationsUsed: number
+  /** Message index before which large tool results are digested. Old state files have none. */
+  compactedBefore: number
   source: AgentStateSource
   persistToAgentStateFile: boolean
 }
@@ -16,9 +18,10 @@ interface AgentStateFile {
   messages?: unknown
   pexelsCandidates?: unknown
   iterationsUsed?: unknown
+  compactedBefore?: unknown
 }
 
-function toIterationCount(value: unknown): number {
+function toCount(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.floor(value) : 0
 }
 
@@ -49,6 +52,7 @@ export async function loadAgentConversationState(
       messages: manifest.messages,
       pexelsCandidates: manifest.pexelsCandidates,
       iterationsUsed: 0,
+      compactedBefore: 0,
       source: fromManifest ? 'manifest' : 'none',
       persistToAgentStateFile: false
     }
@@ -60,7 +64,8 @@ export async function loadAgentConversationState(
       pexelsCandidates: Array.isArray(result.value.pexelsCandidates)
         ? result.value.pexelsCandidates
         : manifest.pexelsCandidates,
-      iterationsUsed: toIterationCount(result.value.iterationsUsed),
+      iterationsUsed: toCount(result.value.iterationsUsed),
+      compactedBefore: toCount(result.value.compactedBefore),
       source: 'agent-state',
       persistToAgentStateFile: true
     }
@@ -71,6 +76,7 @@ export async function loadAgentConversationState(
     messages: manifest.messages,
     pexelsCandidates: manifest.pexelsCandidates,
     iterationsUsed: 0,
+    compactedBefore: 0,
     source: fromManifest ? 'manifest' : 'none',
     persistToAgentStateFile: true
   }
@@ -80,12 +86,14 @@ export async function persistAgentConversationState(
   projectDir: string,
   messages: unknown,
   pexelsCandidates: Array<[string, unknown]>,
-  iterationsUsed = 0
+  iterationsUsed = 0,
+  compactedBefore = 0
 ): Promise<void> {
   await ManifestWriter.writeJsonFile(projectDir, 'agent-state.json', {
     schemaVersion: 1,
     messages,
     pexelsCandidates,
-    iterationsUsed
+    iterationsUsed,
+    compactedBefore
   })
 }

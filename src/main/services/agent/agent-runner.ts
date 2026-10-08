@@ -42,7 +42,7 @@ import {
   type LlmProviderId
 } from '../../../shared/llm-defaults.ts'
 import { extractToolCallsFromText } from './tool-parser.ts'
-import { compactToolResultsForProvider } from './message-compaction.ts'
+import { compactForRequest } from './message-compaction.ts'
 import { photoResultForModel, shapeForPlatform, videoResultForModel } from './tool-results.ts'
 import {
   loadAgentConversationState,
@@ -238,6 +238,9 @@ export class AgentRunner extends EventEmitter {
   // Set by a select call under approval mode; the loop pauses once the whole turn is processed.
   private approvalRequested = false
   private iterationsUsed = 0
+  // Message index before which large tool results are sent as digests. Only moves when a
+  // request would cross the context budget, so the prefix of later requests stays identical.
+  private compactedBefore = 0
   private loopError: string | null = null
   private modelId = DEFAULT_MODEL_IDS[DEFAULT_LLM_PROVIDER]
   private providerId: LlmProviderId = DEFAULT_LLM_PROVIDER
@@ -593,6 +596,7 @@ export class AgentRunner extends EventEmitter {
       this.pexelsCandidates = new Map(loaded.pexelsCandidates as Array<[string, PexelsCandidate]>)
     }
     this.iterationsUsed = loaded.iterationsUsed
+    this.compactedBefore = loaded.compactedBefore
   }
 
   private async writeAgentState(): Promise<boolean> {
@@ -602,7 +606,8 @@ export class AgentRunner extends EventEmitter {
         this.projectDir,
         this.messages,
         Array.from(this.pexelsCandidates.entries()),
-        this.iterationsUsed
+        this.iterationsUsed,
+        this.compactedBefore
       )
       this.agentStateFileTrusted = true
       return true
@@ -1079,13 +1084,19 @@ export class AgentRunner extends EventEmitter {
         this.loopProgress()
       )
 
+      const compacted = compactForRequest(this.messages, this.compactedBefore)
+      if (compacted.compactedBefore > this.compactedBefore) {
+        this.compactedBefore = compacted.compactedBefore
+        this.log('info', 'Compacted older search results to keep requests small.')
+      }
+
       const turnResult = await this.executeWithTimeout(this.llmRequestTimeoutSeconds, (signal) =>
         provider.createToolTurn(
           {
             model: this.modelId,
             systemPrompt,
             messages: messagesWithCacheStablePrefix(
-              compactToolResultsForProvider(this.messages),
+              compacted.view,
               this.beats.map((b) => ({
                 id: b.id,
                 text: b.text,

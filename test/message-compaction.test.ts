@@ -2,7 +2,10 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import type { AgentMessage } from '../src/main/services/llm/llm-provider.ts'
 import {
-  compactToolResultsForProvider,
+  compactBefore,
+  compactForRequest,
+  CONTEXT_BUDGET_CHARS,
+  cutoffForHalfBudget,
   digestToolResult,
   KEEP_FULL_TOOL_TURNS,
   TOOL_RESULT_COMPACT_THRESHOLD
@@ -57,55 +60,47 @@ function isCompacted(message: AgentMessage): boolean {
   return /"compacted":true/.test(message.content || '')
 }
 
-describe('compactToolResultsForProvider', () => {
+function toolMessages(messages: AgentMessage[]): AgentMessage[] {
+  return messages.filter((message) => message.role === 'tool')
+}
+
+function turnStartsOf(messages: AgentMessage[]): number[] {
+  return messages.flatMap((m, i) => (m.role === 'assistant' && m.tool_calls?.length ? [i] : []))
+}
+
+const sizeOf = (messages: AgentMessage[]): number => JSON.stringify(messages).length
+
+describe('compactBefore', () => {
   it('does not mutate the persisted transcript', () => {
-    const messages = turns(KEEP_FULL_TOOL_TURNS + 2)
+    const messages = turns(4)
     const snapshot = messages.map((message) => message.content)
 
-    const compacted = compactToolResultsForProvider(messages)
+    const compacted = compactBefore(messages, messages.length)
 
     assert.notEqual(compacted, messages)
     assert.deepEqual(
       messages.map((message) => message.content),
       snapshot
     )
-    assert.ok(isCompacted(compacted[2]))
-    assert.equal(compacted[compacted.length - 1].content, messages[messages.length - 1].content)
+    assert.ok(compacted.every((message) => message.role !== 'tool' || isCompacted(message)))
   })
 
-  it('leaves history unchanged while there are few tool turns', () => {
-    const messages = turns(KEEP_FULL_TOOL_TURNS)
-    assert.equal(compactToolResultsForProvider(messages), messages)
+  it('returns the same array when the cutoff is 0 or nothing before it is large', () => {
+    const messages = turns(4)
+    assert.equal(compactBefore(messages, 0), messages)
+
+    const small = messages.map((m) => (m.role === 'tool' ? { ...m, content: '{"results":[]}' } : m))
+    assert.equal(compactBefore(small, small.length), small)
   })
 
-  it('never compacts the results of a single turn, however many it has', () => {
-    const contents = Array.from({ length: 12 }, (_, i) => bulkyContent(i * 10))
-    const messages = [{ role: 'user' as const, content: 'start' }, ...turn(0, contents)]
+  it('compacts the results before the cutoff and nothing from it on', () => {
+    const messages = turns(4)
+    const cutoff = turnStartsOf(messages)[1]
 
-    assert.equal(compactToolResultsForProvider(messages), messages)
-  })
+    const results = toolMessages(compactBefore(messages, cutoff))
 
-  it('keeps the newest turns whole even when an earlier one is compacted', () => {
-    const contents = Array.from({ length: 12 }, (_, i) => bulkyContent(i * 10))
-    const messages = [...turns(KEEP_FULL_TOOL_TURNS - 1), ...turn(50, contents)]
-
-    assert.equal(compactToolResultsForProvider(messages), messages)
-  })
-
-  it('compacts only the oldest turn once there is one more than the protected ones', () => {
-    const messages = turns(KEEP_FULL_TOOL_TURNS + 1)
-
-    const compacted = compactToolResultsForProvider(messages)
-
-    const results = compacted.filter((message) => message.role === 'tool')
-    assert.equal(results.length, KEEP_FULL_TOOL_TURNS + 1)
     assert.ok(isCompacted(results[0]))
     for (const result of results.slice(1)) assert.ok(!isCompacted(result))
-    // The digest names every result of the compacted turn, so each can still be selected.
-    assert.deepEqual(JSON.parse(results[0].content || ''), {
-      compacted: true,
-      results: [0, 1, 2, 3, 4].map((id) => [id, `Alt text ${id}`])
-    })
   })
 
   it('compacts every result of an older turn together', () => {
@@ -113,35 +108,168 @@ describe('compactToolResultsForProvider', () => {
       0,
       Array.from({ length: 6 }, (_, i) => bulkyContent(i * 10))
     )
-    const recent = Array.from({ length: KEEP_FULL_TOOL_TURNS }, (_, n) =>
-      turn(100 + n, [bulkyContent(1000 + n * 10)])
-    ).flat()
+    const recent = turn(100, [bulkyContent(1000)])
     const messages = [{ role: 'user' as const, content: 'start' }, ...batched, ...recent]
 
-    const compacted = compactToolResultsForProvider(messages)
+    const results = toolMessages(compactBefore(messages, turnStartsOf(messages)[1]))
 
-    const results = compacted.filter((message) => message.role === 'tool')
-    assert.equal(results.length, 6 + KEEP_FULL_TOOL_TURNS)
+    assert.equal(results.length, 7)
     for (const result of results.slice(0, 6)) assert.ok(isCompacted(result))
-    for (const result of results.slice(6)) assert.ok(!isCompacted(result))
+    assert.ok(!isCompacted(results[6]))
+  })
+
+  it('names every result of a compacted turn in the digest, so each can still be selected', () => {
+    const messages = turns(2)
+
+    const [oldest] = toolMessages(compactBefore(messages, messages.length))
+
+    assert.deepEqual(JSON.parse(oldest.content || ''), {
+      compacted: true,
+      results: [0, 1, 2, 3, 4].map((id) => [id, `Alt text ${id}`])
+    })
   })
 
   it('never touches a short result, however old', () => {
-    const messages = turns(KEEP_FULL_TOOL_TURNS + 2)
+    const messages = turns(4)
     messages[2] = { ...messages[2], content: '{"results":[{"pexelsId":7,"alt":"short"}]}' }
 
-    const compacted = compactToolResultsForProvider(messages)
+    const compacted = compactBefore(messages, messages.length)
 
     assert.equal(compacted[2], messages[2])
     assert.ok(isCompacted(compacted[4]))
   })
+})
 
-  it('does not count assistant messages that made no tool calls', () => {
-    const messages = turns(KEEP_FULL_TOOL_TURNS)
-    messages.splice(1, 0, { role: 'assistant', content: 'Thinking out loud.' })
-    messages.push({ role: 'assistant', content: 'Done.' })
+describe('cutoffForHalfBudget', () => {
+  it('is 0 when the conversation already fits', () => {
+    const messages = turns(6)
+    assert.equal(cutoffForHalfBudget(messages, sizeOf(messages), KEEP_FULL_TOOL_TURNS), 0)
+  })
 
-    assert.equal(compactToolResultsForProvider(messages), messages)
+  it('is 0 while there are no more turns than the protected ones, however large', () => {
+    const contents = Array.from({ length: 12 }, (_, i) => bulkyContent(i * 10))
+    const batched = [{ role: 'user' as const, content: 'start' }, ...turn(0, contents)]
+    assert.equal(cutoffForHalfBudget(batched, 1, KEEP_FULL_TOOL_TURNS), 0)
+
+    const few = turns(KEEP_FULL_TOOL_TURNS)
+    assert.equal(cutoffForHalfBudget(few, 1, KEEP_FULL_TOOL_TURNS), 0)
+  })
+
+  it('stops at the oldest turn start that gets the conversation under the target', () => {
+    const messages = turns(12)
+    const target = Math.floor(sizeOf(messages) * 0.4)
+    const starts = turnStartsOf(messages)
+
+    const cutoff = cutoffForHalfBudget(messages, target, KEEP_FULL_TOOL_TURNS)
+
+    assert.ok(starts.includes(cutoff), 'a cutoff is the start of a turn')
+    assert.ok(cutoff < starts[starts.length - KEEP_FULL_TOOL_TURNS], 'it did not need the limit')
+    assert.ok(sizeOf(compactBefore(messages, cutoff)) <= target)
+    const earlier = starts[starts.indexOf(cutoff) - 1]
+    assert.ok(sizeOf(compactBefore(messages, earlier)) > target, 'an earlier cutoff is not enough')
+  })
+
+  it('never passes the newest protected turns when the target cannot be met', () => {
+    const messages = turns(KEEP_FULL_TOOL_TURNS + 3)
+    const starts = turnStartsOf(messages)
+
+    const cutoff = cutoffForHalfBudget(messages, 1, KEEP_FULL_TOOL_TURNS)
+
+    assert.equal(cutoff, starts[starts.length - KEEP_FULL_TOOL_TURNS])
+    const results = toolMessages(compactBefore(messages, cutoff))
+    for (const result of results.slice(-KEEP_FULL_TOOL_TURNS)) assert.ok(!isCompacted(result))
+    for (const result of results.slice(0, -KEEP_FULL_TOOL_TURNS)) assert.ok(isCompacted(result))
+  })
+})
+
+describe('compactForRequest', () => {
+  it('sends the conversation untouched and keeps the cutoff while it is under budget', () => {
+    const messages = turns(8)
+
+    const next = compactForRequest(messages, 0, sizeOf(messages))
+
+    assert.equal(next.view, messages)
+    assert.equal(next.compactedBefore, 0)
+  })
+
+  it('does not move the cutoff on the default budget for an ordinary job', () => {
+    const messages = turns(12)
+    assert.ok(sizeOf(messages) < CONTEXT_BUDGET_CHARS)
+
+    assert.equal(compactForRequest(messages, 0).compactedBefore, 0)
+  })
+
+  it('moves the cutoff once when the budget is crossed, then holds it for the next turn', () => {
+    const messages = turns(12)
+    const budget = Math.floor(sizeOf(messages) * 0.95)
+
+    const first = compactForRequest(messages, 0, budget)
+
+    assert.ok(first.compactedBefore > 0, 'the budget was crossed')
+    assert.ok(sizeOf(first.view) <= budget / 2, 'one step goes down to half the budget')
+
+    // One more turn arrives. The request is still under budget, so the cutoff stays and
+    // the messages that were sent before are sent again, byte for byte.
+    const longer = [...messages, ...turn(99, [bulkyContent(9900)])]
+    const second = compactForRequest(longer, first.compactedBefore, budget)
+
+    assert.equal(second.compactedBefore, first.compactedBefore)
+    assert.deepEqual(second.view.slice(0, first.view.length), first.view)
+    assert.equal(
+      JSON.stringify(second.view.slice(0, first.view.length)),
+      JSON.stringify(first.view)
+    )
+  })
+
+  it('keeps the compacted prefix for as many turns as fit under the budget', () => {
+    const messages = turns(12)
+    const budget = Math.floor(sizeOf(messages) * 0.95)
+    let state = compactForRequest(messages, 0, budget)
+    const firstCutoff = state.compactedBefore
+    const firstView = state.view
+
+    let grown = messages
+    for (let n = 0; n < 3; n++) {
+      grown = [...grown, ...turn(100 + n, [bulkyContent(10_000 + n * 100)])]
+      state = compactForRequest(grown, state.compactedBefore, budget)
+      assert.equal(state.compactedBefore, firstCutoff, `turn ${n + 1} after the step`)
+      assert.deepEqual(state.view.slice(0, firstView.length), firstView)
+    }
+  })
+
+  it('never compacts the newest turns, even when they alone are over budget', () => {
+    const messages = turns(KEEP_FULL_TOOL_TURNS + 2)
+
+    const next = compactForRequest(messages, 0, 1000)
+
+    const results = toolMessages(next.view)
+    for (const result of results.slice(-KEEP_FULL_TOOL_TURNS)) assert.ok(!isCompacted(result))
+    for (const result of results.slice(0, -KEEP_FULL_TOOL_TURNS)) assert.ok(isCompacted(result))
+    const starts = turnStartsOf(messages)
+    assert.equal(next.compactedBefore, starts[starts.length - KEEP_FULL_TOOL_TURNS])
+  })
+
+  it('never hides the results of the turn that just arrived', () => {
+    let messages = turns(1)
+    let cutoff = 0
+    for (let n = 1; n < 10; n++) {
+      messages = [...messages, ...turn(n, [bulkyContent(n * 100)])]
+      const next = compactForRequest(messages, cutoff, 1000)
+      cutoff = next.compactedBefore
+      const newest = toolMessages(next.view).at(-1)
+      assert.ok(newest && !isCompacted(newest), `turn ${n + 1}`)
+    }
+  })
+
+  it('never moves the cutoff back, and applies an earlier one while under budget', () => {
+    const messages = turns(8)
+    const cutoff = turnStartsOf(messages)[4]
+
+    const next = compactForRequest(messages, cutoff, sizeOf(messages))
+
+    assert.equal(next.compactedBefore, cutoff)
+    assert.deepEqual(next.view, compactBefore(messages, cutoff))
+    assert.equal(toolMessages(next.view).filter(isCompacted).length, 4)
   })
 })
 

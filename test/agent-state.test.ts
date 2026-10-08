@@ -89,4 +89,61 @@ describe('agent conversation persistence', () => {
       assert.equal(stats.isDirectory(), true)
     })
   })
+
+  it('keeps the compaction cutoff next to the turn count', async () => {
+    await withTempDir(async (dir) => {
+      await ManifestWriter.ensureProjectStructure(dir)
+      await persistAgentConversationState(dir, sampleMessages, sampleCandidates, 7, 12)
+
+      const loaded = await loadAgentConversationState(dir, {})
+
+      assert.equal(loaded.source, 'agent-state')
+      assert.equal(loaded.iterationsUsed, 7)
+      assert.equal(loaded.compactedBefore, 12)
+    })
+  })
+
+  it('loads a state file from before the cutoff existed with no compaction', async () => {
+    await withTempDir(async (dir) => {
+      await ManifestWriter.ensureProjectStructure(dir)
+      await ManifestWriter.writeJsonFile(dir, 'agent-state.json', {
+        schemaVersion: 1,
+        messages: sampleMessages,
+        pexelsCandidates: sampleCandidates,
+        iterationsUsed: 5
+      })
+
+      const loaded = await loadAgentConversationState(dir, {})
+
+      assert.equal(loaded.source, 'agent-state')
+      assert.equal(loaded.iterationsUsed, 5)
+      assert.equal(loaded.compactedBefore, 0)
+    })
+  })
+
+  it('ignores a cutoff that is not a usable count', async () => {
+    for (const bad of [-3, 'six', null, Number.NaN, {}]) {
+      await withTempDir(async (dir) => {
+        await ManifestWriter.ensureProjectStructure(dir)
+        await ManifestWriter.writeJsonFile(dir, 'agent-state.json', {
+          schemaVersion: 1,
+          messages: sampleMessages,
+          compactedBefore: bad
+        })
+
+        assert.equal((await loadAgentConversationState(dir, {})).compactedBefore, 0)
+      })
+    }
+  })
+
+  it('starts a legacy manifest conversation with no compaction', async () => {
+    await withTempDir(async (dir) => {
+      await ManifestWriter.ensureProjectStructure(dir)
+
+      const loaded = await loadAgentConversationState(dir, { messages: sampleMessages })
+
+      assert.equal(loaded.source, 'manifest')
+      assert.equal(loaded.compactedBefore, 0)
+    })
+  })
 })
