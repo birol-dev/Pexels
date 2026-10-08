@@ -13,6 +13,7 @@ import {
 import { PexelsClient } from '../pexels/pexels-client.ts'
 import { PexelsDownloader, type DownloadTask } from '../pexels/pexels-downloader.ts'
 import { validateDownloadUrl } from '../pexels/download-url-validation.ts'
+import { chooseVariant } from '../pexels/choose-variant.ts'
 import { variantDimensions } from '../pexels/variant-dimensions.ts'
 import { buildManifestAttribution } from '../pexels/pexels-attribution.ts'
 import {
@@ -42,6 +43,7 @@ import {
 } from '../../../shared/llm-defaults.ts'
 import { extractToolCallsFromText } from './tool-parser.ts'
 import { compactToolResultsForProvider } from './message-compaction.ts'
+import { photoResultForModel, shapeForPlatform, videoResultForModel } from './tool-results.ts'
 import {
   loadAgentConversationState,
   persistAgentConversationState,
@@ -1367,7 +1369,7 @@ export class AgentRunner extends EventEmitter {
         const searchRes = await PexelsClient.searchPhotos(
           {
             query: args.query,
-            orientation: args.orientation,
+            orientation: args.orientation ?? shapeForPlatform(this.input.platform),
             size: args.size,
             color: args.color,
             page: args.page,
@@ -1399,23 +1401,7 @@ export class AgentRunner extends EventEmitter {
 
         result = {
           total_results: searchRes.total_results,
-          results: searchRes.photos.map((p) => ({
-            pexelsId: p.id,
-            url: p.url,
-            photographer: p.photographer || 'Unknown Photographer',
-            photographerUrl: p.photographer_url || undefined,
-            width: p.width,
-            height: p.height,
-            avgColor: p.avg_color || undefined,
-            alt: p.alt || undefined,
-            previewUrl: p.src.medium || p.src.original,
-            downloadableVariants: Object.entries(p.src)
-              .map(([label, url]) => ({ label, url: url || '' }))
-              .filter(
-                (v): v is { label: string; url: string } =>
-                  typeof v.url === 'string' && v.url.length > 0
-              )
-          }))
+          results: searchRes.photos.map(photoResultForModel)
         }
       } else if (tc.name === 'search_pexels_videos') {
         const args = SearchPexelsVideosArgsSchema.parse(rawArgs)
@@ -1440,7 +1426,7 @@ export class AgentRunner extends EventEmitter {
         const searchRes = await PexelsClient.searchVideos(
           {
             query: args.query,
-            orientation: args.orientation,
+            orientation: args.orientation ?? shapeForPlatform(this.input.platform),
             size: args.size,
             page: args.page,
             per_page: args.perPage
@@ -1473,23 +1459,7 @@ export class AgentRunner extends EventEmitter {
 
         result = {
           total_results: searchRes.total_results,
-          results: searchRes.videos.map((v) => ({
-            pexelsId: v.id,
-            url: v.url,
-            userName: v.user?.name || 'Unknown Creator',
-            userUrl: v.user?.url || undefined,
-            width: v.width,
-            height: v.height,
-            durationSeconds: v.duration || 0,
-            previewImageUrl: v.image || '',
-            downloadableVariants: v.video_files.map((vf) => ({
-              quality: vf.quality || undefined,
-              fileType: vf.file_type || undefined,
-              url: vf.link,
-              width: vf.width ?? undefined,
-              height: vf.height ?? undefined
-            }))
-          }))
+          results: searchRes.videos.map(videoResultForModel)
         }
       } else if (tc.name === 'select_assets_for_download') {
         const args = SelectAssetsForDownloadArgsSchema.parse(rawArgs)
@@ -1529,18 +1499,23 @@ export class AgentRunner extends EventEmitter {
             continue
           }
 
-          const variantExists = candidate.variants.some((v) => v.url === sel.variantUrl)
-          if (!variantExists) {
+          // The model may name a file; without one, code picks the best file for an edit.
+          const variant = sel.variantUrl
+            ? candidate.variants.find((v) => v.url === sel.variantUrl)
+            : chooseVariant(candidate)
+          if (!variant) {
             selectionResults.push({
               pexelsId: sel.pexelsId,
               status: 'rejected',
-              reason: `Security Check Failed: URL for asset ${sel.pexelsId} is not a valid Pexels download variant from this job.`
+              reason: sel.variantUrl
+                ? `Security Check Failed: URL for asset ${sel.pexelsId} is not a valid Pexels download variant from this job.`
+                : `No downloadable file found for asset ${sel.pexelsId}.`
             })
             continue
           }
 
           try {
-            validateDownloadUrl(sel.variantUrl)
+            validateDownloadUrl(variant.url)
           } catch (err) {
             selectionResults.push({
               pexelsId: sel.pexelsId,
@@ -1604,11 +1579,11 @@ export class AgentRunner extends EventEmitter {
               id: recordId,
               pexelsId: sel.pexelsId,
               type: sel.assetType,
-              url: sel.variantUrl,
+              url: variant.url,
               imageUrl: candidate.imageUrl,
-              downloadUrl: sel.variantUrl,
+              downloadUrl: variant.url,
               // The size of the selected file, which is rarely the size of the original.
-              ...variantDimensions(candidate, sel.variantUrl),
+              ...variantDimensions(candidate, variant.url),
               duration: candidate.duration,
               photographer: candidate.photographer,
               photographerUrl: candidate.photographerUrl,

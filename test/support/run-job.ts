@@ -157,12 +157,13 @@ export function searchPhotos(beatId: string, query: string): ToolCallSpec {
   return { name: 'search_pexels_photos', args: { beatId, query } }
 }
 
+/** `variantUrl` is optional, as it is for the model: without it the app picks the file. */
 export function select(
   selections: Array<{
     beatId: string
     assetType: 'photo' | 'video'
     pexelsId: number
-    variantUrl: string
+    variantUrl?: string
   }>
 ): ToolCallSpec {
   return {

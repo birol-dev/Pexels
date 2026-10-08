@@ -1,4 +1,5 @@
 import type { AgentMessage } from '../llm/llm-provider.ts'
+import { slugFromPexelsUrl } from './tool-results.ts'
 
 /** Results from the newest turns are never compacted, however large. */
 export const KEEP_FULL_TOOL_TURNS = 3
@@ -58,13 +59,4 @@ function describe(result: Record<string, unknown>): string {
     (typeof result.alt === 'string' && result.alt) ||
     slugFromPexelsUrl(String(result.url || ''))
   return text.slice(0, 60)
-}
-
-/** "https://www.pexels.com/video/waves-crashing-on-rocks-1234/" gives "waves crashing on rocks". */
-export function slugFromPexelsUrl(url: string): string {
-  const last = url.split('/').filter(Boolean).pop() || ''
-  return last
-    .replace(/-?\d+$/, '')
-    .replace(/-/g, ' ')
-    .trim()
 }

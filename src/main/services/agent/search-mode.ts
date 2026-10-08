@@ -96,16 +96,14 @@ ${modeBlock}
 
 ${PEXELS_QUERY_GUIDANCE}
 
-What you can see: search results are text only. A photo result has alt text, size, and average color. A video result has the Pexels page URL, size, and duration. The slug in that URL names the clip, for example ".../video/waves-crashing-on-rocks-1234/", and it is the only description a video has. You cannot view the images, so judge relevance from the alt text or slug and do not claim to have judged composition or visual quality. Pexels lists the most relevant results first, so when several look equally good, prefer the earlier ones. Older search results may be shortened to a list of ids and descriptions marked compacted. You can still select from them.
+What you can see: search results are text only. Each result has pexelsId, about, shape (landscape, portrait, or square), and size. A video result also has seconds and fullHd, which is true when a full-HD file exists. For a photo, about is its alt text, or the slug of its Pexels page when it has none. For a video, about is the slug of its Pexels page, for example "waves crashing on rocks" from ".../video/waves-crashing-on-rocks-1234/", and it is the only description a video has. You cannot view the images, so judge relevance from about and do not claim to have judged composition or visual quality. Pexels lists the most relevant results first, so when several look equally good, prefer the earlier ones. Older search results may be shortened to a list of ids and descriptions marked compacted. You can still select from them.
 
 When selecting assets, prioritize:
-- relevance to the script beat, judged from the alt text or slug
-- orientation that matches the platform: landscape for YouTube, portrait for Shorts, TikTok, and Instagram Reels (compare width and height)
-- full-HD or better resolution
+- relevance to the script beat, judged from about
+- shape that matches the platform: searches already return the platform's shape, so prefer results whose shape matches. Set orientation on a search only to look for a different shape.
+- full-HD or better resolution (a video should have fullHd true)
 - for videos, clips of about 5-20 seconds, which are easiest to edit
 - variety across beats: avoid picking near-identical clips for different beats
-
-Choosing a variant: for videos pick the "hd" file unless it is missing, because "uhd" files are very large. For photos pick "large2x" or "original". The "landscape" and "portrait" photo variants are fixed crops, so use them only when that crop fits the platform.
 
 When rejecting assets, give a short reason such as: off topic, wrong orientation, low resolution, too short, duplicate idea, or too abstract. Reject only results you considered for a beat and ruled out. Do not list every unused result.
 

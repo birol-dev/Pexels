@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
+  AGENT_TOOLS,
   SearchPexelsPhotosArgsSchema,
   SearchPexelsVideosArgsSchema,
   SelectAssetsForDownloadArgsSchema,
@@ -67,7 +68,7 @@ describe('Agent Tools Contract & Validation', () => {
       assert.equal(parsed.perPage, 10)
     })
 
-    it('enforces page bounds between 1 and 10 and max perPage 80', () => {
+    it('enforces page bounds between 1 and 10 and max perPage 30', () => {
       assert.throws(
         () => SearchPexelsVideosArgsSchema.parse({ beatId: 'beat_1', query: 'city', page: 0 }),
         /too_small/
@@ -82,6 +83,21 @@ describe('Agent Tools Contract & Validation', () => {
         () => SearchPexelsVideosArgsSchema.parse({ beatId: 'beat_1', query: 'city', perPage: 100 }),
         /too_big/
       )
+    })
+
+    it('stops at 30 results per page for photos and videos alike', () => {
+      for (const schema of [SearchPexelsPhotosArgsSchema, SearchPexelsVideosArgsSchema]) {
+        assert.equal(schema.parse({ beatId: 'beat_1', query: 'city', perPage: 30 }).perPage, 30)
+        assert.throws(
+          () => schema.parse({ beatId: 'beat_1', query: 'city', perPage: 31 }),
+          /too_big/
+        )
+      }
+    })
+
+    it('leaves orientation unset, for the app to default to the platform shape', () => {
+      const parsed = SearchPexelsVideosArgsSchema.parse({ beatId: 'beat_1', query: 'city' })
+      assert.equal(parsed.orientation, undefined)
     })
   })
 
@@ -112,6 +128,26 @@ describe('Agent Tools Contract & Validation', () => {
       assert.equal(parsed.selections[0].pexelsId, 123456)
       assert.equal(parsed.rejections.length, 1)
       assert.equal(parsed.rejections[0].pexelsId, 789012)
+    })
+
+    it('accepts a selection without a variant URL, for the app to pick the file', () => {
+      const parsed = SelectAssetsForDownloadArgsSchema.parse({
+        selections: [
+          { beatId: 'beat_1', assetType: 'video', pexelsId: 5, reason: 'Matches the beat' }
+        ]
+      })
+      assert.equal(parsed.selections[0].variantUrl, undefined)
+    })
+
+    it('does not list variantUrl as required in the tool definition', () => {
+      const tool = AGENT_TOOLS.find((t) => t.name === 'select_assets_for_download')
+      const { items } = (
+        tool?.parameters.properties as {
+          selections: { items: { properties: Record<string, unknown>; required: string[] } }
+        }
+      ).selections
+      assert.ok(items.properties.variantUrl, 'the model may still pass one')
+      assert.deepEqual(items.required, ['beatId', 'assetType', 'pexelsId', 'reason'])
     })
 
     it('rejects invalid variant URLs', () => {

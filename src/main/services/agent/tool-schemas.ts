@@ -9,7 +9,7 @@ export const SearchPexelsPhotosArgsSchema = z.object({
   size: z.enum(['large', 'medium', 'small']).optional(),
   color: z.string().optional(),
   page: z.number().int().min(1).max(10).default(1),
-  perPage: z.number().int().min(1).max(80).default(15)
+  perPage: z.number().int().min(1).max(30).default(15)
 })
 
 export const SearchPexelsVideosArgsSchema = z.object({
@@ -18,7 +18,7 @@ export const SearchPexelsVideosArgsSchema = z.object({
   orientation: z.enum(['landscape', 'portrait', 'square']).optional(),
   size: z.enum(['large', 'medium', 'small']).optional(),
   page: z.number().int().min(1).max(10).default(1),
-  perPage: z.number().int().min(1).max(80).default(10)
+  perPage: z.number().int().min(1).max(30).default(10)
 })
 
 export const SelectAssetsForDownloadArgsSchema = z.object({
@@ -28,7 +28,7 @@ export const SelectAssetsForDownloadArgsSchema = z.object({
         beatId: z.string().min(1),
         assetType: z.enum(['photo', 'video']),
         pexelsId: z.number().int().positive(),
-        variantUrl: z.string().url(),
+        variantUrl: z.string().url().optional(),
         reason: z.string().min(1).max(500)
       })
     )
@@ -73,7 +73,7 @@ export const AGENT_TOOLS: NormalizedToolDefinition[] = [
         orientation: {
           type: 'string',
           enum: ['landscape', 'portrait', 'square'],
-          description: 'Desired orientation.'
+          description: "Defaults to the platform's shape. Set it only to search a different one."
         },
         size: {
           type: 'string',
@@ -82,7 +82,7 @@ export const AGENT_TOOLS: NormalizedToolDefinition[] = [
         },
         color: { type: 'string', description: 'Desired dominant color.' },
         page: { type: 'number', description: 'Page number (default 1).' },
-        perPage: { type: 'number', description: 'Results per page (default 15).' }
+        perPage: { type: 'number', description: 'Results per page (default 15, at most 30).' }
       },
       required: ['beatId', 'query']
     }
@@ -98,7 +98,7 @@ export const AGENT_TOOLS: NormalizedToolDefinition[] = [
         orientation: {
           type: 'string',
           enum: ['landscape', 'portrait', 'square'],
-          description: 'Desired orientation.'
+          description: "Defaults to the platform's shape. Set it only to search a different one."
         },
         size: {
           type: 'string',
@@ -106,7 +106,7 @@ export const AGENT_TOOLS: NormalizedToolDefinition[] = [
           description: 'Desired size.'
         },
         page: { type: 'number', description: 'Page number (default 1).' },
-        perPage: { type: 'number', description: 'Results per page (default 10).' }
+        perPage: { type: 'number', description: 'Results per page (default 10, at most 30).' }
       },
       required: ['beatId', 'query']
     }
@@ -128,14 +128,14 @@ export const AGENT_TOOLS: NormalizedToolDefinition[] = [
               pexelsId: { type: 'number', description: 'Pexels asset ID.' },
               variantUrl: {
                 type: 'string',
-                description: 'The direct download URL from the search result variants.'
+                description: 'Optional. Leave it out and the app picks the best file.'
               },
               reason: {
                 type: 'string',
                 description: 'Brief explanation of why this asset is selected.'
               }
             },
-            required: ['beatId', 'assetType', 'pexelsId', 'variantUrl', 'reason']
+            required: ['beatId', 'assetType', 'pexelsId', 'reason']
           }
         },
         rejections: {

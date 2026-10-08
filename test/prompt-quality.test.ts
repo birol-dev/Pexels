@@ -224,6 +224,30 @@ describe('StockScout prompt quality rules', () => {
     assert.doesNotMatch(prompt, /poor composition/)
   })
 
+  it('names the fields of a search result and no longer mentions average color', () => {
+    const prompt = buildStockScoutSystemPrompt(base)
+    assert.match(
+      prompt,
+      /Each result has pexelsId, about, shape \(landscape, portrait, or square\), and size/
+    )
+    assert.match(prompt, /A video result also has seconds and fullHd/)
+    assert.doesNotMatch(prompt, /average color|alt text, size/)
+  })
+
+  it('says searches already return the platform shape', () => {
+    const prompt = buildStockScoutSystemPrompt(base)
+    assert.match(prompt, /searches already return the platform's shape/)
+    assert.match(prompt, /prefer results whose shape matches/)
+    assert.doesNotMatch(prompt, /compare width and height/)
+  })
+
+  it('does not ask the model to pick a variant', () => {
+    const prompt = buildStockScoutSystemPrompt(base)
+    assert.doesNotMatch(prompt, /Choosing a variant/)
+    assert.doesNotMatch(prompt, /variant/i)
+    assert.doesNotMatch(prompt, /large2x|"hd" file|"uhd"/)
+  })
+
   it('says older search results may be shortened, and can still be selected from', () => {
     const prompt = buildStockScoutSystemPrompt(base)
     assert.match(prompt, /Older search results may be shortened to a list of ids and descriptions/)
