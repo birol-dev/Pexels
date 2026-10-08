@@ -75,6 +75,13 @@ import {
 } from './tool-schemas.ts'
 import { runLoopThenFinalize } from './run-tail.ts'
 import {
+  missingCurrentKeyMessage,
+  missingPinnedKeyMessage,
+  pinRuntimeSettings,
+  resolveRuntimeSettings,
+  type JobRuntimeSettings
+} from './job-settings.ts'
+import {
   canTransition,
   savedStatusReason,
   type JobStatus,
@@ -164,6 +171,8 @@ export interface JobSnapshot {
   status: JobStatus
   /** Why the job has this status. The Run screen shows it for a paused job. */
   statusReason?: StatusReason
+  /** The model and limits the job runs with. They are fixed when the job is created. */
+  runtimeSettings?: JobRuntimeSettings
   progress: number
   currentStep: string
   beats: VisualBeat[]
@@ -259,7 +268,9 @@ export class AgentRunner extends EventEmitter {
   private modelId = DEFAULT_MODEL_IDS[DEFAULT_LLM_PROVIDER]
   private providerId: LlmProviderId = DEFAULT_LLM_PROVIDER
   private maxIterations = 30
-  // Read once per run (applyRuntimeSettings), so a Settings change cannot alter a job mid-run.
+  // The job's settings, fixed when it is created and kept in agent-state.json. The fields below
+  // come from it (applyPin), so a Settings change cannot alter a job, mid-run or on resume.
+  private pin: JobRuntimeSettings | null = null
   private requireApproval = false
   private requestTimeoutSeconds = 60
   private llmRequestTimeoutSeconds = MIN_LLM_REQUEST_TIMEOUT_SECONDS
@@ -341,16 +352,10 @@ export class AgentRunner extends EventEmitter {
     Awaited<ReturnType<typeof SettingsStore.getSettings>>
   > {
     const settings = await SettingsStore.getSettings()
-    this.modelId = settings.modelId
-    this.providerId = settings.llmProvider
-    this.maxIterations = settings.maxAgentIterations
-    this.requireApproval = settings.requireApprovalBeforeDownload
-    this.requestTimeoutSeconds = settings.requestTimeoutSeconds
-    this.llmRequestTimeoutSeconds = resolveLlmRequestTimeoutSeconds(settings.requestTimeoutSeconds)
-    this.safetySettings = {
-      skipExplicit: settings.skipExplicitQueries,
-      avoidPeople: settings.avoidPeopleAndFaces
-    }
+    // A new job takes today's settings once. A loaded job already has its own (see
+    // initializeAndLoadState). Download concurrency and keys are machine settings, read every time.
+    this.pin ??= pinRuntimeSettings(settings)
+    this.applyPin(this.pin)
     if (!this.downloader) {
       this.downloader = new PexelsDownloader(
         settings.maxConcurrentDownloads,
@@ -362,6 +367,21 @@ export class AgentRunner extends EventEmitter {
       )
     }
     return settings
+  }
+
+  private applyPin(pin: JobRuntimeSettings): void {
+    this.modelId = pin.modelId
+    this.providerId = pin.providerId
+    this.maxIterations = pin.maxIterations
+    this.requireApproval = pin.requireApproval
+    this.requestTimeoutSeconds = pin.requestTimeoutSeconds
+    this.llmRequestTimeoutSeconds = resolveLlmRequestTimeoutSeconds(pin.requestTimeoutSeconds)
+    this.safetySettings = { skipExplicit: pin.skipExplicit, avoidPeople: pin.avoidPeople }
+  }
+
+  /** A resume the missing key would only fail again is refused, and the job stays paused. */
+  private async requireProviderKey(settings: JobRuntimeSettings, message: string): Promise<void> {
+    if (!(await SecureSecrets.getSecret(`${settings.providerId}Key`))) throw new Error(message)
   }
 
   public async ensureRegistered(): Promise<void> {
@@ -454,6 +474,7 @@ export class AgentRunner extends EventEmitter {
       visualConcept: this.input.visualConcept,
       status: this.status,
       statusReason: this.statusReason,
+      runtimeSettings: this.pin ?? undefined,
       progress: this.progress,
       currentStep: this.currentStep,
       beats: this.beats,
@@ -501,8 +522,8 @@ export class AgentRunner extends EventEmitter {
   public async initializeAndLoadState(): Promise<void> {
     AgentRunner.activeRunners.set(this.jobId, this)
     this.abortController = new AbortController()
-    const settings = await this.applyRuntimeSettings()
-    this.projectDir = await this.resolveProjectDirectory(settings.downloadFolder)
+    const current = await SettingsStore.getSettings()
+    this.projectDir = await this.resolveProjectDirectory(current.downloadFolder)
     // A fresh runner means the previous process is gone, so no download can be
     // writing these partials. (A paused runner that is still in memory skips this.)
     let removedPartials = 0
@@ -518,9 +539,31 @@ export class AgentRunner extends EventEmitter {
     const saved = await readSavedAgentState(this.projectDir)
     this.status = 'paused'
     this.statusReason = savedStatusReason('paused', saved.statusReason) ?? 'restored'
+    // The job goes on with what it was started with. One from before settings were pinned keeps
+    // the provider and model its manifest names, and takes the rest from the current settings.
+    this.pin = resolveRuntimeSettings(
+      saved.runtimeSettings,
+      await this.readManifestSettingsSnapshot(),
+      current
+    )
+    await this.applyRuntimeSettings()
     await this.loadStateFromManifest()
     if (removedPartials > 0) {
       this.log('info', `Removed ${removedPartials} partial download(s) left by an interrupted run.`)
+    }
+  }
+
+  private async readManifestSettingsSnapshot(): Promise<
+    { provider?: unknown; modelId?: unknown } | undefined
+  > {
+    try {
+      const manifest = JSON.parse(
+        await fs.readFile(join(this.projectDir, 'manifest.json'), 'utf-8')
+      )
+      const snapshot = manifest?.settingsSnapshot
+      return snapshot && typeof snapshot === 'object' ? snapshot : undefined
+    } catch {
+      return undefined
     }
   }
 
@@ -628,7 +671,8 @@ export class AgentRunner extends EventEmitter {
         Array.from(this.pexelsCandidates.entries()),
         this.iterationsUsed,
         this.compactedBefore,
-        this.statusReason
+        this.statusReason,
+        this.pin ?? undefined
       )
       this.agentStateFileTrusted = true
       return true
@@ -747,13 +791,19 @@ export class AgentRunner extends EventEmitter {
     this.emitSnapshot()
   }
 
-  public async resume(): Promise<void> {
+  /**
+   * Resumes with the job's own settings. `useCurrentSettings` pins the job to today's settings
+   * instead and starts a new conversation. A resume that cannot work throws, and the job stays
+   * paused.
+   */
+  public async resume(options: { useCurrentSettings?: boolean } = {}): Promise<void> {
     if (this.status !== 'paused') return
-    // Approval pauses leave pending assets that download_selected_assets will refuse.
-    // Route through approveAndResume (default: approve all pending) so downloads start.
-    if (this.requireApproval && hasPendingUnqueuedAssets(this.beats)) {
-      await this.approveAndResume({})
-      return
+    let next: JobRuntimeSettings | null = null
+    if (options.useCurrentSettings) {
+      next = pinRuntimeSettings(await SettingsStore.getSettings())
+      await this.requireProviderKey(next, missingCurrentKeyMessage(next))
+    } else if (this.pin) {
+      await this.requireProviderKey(this.pin, missingPinnedKeyMessage(this.pin))
     }
     // Wait for the aborted run's finally to finish before starting another.
     if (this.activePromise) {
@@ -762,6 +812,15 @@ export class AgentRunner extends EventEmitter {
       } catch {
         // Ignore abort-driven rejections while shutting down the prior run.
       }
+    }
+    // The job may have been cancelled while the paused run wound down.
+    if (this.status !== 'paused') return
+    if (next) this.repin(next)
+    // Approval pauses leave pending assets that download_selected_assets will refuse.
+    // Route through approveAndResume (default: approve all pending) so downloads start.
+    if (this.requireApproval && hasPendingUnqueuedAssets(this.beats)) {
+      await this.approveAndResume({})
+      return
     }
     // Clicking Resume asks for more work, so a spent budget starts over. (approveAndResume
     // does not: approval rounds share one budget.)
@@ -774,6 +833,24 @@ export class AgentRunner extends EventEmitter {
     this.log('info', 'Agent run resumed by user')
     this.emitSnapshot()
     await this.start()
+  }
+
+  private repin(next: JobRuntimeSettings): void {
+    const previous = this.pin
+    this.pin = next
+    this.applyPin(next)
+    // A transcript only makes sense to the model that wrote it. The next turn starts a new one,
+    // and the status block sent with every request says which beats already have footage.
+    this.messages = []
+    this.compactedBefore = 0
+    this.log(
+      'info',
+      `Resumed with ${next.providerId} / ${next.modelId}. Earlier conversation dropped because ${
+        previous?.providerId !== next.providerId
+          ? 'it was written for another provider'
+          : 'the settings changed'
+      }.`
+    )
   }
 
   public async cancel(): Promise<void> {
@@ -1899,6 +1976,7 @@ export class AgentRunner extends EventEmitter {
 
   public async approveAndResume(decision: ApprovalDecision = {}): Promise<void> {
     if (this.status !== 'paused') return
+    if (this.pin) await this.requireProviderKey(this.pin, missingPinnedKeyMessage(this.pin))
 
     if (this.activePromise) {
       try {

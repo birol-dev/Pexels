@@ -18,7 +18,7 @@ declare global {
         expandIdea(input: Record<string, unknown>): Promise<Record<string, unknown>>
         start(input: Record<string, unknown>): Promise<string>
         pause(jobId: string): Promise<void>
-        resume(jobId: string): Promise<void>
+        resume(jobId: string, options?: { useCurrentSettings?: boolean }): Promise<void>
         approveAndResume(
           jobId: string,
           decision?: { approvedAssetIds?: string[]; rejectedAssetIds?: string[] }

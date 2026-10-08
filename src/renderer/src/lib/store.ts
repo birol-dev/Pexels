@@ -54,6 +54,17 @@ export type StatusReason =
   | 'error'
   | 'user_cancelled'
 
+/** The model and limits a job runs with. Mirrors JobRuntimeSettings in the main process. */
+export interface JobRuntimeSettings {
+  providerId: LlmProviderId
+  modelId: string
+  maxIterations: number
+  requestTimeoutSeconds: number
+  skipExplicit: boolean
+  avoidPeople: boolean
+  requireApproval: boolean
+}
+
 export interface JobSnapshot {
   jobId: string
   title: string
@@ -63,6 +74,7 @@ export interface JobSnapshot {
   visualConcept?: string
   status: 'running' | 'paused' | 'completed' | 'cancelled' | 'failed'
   statusReason?: StatusReason
+  runtimeSettings?: JobRuntimeSettings
   progress: number
   currentStep: string
   beats: VisualBeat[]
@@ -204,7 +216,7 @@ interface AppStore {
     searchMode?: 'focused' | 'broad'
   }) => Promise<string>
   pauseJob: (id: string) => Promise<void>
-  resumeJob: (id: string) => Promise<void>
+  resumeJob: (id: string, options?: { useCurrentSettings?: boolean }) => Promise<void>
   approveAndResumeJob: (
     id: string,
     decision?: { approvedAssetIds?: string[]; rejectedAssetIds?: string[] }
@@ -241,6 +253,12 @@ const DEFAULT_INPUT_TAB_STATE: InputFormState = {
 }
 
 let eventUnsubscribe: (() => void) | null = null
+
+/** An error thrown in the main process, without Electron's "Error invoking remote method" lead-in. */
+function ipcErrorMessage(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err)
+  return message.replace(/^Error invoking remote method '[^']*': (?:Error: )?/, '')
+}
 
 export const useAppStore = create<AppStore>((set, get) => ({
   currentRoute: 'input',
@@ -639,20 +657,30 @@ export const useAppStore = create<AppStore>((set, get) => ({
     await get().loadJobs()
   },
 
-  resumeJob: async (id) => {
-    await api.jobs.resume(id)
+  resumeJob: async (id, options) => {
+    // A resume that cannot start (the provider has no key) is refused and the job stays paused.
+    // Say why, once the screen shows the job as it is.
+    const failure = await api.jobs.resume(id, options).then(
+      () => null,
+      (err: unknown) => err
+    )
     if (get().activeJobId === id) {
       await get().loadActiveJob(id)
     }
     await get().loadJobs()
+    if (failure) await get().alert('Could not resume', ipcErrorMessage(failure))
   },
 
   approveAndResumeJob: async (id, decision) => {
-    await api.jobs.approveAndResume(id, decision)
+    const failure = await api.jobs.approveAndResume(id, decision).then(
+      () => null,
+      (err: unknown) => err
+    )
     if (get().activeJobId === id) {
       await get().loadActiveJob(id)
     }
     await get().loadJobs()
+    if (failure) await get().alert('Could not resume', ipcErrorMessage(failure))
   },
 
   cancelJob: async (id) => {

@@ -6,6 +6,7 @@ import {
   type JobSnapshot
 } from '../services/agent/agent-runner.ts'
 import { readSavedAgentState } from '../services/agent/agent-state.ts'
+import { resolveRuntimeSettings, type JobRuntimeSettings } from '../services/agent/job-settings.ts'
 import { savedStatusReason } from '../services/agent/job-status.ts'
 import { tailLogEntries } from '../services/agent/log-tail.ts'
 import { resolveSearchModeFromSnapshot } from '../services/agent/search-mode.ts'
@@ -68,6 +69,7 @@ const ApprovalDecisionSchema = z
     rejectedAssetIds: z.array(z.string()).optional()
   })
   .optional()
+const ResumeOptionsSchema = z.object({ useCurrentSettings: z.boolean().optional() }).optional()
 
 function broadcastJobEvent(event: unknown): void {
   const windows = BrowserWindow.getAllWindows()
@@ -77,6 +79,10 @@ function broadcastJobEvent(event: unknown): void {
 }
 
 const ManifestSettingsSnapshotSchema = z.object({
+  // Which model the job was started with. A runner without saved settings reads these itself
+  // (see initializeAndLoadState); a bad value here must not discard the rest of the manifest.
+  provider: z.string().optional().catch(undefined),
+  modelId: z.string().optional().catch(undefined),
   targetPlatform: z.enum(['YouTube', 'Shorts', 'TikTok', 'Instagram Reels']).optional(),
   visualStyle: z.string().optional(),
   assetMix: z.string().optional(),
@@ -152,6 +158,22 @@ async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInp
   return defaultInput
 }
 
+/**
+ * What a job without a runner will run with: its saved settings, or for a job from before they
+ * were saved, its manifest's provider and model with the current limits. Settings that cannot
+ * be read leave the answer to what was saved.
+ */
+async function jobRuntimeSettings(
+  saved: JobRuntimeSettings | undefined,
+  snapshot: { provider?: unknown; modelId?: unknown } | undefined
+): Promise<JobRuntimeSettings | undefined> {
+  try {
+    return resolveRuntimeSettings(saved, snapshot, await SettingsStore.getSettings())
+  } catch {
+    return saved
+  }
+}
+
 export function registerJobsHandlers(): void {
   ipcMain.handle('jobs:start', async (_, rawInput): Promise<string> => {
     const input = StartJobInputSchema.parse(rawInput) as StartJobInput
@@ -179,23 +201,27 @@ export function registerJobsHandlers(): void {
     }
   })
 
-  ipcMain.handle('jobs:resume', async (_, rawJobId: unknown): Promise<void> => {
-    const jobId = JobIdSchema.parse(rawJobId)
-    const runner = AgentRunner.getActive(jobId)
-    if (runner) {
-      await runner.resume()
-    } else {
-      // If not active (e.g. process restarted), restore state then resume
-      const summary = await ProjectStore.get(jobId)
-      if (summary && summary.status === 'paused') {
-        const input = await getJobInputFromManifest(summary)
-        const newRunner = new AgentRunner(jobId, input)
-        newRunner.on('event', (evt) => broadcastJobEvent(evt))
-        await newRunner.initializeAndLoadState()
-        await newRunner.resume()
+  ipcMain.handle(
+    'jobs:resume',
+    async (_, rawJobId: unknown, rawOptions: unknown): Promise<void> => {
+      const jobId = JobIdSchema.parse(rawJobId)
+      const options = ResumeOptionsSchema.parse(rawOptions) ?? {}
+      const runner = AgentRunner.getActive(jobId)
+      if (runner) {
+        await runner.resume(options)
+      } else {
+        // If not active (e.g. process restarted), restore state then resume
+        const summary = await ProjectStore.get(jobId)
+        if (summary && summary.status === 'paused') {
+          const input = await getJobInputFromManifest(summary)
+          const newRunner = new AgentRunner(jobId, input)
+          newRunner.on('event', (evt) => broadcastJobEvent(evt))
+          await newRunner.initializeAndLoadState()
+          await newRunner.resume(options)
+        }
       }
     }
-  })
+  )
 
   ipcMain.handle(
     'jobs:approveAndResume',
@@ -308,6 +334,8 @@ export function registerJobsHandlers(): void {
         visualConcept?: string
         settingsSnapshot?: {
           inputMode?: 'script' | 'idea'
+          provider?: unknown
+          modelId?: unknown
         }
         beats?: unknown[]
         assets?: unknown[]
@@ -346,6 +374,7 @@ export function registerJobsHandlers(): void {
         visualConcept: manifest.visualConcept,
         status,
         statusReason: savedStatusReason(status, saved.statusReason),
+        runtimeSettings: await jobRuntimeSettings(saved.runtimeSettings, manifest.settingsSnapshot),
         progress: status === 'completed' ? 100 : 0,
         currentStep: status === 'completed' ? 'Finished' : 'Stopped',
         beats: beats,

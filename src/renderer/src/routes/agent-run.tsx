@@ -10,7 +10,11 @@ import { RunActions } from '@renderer/features/agent-run/components/run-actions'
 import { RunHeader } from '@renderer/features/agent-run/components/run-header'
 import { useAgentRunBootstrap } from '@renderer/features/agent-run/hooks/use-agent-run-bootstrap'
 import { useAssetApproval } from '@renderer/features/agent-run/hooks/use-asset-approval'
-import { getPendingAssets, splitApprovalIds } from '@renderer/features/agent-run/utils'
+import {
+  getPendingAssets,
+  pinnedSettingsDiffer,
+  splitApprovalIds
+} from '@renderer/features/agent-run/utils'
 
 export default function AgentRunView(): React.JSX.Element {
   const {
@@ -22,7 +26,8 @@ export default function AgentRunView(): React.JSX.Element {
     cancelJob,
     rerunJob,
     navigate,
-    loading
+    loading,
+    settings
   } = useAppStore()
   const approval = useAssetApproval(activeJobId)
   useAgentRunBootstrap()
@@ -54,9 +59,13 @@ export default function AgentRunView(): React.JSX.Element {
           <RunActions
             job={activeJob}
             hasPendingAssets={hasPendingAssets}
+            canResumeWithCurrentSettings={pinnedSettingsDiffer(activeJob, settings)}
             loading={loading}
             onPause={() => pauseJob(activeJob.jobId)}
             onResumeOrApprove={handleResumeOrApprove}
+            onResumeWithCurrentSettings={() =>
+              resumeJob(activeJob.jobId, { useCurrentSettings: true })
+            }
             onCancel={() => cancelJob(activeJob.jobId)}
             onRerun={() => rerunJob(activeJob.jobId)}
             onInspect={() => navigate('stuff')}

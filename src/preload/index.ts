@@ -27,7 +27,8 @@ const api = {
     start: (input: Record<string, unknown>): Promise<string> =>
       ipcRenderer.invoke('jobs:start', input),
     pause: (jobId: string): Promise<void> => ipcRenderer.invoke('jobs:pause', jobId),
-    resume: (jobId: string): Promise<void> => ipcRenderer.invoke('jobs:resume', jobId),
+    resume: (jobId: string, options?: { useCurrentSettings?: boolean }): Promise<void> =>
+      ipcRenderer.invoke('jobs:resume', jobId, options),
     approveAndResume: (
       jobId: string,
       decision?: { approvedAssetIds?: string[]; rejectedAssetIds?: string[] }

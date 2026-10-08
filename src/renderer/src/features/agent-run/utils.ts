@@ -1,4 +1,10 @@
-import type { AgentLogEvent, AssetRecord, JobSnapshot, VisualBeat } from '@renderer/lib/store'
+import type {
+  AgentLogEvent,
+  AssetRecord,
+  JobSnapshot,
+  PublicSettings,
+  VisualBeat
+} from '@renderer/lib/store'
 
 export type ApprovalSelection = Record<string, boolean>
 
@@ -73,6 +79,24 @@ export function getPauseReasonText(job: JobSnapshot): string | null {
     default:
       return null
   }
+}
+
+/**
+ * Whether Settings now say something different from what the job runs with. That is when
+ * "Resume with current settings" has a point. Without either side there is nothing to compare.
+ */
+export function pinnedSettingsDiffer(job: JobSnapshot, current: PublicSettings | null): boolean {
+  const pinned = job.runtimeSettings
+  if (!pinned || !current) return false
+  return (
+    pinned.providerId !== current.llmProvider ||
+    pinned.modelId !== current.modelId ||
+    pinned.maxIterations !== current.maxAgentIterations ||
+    pinned.requestTimeoutSeconds !== current.requestTimeoutSeconds ||
+    pinned.skipExplicit !== current.skipExplicitQueries ||
+    pinned.avoidPeople !== current.avoidPeopleAndFaces ||
+    pinned.requireApproval !== current.requireApprovalBeforeDownload
+  )
 }
 
 export function getPendingAssets(job: JobSnapshot): AssetRecord[] {

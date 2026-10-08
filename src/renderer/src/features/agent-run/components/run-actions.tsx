@@ -1,5 +1,5 @@
 import React from 'react'
-import { EyeIcon, PauseIcon, XIcon } from '@phosphor-icons/react'
+import { EyeIcon, PauseIcon, SlidersHorizontalIcon, XIcon } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
 import { LiquidMetalButton } from '@renderer/components/ui/liquid-metal-button'
 import type { JobSnapshot } from '@renderer/lib/store'
@@ -7,9 +7,12 @@ import type { JobSnapshot } from '@renderer/lib/store'
 interface RunActionsProps {
   job: JobSnapshot
   hasPendingAssets: boolean
+  /** Settings changed since the job was created, so resuming with the new ones is a choice. */
+  canResumeWithCurrentSettings: boolean
   loading: boolean
   onPause: () => void
   onResumeOrApprove: () => void
+  onResumeWithCurrentSettings: () => void
   onCancel: () => void
   onRerun: () => void
   onInspect: () => void
@@ -18,9 +21,11 @@ interface RunActionsProps {
 export function RunActions({
   job,
   hasPendingAssets,
+  canResumeWithCurrentSettings,
   loading,
   onPause,
   onResumeOrApprove,
+  onResumeWithCurrentSettings,
   onCancel,
   onRerun,
   onInspect
@@ -39,6 +44,16 @@ export function RunActions({
           width={hasPendingAssets ? 190 : 150}
           onClick={onResumeOrApprove}
         />
+      )}
+      {status === 'paused' && !hasPendingAssets && canResumeWithCurrentSettings && (
+        <Button
+          variant="secondary"
+          size="lg"
+          onClick={onResumeWithCurrentSettings}
+          title="Use the model and limits from Settings. The earlier conversation is dropped."
+        >
+          <SlidersHorizontalIcon weight="bold" /> Resume with current settings
+        </Button>
       )}
       {(status === 'running' || status === 'paused') && (
         <Button variant="destructive" size="lg" onClick={onCancel}>

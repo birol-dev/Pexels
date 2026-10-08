@@ -2,6 +2,7 @@ import { promises as fs } from 'fs'
 import { join } from 'path'
 import { ManifestWriter } from '../files/manifest-writer.ts'
 import { loadRecoverableJson } from '../storage/state-file-recovery.ts'
+import { parseRuntimeSettings, type JobRuntimeSettings } from './job-settings.ts'
 import type { StatusReason } from './job-status.ts'
 
 export type AgentStateSource = 'agent-state' | 'manifest' | 'none'
@@ -22,6 +23,7 @@ interface AgentStateFile {
   iterationsUsed?: unknown
   compactedBefore?: unknown
   statusReason?: unknown
+  runtimeSettings?: unknown
 }
 
 function toCount(value: unknown): number {
@@ -92,7 +94,9 @@ export async function persistAgentConversationState(
   iterationsUsed = 0,
   compactedBefore = 0,
   /** Why the job last changed status, for showing a paused job's reason after a restart. */
-  statusReason?: StatusReason
+  statusReason?: StatusReason,
+  /** What the job runs with. Fixed when the job is created. */
+  runtimeSettings?: JobRuntimeSettings
 ): Promise<void> {
   await ManifestWriter.writeJsonFile(projectDir, 'agent-state.json', {
     schemaVersion: 1,
@@ -100,20 +104,28 @@ export async function persistAgentConversationState(
     pexelsCandidates,
     iterationsUsed,
     compactedBefore,
-    statusReason
+    statusReason,
+    runtimeSettings
   })
 }
 
 /**
- * What agent-state.json says about a job that has no runner. A plain read: it never
+ * What agent-state.json says about a job's status and settings. A plain read: it never
  * quarantines or rewrites the file, and a missing or unreadable one says nothing.
  */
-export async function readSavedAgentState(projectDir: string): Promise<{ statusReason?: unknown }> {
+export async function readSavedAgentState(
+  projectDir: string
+): Promise<{ statusReason?: unknown; runtimeSettings?: JobRuntimeSettings }> {
   try {
     const parsed: unknown = JSON.parse(
       await fs.readFile(join(projectDir, 'agent-state.json'), 'utf-8')
     )
-    return isAgentStateFile(parsed) ? { statusReason: parsed.statusReason } : {}
+    return isAgentStateFile(parsed)
+      ? {
+          statusReason: parsed.statusReason,
+          runtimeSettings: parseRuntimeSettings(parsed.runtimeSettings)
+        }
+      : {}
   } catch {
     return {}
   }
