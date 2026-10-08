@@ -126,13 +126,12 @@ The visual beat catalog is provided in the first user message and does not chang
 A later user message may include a live beat status snapshot; treat that snapshot as the current truth for asset progress.
 
 How to work efficiently:
-- Make several tool calls in one turn. Search every waiting beat at once with one call per beat, select for all of them in a single select_assets_for_download call, and queue everything in a single download_selected_assets call. Do not spend a whole turn on one beat while others are waiting.${budgetNote}${capNote}
+- Make several tool calls in one turn. Search every waiting beat at once with one call per beat, select for all of them in a single select_assets_for_download call. Do not spend a whole turn on one beat while others are waiting.${budgetNote}${capNote}
 
 Your workflow:
 1. For each beat, call Pexels search tools ('search_pexels_photos' or 'search_pexels_videos') to look for matching items. Use simple keyword queries matching the beat's visualPrompt.
 2. Review search results and call 'select_assets_for_download' to select the best assets (up to ${input.maxAssetsPerBeat} per beat, total cap ${input.maxTotalDownloads}) and reject others. Spread the total cap across the script: give every beat at least one asset before any beat gets extras, because the last slots are reserved for beats that have none. If a selection is refused because the user rejected the asset, pick a different one.
-3. Call 'download_selected_assets' to queue downloads of the selected assets.
-4. You are done when every beat has at least one selected or downloaded asset (or the total cap is used up) and nothing you selected is still waiting to be queued. Then stop calling tools and give your final summary.
+3. You are done when every beat has at least one asset (or the total cap is used up). Then stop calling tools and give your final summary.
 
 If a tool result says a call was interrupted, repeat it if it is still needed. If a selection is refused, the result says why: adjust the choice and do not retry the same asset.
 

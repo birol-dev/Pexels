@@ -1,12 +1,13 @@
 import type { FakeNetwork } from './fake-network.ts'
 import { video, videoFileUrl } from './pexels-fixtures.ts'
-import { download, searchVideos, select, submitBeats } from './run-job.ts'
+import { searchVideos, select, submitBeats } from './run-job.ts'
 
 export const ONE_BEAT_SCRIPT = 'One sentence.'
 
 /**
- * Scripts the shortest job that completes: one beat, one video search, one selection,
- * one download. Four LLM requests, one Pexels request, one media request.
+ * Scripts the shortest job that completes: one beat, one video search, one selection.
+ * Selecting starts the download, so the model asks for nothing more. Three LLM requests,
+ * one Pexels request, one media request.
  */
 export function scriptOneBeatJob(network: FakeNetwork): void {
   const clip = video(101, 'city-street')
@@ -24,5 +25,4 @@ export function scriptOneBeatJob(network: FakeNetwork): void {
         }
       ])
     ])
-    .tools([download([{ assetType: 'video', pexelsId: 101 }])])
 }

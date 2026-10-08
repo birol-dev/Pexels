@@ -7,6 +7,7 @@ import { validateDownloadUrl } from '../src/main/services/pexels/download-url-va
 import { LlmProviderFactory } from '../src/main/services/llm/llm-provider.ts'
 import {
   areAllBeatsDownloaded,
+  countQueuedOrCompleted,
   decideRunFinalize,
   hasPendingUnqueuedAssets,
   areBeatsSatisfiedForLoop
@@ -28,9 +29,7 @@ describe('Fixes & Security Hardening Regression Suite', () => {
         }
       ]
 
-      const queuedOrCompletedCount = beats
-        .flatMap((b) => b.assets || [])
-        .filter((a) => a.status === 'completed' || a.status === 'downloading').length
+      const queuedOrCompletedCount = countQueuedOrCompleted(beats)
 
       assert.equal(queuedOrCompletedCount, 2)
       assert.equal(queuedOrCompletedCount >= maxTotalDownloads, true)

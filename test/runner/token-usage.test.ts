@@ -62,11 +62,11 @@ describe('runner: token usage', () => {
     const run = await runJob({ script: ONE_BEAT_SCRIPT })
 
     assert.equal(run.summary.status, 'completed')
-    assert.deepEqual(run.manifest.usage, usageOfAnswers(4))
+    assert.deepEqual(run.manifest.usage, usageOfAnswers(3))
     // The runner is gone, so this answer comes from the manifest.
     assert.equal(AgentRunner.getActive(run.jobId), undefined)
     const stored = (await invokeIpc('jobs:get', run.jobId)) as { usage?: unknown }
-    assert.deepEqual(stored.usage, usageOfAnswers(4))
+    assert.deepEqual(stored.usage, usageOfAnswers(3))
   })
 
   it('continues from the saved total when a paused job is loaded again', async () => {
@@ -138,8 +138,8 @@ describe('runner: token usage', () => {
 
     assert.deepEqual(network.problems, [])
     assert.equal(run.summary.status, 'completed')
-    assert.equal(network.llmRequests().length, 5, 'one expansion, one beat split, three turns')
-    assert.deepEqual(run.snapshot.usage, usageOfAnswers(5, 64))
-    assert.deepEqual(run.manifest.usage, usageOfAnswers(5, 64))
+    assert.equal(network.llmRequests().length, 4, 'one expansion, one beat split, two turns')
+    assert.deepEqual(run.snapshot.usage, usageOfAnswers(4, 64))
+    assert.deepEqual(run.manifest.usage, usageOfAnswers(4, 64))
   })
 })

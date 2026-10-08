@@ -56,6 +56,7 @@ import {
   areAllBeatsDownloaded,
   areBeatsSatisfiedForLoop,
   beatUsingAsset,
+  countQueuedOrCompleted,
   decideRunFinalize,
   describeToolFailure,
   isAssetRejectedByUser,
@@ -236,6 +237,8 @@ export class AgentRunner extends EventEmitter {
   private modelId = DEFAULT_MODEL_IDS[DEFAULT_LLM_PROVIDER]
   private providerId: LlmProviderId = DEFAULT_LLM_PROVIDER
   private maxIterations = 30
+  // Read once per run (applyRuntimeSettings), so a Settings change cannot alter a job mid-run.
+  private requireApproval = false
   private requestTimeoutSeconds = 60
   private llmRequestTimeoutSeconds = MIN_LLM_REQUEST_TIMEOUT_SECONDS
   private safetySettings = {
@@ -291,6 +294,7 @@ export class AgentRunner extends EventEmitter {
     this.modelId = settings.modelId
     this.providerId = settings.llmProvider
     this.maxIterations = settings.maxAgentIterations
+    this.requireApproval = settings.requireApprovalBeforeDownload
     this.requestTimeoutSeconds = settings.requestTimeoutSeconds
     this.llmRequestTimeoutSeconds = resolveLlmRequestTimeoutSeconds(settings.requestTimeoutSeconds)
     this.safetySettings = {
@@ -646,6 +650,7 @@ export class AgentRunner extends EventEmitter {
       if (restoreFromDisk) {
         await this.loadStateFromManifest()
       }
+      this.requeuePendingDownloads()
       this.status = 'running'
       await this.saveRegistry()
 
@@ -692,12 +697,9 @@ export class AgentRunner extends EventEmitter {
     if (this.status !== 'paused') return
     // Approval pauses leave pending assets that download_selected_assets will refuse.
     // Route through approveAndResume (default: approve all pending) so downloads start.
-    if (hasPendingUnqueuedAssets(this.beats)) {
-      const settings = await SettingsStore.getSettings()
-      if (settings.requireApprovalBeforeDownload) {
-        await this.approveAndResume({})
-        return
-      }
+    if (this.requireApproval && hasPendingUnqueuedAssets(this.beats)) {
+      await this.approveAndResume({})
+      return
     }
     // Wait for the aborted run's finally to finish before starting another.
     if (this.activePromise) {
@@ -706,6 +708,12 @@ export class AgentRunner extends EventEmitter {
       } catch {
         // Ignore abort-driven rejections while shutting down the prior run.
       }
+    }
+    // Clicking Resume asks for more work, so a spent budget starts over. (approveAndResume
+    // does not: approval rounds share one budget.)
+    if (remainingIterations(this.maxIterations, this.iterationsUsed) === 0) {
+      this.iterationsUsed = 0
+      this.log('info', `Resumed with a fresh budget of ${this.maxIterations} turns.`)
     }
     this.status = 'running'
     this.log('info', 'Agent run resumed by user')
@@ -1124,30 +1132,7 @@ export class AgentRunner extends EventEmitter {
 
       if (effectiveToolCalls.length === 0) {
         const pendingBeats = getUnfulfilledBeats(this.beats)
-        const hasUnqueuedPendingAssets = hasPendingUnqueuedAssets(this.beats)
         const allBeatsFulfilled = areBeatsSatisfiedForLoop(this.beats, this.input.maxTotalDownloads)
-
-        // Selected-but-not-downloaded assets still need download_selected_assets.
-        if (hasUnqueuedPendingAssets) {
-          if (emptyToolTurnCount < maxEmptyToolNudges) {
-            emptyToolTurnCount++
-            this.log(
-              'info',
-              `Model responded with text while assets are still pending download (${emptyToolTurnCount}/${maxEmptyToolNudges}). Nudging agent to queue downloads...`
-            )
-            this.messages.push({
-              role: 'user',
-              content:
-                'You replied with text, but selected assets are still pending download. Call download_selected_assets now to queue those downloads. Do not stop until pending assets are queued.'
-            })
-            continue
-          }
-          this.log(
-            'error',
-            `Model "${this.modelId}" left pending assets undownloaded after ${emptyToolTurnCount} nudges.`
-          )
-          break
-        }
 
         if (allBeatsFulfilled) {
           this.log(
@@ -1259,6 +1244,43 @@ export class AgentRunner extends EventEmitter {
     if (this.input.mix === 'photos only') return assetType === 'photo'
     if (this.input.mix === 'videos only') return assetType === 'video'
     return true
+  }
+
+  /** The one place a download starts: selection, approval, resume and the download tool all use it. */
+  private queueDownload(
+    record: AssetRecord,
+    beat: VisualBeat
+  ): 'queued' | 'already_active' | 'cap_reached' {
+    if (record.status === 'completed' || record.status === 'downloading') return 'already_active'
+    if (countQueuedOrCompleted(this.beats) >= this.input.maxTotalDownloads) return 'cap_reached'
+
+    record.status = 'downloading'
+    beat.status = 'downloading'
+    this.downloader.enqueue(
+      record.pexelsId,
+      record.type,
+      record.downloadUrl,
+      record.width,
+      record.height,
+      record.query,
+      this.projectDir
+    )
+    return 'queued'
+  }
+
+  /** Downloads selected in an earlier run that never started. Only when approval is off. */
+  private requeuePendingDownloads(): void {
+    if (this.requireApproval) return
+
+    let queued = 0
+    for (const beat of this.beats) {
+      for (const record of beat.assets) {
+        if (record.status !== 'pending') continue
+        if (isAssetRejectedByUser(beat, record.type, record.pexelsId)) continue
+        if (this.queueDownload(record, beat) === 'queued') queued++
+      }
+    }
+    if (queued > 0) this.log('info', `Re-queued ${queued} download(s) from the previous run.`)
   }
 
   private async waitForDownloadsToSettle(): Promise<void> {
@@ -1576,9 +1598,15 @@ export class AgentRunner extends EventEmitter {
             beat.assets.push(newAsset)
             this.assetLookup.set(recordId, { asset: newAsset, beat })
             beat.status = 'selecting'
-          }
 
-          selectionResults.push({ pexelsId: sel.pexelsId, status: 'selected' })
+            const queued = this.requireApproval ? null : this.queueDownload(newAsset, beat)
+            selectionResults.push({
+              pexelsId: sel.pexelsId,
+              status: queued === 'queued' ? 'queued' : 'selected'
+            })
+          } else {
+            selectionResults.push({ pexelsId: sel.pexelsId, status: 'selected' })
+          }
         }
 
         // Handle rejections
@@ -1606,14 +1634,12 @@ export class AgentRunner extends EventEmitter {
         await this.writeManifest()
         this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
 
-        const settings = await SettingsStore.getSettings()
-
         const acceptedSelectionCount = selectionResults.filter(
           (r) =>
             typeof r === 'object' && r !== null && (r as { status?: string }).status === 'selected'
         ).length
 
-        if (settings.requireApprovalBeforeDownload && acceptedSelectionCount > 0) {
+        if (this.requireApproval && acceptedSelectionCount > 0) {
           this.status = 'paused'
           this.log('info', `Awaiting user approval for ${acceptedSelectionCount} selected assets.`)
 
@@ -1644,8 +1670,6 @@ export class AgentRunner extends EventEmitter {
 
         this.log('info', `Queuing ${assetIds.length} assets for local download...`)
         this.updateProgress(`Queuing assets for download...`, this.progress)
-
-        const settings = await SettingsStore.getSettings()
 
         for (const assetRef of assetIds) {
           if (!this.canUseAssetType(assetRef.assetType)) {
@@ -1692,7 +1716,7 @@ export class AgentRunner extends EventEmitter {
             continue
           }
 
-          if (settings.requireApprovalBeforeDownload && assetRecord.status === 'pending') {
+          if (this.requireApproval && assetRecord.status === 'pending') {
             failed.push({
               assetType: assetRef.assetType,
               pexelsId: assetRef.pexelsId,
@@ -1702,19 +1726,8 @@ export class AgentRunner extends EventEmitter {
             continue
           }
 
-          if (assetRecord.status === 'completed' || assetRecord.status === 'downloading') {
-            downloaded.push({
-              assetType: assetRecord.type,
-              pexelsId: assetRecord.pexelsId,
-              status: assetRecord.status
-            })
-            continue
-          }
-
-          const queuedOrCompletedCount = this.beats
-            .flatMap((b) => b.assets || [])
-            .filter((a) => a.status === 'completed' || a.status === 'downloading').length
-          if (queuedOrCompletedCount >= this.input.maxTotalDownloads) {
+          const outcome = this.queueDownload(assetRecord, parentBeat)
+          if (outcome === 'cap_reached') {
             failed.push({
               assetType: assetRef.assetType,
               pexelsId: assetRef.pexelsId,
@@ -1724,23 +1737,10 @@ export class AgentRunner extends EventEmitter {
             continue
           }
 
-          assetRecord.status = 'downloading'
-          parentBeat.status = 'downloading'
-
-          this.downloader.enqueue(
-            assetRecord.pexelsId,
-            assetRecord.type,
-            assetRecord.downloadUrl,
-            assetRecord.width,
-            assetRecord.height,
-            assetRecord.query,
-            this.projectDir
-          )
-
           downloaded.push({
             assetType: assetRecord.type,
             pexelsId: assetRecord.pexelsId,
-            status: 'queued'
+            status: outcome === 'queued' ? 'queued' : assetRecord.status
           })
         }
 
@@ -1864,20 +1864,8 @@ export class AgentRunner extends EventEmitter {
           }. Starting downloads.`
         )
 
-        // Start downloads and mark them as downloading
         for (const { asset, beat } of approvedPendingAssets) {
-          asset.status = 'downloading'
-          beat.status = 'downloading'
-
-          this.downloader.enqueue(
-            asset.pexelsId,
-            asset.type,
-            asset.downloadUrl,
-            asset.width,
-            asset.height,
-            asset.query,
-            this.projectDir
-          )
+          this.queueDownload(asset, beat)
         }
 
         this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })

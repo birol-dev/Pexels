@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import { installFakeNetwork, type FakeNetwork } from '../support/fake-network.ts'
 import { photo, video, videoFileUrl } from '../support/pexels-fixtures.ts'
 import {
-  download,
   resetNetworkState,
   runJob,
   searchPhotos,
@@ -43,7 +42,6 @@ describe('runner: the model picks a smaller file of a clip', () => {
           }
         ])
       ])
-      .tools([download([{ assetType: 'video', pexelsId: 101 }])])
 
     const run = await runJob({ script: ONE_BEAT_SCRIPT })
 
@@ -71,7 +69,6 @@ describe('runner: the model picks a smaller file of a clip', () => {
           }
         ])
       ])
-      .tools([download([{ assetType: 'photo', pexelsId: 201 }])])
 
     const run = await runJob({ script: ONE_BEAT_SCRIPT })
 

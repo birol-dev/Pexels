@@ -183,11 +183,15 @@ describe('StockScout prompt quality rules', () => {
 
   it('defines when the job is done', () => {
     const prompt = buildStockScoutSystemPrompt(base)
-    assert.match(
-      prompt,
-      /You are done when every beat has at least one selected or downloaded asset/
-    )
-    assert.match(prompt, /nothing you selected is still waiting to be queued/)
+    assert.match(prompt, /You are done when every beat has at least one asset/)
+    assert.match(prompt, /or the total cap is used up/)
+  })
+
+  it('leaves queuing downloads to the app', () => {
+    const prompt = buildStockScoutSystemPrompt(base)
+    assert.doesNotMatch(prompt, /Call 'download_selected_assets'/)
+    assert.doesNotMatch(prompt, /queue everything/)
+    assert.doesNotMatch(prompt, /waiting to be queued/)
   })
 
   it('gives the default focused mode its own guidance', () => {

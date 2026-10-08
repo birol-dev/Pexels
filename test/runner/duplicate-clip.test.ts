@@ -10,7 +10,6 @@ import { installFakeNetwork, type FakeNetwork } from '../support/fake-network.ts
 import { video, videoFileUrl } from '../support/pexels-fixtures.ts'
 import {
   applyTestSettings,
-  download,
   nextJobId,
   readJob,
   resetNetworkState,
@@ -167,12 +166,6 @@ describe('runner: the model picks one clip for two beats', () => {
           }
         ])
       ])
-      .tools([
-        download([
-          { assetType: 'video', pexelsId: 101 },
-          { assetType: 'video', pexelsId: 102 }
-        ])
-      ])
 
     const run = await runJob()
 
@@ -181,7 +174,7 @@ describe('runner: the model picks one clip for two beats', () => {
     const selectResult = JSON.parse(toolResults[toolResults.length - 1].content || '{}') as {
       selections: Array<{ status: string; reason?: string }>
     }
-    assert.equal(selectResult.selections[0].status, 'selected')
+    assert.equal(selectResult.selections[0].status, 'queued')
     assert.equal(selectResult.selections[1].status, 'rejected')
     assert.match(selectResult.selections[1].reason || '', /beat_1/)
 
@@ -198,19 +191,16 @@ describe('runner: the model picks one clip for two beats', () => {
     const other = video(102, 'city-night')
     network.pexels.videos('city night', [other])
     // Only beat_1 is left without footage, so that is all the model is asked for.
-    network.llm
-      .tools([searchVideos('beat_1', 'city night')])
-      .tools([
-        select([
-          {
-            beatId: 'beat_1',
-            assetType: 'video',
-            pexelsId: 102,
-            variantUrl: videoFileUrl(other, 'hd')
-          }
-        ])
+    network.llm.tools([searchVideos('beat_1', 'city night')]).tools([
+      select([
+        {
+          beatId: 'beat_1',
+          assetType: 'video',
+          pexelsId: 102,
+          variantUrl: videoFileUrl(other, 'hd')
+        }
       ])
-      .tools([download([{ assetType: 'video', pexelsId: 102 }])])
+    ])
 
     await invokeIpc('jobs:resume', jobId)
 
@@ -236,22 +226,16 @@ describe('runner: the model picks one clip for two beats', () => {
     const { jobId } = await writeJobWithDuplicateRecords({ downloaded: false })
     const other = video(102, 'city-night')
     network.pexels.videos('city night', [other])
-    network.llm
-      .tools([
-        searchVideos('beat_2', 'city night'),
-        download([{ assetType: 'video', pexelsId: 101 }])
+    network.llm.tools([searchVideos('beat_2', 'city night')]).tools([
+      select([
+        {
+          beatId: 'beat_2',
+          assetType: 'video',
+          pexelsId: 102,
+          variantUrl: videoFileUrl(other, 'hd')
+        }
       ])
-      .tools([
-        select([
-          {
-            beatId: 'beat_2',
-            assetType: 'video',
-            pexelsId: 102,
-            variantUrl: videoFileUrl(other, 'hd')
-          }
-        ])
-      ])
-      .tools([download([{ assetType: 'video', pexelsId: 102 }])])
+    ])
 
     await invokeIpc('jobs:resume', jobId)
 

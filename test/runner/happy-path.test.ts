@@ -8,7 +8,6 @@ import {
 import { installFakeNetwork, type FakeNetwork } from '../support/fake-network.ts'
 import { photo, video, videoFileUrl } from '../support/pexels-fixtures.ts'
 import {
-  download,
   resetNetworkState,
   runJob,
   searchPhotos,
@@ -34,7 +33,7 @@ describe('runner: a complete fake job', () => {
     PexelsVideoSearchResultSchema.parse({ total_results: 1, videos: [video(101, 'city')] })
   })
 
-  it('searches, selects, downloads and finishes', async () => {
+  it('searches, selects, downloads without being asked, and finishes', async () => {
     const clip = video(101, 'city-street')
     const still = photo(201, 'A quiet desk')
     network.pexels.videos('city street', [clip]).photos('quiet desk', [still])
@@ -50,12 +49,6 @@ describe('runner: a complete fake job', () => {
             variantUrl: videoFileUrl(clip, 'hd')
           },
           { beatId: 'beat_2', assetType: 'photo', pexelsId: 201, variantUrl: still.src.original }
-        ])
-      ])
-      .tools([
-        download([
-          { assetType: 'video', pexelsId: 101 },
-          { assetType: 'photo', pexelsId: 201 }
         ])
       ])
 
@@ -87,6 +80,7 @@ describe('runner: a complete fake job', () => {
       function: { name: 'submit_script_beats' }
     })
     assert.equal(firstTurn.tool_choice, 'auto')
-    assert.equal(run.snapshot.usage?.totalTokens, 4 * 120)
+    assert.equal(network.llmRequests().length, 3, 'no turn is spent on queuing downloads')
+    assert.equal(run.snapshot.usage?.totalTokens, 3 * 120)
   })
 })

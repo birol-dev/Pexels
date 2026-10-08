@@ -160,7 +160,8 @@ export const AGENT_TOOLS: NormalizedToolDefinition[] = [
   },
   {
     name: 'download_selected_assets',
-    description: 'Queue previously selected assets to be downloaded.',
+    description:
+      'Optional. Selecting an asset already starts its download. Use this only to check download status.',
     parameters: {
       type: 'object',
       properties: {
@@ -211,6 +212,13 @@ export function countNonFailedAssets(beats: BeatAssetStatus[]): number {
 
 export function countCompletedAssets(beats: BeatAssetStatus[]): number {
   return beats.flatMap((b) => b.assets || []).filter((a) => a.status === 'completed').length
+}
+
+/** Assets that count against the download cap: finished, or on their way. */
+export function countQueuedOrCompleted(beats: BeatAssetStatus[]): number {
+  return beats
+    .flatMap((b) => b.assets || [])
+    .filter((a) => a.status === 'completed' || a.status === 'downloading').length
 }
 
 export function hasPendingUnqueuedAssets(beats: BeatAssetStatus[]): boolean {

@@ -27,10 +27,10 @@ describe('runner: the model caps output below what the app asks for', () => {
 
     assert.deepEqual(network.problems, [])
     assert.equal(run.snapshot.status, 'completed')
-    // One rejected request, then the four a one-beat job needs, all at the learned cap.
+    // One rejected request, then the three a one-beat job needs, all at the learned cap.
     assert.deepEqual(
       network.llmRequests().map((request) => request.max_completion_tokens),
-      [32768, 16384, 16384, 16384, 16384]
+      [32768, 16384, 16384, 16384]
     )
   })
 })
