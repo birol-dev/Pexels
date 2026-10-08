@@ -1,16 +1,20 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { randomInt } from 'crypto'
-import { AgentRunner, StartJobInput, JobSnapshot } from '../services/agent/agent-runner'
-import { areAllBeatsDownloaded } from '../services/agent/tool-schemas'
-import { resolveSearchModeFromSnapshot } from '../services/agent/search-mode'
-import { ProjectStore, JobSummary } from '../services/storage/project-store'
-import { SettingsStore } from '../services/storage/settings-store'
-import { SecureSecrets } from '../services/storage/secure-secrets'
-import { expandIdeaToScript, ExpandedScriptResult } from '../services/llm/idea-expander'
+import {
+  AgentRunner,
+  type StartJobInput,
+  type JobSnapshot
+} from '../services/agent/agent-runner.ts'
+import { areAllBeatsDownloaded } from '../services/agent/tool-schemas.ts'
+import { resolveSearchModeFromSnapshot } from '../services/agent/search-mode.ts'
+import { ProjectStore, type JobSummary } from '../services/storage/project-store.ts'
+import { SettingsStore } from '../services/storage/settings-store.ts'
+import { SecureSecrets } from '../services/storage/secure-secrets.ts'
+import { expandIdeaToScript, type ExpandedScriptResult } from '../services/llm/idea-expander.ts'
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { z } from 'zod'
-import { DEFAULT_LLM_PROVIDER, DEFAULT_MODEL_IDS } from '../../shared/llm-defaults'
+import { DEFAULT_LLM_PROVIDER, DEFAULT_MODEL_IDS } from '../../shared/llm-defaults.ts'
 
 function createJobId(): string {
   // Millisecond timestamps alone can collide under rapid start/rerun clicks.

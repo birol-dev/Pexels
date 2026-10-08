@@ -1,12 +1,12 @@
 import { ipcMain, shell } from 'electron'
-import { ProjectStore } from '../services/storage/project-store'
+import { ProjectStore } from '../services/storage/project-store.ts'
 import { promises as fs } from 'fs'
 import { join } from 'path'
-import { VisualBeat } from '../services/agent/agent-runner'
-import { buildManifestAttribution } from '../services/pexels/pexels-attribution'
-import { PexelsClient } from '../services/pexels/pexels-client'
-import { ManifestWriter } from '../services/files/manifest-writer'
-import { isPathInside } from '../services/files/path-safety'
+import { type VisualBeat } from '../services/agent/agent-runner.ts'
+import { buildManifestAttribution } from '../services/pexels/pexels-attribution.ts'
+import { PexelsClient } from '../services/pexels/pexels-client.ts'
+import { ManifestWriter } from '../services/files/manifest-writer.ts'
+import { isPathInside } from '../services/files/path-safety.ts'
 import { z } from 'zod'
 
 const JobIdSchema = z.string().regex(/^job_\d+$/)

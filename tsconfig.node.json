@@ -5,6 +5,7 @@
     "composite": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
     "types": ["electron-vite/node"]
   }
 

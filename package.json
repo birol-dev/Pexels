@@ -16,7 +16,7 @@
     "lint": "eslint --cache .",
     "typecheck": "tsc -b --noEmit",
     "check:contrast": "node scripts/check-contrast.mjs",
-    "test": "node --experimental-strip-types --test test/**/*.test.ts",
+    "test": "node --experimental-strip-types --import ./test/support/register.mjs --test test/**/*.test.ts",
     "start": "electron-vite dev",
     "dev": "electron-vite dev",
     "preview": "electron-vite preview",

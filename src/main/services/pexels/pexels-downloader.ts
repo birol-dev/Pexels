@@ -3,9 +3,9 @@ import { createWriteStream, promises as fsPromises } from 'fs'
 import { join } from 'path'
 import { Readable, PassThrough } from 'stream'
 import { pipeline } from 'stream/promises'
-import { validateDownloadUrl } from './download-url-validation'
-import { findInFlightDownload, isRetryableDownloadStatus } from './download-task-utils'
-import { ApiError, classifyFetchError } from '../http/api-errors'
+import { validateDownloadUrl } from './download-url-validation.ts'
+import { findInFlightDownload, isRetryableDownloadStatus } from './download-task-utils.ts'
+import { ApiError, classifyFetchError } from '../http/api-errors.ts'
 
 export interface DownloadTask {
   id: string // unique job/task ID

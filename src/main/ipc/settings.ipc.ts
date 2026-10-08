@@ -1,9 +1,9 @@
 import { ipcMain, dialog, shell, app } from 'electron'
-import { SettingsStore } from '../services/storage/settings-store'
-import { SecureSecrets } from '../services/storage/secure-secrets'
-import { LlmProviderFactory } from '../services/llm/llm-provider'
-import { resetLlmCircuit } from '../services/llm/llm-fetch'
-import { PexelsClient } from '../services/pexels/pexels-client'
+import { SettingsStore } from '../services/storage/settings-store.ts'
+import { SecureSecrets } from '../services/storage/secure-secrets.ts'
+import { LlmProviderFactory } from '../services/llm/llm-provider.ts'
+import { resetLlmCircuit } from '../services/llm/llm-fetch.ts'
+import { PexelsClient } from '../services/pexels/pexels-client.ts'
 import { z } from 'zod'
 
 const SettingsUpdateSchema = z.object({

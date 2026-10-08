@@ -1,21 +1,21 @@
-import { SecureSecrets } from '../storage/secure-secrets'
-import { SettingsStore } from '../storage/settings-store'
-import { ApiCircuitBreaker, ApiError, fetchWithRetry } from '../http/api-errors'
+import { SecureSecrets } from '../storage/secure-secrets.ts'
+import { SettingsStore } from '../storage/settings-store.ts'
+import { ApiCircuitBreaker, ApiError, fetchWithRetry } from '../http/api-errors.ts'
 import {
-  PexelsPhotoSearchInput,
-  PexelsPhotoSearchResult,
+  type PexelsPhotoSearchInput,
+  type PexelsPhotoSearchResult,
   PexelsPhotoSearchResultSchema,
-  PexelsPhoto,
+  type PexelsPhoto,
   PexelsPhotoSchema,
-  PexelsVideoSearchInput,
-  PexelsVideoSearchResult,
+  type PexelsVideoSearchInput,
+  type PexelsVideoSearchResult,
   PexelsVideoSearchResultSchema,
-  PexelsVideo,
+  type PexelsVideo,
   PexelsVideoSchema
-} from './pexels-types'
-import { PexelsQuotaSnapshot, PexelsRateLimitTracker } from './pexels-rate-limit'
-import { PexelsSearchCache } from './pexels-search-cache'
-import { PEXELS_VIDEO_SEARCH_URL, pexelsVideoByIdUrl } from './pexels-api-urls'
+} from './pexels-types.ts'
+import { type PexelsQuotaSnapshot, PexelsRateLimitTracker } from './pexels-rate-limit.ts'
+import { PexelsSearchCache } from './pexels-search-cache.ts'
+import { PEXELS_VIDEO_SEARCH_URL, pexelsVideoByIdUrl } from './pexels-api-urls.ts'
 
 const pexelsCircuit = new ApiCircuitBreaker(5, 60_000)
 
