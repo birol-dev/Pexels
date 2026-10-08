@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { buildBeatSplitSystemPrompt } from '../src/main/services/llm/beat-parse-tool.ts'
+import { buildBroaderQueriesSystemPrompt } from '../src/main/services/pipeline/broaden.ts'
+import { buildRankingSystemPrompt } from '../src/main/services/pipeline/rank.ts'
 import {
   parseDurationSeconds,
   wordGuidanceForDuration
@@ -410,5 +412,96 @@ describe('turn budget in the live status message', () => {
     assert.equal(messages.length, 3)
     assert.doesNotMatch(messages[0].content || '', /Turn \d+ of/)
     assert.match(messages[2].content || '', /Turn 1 of 30/)
+  })
+})
+
+describe('pipeline ranking prompt', () => {
+  const rankBase = { style: 'cinematic', avoidPeople: false }
+
+  it('says what the user message holds and what the model cannot see', () => {
+    const prompt = buildRankingSystemPrompt(rankBase)
+    assert.match(prompt, /^Choose stock footage for the beats of a narrated video\./)
+    assert.match(
+      prompt,
+      /lists each beat with its narration, its visual prompt, and the Pexels candidates/
+    )
+    assert.match(prompt, /1\. You cannot see the footage\. Judge each candidate by its description/)
+    assert.match(prompt, /best first, at most 5/)
+    assert.match(prompt, /Pexels' own relevance order/)
+    assert.match(prompt, /Leave a beat's list empty when none of its candidates fit/)
+    assert.match(prompt, /Use only the keys listed under that beat/)
+    assert.match(prompt, /Call submit_rankings once, with every beat of the user message\.$/)
+  })
+
+  it('gives the visual style, and the visual direction when there is one', () => {
+    assert.match(
+      buildRankingSystemPrompt(rankBase),
+      /Visual style: cinematic\. Favor wide establishing shots/
+    )
+    assert.doesNotMatch(buildRankingSystemPrompt(rankBase), /Visual direction for this video/)
+    const directed = buildRankingSystemPrompt({
+      ...rankBase,
+      visualConcept: '  Grainy harbor mornings.  '
+    })
+    assert.match(directed, /\nVisual direction for this video: Grainy harbor mornings\.\n/)
+  })
+
+  it('adds the no-people line only when the user asked for it', () => {
+    assert.doesNotMatch(buildRankingSystemPrompt(rankBase), /no people/)
+    assert.match(
+      buildRankingSystemPrompt({ ...rankBase, avoidPeople: true }),
+      /The user wants no people/
+    )
+  })
+
+  it('has no persona line and keeps no word in capitals except tool names', () => {
+    const prompt = buildRankingSystemPrompt({
+      ...rankBase,
+      avoidPeople: true,
+      visualConcept: 'Harbor.'
+    })
+    assert.doesNotMatch(prompt, /You are|professional|expert/)
+    assert.deepEqual(prompt.match(/\b[A-Z]{4,}\b/g) ?? [], [])
+  })
+})
+
+describe('pipeline broader queries prompt', () => {
+  const broadBase = { style: 'cinematic', avoidPeople: false }
+
+  it('says what to write and how much broader to go', () => {
+    const prompt = buildBroaderQueriesSystemPrompt(broadBase)
+    assert.match(
+      prompt,
+      /^Write new Pexels queries for the beats of a narrated video whose searches found nothing usable\./
+    )
+    assert.match(prompt, /the queries already tried/)
+    assert.match(prompt, /1\. For each beat, write 2 or 3 queries of 1 to 4 words/)
+    assert.match(prompt, /Go broader than the queries tried/)
+    assert.match(prompt, /no search operators/)
+    assert.match(prompt, /Do not repeat a query that was tried/)
+    assert.match(prompt, /Call submit_broader_queries once, with every beat of the user message\.$/)
+  })
+
+  it('gives the visual style, the direction and the no-people line when they apply', () => {
+    const plain = buildBroaderQueriesSystemPrompt(broadBase)
+    assert.match(plain, /Visual style: cinematic\. Favor wide establishing shots/)
+    assert.doesNotMatch(plain, /Visual direction for this video|no people/)
+    const full = buildBroaderQueriesSystemPrompt({
+      ...broadBase,
+      avoidPeople: true,
+      visualConcept: 'Grainy harbor mornings.'
+    })
+    assert.match(full, /\nVisual direction for this video: Grainy harbor mornings\./)
+    assert.match(full, /The user wants no people/)
+  })
+
+  it('has no persona line and keeps no word in capitals except tool names', () => {
+    const prompt = buildBroaderQueriesSystemPrompt({
+      ...broadBase,
+      avoidPeople: true,
+      visualConcept: 'Harbor.'
+    })
+    assert.doesNotMatch(prompt, /You are|professional|expert/)
+    assert.deepEqual(prompt.match(/\b[A-Z]{4,}\b/g) ?? [], [])
   })
 })

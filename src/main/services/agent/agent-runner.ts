@@ -31,18 +31,10 @@ import type {
   PexelsVideoSearchResult
 } from '../pexels/pexels-types.ts'
 import { buildManifestAttribution } from '../pexels/pexels-attribution.ts'
-import {
-  SUBMIT_BEAT_PLAN_TOOL,
-  beatsFromPlan,
-  buildBeatSplitSystemPrompt,
-  buildBeatSplitUserMessage,
-  missingBeatToolCallError,
-  parseBeatPlanFromToolCall,
-  splitScriptSentences,
-  type BeatAssetType
-} from '../llm/beat-parse-tool.ts'
+import type { BeatAssetType } from '../llm/beat-parse-tool.ts'
 import { expandIdeaToScript } from '../llm/idea-expander.ts'
 import type { StructuredRequest } from '../llm/structured-request.ts'
+import { planBeats } from '../pipeline/plan-beats.ts'
 import {
   MIN_LLM_REQUEST_TIMEOUT_SECONDS,
   resolveLlmRequestTimeoutSeconds
@@ -1179,39 +1171,19 @@ export class AgentRunner extends EventEmitter {
 
     await this.requireApiKey()
 
-    const sentences = splitScriptSentences(this.input.script)
-    if (sentences.length === 0) {
-      throw new Error('Script parsing failed: the script has no sentences.')
-    }
-
-    const plan = await this.callStructured({
-      tool: SUBMIT_BEAT_PLAN_TOOL,
-      systemPrompt: buildBeatSplitSystemPrompt({
+    const plannedBeats = await planBeats(
+      {
+        callStructured: (request) => this.callStructured(request),
+        log: (type, message) => this.log(type, message)
+      },
+      {
+        script: this.input.script,
         maxTotalDownloads: this.input.maxTotalDownloads,
         avoidPeople: this.safetySettings.avoidPeople,
         style: this.input.style,
         visualConcept: this.input.visualConcept
-      }),
-      userContent: buildBeatSplitUserMessage(sentences),
-      parse: parseBeatPlanFromToolCall,
-      missingCallError: missingBeatToolCallError
-    })
-
-    // The beats are cut from the script's own sentences, so their text always matches it.
-    const { beats: plannedBeats, repaired } = beatsFromPlan(sentences, plan)
-    if (repaired) {
-      this.log(
-        'info',
-        `Warning: the beat plan did not end each beat at a sentence of the script, so its ends were adjusted. The script has ${sentences.length} sentences.`
-      )
-    }
-
-    if (plannedBeats.length > this.input.maxTotalDownloads) {
-      this.log(
-        'info',
-        `Warning: the script has ${plannedBeats.length} beats but the download cap is ${this.input.maxTotalDownloads}, so some beats will get no footage. Raise the cap to cover every beat.`
-      )
-    }
+      }
+    )
 
     this.beats = plannedBeats.map((beat, index) => ({
       id: `beat_${index + 1}`,

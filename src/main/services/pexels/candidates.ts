@@ -14,6 +14,8 @@ export interface PexelsCandidate {
   imageUrl: string
   duration?: number
   query: string
+  /** What Pexels says the result shows: a photo's alt text, or the slug of its page. Only the pipeline keeps it. */
+  about?: string
   variants: Array<{
     label?: string
     quality?: string
