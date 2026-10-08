@@ -31,7 +31,7 @@ describe('jobs IPC guards', () => {
     network.restore()
   })
 
-  it('approving a completed job does not restart it', { todo: 'plan 01 phase 3' }, async () => {
+  it('approving a completed job does not restart it', async () => {
     scriptOneBeatJob(network)
     const run = await runJob({ script: ONE_BEAT_SCRIPT })
     assert.equal(run.summary.status, 'completed')
@@ -46,33 +46,29 @@ describe('jobs IPC guards', () => {
     assert.equal(network.requests.length, requestsBefore)
   })
 
-  it(
-    'cancelling a job that waits for approval drops its runner',
-    { todo: 'plan 01 phase 3' },
-    async () => {
-      const clip = video(101, 'city-street')
-      network.pexels.videos('city street', [clip])
-      network.llm
-        .tools([submitBeats([ONE_BEAT_SCRIPT])])
-        .tools([searchVideos('beat_1', 'city street')])
-        .tools([
-          select([
-            {
-              beatId: 'beat_1',
-              assetType: 'video',
-              pexelsId: 101,
-              variantUrl: videoFileUrl(clip, 'hd')
-            }
-          ])
+  it('cancelling a job that waits for approval drops its runner', async () => {
+    const clip = video(101, 'city-street')
+    network.pexels.videos('city street', [clip])
+    network.llm
+      .tools([submitBeats([ONE_BEAT_SCRIPT])])
+      .tools([searchVideos('beat_1', 'city street')])
+      .tools([
+        select([
+          {
+            beatId: 'beat_1',
+            assetType: 'video',
+            pexelsId: 101,
+            variantUrl: videoFileUrl(clip, 'hd')
+          }
         ])
-      const run = await runJob({ script: ONE_BEAT_SCRIPT }, { requireApprovalBeforeDownload: true })
-      assert.equal(run.snapshot.status, 'paused')
-      assert.ok(AgentRunner.getActive(run.jobId), 'a paused runner stays registered')
+      ])
+    const run = await runJob({ script: ONE_BEAT_SCRIPT }, { requireApprovalBeforeDownload: true })
+    assert.equal(run.snapshot.status, 'paused')
+    assert.ok(AgentRunner.getActive(run.jobId), 'a paused runner stays registered')
 
-      await invokeIpc('jobs:cancel', run.jobId)
+    await invokeIpc('jobs:cancel', run.jobId)
 
-      assert.equal((await readJob(run.jobId)).summary.status, 'cancelled')
-      assert.equal(AgentRunner.getActive(run.jobId), undefined)
-    }
-  )
+    assert.equal((await readJob(run.jobId)).summary.status, 'cancelled')
+    assert.equal(AgentRunner.getActive(run.jobId), undefined)
+  })
 })

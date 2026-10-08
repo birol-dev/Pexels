@@ -137,15 +137,14 @@ export function registerAssetsHandlers(): void {
             const asset = beat.assets?.find((a) => a.id === assetId)
             if (asset) {
               if (asset.filePath && isPathInside(summary.downloadPath, asset.filePath)) {
-                try {
-                  await fs.unlink(asset.filePath)
-                } catch (unlinkErr) {
-                  const code = (unlinkErr as NodeJS.ErrnoException).code
-                  // Only treat missing files as already-deleted. Permission or
-                  // lock errors must abort so the manifest keeps the real path.
-                  if (code !== 'ENOENT') {
-                    throw unlinkErr
-                  }
+                // A missing file counts as already deleted. Any other failure
+                // (permissions, locks) must abort so the manifest keeps the real path.
+                const fileExists = await fs.access(asset.filePath).then(
+                  () => true,
+                  () => false
+                )
+                if (fileExists) {
+                  await shell.trashItem(asset.filePath)
                 }
               }
               asset.status = 'failed'

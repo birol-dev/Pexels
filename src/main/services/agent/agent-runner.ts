@@ -30,7 +30,7 @@ import {
 } from '../llm/llm-timeout.ts'
 import { ApiError } from '../http/api-errors.ts'
 import { createTimeoutLinkedSignal } from '../http/abort-signal.ts'
-import { ManifestWriter, type ManifestData } from '../files/manifest-writer.ts'
+import { ManifestWriter, type ManifestData, parseTokenUsage } from '../files/manifest-writer.ts'
 import { ProjectStore, type JobSummary } from '../storage/project-store.ts'
 import { SecureSecrets } from '../storage/secure-secrets.ts'
 import { SettingsStore } from '../storage/settings-store.ts'
@@ -350,7 +350,7 @@ export class AgentRunner extends EventEmitter {
         await ManifestWriter.flushPendingWrites(this.projectDir)
       }
       await this.persistSnapshot()
-      this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
+      this.emitSnapshot()
     }
   }
 
@@ -407,6 +407,17 @@ export class AgentRunner extends EventEmitter {
       failedCount: this.failedCount,
       usage: this.usage
     }
+  }
+
+  /**
+   * Snapshot events omit `logs`: every entry already went out as its own 'log'
+   * event, and tool results make the array megabytes on long runs. `jobs:get`
+   * still returns the full snapshot.
+   */
+  private emitSnapshot(): void {
+    const snapshot: Partial<JobSnapshot> = this.getSnapshot()
+    delete snapshot.logs
+    this.emit('event', { jobId: this.jobId, type: 'snapshot', data: snapshot })
   }
 
   private log(type: AgentLogEvent['type'], message: string, data?: unknown): void {
@@ -469,6 +480,11 @@ export class AgentRunner extends EventEmitter {
       }
       if (manifest.visualConcept) {
         this.input.visualConcept = manifest.visualConcept
+      }
+      // Carry earlier spend forward so a resumed job reports its total, not just this run.
+      const savedUsage = parseTokenUsage(manifest.usage)
+      if (savedUsage) {
+        this.usage = { ...savedUsage, cachedInputTokens: savedUsage.cachedInputTokens ?? 0 }
       }
       if (manifest.beats && manifest.beats.length > 0) {
         this.beats = (manifest.beats as VisualBeat[]).map((beat: VisualBeat) => {
@@ -657,7 +673,7 @@ export class AgentRunner extends EventEmitter {
       await this.writeAgentState()
       await this.writeManifest()
     }
-    this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
+    this.emitSnapshot()
   }
 
   public async resume(): Promise<void> {
@@ -681,7 +697,7 @@ export class AgentRunner extends EventEmitter {
     }
     this.status = 'running'
     this.log('info', 'Agent run resumed by user')
-    this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
+    this.emitSnapshot()
     await this.start()
   }
 
@@ -693,11 +709,14 @@ export class AgentRunner extends EventEmitter {
       this.abortController.abort()
     }
     if (!this.activePromise) {
+      // No run is in flight (paused runner), so runBackground's finally will never
+      // release it — drop it here or jobs:get keeps serving this stale instance.
+      AgentRunner.activeRunners.delete(this.jobId)
       await this.saveRegistry()
       await this.writeAgentState()
       await this.writeManifest()
     }
-    this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
+    this.emitSnapshot()
   }
 
   private async saveRegistry(): Promise<void> {
@@ -790,6 +809,7 @@ export class AgentRunner extends EventEmitter {
       assets: completedAssets,
       failures: failedAssets,
       sourceDocsCheckedAt: new Date().toISOString(),
+      usage: parseTokenUsage(this.usage),
       attribution: buildManifestAttribution(allAssetSnapshots),
       pexelsQuotaSnapshot: PexelsClient.getQuotaSnapshot() || undefined
     }
@@ -837,7 +857,13 @@ export class AgentRunner extends EventEmitter {
       modelId: this.modelId,
       apiKey: providerKey,
       abortSignal: this.abortController?.signal,
-      sessionId: `stockfinder:${this.jobId}`
+      sessionId: `stockfinder:${this.jobId}`,
+      onUsage: (usage) => {
+        this.usage.inputTokens += usage.inputTokens || 0
+        this.usage.outputTokens += usage.outputTokens || 0
+        this.usage.totalTokens += usage.totalTokens || 0
+        this.usage.cachedInputTokens += usage.cachedInputTokens || 0
+      }
     })
 
     this.input.script = expanded.script
@@ -859,7 +885,7 @@ export class AgentRunner extends EventEmitter {
 
     await this.saveRegistry()
     await this.writeManifest()
-    this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
+    this.emitSnapshot()
   }
 
   private async parseScriptIntoBeats(): Promise<void> {
@@ -1980,7 +2006,7 @@ export class AgentRunner extends EventEmitter {
 
       // Broadcast update
       this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
-      this.emit('event', { jobId: this.jobId, type: 'snapshot', data: this.getSnapshot() })
+      this.emitSnapshot()
     } else {
       // Progress-only update (e.g. 34% -> 35%): coalesced broadcast + throttled manifest write
       this.progressFlush.schedule()

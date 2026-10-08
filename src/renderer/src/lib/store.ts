@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { api } from './api-client'
+import type { LlmProviderId } from '../../../shared/llm-defaults'
 
 export interface AssetRecord {
   id: string
@@ -73,9 +74,12 @@ export interface JobSummary {
   assetCount: number
 }
 
+export type SecretKeyField = 'openaiKey' | 'geminiKey' | 'openrouterKey' | 'pexelsKey'
+
 export interface PublicSettings {
-  llmProvider: 'openai' | 'openrouter' | 'gemini'
+  llmProvider: LlmProviderId
   modelId: string
+  modelIdByProvider?: Partial<Record<LlmProviderId, string>>
   downloadFolder: string
   maxConcurrentDownloads: number
   maxAgentIterations: number
@@ -163,7 +167,9 @@ interface AppStore {
   navigate: (route: 'input' | 'run' | 'stuff' | 'settings') => void
   setActiveJobId: (id: string | null) => void
   loadSettings: () => Promise<void>
-  updateSettings: (updates: Partial<PublicSettings>) => Promise<void>
+  updateSettings: (
+    updates: Partial<PublicSettings> & { removeSecrets?: SecretKeyField[] }
+  ) => Promise<void>
   loadJobs: () => Promise<void>
   loadActiveJob: (id: string) => Promise<void>
 
@@ -294,6 +300,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
       }
     } else if (type === 'settings') {
       title = 'Settings'
+    } else if (type === 'run' && !jobId) {
+      title = 'Run Progress'
+    } else if (type === 'stuff' && !jobId) {
+      title = 'Media Library'
     } else if (type === 'run' && jobId) {
       tabId = `run_${jobId}`
       const job = jobs.find((j) => j.jobId === jobId)
@@ -456,11 +466,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
           const currentActive = get().activeJob
 
           if (event.type === 'snapshot') {
-            set({ activeJob: event.data as JobSnapshot })
+            // Snapshot events omit logs (they arrive as 'log' events), so keep ours.
+            const snap = event.data as Omit<JobSnapshot, 'logs'>
+            if (currentActive) {
+              set({ activeJob: { ...snap, logs: currentActive.logs } })
+            } else {
+              set((state) => ({ pendingEvents: [...state.pendingEvents, event] }))
+            }
             const currentJobs = get().jobs
             const updatedJobs = currentJobs.map((j) => {
               if (j.jobId === event.jobId) {
-                const snap = event.data as JobSnapshot
                 return {
                   ...j,
                   status: snap.status,
@@ -553,6 +568,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
               snapshot.progress = data.progress
             } else if (event.type === 'beats') {
               snapshot.beats = event.data as VisualBeat[]
+            } else if (event.type === 'snapshot') {
+              Object.assign(snapshot, event.data, { logs: snapshot.logs })
             }
           }
         }

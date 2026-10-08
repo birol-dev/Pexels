@@ -2,6 +2,7 @@ import {
   LlmProviderFactory,
   LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
   LLM_STRUCTURED_REASONING,
+  type LlmToolTurnResult,
   type NormalizedToolDefinition
 } from './llm-provider.ts'
 import { createTimeoutLinkedSignal } from '../http/abort-signal.ts'
@@ -29,6 +30,8 @@ export interface ExpandIdeaParams {
   apiKey: string
   abortSignal?: AbortSignal
   sessionId?: string
+  /** Gets the tokens the request spent, also when the answer turns out to be unusable. */
+  onUsage?: (usage: NonNullable<LlmToolTurnResult['usage']>) => void
 }
 
 export const SUBMIT_EXPANDED_SCRIPT_TOOL: NormalizedToolDefinition = {
@@ -195,6 +198,8 @@ Please expand this idea into a full narration script and visual strategy.`
       },
       { apiKey }
     )
+
+    if (response.usage) params.onUsage?.(response.usage)
 
     const toolCall = response.toolCalls.find((tc) => tc.name === 'submit_expanded_script')
     if (toolCall) {

@@ -3,7 +3,11 @@ import { describe, it, before, after } from 'node:test'
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
-import { ManifestWriter, type ManifestData } from '../src/main/services/files/manifest-writer.ts'
+import {
+  ManifestWriter,
+  parseTokenUsage,
+  type ManifestData
+} from '../src/main/services/files/manifest-writer.ts'
 
 describe('ManifestWriter', () => {
   let testRoot: string
@@ -148,6 +152,58 @@ describe('ManifestWriter', () => {
       assert.ok(typeof lines[0].timestamp === 'string')
       assert.equal(lines[1].level, 'debug')
       assert.equal(lines[1].step, 2)
+    })
+  })
+
+  describe('token usage', () => {
+    it('survives a manifest round trip', async () => {
+      const projectDir = join(testRoot, 'usage-round-trip')
+      await ManifestWriter.ensureProjectStructure(projectDir)
+      const usage = { inputTokens: 48211, outputTokens: 3902, totalTokens: 52113 }
+      await ManifestWriter.writeManifest(projectDir, { usage } as ManifestData)
+
+      const saved = JSON.parse(await fs.readFile(join(projectDir, 'manifest.json'), 'utf-8'))
+      assert.deepEqual(parseTokenUsage(saved.usage), usage)
+    })
+
+    it('treats missing, empty or malformed usage as absent', () => {
+      assert.equal(parseTokenUsage(undefined), undefined)
+      assert.equal(parseTokenUsage({ inputTokens: 0, outputTokens: 0, totalTokens: 0 }), undefined)
+      assert.equal(
+        parseTokenUsage({ inputTokens: '12', outputTokens: 1, totalTokens: 13 }),
+        undefined
+      )
+      assert.equal(
+        parseTokenUsage({ inputTokens: -5, outputTokens: 1, totalTokens: 13 }),
+        undefined
+      )
+    })
+
+    it('keeps cached input tokens through a manifest round trip', async () => {
+      const projectDir = join(testRoot, 'cached-usage-round-trip')
+      await ManifestWriter.ensureProjectStructure(projectDir)
+      const usage = {
+        inputTokens: 48211,
+        outputTokens: 3902,
+        totalTokens: 52113,
+        cachedInputTokens: 30720
+      }
+      await ManifestWriter.writeManifest(projectDir, { usage } as ManifestData)
+
+      const saved = JSON.parse(await fs.readFile(join(projectDir, 'manifest.json'), 'utf-8'))
+      assert.deepEqual(parseTokenUsage(saved.usage), usage)
+      // Zero is a count too: the provider reported that nothing was cached.
+      assert.deepEqual(parseTokenUsage({ ...usage, cachedInputTokens: 0 }), {
+        ...usage,
+        cachedInputTokens: 0
+      })
+    })
+
+    it('drops a malformed cached count and unknown fields, and keeps the totals', () => {
+      const totals = { inputTokens: 100, outputTokens: 20, totalTokens: 120 }
+      assert.deepEqual(parseTokenUsage({ ...totals, cachedInputTokens: '64' }), totals)
+      assert.deepEqual(parseTokenUsage({ ...totals, cachedInputTokens: -1 }), totals)
+      assert.deepEqual(parseTokenUsage({ ...totals, reasoningTokens: 7 }), totals)
     })
   })
 })

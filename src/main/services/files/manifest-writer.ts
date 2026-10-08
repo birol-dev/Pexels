@@ -2,6 +2,38 @@ import { promises as fs } from 'fs'
 import { join } from 'path'
 import type { PexelsManifestAttribution } from '../pexels/pexels-attribution.ts'
 
+export interface TokenUsage {
+  inputTokens: number
+  outputTokens: number
+  totalTokens: number
+  /** Input tokens served from the provider's prompt cache. Manifests from before it was tracked have none. */
+  cachedInputTokens?: number
+}
+
+function isTokenCount(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+}
+
+/** Reads `usage` back out of a manifest. Older manifests have none; hand-edited ones may be wrong. */
+export function parseTokenUsage(value: unknown): TokenUsage | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const { inputTokens, outputTokens, totalTokens, cachedInputTokens } = value as Record<
+    string,
+    unknown
+  >
+  if (!isTokenCount(inputTokens) || !isTokenCount(outputTokens) || !isTokenCount(totalTokens)) {
+    return undefined
+  }
+  if (totalTokens === 0) return undefined
+  return {
+    inputTokens,
+    outputTokens,
+    totalTokens,
+    // Optional, so a bad value drops the field and keeps the totals.
+    ...(isTokenCount(cachedInputTokens) ? { cachedInputTokens } : {})
+  }
+}
+
 export interface ManifestData {
   schemaVersion: 1
   projectId: string
@@ -33,6 +65,8 @@ export interface ManifestData {
   messages?: unknown[]
   pexelsCandidates?: Array<[string, unknown]>
   sourceDocsCheckedAt?: string
+  /** LLM tokens spent on this project so far, summed across runs and resumes. */
+  usage?: TokenUsage
   attribution?: PexelsManifestAttribution
   pexelsQuotaSnapshot?: {
     limit: number

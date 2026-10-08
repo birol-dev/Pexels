@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, shell } from 'electron'
 import { randomInt } from 'crypto'
 import {
   AgentRunner,
@@ -10,6 +10,7 @@ import { resolveSearchModeFromSnapshot } from '../services/agent/search-mode.ts'
 import { ProjectStore, type JobSummary } from '../services/storage/project-store.ts'
 import { SettingsStore } from '../services/storage/settings-store.ts'
 import { SecureSecrets } from '../services/storage/secure-secrets.ts'
+import { parseTokenUsage } from '../services/files/manifest-writer.ts'
 import { expandIdeaToScript, type ExpandedScriptResult } from '../services/llm/idea-expander.ts'
 import { promises as fs } from 'fs'
 import { join } from 'path'
@@ -202,7 +203,9 @@ export function registerJobsHandlers(): void {
       let runner = AgentRunner.getActive(jobId)
       if (!runner) {
         const summary = await ProjectStore.get(jobId)
-        if (summary) {
+        // initializeAndLoadState() forces the runner to 'paused', so without this
+        // check a completed or cancelled job would be restarted.
+        if (summary && summary.status === 'paused') {
           const input = await getJobInputFromManifest(summary)
           const newRunner = new AgentRunner(jobId, input)
           newRunner.on('event', (evt) => broadcastJobEvent(evt))
@@ -302,6 +305,7 @@ export function registerJobsHandlers(): void {
         beats?: unknown[]
         assets?: unknown[]
         failures?: unknown[]
+        usage?: unknown
       }
 
       let logs: unknown[] = []
@@ -357,7 +361,8 @@ export function registerJobsHandlers(): void {
         beats: beats,
         logs: logs as JobSnapshot['logs'],
         downloadedCount,
-        failedCount
+        failedCount,
+        usage: parseTokenUsage(manifest.usage)
       }
     } catch {
       return {
@@ -418,15 +423,23 @@ export function registerJobsHandlers(): void {
     }
     const summary = await ProjectStore.get(jobId)
     if (summary && summary.downloadPath) {
-      try {
-        await fs.rm(summary.downloadPath, { recursive: true, force: true })
-      } catch (err) {
-        // Keep the registry entry so the user can retry — otherwise files
-        // remain on disk while the project becomes unreachable in-app.
-        const message = err instanceof Error ? err.message : String(err)
-        throw new Error(
-          `Failed to delete local project files at ${summary.downloadPath}: ${message}`
-        )
+      const folderExists = await fs.access(summary.downloadPath).then(
+        () => true,
+        () => false
+      )
+      if (folderExists) {
+        try {
+          // Trash, not rm -rf: the folder may hold edits the user made by hand,
+          // and a mis-click should be recoverable.
+          await shell.trashItem(summary.downloadPath)
+        } catch (err) {
+          // Keep the registry entry so the user can retry — otherwise files
+          // remain on disk while the project becomes unreachable in-app.
+          const message = err instanceof Error ? err.message : String(err)
+          throw new Error(
+            `Could not move the project folder to the trash (${summary.downloadPath}): ${message}`
+          )
+        }
       }
     }
     await ProjectStore.delete(jobId)
