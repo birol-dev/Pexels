@@ -24,6 +24,8 @@ export interface PublicSettings {
   isOnboarded: boolean
   theme: 'flat-black' | 'flat-white'
   hideEstimatedCost?: boolean
+  /** Ask GitHub Releases for a newer version every few hours. Default on. */
+  autoCheckForUpdates?: boolean
 }
 
 function getAppPath(name: 'userData' | 'downloads'): string {
@@ -66,7 +68,8 @@ export function getDefaultSettings(): PublicSettings {
       avoidPeopleAndFaces: false,
       isOnboarded: false,
       theme: 'flat-black',
-      hideEstimatedCost: false
+      hideEstimatedCost: false,
+      autoCheckForUpdates: true
     }
   }
   return defaultSettings

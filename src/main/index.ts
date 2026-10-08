@@ -7,10 +7,12 @@ import icon from '../../resources/icon.png?asset'
 import { registerSettingsHandlers } from './ipc/settings.ipc'
 import { registerJobsHandlers } from './ipc/jobs.ipc'
 import { registerAssetsHandlers } from './ipc/assets.ipc'
+import { registerUpdatesHandlers } from './ipc/updates.ipc'
 import { ProjectStore } from './services/storage/project-store'
 import { AgentRunner } from './services/agent/agent-runner'
 import { filePathFromMediaUrl, isPathInside } from './services/files/path-safety'
 import { isAllowedExternalUrl } from './services/files/external-url'
+import { startAutoUpdate } from './services/updates/auto-update'
 
 // Register schemes as privileged before app is ready
 // NOTE: bypassCSP is intentionally omitted — the handler restricts paths to
@@ -179,6 +181,7 @@ app.whenReady().then(async () => {
   registerSettingsHandlers()
   registerJobsHandlers()
   registerAssetsHandlers()
+  registerUpdatesHandlers()
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -188,6 +191,7 @@ app.whenReady().then(async () => {
   })
 
   createWindow()
+  startAutoUpdate()
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
@@ -198,7 +202,9 @@ app.whenReady().then(async () => {
 
 // Pause running jobs and persist them before the process exits, so they come back
 // as resumable instead of stuck on "running". Quit is held until that finishes
-// (bounded by pauseAll's timeout), then re-issued.
+// (bounded by pauseAll's timeout), then re-issued. The updater's quitAndInstall comes
+// through here too: restartToUpdate has already paused the jobs and started the installer,
+// so this pass finds nothing running and the re-issued quit goes through.
 let shutdownStarted = false
 app.on('before-quit', (event) => {
   if (shutdownStarted) return

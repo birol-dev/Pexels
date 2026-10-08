@@ -95,6 +95,7 @@ export interface PublicSettings {
   openrouterKey?: string
   pexelsKey?: string
   hideEstimatedCost?: boolean
+  autoCheckForUpdates?: boolean
 }
 
 export interface ModalState {

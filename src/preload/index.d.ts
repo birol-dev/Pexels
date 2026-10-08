@@ -1,3 +1,5 @@
+import type { UpdateCheckResult, UpdateState } from '../shared/update-policy'
+
 declare global {
   interface Window {
     electron: {
@@ -36,6 +38,12 @@ declare global {
         deleteLocal(projectId: string, assetId: string): Promise<void>
         exportManifest(projectId: string): Promise<string>
         openProjectFolder(projectId: string): Promise<void>
+      }
+      app: {
+        getUpdateState(): Promise<UpdateState>
+        checkForUpdates(): Promise<UpdateCheckResult>
+        restartToUpdate(): Promise<void>
+        onUpdateReady(callback: (info: { version: string }) => void): () => void
       }
     }
   }

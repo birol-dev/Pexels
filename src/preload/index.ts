@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { UpdateCheckResult, UpdateState } from '../shared/update-policy'
 
 // Expose the custom AppApi to the renderer
 const electron = {
@@ -56,6 +57,18 @@ const api = {
       ipcRenderer.invoke('assets:exportManifest', projectId),
     openProjectFolder: (projectId: string): Promise<void> =>
       ipcRenderer.invoke('assets:openProjectFolder', projectId)
+  },
+  app: {
+    getUpdateState: (): Promise<UpdateState> => ipcRenderer.invoke('app:getUpdateState'),
+    checkForUpdates: (): Promise<UpdateCheckResult> => ipcRenderer.invoke('app:checkForUpdates'),
+    restartToUpdate: (): Promise<void> => ipcRenderer.invoke('app:restartToUpdate'),
+    onUpdateReady: (callback: (info: { version: string }) => void): (() => void) => {
+      const listener = (_event: unknown, info: { version: string }): void => callback(info)
+      ipcRenderer.on('app:updateReady', listener)
+      return (): void => {
+        ipcRenderer.removeListener('app:updateReady', listener)
+      }
+    }
   }
 }
 
