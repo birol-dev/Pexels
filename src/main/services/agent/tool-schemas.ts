@@ -291,6 +291,50 @@ export function isAssetRejectedByUser(
   )
 }
 
+/** The beat, other than `beatId`, that already holds a usable copy of this asset. */
+export function beatUsingAsset<
+  T extends { id: string; assets?: Array<{ id: string; status: string }> }
+>(beats: T[], beatId: string, recordId: string): T | undefined {
+  return beats.find(
+    (b) =>
+      b.id !== beatId && (b.assets || []).some((a) => a.id === recordId && a.status !== 'failed')
+  )
+}
+
+/**
+ * Older runs could give one asset record id to several beats, which left a copy stuck
+ * in "downloading". Keeps the copy that has a file (else the first) and fails the rest.
+ */
+export function releaseDuplicateAssetRecords(
+  beats: Array<{
+    id: string
+    assets: Array<{ id: string; status: string; filePath?: string; error?: string }>
+  }>
+): Array<{ recordId: string; keptIn: string; releasedFrom: string }> {
+  const released: Array<{ recordId: string; keptIn: string; releasedFrom: string }> = []
+  const holders = new Map<
+    string,
+    Array<{ beatId: string; asset: (typeof beats)[number]['assets'][number] }>
+  >()
+  for (const beat of beats) {
+    for (const asset of beat.assets) {
+      if (asset.status === 'failed') continue
+      holders.set(asset.id, [...(holders.get(asset.id) || []), { beatId: beat.id, asset }])
+    }
+  }
+  for (const [recordId, copies] of holders) {
+    if (copies.length < 2) continue
+    const kept = copies.find((c) => c.asset.status === 'completed' && c.asset.filePath) || copies[0]
+    for (const copy of copies) {
+      if (copy === kept) continue
+      copy.asset.status = 'failed'
+      copy.asset.error = `Duplicate of the asset used for ${kept.beatId}`
+      released.push({ recordId, keptIn: kept.beatId, releasedFrom: copy.beatId })
+    }
+  }
+  return released
+}
+
 /**
  * Why a new selection for `beatId` must be refused, or null when it is allowed.
  * Besides the per-beat and total caps, a beat that already has an asset may not

@@ -54,9 +54,11 @@ import {
   DownloadSelectedAssetsArgsSchema,
   areAllBeatsDownloaded,
   areBeatsSatisfiedForLoop,
+  beatUsingAsset,
   decideRunFinalize,
   describeToolFailure,
   isAssetRejectedByUser,
+  releaseDuplicateAssetRecords,
   remainingIterations,
   selectionBudgetViolation,
   statusAfterInterruptedSearch,
@@ -266,6 +268,9 @@ export class AgentRunner extends EventEmitter {
     for (const b of this.beats) {
       if (b.assets) {
         for (const a of b.assets) {
+          // A failed copy must never shadow the live record with the same id.
+          const existing = this.assetLookup.get(a.id)
+          if (existing && existing.asset.status !== 'failed' && a.status === 'failed') continue
           this.assetLookup.set(a.id, { asset: a, beat: b })
         }
       }
@@ -508,6 +513,12 @@ export class AgentRunner extends EventEmitter {
           return beat
         })
         this.log('info', `Loaded ${this.beats.length} beats from existing manifest.`)
+        for (const released of releaseDuplicateAssetRecords(this.beats)) {
+          this.log(
+            'info',
+            `Released ${released.recordId} from ${released.releasedFrom}: it is already used for ${released.keptIn}. The beat will get different footage.`
+          )
+        }
       }
 
       await this.loadAgentState(manifest)
@@ -1518,6 +1529,16 @@ export class AgentRunner extends EventEmitter {
           }
 
           const recordId = `${sel.assetType}_${sel.pexelsId}`
+          const usedBy = beatUsingAsset(this.beats, beat.id, recordId)
+          if (usedBy) {
+            selectionResults.push({
+              pexelsId: sel.pexelsId,
+              status: 'rejected',
+              reason: `Asset ${sel.pexelsId} is already used for ${usedBy.id}. Pick a different asset so beats don't repeat footage.`
+            })
+            continue
+          }
+
           const existingRecord = beat.assets.find((a) => a.id === recordId)
 
           if (!existingRecord) {

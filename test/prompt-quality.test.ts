@@ -245,6 +245,10 @@ describe('StockScout prompt quality rules', () => {
     )
   })
 
+  it('forbids using one asset for two beats', () => {
+    assert.match(buildStockScoutSystemPrompt(base), /Never select the same asset for two beats\./)
+  })
+
   it('tells the model how to handle interrupted and refused calls', () => {
     const prompt = buildStockScoutSystemPrompt(base)
     assert.match(prompt, /interrupted, repeat it if it is still needed/)

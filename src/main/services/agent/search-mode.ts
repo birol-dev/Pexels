@@ -90,6 +90,7 @@ You must follow these rules:
 9. Never claim an asset was downloaded unless the tool result confirms it.
 10. Respect the user's max assets and preferred asset mix.
 11. When you are done, reply with a short plain-text summary of a few lines. Do not invent local file paths.
+12. Never select the same asset for two beats.
 
 ${modeBlock}
 
