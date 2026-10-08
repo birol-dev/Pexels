@@ -4,7 +4,7 @@ import { Badge } from '@renderer/components/ui/badge'
 import { Button } from '@renderer/components/ui/button'
 import { cn } from '@renderer/lib/utils'
 import type { JobSnapshot } from '@renderer/lib/store'
-import { getStatusBadgeClass } from '../utils'
+import { getPauseReasonText, getStatusBadgeClass } from '../utils'
 
 interface RunHeaderProps {
   job: JobSnapshot
@@ -13,6 +13,7 @@ interface RunHeaderProps {
 }
 
 export function RunHeader({ job, onBack, actions }: RunHeaderProps): React.JSX.Element {
+  const pauseReason = getPauseReasonText(job)
   return (
     <header className="relative z-10 flex items-end justify-between border-b-2 border-edge pb-8">
       <div className="flex flex-col gap-2">
@@ -31,6 +32,9 @@ export function RunHeader({ job, onBack, actions }: RunHeaderProps): React.JSX.E
             {job.status}
           </Badge>
         </div>
+        {pauseReason && (
+          <p className="font-body-md text-body-md text-on-surface-variant">{pauseReason}</p>
+        )}
         <p className="font-body-md text-body-md text-outline flex items-center gap-2">
           <ClockIcon size={18} />
           Status: {job.currentStep}

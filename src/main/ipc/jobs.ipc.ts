@@ -5,6 +5,8 @@ import {
   type StartJobInput,
   type JobSnapshot
 } from '../services/agent/agent-runner.ts'
+import { readSavedAgentState } from '../services/agent/agent-state.ts'
+import { savedStatusReason } from '../services/agent/job-status.ts'
 import { resolveSearchModeFromSnapshot } from '../services/agent/search-mode.ts'
 import { ProjectStore, type JobSummary } from '../services/storage/project-store.ts'
 import { SettingsStore } from '../services/storage/settings-store.ts'
@@ -225,10 +227,15 @@ export function registerJobsHandlers(): void {
     if (runner) {
       await runner.cancel()
     } else {
+      // No runner exists, so the registry is all there is to change. A finished job stays as
+      // it ended; only a paused one is waiting for something that may never come.
       const summary = await ProjectStore.get(jobId)
-      if (summary) {
-        summary.status = 'cancelled'
-        await ProjectStore.save(summary)
+      if (summary?.status === 'paused') {
+        await ProjectStore.save({
+          ...summary,
+          status: 'cancelled',
+          updatedAt: new Date().toISOString()
+        })
       }
     }
   })
@@ -337,6 +344,7 @@ export function registerJobsHandlers(): void {
       // Reads never change a job: the registry's status is returned as it is.
       const beats = (manifest.beats || []) as JobSnapshot['beats']
       const status = summary.status
+      const saved = await readSavedAgentState(summary.downloadPath)
 
       return {
         jobId: manifest.projectId || jobId,
@@ -346,6 +354,7 @@ export function registerJobsHandlers(): void {
         idea: manifest.originalIdea,
         visualConcept: manifest.visualConcept,
         status,
+        statusReason: savedStatusReason(status, saved.statusReason),
         progress: status === 'completed' ? 100 : 0,
         currentStep: status === 'completed' ? 'Finished' : 'Stopped',
         beats: beats,
@@ -360,6 +369,7 @@ export function registerJobsHandlers(): void {
         title: summary.title,
         script: summary.script,
         status: summary.status,
+        statusReason: savedStatusReason(summary.status, undefined),
         progress: summary.status === 'completed' ? 100 : 0,
         currentStep: summary.status === 'completed' ? 'Finished' : 'Stopped',
         beats: [],

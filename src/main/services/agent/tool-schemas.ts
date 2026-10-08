@@ -259,7 +259,9 @@ export function decideRunFinalize(input: {
   loopError?: string
 }): RunFinalizeDecision {
   const decision = decideRunFinalizeFromBeats(input)
-  if (input.loopError && decision.status === 'failed') {
+  // A run that broke before it had any beats (a missing key, a failed beat split) did no work,
+  // so it is a failure whatever the beat check says about an empty list.
+  if (input.loopError && (decision.status === 'failed' || input.beats.length === 0)) {
     return {
       status: 'failed',
       reason: 'agent_error',

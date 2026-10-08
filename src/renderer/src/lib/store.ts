@@ -40,6 +40,20 @@ export interface AgentLogEvent {
   data?: unknown
 }
 
+/** Why a job is in its status. Mirrors StatusReason in src/main/services/agent/job-status.ts. */
+export type StatusReason =
+  | 'started'
+  | 'resumed'
+  | 'approved'
+  | 'user_paused'
+  | 'awaiting_approval'
+  | 'pexels_quota'
+  | 'app_quit'
+  | 'restored'
+  | 'finished'
+  | 'error'
+  | 'user_cancelled'
+
 export interface JobSnapshot {
   jobId: string
   title: string
@@ -48,6 +62,7 @@ export interface JobSnapshot {
   idea?: string
   visualConcept?: string
   status: 'running' | 'paused' | 'completed' | 'cancelled' | 'failed'
+  statusReason?: StatusReason
   progress: number
   currentStep: string
   beats: VisualBeat[]

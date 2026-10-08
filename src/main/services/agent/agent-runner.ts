@@ -47,6 +47,7 @@ import { photoResultForModel, shapeForPlatform, videoResultForModel } from './to
 import {
   loadAgentConversationState,
   persistAgentConversationState,
+  readSavedAgentState,
   shouldEmbedConversationInManifest
 } from './agent-state.ts'
 import {
@@ -55,7 +56,6 @@ import {
   SearchPexelsVideosArgsSchema,
   SelectAssetsForDownloadArgsSchema,
   DownloadSelectedAssetsArgsSchema,
-  areAllBeatsDownloaded,
   areBeatsSatisfiedForLoop,
   beatUsingAsset,
   countPendingAssets,
@@ -72,6 +72,12 @@ import {
   USER_REJECTION_REASON
 } from './tool-schemas.ts'
 import { runLoopThenFinalize } from './run-tail.ts'
+import {
+  canTransition,
+  savedStatusReason,
+  type JobStatus,
+  type StatusReason
+} from './job-status.ts'
 import { createTrailingThrottle } from './progress-throttle.ts'
 import { removeStaleDownloadTemps } from '../files/temp-cleanup.ts'
 import {
@@ -151,7 +157,9 @@ export interface JobSnapshot {
   inputMode?: 'script' | 'idea'
   idea?: string
   visualConcept?: string
-  status: 'running' | 'paused' | 'completed' | 'cancelled' | 'failed'
+  status: JobStatus
+  /** Why the job has this status. The Run screen shows it for a paused job. */
+  statusReason?: StatusReason
   progress: number
   currentStep: string
   beats: VisualBeat[]
@@ -199,7 +207,7 @@ export class AgentRunner extends EventEmitter {
     const running = [...this.activeRunners.values()].filter((r) => r.status === 'running')
     await Promise.all(
       running.map(async (runner) => {
-        await runner.pause()
+        await runner.pause('app_quit')
         let timer: ReturnType<typeof setTimeout> | undefined
         const timeout = new Promise<void>((resolve) => {
           timer = setTimeout(resolve, timeoutMs)
@@ -213,7 +221,9 @@ export class AgentRunner extends EventEmitter {
 
   private jobId: string
   private input: StartJobInput
-  private status: JobSnapshot['status'] = 'running'
+  // Changed only by setStatus (and by restoring a saved job in initializeAndLoadState).
+  private status: JobStatus = 'running'
+  private statusReason: StatusReason = 'started'
   private progress = 0
   private currentStep = 'Initializing job'
   private beats: VisualBeat[] = []
@@ -339,17 +349,11 @@ export class AgentRunner extends EventEmitter {
     try {
       await fn()
     } catch (error) {
-      if (this.status !== 'cancelled' && this.status !== 'paused') {
-        if (areAllBeatsDownloaded(this.beats)) {
-          this.status = 'completed'
-          this.currentStep = 'Finished'
-          this.progress = 100
-        } else {
-          this.status = 'failed'
-          const errMsg = error instanceof Error ? error.message : String(error)
-          this.log('error', `Agent execution failed: ${errMsg}`)
-          this.updateProgress('Error', 100)
-        }
+      // The run broke outside the agent loop (a missing key, a failed beat split). Pause and
+      // cancel abort on purpose, and a job that already ended stays as it ended.
+      if (this.status === 'running') {
+        this.loopError = error instanceof Error ? error.message : String(error)
+        this.finalizeRun()
       }
     } finally {
       // Only the active generation may clear promise/registry ownership —
@@ -417,6 +421,7 @@ export class AgentRunner extends EventEmitter {
       idea: this.input.idea,
       visualConcept: this.input.visualConcept,
       status: this.status,
+      statusReason: this.statusReason,
       progress: this.progress,
       currentStep: this.currentStep,
       beats: this.beats,
@@ -474,11 +479,17 @@ export class AgentRunner extends EventEmitter {
     } catch (err) {
       console.warn('Failed to clean stale download partials:', err)
     }
+    // Restoring is not a transition: the saved job is paused whatever it was doing when the
+    // last session ended. (Plan 01 lets only paused jobs get a runner here.) It keeps the
+    // reason it was paused for; a job that was cut off while running reads as restored.
+    // This comes before the load, which writes the state file back with this reason.
+    const saved = await readSavedAgentState(this.projectDir)
+    this.status = 'paused'
+    this.statusReason = savedStatusReason('paused', saved.statusReason) ?? 'restored'
     await this.loadStateFromManifest()
     if (removedPartials > 0) {
       this.log('info', `Removed ${removedPartials} partial download(s) left by an interrupted run.`)
     }
-    this.status = 'paused'
   }
 
   private async loadStateFromManifest(): Promise<void> {
@@ -607,7 +618,8 @@ export class AgentRunner extends EventEmitter {
         this.messages,
         Array.from(this.pexelsCandidates.entries()),
         this.iterationsUsed,
-        this.compactedBefore
+        this.compactedBefore,
+        this.statusReason
       )
       this.agentStateFileTrusted = true
       return true
@@ -627,7 +639,24 @@ export class AgentRunner extends EventEmitter {
     return await ManifestWriter.initializeProjectFolder(downloadRoot, this.input.title, this.jobId)
   }
 
-  private finalizeSuccessfulRun(): void {
+  /**
+   * The only place `this.status` changes, apart from restoring a saved job. Returns false
+   * when the change isn't allowed, so a job that ended can never be revived by a late
+   * call. Asking for the status the job already has changes nothing, reason included.
+   */
+  private setStatus(to: JobStatus, reason: StatusReason): boolean {
+    if (to === this.status) return true
+    if (!canTransition(this.status, to)) {
+      console.warn(`[${this.jobId}] Ignored status change ${this.status} -> ${to} (${reason})`)
+      return false
+    }
+    this.status = to
+    this.statusReason = reason
+    return true
+  }
+
+  /** The only place a run is declared finished, whether it succeeded or failed. */
+  private finalizeRun(): void {
     const decision = decideRunFinalize({
       beats: this.beats,
       hitIterationLimit: this.hitIterationLimit,
@@ -635,7 +664,9 @@ export class AgentRunner extends EventEmitter {
       maxIterations: this.maxIterations,
       loopError: this.loopError ?? undefined
     })
-    this.status = decision.status
+    if (!this.setStatus(decision.status, decision.status === 'completed' ? 'finished' : 'error')) {
+      return
+    }
     this.log(decision.logType, decision.logMessage)
     this.updateProgress(decision.progressLabel, 100)
   }
@@ -660,8 +691,8 @@ export class AgentRunner extends EventEmitter {
       if (restoreFromDisk) {
         await this.loadStateFromManifest()
       }
+      if (!this.setStatus('running', 'started')) return
       this.requeuePendingDownloads()
-      this.status = 'running'
       await this.saveRegistry()
 
       await this.expandIdeaIfNeeded()
@@ -684,14 +715,18 @@ export class AgentRunner extends EventEmitter {
         this.log('error', `Agent loop encountered an error: ${message}`)
       },
       settleDownloads: () => this.waitForDownloadsToSettle(),
-      finalize: () => this.finalizeSuccessfulRun()
+      finalize: () => this.finalizeRun()
     })
   }
 
-  public async pause(): Promise<void> {
-    if (this.status !== 'running') return
-    this.status = 'paused'
-    this.log('info', 'Agent run paused by user')
+  public async pause(reason: 'user_paused' | 'app_quit' = 'user_paused'): Promise<void> {
+    if (this.status !== 'running' || !this.setStatus('paused', reason)) return
+    this.log(
+      'info',
+      reason === 'app_quit'
+        ? 'Agent run paused because the app is closing'
+        : 'Agent run paused by user'
+    )
     if (this.abortController) {
       this.abortController.abort()
     }
@@ -725,14 +760,16 @@ export class AgentRunner extends EventEmitter {
       this.iterationsUsed = 0
       this.log('info', `Resumed with a fresh budget of ${this.maxIterations} turns.`)
     }
-    this.status = 'running'
+    // The job may have been cancelled while the paused run wound down.
+    if (!this.setStatus('running', 'resumed')) return
     this.log('info', 'Agent run resumed by user')
     this.emitSnapshot()
     await this.start()
   }
 
   public async cancel(): Promise<void> {
-    this.status = 'cancelled'
+    // A job that already ended stays as it ended, and a second cancel has nothing left to do.
+    if (this.status === 'cancelled' || !this.setStatus('cancelled', 'user_cancelled')) return
     this.log('info', 'Agent run cancelled by user')
     this.downloader?.cancelAll('Job cancelled by user')
     if (this.abortController) {
@@ -1230,7 +1267,7 @@ export class AgentRunner extends EventEmitter {
         this.approvalRequested = false
         // A pause or cancel during the turn already decided the status.
         if (this.status === 'running') {
-          this.status = 'paused'
+          this.setStatus('paused', 'awaiting_approval')
           this.log(
             'info',
             `Awaiting user approval for ${countPendingAssets(this.beats)} selected assets.`
@@ -1798,7 +1835,7 @@ export class AgentRunner extends EventEmitter {
   private pauseForPexelsQuota(): void {
     const quota = PexelsClient.getQuotaSnapshot()
     const resetNote = quota ? ` It resets ${new Date(quota.resetAt * 1000).toLocaleString()}.` : ''
-    this.status = 'paused'
+    this.setStatus('paused', 'pexels_quota')
     this.log(
       'error',
       `Pexels API quota is exhausted, so the job was paused.${resetNote} Resume after the reset, or add a different Pexels key in Settings.`
@@ -1816,6 +1853,8 @@ export class AgentRunner extends EventEmitter {
       } catch {
         // Ignore abort-driven rejections while shutting down the prior run.
       }
+      // The job may have been cancelled while the paused run wound down.
+      if (this.status !== 'paused') return
     }
 
     // Find all pending assets in beats
@@ -1861,8 +1900,8 @@ export class AgentRunner extends EventEmitter {
     )
 
     const task = async (): Promise<void> => {
+      if (!this.setStatus('running', 'approved')) return
       if (approvedPendingAssets.length === 0) {
-        this.status = 'running'
         if (rejectedSet.size > 0) {
           this.log('info', `User rejected ${rejectedSet.size} pending assets. Resuming agent loop.`)
           this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
@@ -1888,8 +1927,6 @@ export class AgentRunner extends EventEmitter {
             rejectedSet.size > 0 ? ` User rejected: ${Array.from(rejectedSet).join(', ')}.` : ''
           } The approved downloads are now in progress.`
         })
-
-        this.status = 'running'
       }
 
       await this.runLoopAndFinalize()
@@ -1997,26 +2034,8 @@ export class AgentRunner extends EventEmitter {
       this.downloadedCount = downloaded
       this.failedCount = failed
 
-      // Check if the entire job has finished all downloads!
-      const hasInFlightDownloads = this.downloader
-        ?.getTasks()
-        .some((t) => t.status === 'pending' || t.status === 'downloading')
-
-      if (
-        areAllBeatsDownloaded(this.beats) &&
-        !hasInFlightDownloads &&
-        this.status !== 'cancelled' &&
-        this.status !== 'paused'
-      ) {
-        if (this.status !== 'completed') {
-          this.status = 'completed'
-          this.currentStep = 'Finished'
-          this.progress = 100
-          this.saveRegistry().catch((err) =>
-            console.error('Failed to save registry on job complete:', err)
-          )
-        }
-      }
+      // Whether the job is finished is decided when the loop ends (finalizeRun), never here:
+      // the model may be in the middle of a turn whose remaining calls still have to run.
 
       // The immediate write and broadcast below supersede any pending progress flush.
       this.progressFlush.cancel()

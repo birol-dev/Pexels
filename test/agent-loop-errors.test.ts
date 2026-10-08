@@ -34,6 +34,14 @@ describe('loop error reporting', () => {
     assert.equal(result.reason, 'agent_error')
   })
 
+  it('fails a run that broke before it had any beats', () => {
+    // A missing key or a failed beat split leaves no beats, and an empty job is not a success.
+    const result = decideRunFinalize({ ...base, beats: [], loopError: 'Invalid API key' })
+    assert.equal(result.status, 'failed')
+    assert.equal(result.reason, 'agent_error')
+    assert.match(result.logMessage, /Invalid API key/)
+  })
+
   it('still completes when every beat has a download despite a late error', () => {
     const result = decideRunFinalize({
       ...base,

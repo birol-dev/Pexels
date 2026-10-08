@@ -56,6 +56,25 @@ export function getStatusBadgeClass(status: JobSnapshot['status']): string {
   }
 }
 
+/** What a paused job is waiting for. Jobs that are not paused have nothing to explain. */
+export function getPauseReasonText(job: JobSnapshot): string | null {
+  if (job.status !== 'paused') return null
+  switch (job.statusReason) {
+    case 'awaiting_approval':
+      return 'Waiting for you to review the selected assets'
+    case 'pexels_quota':
+      return 'Pexels quota used up. Resume after it resets.'
+    case 'app_quit':
+      return 'Paused when the app closed'
+    case 'restored':
+      return 'Paused. Resume to continue.'
+    case 'user_paused':
+      return 'Paused'
+    default:
+      return null
+  }
+}
+
 export function getPendingAssets(job: JobSnapshot): AssetRecord[] {
   return job.beats.flatMap((b) => (b.assets || []).filter((a) => a.status === 'pending'))
 }

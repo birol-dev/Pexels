@@ -1,6 +1,8 @@
+import { promises as fs } from 'fs'
 import { join } from 'path'
 import { ManifestWriter } from '../files/manifest-writer.ts'
 import { loadRecoverableJson } from '../storage/state-file-recovery.ts'
+import type { StatusReason } from './job-status.ts'
 
 export type AgentStateSource = 'agent-state' | 'manifest' | 'none'
 
@@ -19,6 +21,7 @@ interface AgentStateFile {
   pexelsCandidates?: unknown
   iterationsUsed?: unknown
   compactedBefore?: unknown
+  statusReason?: unknown
 }
 
 function toCount(value: unknown): number {
@@ -87,13 +90,31 @@ export async function persistAgentConversationState(
   messages: unknown,
   pexelsCandidates: Array<[string, unknown]>,
   iterationsUsed = 0,
-  compactedBefore = 0
+  compactedBefore = 0,
+  /** Why the job last changed status, for showing a paused job's reason after a restart. */
+  statusReason?: StatusReason
 ): Promise<void> {
   await ManifestWriter.writeJsonFile(projectDir, 'agent-state.json', {
     schemaVersion: 1,
     messages,
     pexelsCandidates,
     iterationsUsed,
-    compactedBefore
+    compactedBefore,
+    statusReason
   })
+}
+
+/**
+ * What agent-state.json says about a job that has no runner. A plain read: it never
+ * quarantines or rewrites the file, and a missing or unreadable one says nothing.
+ */
+export async function readSavedAgentState(projectDir: string): Promise<{ statusReason?: unknown }> {
+  try {
+    const parsed: unknown = JSON.parse(
+      await fs.readFile(join(projectDir, 'agent-state.json'), 'utf-8')
+    )
+    return isAgentStateFile(parsed) ? { statusReason: parsed.statusReason } : {}
+  } catch {
+    return {}
+  }
 }
