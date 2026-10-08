@@ -1,0 +1,7 @@
+# Keep LF in the working tree on every platform so Prettier (endOfLine: lf) and ESLint agree with the index.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.icns binary
+*.webp binary
+*.woff2 binary
