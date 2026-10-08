@@ -9,7 +9,7 @@ export const BROAD_SEARCH_GUIDANCE = `Broad search mode guidance:
 - Prefer common stock-footage vocabulary over niche, branded, or overly specific phrases. Broad queries like "Nature", "Tigers", or "People" often work better on Pexels than long adjective-heavy strings.
 - Try several angles per beat (subject, location, mood/action, related object) before giving up on that beat.
 - If the first page of results is weak or empty, immediately broaden: drop adjectives, swap synonyms, and go more generic instead of digging deeper into a bad query.
-- Still obey skipExplicit / avoidPeople settings exactly as configured.`
+- Follow the safety settings below.`
 
 export type SystemPromptBeat = {
   id: string
@@ -67,30 +67,33 @@ export function buildStockScoutSystemPrompt(input: BuildStockScoutSystemPromptIn
       : ''
 
   const safety = [
-    input.skipExplicit ? 'Skip explicit/adult keywords.' : 'No strict content filtering.',
+    input.skipExplicit ? 'Do not search for explicit or adult content.' : '',
     input.avoidPeople
-      ? 'AVOID queries containing people, faces, crowds, or close-ups of individuals.'
+      ? 'Keep people out of frame: search for objects, places, nature, or hands.'
       : ''
+  ].filter(Boolean)
+  const safetyLine = safety.length > 0 ? `\n- Safety: ${safety.join(' ')}` : ''
+
+  // The tool list already limits the model to the types the mix allows.
+  const mixesTypes = input.mix !== 'videos only' && input.mix !== 'photos only'
+  const rules = [
+    'Search for things a camera can film: subjects, actions, places, objects, light, and weather.',
+    'No copyrighted characters, logos, brand names, or named people. Use a generic equivalent, such as "smartphone" for a phone brand.',
+    "If results are weak, reword or broaden the query as the search mode guidance describes. Don't give up on a beat after one attempt.",
+    'Never select the same asset for two beats.',
+    ...(mixesTypes
+      ? [
+          'Prefer videos for beats with motion and photos for objects, textures, or establishing shots.'
+        ]
+      : [])
   ]
-    .filter(Boolean)
-    .join(' ')
+    .map((rule, index) => `${index + 1}. ${rule}`)
+    .join('\n')
 
-  return `You are StockScout, a careful stock-media research agent for YouTube creators.
-Your job is to transform a user's video script into practical Pexels stock photo and stock video searches, select useful assets for each visual beat, and download them.
+  return `You are StockScout. You find Pexels stock footage for a narrated video, one visual beat at a time.
 
-You must follow these rules:
-1. Work only on the provided script and user settings.
-2. Prefer concrete visual searches over abstract concepts.
-3. Search for visible subjects, actions, locations, moods, and objects.
-4. Do not search for copyrighted characters, logos, brand names, or named people. Use a generic equivalent instead, such as "smartphone" for a phone brand.
-5. Follow the safety controls in the script configuration exactly.
-6. Use videos for motion-heavy beats and photos for object, portrait, texture, or establishing-shot beats.
-7. Keep queries short, natural, and Pexels-friendly.
-8. If results are weak, reword or broaden the query as the search mode guidance describes. Do not give up on a beat after one attempt.
-9. Never claim an asset was downloaded unless the tool result confirms it.
-10. Respect the user's max assets and preferred asset mix.
-11. When you are done, reply with a short plain-text summary of a few lines. Do not invent local file paths.
-12. Never select the same asset for two beats.
+Rules:
+${rules}
 
 ${modeBlock}
 
@@ -105,7 +108,7 @@ When selecting assets, prioritize:
 - for videos, clips of about 5-20 seconds, which are easiest to edit
 - variety across beats: avoid picking near-identical clips for different beats
 
-When rejecting assets, give a short reason such as: off topic, wrong orientation, low resolution, too short, duplicate idea, or too abstract. Reject only results you considered for a beat and ruled out. Do not list every unused result.
+You may add a 2 to 4 word reason to a rejection, such as off topic or wrong shape. Reject only results you considered and ruled out.
 
 Script configuration:
 - Search mode: ${searchModeLabel}${
@@ -114,26 +117,23 @@ Script configuration:
       : ' (tighter match to each beat)'
   }
 - Platform: ${input.platform}
-- Visual Style: ${input.style}
-- Asset Mix: ${input.mix} (Only call search tools matching this mix. If 'videos only', only search/select videos. If 'photos only', only photos. If 'videos + photos', both are fine.)
+- Visual style: ${input.style}
+- Asset mix: ${input.mix}
 - Max assets per beat: ${input.maxAssetsPerBeat}
-- Max total downloads allowed: ${input.maxTotalDownloads}
-- Safety controls: ${safety}
+- Max total downloads allowed: ${input.maxTotalDownloads}${safetyLine}
 
 The visual beat catalog is provided in the first user message and does not change during the job.
 A later user message may include a live beat status snapshot; treat that snapshot as the current truth for asset progress.
 
 How to work efficiently:
-- Make several tool calls in one turn. Search every waiting beat at once with one call per beat, select for all of them in a single select_assets_for_download call. Do not spend a whole turn on one beat while others are waiting.${budgetNote}${capNote}
+- Make several tool calls in one turn. Do not spend a whole turn on one beat while others are waiting.${budgetNote}${capNote}
 
 Your workflow:
-1. For each beat, call Pexels search tools ('search_pexels_photos' or 'search_pexels_videos') to look for matching items. Use simple keyword queries matching the beat's visualPrompt.
-2. Review search results and call 'select_assets_for_download' to select the best assets (up to ${input.maxAssetsPerBeat} per beat, total cap ${input.maxTotalDownloads}) and reject others. Spread the total cap across the script: give every beat at least one asset before any beat gets extras, because the last slots are reserved for beats that have none. If a selection is refused because the user rejected the asset, pick a different one.
-3. You are done when every beat has at least one asset (or the total cap is used up). Then stop calling tools and give your final summary.
+1. Search for every beat that has no asset yet, one search call per beat, all in one reply.
+2. Select the best result for each beat in one select_assets_for_download call. Selecting starts the download.
+3. Repeat for beats whose results were weak. When every beat has an asset, stop calling tools. Nothing else is needed.
 
 If a tool result says a call was interrupted, repeat it if it is still needed. If a selection is refused, the result says why: adjust the choice and do not retry the same asset.
-
-Available tools: search_pexels_photos, search_pexels_videos, select_assets_for_download, download_selected_assets.
 `
 }
 
@@ -214,14 +214,12 @@ export function buildBroadSearchNudgeMessage(beats: BroadNudgeBeat[]): string | 
     .slice(0, 4)
     .map((b) => {
       const tried = (b.searchQueries || []).filter(Boolean)
-      const triedNote = tried.length
-        ? ` already tried: "${tried[0]}" — use a DIFFERENT broader query`
-        : ' no search yet — start with a broad stock-friendly query'
+      const triedNote = tried.length ? ` tried "${tried[0]}"` : ' not searched yet'
       return `${b.id} ("${b.visualPrompt.slice(0, 50)}")${triedNote}`
     })
     .join('; ')
 
-  return `Broad search mode: ${needy.length} beat(s) still have no usable assets and only 0–1 unique search queries tried (${sample}). Call search_pexels_photos or search_pexels_videos now with a DIFFERENT, broader query (drop adjectives, swap synonyms, try subject/location/mood/related-object angles). Do not repeat the same query string.`
+  return `${needy.length} beats have no usable results yet (${sample}). Search again with a broader query: drop adjectives or try a synonym, place, or mood.`
 }
 
 /**

@@ -29,7 +29,7 @@ export const SelectAssetsForDownloadArgsSchema = z.object({
         assetType: z.enum(['photo', 'video']),
         pexelsId: z.number().int().positive(),
         variantUrl: z.string().url().optional(),
-        reason: z.string().min(1).max(500)
+        reason: z.string().max(500).optional()
       })
     )
     .default([]),
@@ -39,7 +39,7 @@ export const SelectAssetsForDownloadArgsSchema = z.object({
         beatId: z.string().min(1),
         assetType: z.enum(['photo', 'video']),
         pexelsId: z.number().int().positive(),
-        reason: z.string().min(1).max(500)
+        reason: z.string().max(500).optional()
       })
     )
     .default([])
@@ -114,7 +114,7 @@ export const AGENT_TOOLS: NormalizedToolDefinition[] = [
   {
     name: 'select_assets_for_download',
     description:
-      'Select candidates to be downloaded or reject candidates with a reason after search results are visible.',
+      'Select the best search results for beats. Selecting starts the download. You may also list results you ruled out as rejections.',
     parameters: {
       type: 'object',
       properties: {
@@ -132,10 +132,10 @@ export const AGENT_TOOLS: NormalizedToolDefinition[] = [
               },
               reason: {
                 type: 'string',
-                description: 'Brief explanation of why this asset is selected.'
+                description: 'Optional. A few words on why this asset fits.'
               }
             },
-            required: ['beatId', 'assetType', 'pexelsId', 'reason']
+            required: ['beatId', 'assetType', 'pexelsId']
           }
         },
         rejections: {
@@ -148,10 +148,10 @@ export const AGENT_TOOLS: NormalizedToolDefinition[] = [
               pexelsId: { type: 'number' },
               reason: {
                 type: 'string',
-                description: 'Brief explanation of why this asset was rejected.'
+                description: 'Optional. 2 to 4 words, such as off topic or wrong shape.'
               }
             },
-            required: ['beatId', 'assetType', 'pexelsId', 'reason']
+            required: ['beatId', 'assetType', 'pexelsId']
           }
         }
       },
@@ -290,6 +290,9 @@ export function remainingIterations(maxIterations: number, iterationsUsed: numbe
 
 /** Reason stored on a beat when the user rejects a pending asset in the approval UI. */
 export const USER_REJECTION_REASON = 'Rejected by user'
+
+/** Reason stored when the model rejects an asset without saying why. */
+export const DEFAULT_REJECTION_REASON = 'Not chosen'
 
 /**
  * True when the user (not the model) rejected this asset for this beat. A user

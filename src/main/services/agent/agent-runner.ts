@@ -62,6 +62,7 @@ import {
   countPendingAssets,
   countQueuedOrCompleted,
   decideRunFinalize,
+  DEFAULT_REJECTION_REASON,
   describeToolFailure,
   isAssetRejectedByUser,
   releaseDuplicateAssetRecords,
@@ -1214,13 +1215,19 @@ export class AgentRunner extends EventEmitter {
       maxIterations: this.maxIterations
     })
 
-    const tools = AGENT_TOOLS
+    // A search tool the mix does not allow is not offered at all. The mix is fixed for the job, so
+    // the list (and the cached prefix of every request) is the same on every turn and on resume.
+    const tools = AGENT_TOOLS.filter(
+      (t) =>
+        (t.name !== 'search_pexels_videos' || this.canUseAssetType('video')) &&
+        (t.name !== 'search_pexels_photos' || this.canUseAssetType('photo'))
+    )
 
     if (this.messages.length === 0) {
       this.messages = [
         {
           role: 'user',
-          content: `Begin searching for stock assets for all ${this.beats.length} visual beats. Call search_pexels_photos or search_pexels_videos for the first beats now.`
+          content: `Search for stock assets for all ${this.beats.length} visual beats now.`
         }
       ]
     }
@@ -1359,7 +1366,7 @@ export class AgentRunner extends EventEmitter {
               .join(', ')
             this.messages.push({
               role: 'user',
-              content: `You replied with text, but you did not execute any search tools. You must call search_pexels_photos or search_pexels_videos now to find stock assets for the script beats. There are still ${pendingBeats.length} beats waiting for assets (such as: ${pendingSample}). Call the search tools now.`
+              content: `${pendingBeats.length} beats still need footage, for example ${pendingSample}. Search for them now.`
             })
           }
           continue
@@ -1810,7 +1817,7 @@ export class AgentRunner extends EventEmitter {
               beat.rejectedAssets.push({
                 type: rej.assetType,
                 pexelsId: rej.pexelsId,
-                reason: rej.reason
+                reason: rej.reason?.trim() || DEFAULT_REJECTION_REASON
               })
             }
           }

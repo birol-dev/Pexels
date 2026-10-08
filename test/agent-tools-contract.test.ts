@@ -147,7 +147,35 @@ describe('Agent Tools Contract & Validation', () => {
         }
       ).selections
       assert.ok(items.properties.variantUrl, 'the model may still pass one')
-      assert.deepEqual(items.required, ['beatId', 'assetType', 'pexelsId', 'reason'])
+      assert.deepEqual(items.required, ['beatId', 'assetType', 'pexelsId'])
+    })
+
+    it('accepts selections and rejections without a reason', () => {
+      const parsed = SelectAssetsForDownloadArgsSchema.parse({
+        selections: [{ beatId: 'beat_1', assetType: 'video', pexelsId: 5 }],
+        rejections: [{ beatId: 'beat_1', assetType: 'video', pexelsId: 6 }]
+      })
+      assert.equal(parsed.selections[0].reason, undefined)
+      assert.equal(parsed.rejections[0].reason, undefined)
+    })
+
+    it('does not list reason as required in the tool definition', () => {
+      const tool = AGENT_TOOLS.find((t) => t.name === 'select_assets_for_download')
+      const { selections, rejections } = tool?.parameters.properties as Record<
+        'selections' | 'rejections',
+        { items: { properties: Record<string, unknown>; required: string[] } }
+      >
+      assert.ok(selections.items.properties.reason, 'the model may still give one')
+      assert.ok(rejections.items.properties.reason, 'the model may still give one')
+      assert.deepEqual(rejections.items.required, ['beatId', 'assetType', 'pexelsId'])
+    })
+
+    it('accepts an empty reason instead of failing the whole call', () => {
+      const parsed = SelectAssetsForDownloadArgsSchema.parse({
+        selections: [{ beatId: 'beat_1', assetType: 'video', pexelsId: 5, reason: '' }],
+        rejections: [{ beatId: 'beat_1', assetType: 'video', pexelsId: 6, reason: '' }]
+      })
+      assert.equal(parsed.rejections[0].reason, '')
     })
 
     it('rejects invalid variant URLs', () => {

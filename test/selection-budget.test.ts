@@ -121,11 +121,8 @@ describe('StockScout prompt guidance for the new rules', () => {
     avoidPeople: false
   })
 
-  it('tells the model to spread the cap across beats', () => {
-    assert.match(prompt, /every beat at least one asset before any beat gets extras/)
-  })
-
-  it('tells the model what to do when the user rejected an asset', () => {
-    assert.match(prompt, /the user rejected the asset, pick a different one/)
+  it('tells the model what to do when a selection is refused', () => {
+    assert.match(prompt, /If a selection is refused, the result says why: adjust the choice/)
+    assert.match(prompt, /do not retry the same asset/)
   })
 })

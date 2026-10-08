@@ -97,7 +97,8 @@ describe('StockScout system prompt search modes', () => {
     assert.match(prompt, /common stock-footage vocabulary/)
     assert.match(prompt, /several angles per beat/)
     assert.match(prompt, /immediately broaden/)
-    assert.match(prompt, /skipExplicit \/ avoidPeople/)
+    assert.match(prompt, /Follow the safety settings below\./)
+    assert.doesNotMatch(prompt, /skipExplicit|avoidPeople/)
     assert.match(prompt, /Nature|Tigers|People/)
   })
 
@@ -107,7 +108,7 @@ describe('StockScout system prompt search modes', () => {
       searchMode: 'broad',
       avoidPeople: true
     })
-    assert.match(prompt, /AVOID queries containing people/)
+    assert.match(prompt, /- Safety: .*Keep people out of frame/)
   })
 
   it('keeps the system prompt identical when only live beat status changes', () => {
@@ -203,7 +204,7 @@ describe('Broad search nudge path', () => {
     assert.equal(buildBroadSearchNudgeMessage(beats), null)
   })
 
-  it('builds a nudge that demands a DIFFERENT broader query', () => {
+  it('builds a short nudge that asks for a broader query', () => {
     const beats = [
       {
         id: 'beat_1',
@@ -215,10 +216,29 @@ describe('Broad search nudge path', () => {
     ]
     const msg = buildBroadSearchNudgeMessage(beats)
     assert.ok(msg)
-    assert.match(msg!, /Broad search mode/)
-    assert.match(msg!, /DIFFERENT broader query/)
-    assert.match(msg!, /beat_1/)
-    assert.match(msg!, /vintage brass typewriter mahogany desk/)
+    assert.match(msg!, /^1 beats have no usable results yet \(/)
+    assert.match(
+      msg!,
+      /beat_1 \("vintage typewriter on desk"\) tried "vintage brass typewriter mahogany desk"/
+    )
+    assert.match(
+      msg!,
+      /Search again with a broader query: drop adjectives or try a synonym, place, or mood\.$/
+    )
+    assert.doesNotMatch(msg!, /DIFFERENT|Broad search mode/)
+  })
+
+  it('says when a beat has not been searched yet', () => {
+    const msg = buildBroadSearchNudgeMessage([
+      {
+        id: 'beat_3',
+        visualPrompt: 'city skyline',
+        status: 'pending',
+        searchQueries: [],
+        assets: []
+      }
+    ])
+    assert.match(msg!, /beat_3 \("city skyline"\) not searched yet/)
   })
 })
 

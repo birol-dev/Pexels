@@ -10,6 +10,7 @@ import {
   wordGuidanceForDuration
 } from '../src/main/services/llm/duration-guidance.ts'
 import {
+  buildBroadSearchNudgeMessage,
   buildLiveBeatStatusUserContent,
   buildStockScoutSystemPrompt,
   describeTurnBudget,
@@ -162,7 +163,7 @@ describe('StockScout prompt quality rules', () => {
   it('tells the model to batch tool calls inside one turn', () => {
     const prompt = buildStockScoutSystemPrompt(base)
     assert.match(prompt, /Make several tool calls in one turn/)
-    assert.match(prompt, /one call per beat/)
+    assert.match(prompt, /one search call per beat, all in one reply/)
   })
 
   it('states the turn budget only when it is known', () => {
@@ -183,15 +184,89 @@ describe('StockScout prompt quality rules', () => {
 
   it('defines when the job is done', () => {
     const prompt = buildStockScoutSystemPrompt(base)
-    assert.match(prompt, /You are done when every beat has at least one asset/)
-    assert.match(prompt, /or the total cap is used up/)
+    assert.match(prompt, /When every beat has an asset, stop calling tools/)
   })
 
-  it('leaves queuing downloads to the app', () => {
+  it('walks through search, select and repeat, and leaves queuing downloads to the app', () => {
     const prompt = buildStockScoutSystemPrompt(base)
-    assert.doesNotMatch(prompt, /Call 'download_selected_assets'/)
+    assert.match(prompt, /1\. Search for every beat that has no asset yet/)
+    assert.match(
+      prompt,
+      /2\. Select the best result for each beat in one select_assets_for_download call/
+    )
+    assert.match(prompt, /Selecting starts the download\./)
+    assert.match(prompt, /3\. Repeat for beats whose results were weak/)
+    assert.doesNotMatch(prompt, /download_selected_assets/)
+    assert.doesNotMatch(prompt, /Available tools/)
     assert.doesNotMatch(prompt, /queue everything/)
     assert.doesNotMatch(prompt, /waiting to be queued/)
+  })
+
+  it('does not call the model a YouTube agent or ask it to download', () => {
+    const prompt = buildStockScoutSystemPrompt({ ...base, platform: 'TikTok' })
+    assert.match(prompt, /^You are StockScout\. You find Pexels stock footage/)
+    assert.doesNotMatch(prompt, /YouTube creators/)
+    assert.doesNotMatch(prompt, /and download them/)
+  })
+
+  it('has no rule about claiming downloads or writing a summary', () => {
+    const prompt = buildStockScoutSystemPrompt(base)
+    assert.doesNotMatch(prompt, /claim an asset was downloaded/)
+    assert.doesNotMatch(prompt, /summary/)
+    assert.doesNotMatch(prompt, /local file paths/)
+    assert.doesNotMatch(prompt, /Respect the user's max assets/)
+  })
+
+  it('keeps no word in capitals except tool names and acronyms', () => {
+    const inCapitals = (text: string): string[] => text.match(/\b[A-Z]{4,}\b/g) ?? []
+    for (const searchMode of ['focused', 'broad'] as const) {
+      for (const mix of ['videos only', 'photos only', 'videos + photos']) {
+        const prompt = buildStockScoutSystemPrompt({
+          ...base,
+          searchMode,
+          mix,
+          avoidPeople: true,
+          maxIterations: 30,
+          beatCount: 40
+        })
+        assert.deepEqual(inCapitals(prompt), [], `${searchMode} / ${mix}`)
+      }
+    }
+    const nudge = buildBroadSearchNudgeMessage([
+      {
+        id: 'beat_1',
+        visualPrompt: 'busy street',
+        status: 'pending',
+        searchQueries: [],
+        assets: []
+      }
+    ])
+    assert.deepEqual(inCapitals(nudge ?? ''), [])
+  })
+
+  it('states the mix as a fact, and recommends a type only when both are allowed', () => {
+    const both = buildStockScoutSystemPrompt(base)
+    assert.match(both, /- Asset mix: videos \+ photos\n/)
+    assert.match(both, /4\. Never select the same asset for two beats\./)
+    assert.match(
+      both,
+      /5\. Prefer videos for beats with motion and photos for objects, textures, or establishing shots\./
+    )
+
+    for (const mix of ['videos only', 'photos only']) {
+      const single = buildStockScoutSystemPrompt({ ...base, mix })
+      assert.match(single, new RegExp(`- Asset mix: ${mix}\\n`))
+      assert.doesNotMatch(single, /Prefer videos for beats with motion/)
+      assert.doesNotMatch(single, /Only call search tools/)
+      assert.doesNotMatch(single, /\n5\. /)
+    }
+  })
+
+  it('asks for rejection reasons only as an option', () => {
+    const prompt = buildStockScoutSystemPrompt(base)
+    assert.match(prompt, /You may add a 2 to 4 word reason to a rejection/)
+    assert.match(prompt, /Reject only results you considered and ruled out\./)
+    assert.doesNotMatch(prompt, /When rejecting assets, give a short reason/)
   })
 
   it('gives the default focused mode its own guidance', () => {
@@ -254,28 +329,24 @@ describe('StockScout prompt quality rules', () => {
     assert.match(prompt, /marked compacted\. You can still select from them\./)
   })
 
-  it('asks for a plain-text summary instead of an unspecified structure', () => {
-    const prompt = buildStockScoutSystemPrompt(base)
-    assert.match(prompt, /short plain-text summary/)
-    assert.doesNotMatch(prompt, /structured summaries/)
+  it('says nothing about safety when both settings are off, rather than granting permission', () => {
+    const off = buildStockScoutSystemPrompt({ ...base, skipExplicit: false, avoidPeople: false })
+    assert.doesNotMatch(off, /Safety/)
+    assert.doesNotMatch(off, /No strict content filtering/)
   })
 
-  it('does not contradict the safety setting', () => {
-    const off = buildStockScoutSystemPrompt({ ...base, skipExplicit: false })
-    assert.match(off, /Safety controls: No strict content filtering\.\n/)
-    assert.doesNotMatch(off, /Avoid explicit sexual/)
-
-    const on = buildStockScoutSystemPrompt({ ...base, avoidPeople: true })
-    assert.match(
-      on,
-      /Safety controls: Skip explicit\/adult keywords\. AVOID queries containing people/
-    )
-  })
-
-  it('has no trailing whitespace on the safety line', () => {
+  it('writes one safety sentence for each setting that is on', () => {
     assert.match(
       buildStockScoutSystemPrompt(base),
-      /Safety controls: Skip explicit\/adult keywords\.\n/
+      /- Safety: Do not search for explicit or adult content\.\n/
+    )
+    assert.match(
+      buildStockScoutSystemPrompt({ ...base, skipExplicit: false, avoidPeople: true }),
+      /- Safety: Keep people out of frame: search for objects, places, nature, or hands\.\n/
+    )
+    assert.match(
+      buildStockScoutSystemPrompt({ ...base, avoidPeople: true }),
+      /- Safety: Do not search for explicit or adult content\. Keep people out of frame/
     )
   })
 
