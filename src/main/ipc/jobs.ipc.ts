@@ -5,7 +5,6 @@ import {
   type StartJobInput,
   type JobSnapshot
 } from '../services/agent/agent-runner.ts'
-import { areAllBeatsDownloaded } from '../services/agent/tool-schemas.ts'
 import { resolveSearchModeFromSnapshot } from '../services/agent/search-mode.ts'
 import { ProjectStore, type JobSummary } from '../services/storage/project-store.ts'
 import { SettingsStore } from '../services/storage/settings-store.ts'
@@ -335,18 +334,9 @@ export function registerJobsHandlers(): void {
       const downloadedCount = beatAssets.filter((a) => a.status === 'completed').length
       const failedCount = beatAssets.filter((a) => a.status === 'failed').length
 
+      // Reads never change a job: the registry's status is returned as it is.
       const beats = (manifest.beats || []) as JobSnapshot['beats']
-      let effectiveStatus = summary.status
-      if (
-        areAllBeatsDownloaded(beats) &&
-        summary.status !== 'completed' &&
-        summary.status !== 'cancelled'
-      ) {
-        effectiveStatus = 'completed'
-        summary.status = 'completed'
-        summary.assetCount = downloadedCount
-        await ProjectStore.save(summary)
-      }
+      const status = summary.status
 
       return {
         jobId: manifest.projectId || jobId,
@@ -355,9 +345,9 @@ export function registerJobsHandlers(): void {
         inputMode: manifest.inputMode || manifest.settingsSnapshot?.inputMode,
         idea: manifest.originalIdea,
         visualConcept: manifest.visualConcept,
-        status: effectiveStatus,
-        progress: effectiveStatus === 'completed' ? 100 : 0,
-        currentStep: effectiveStatus === 'completed' ? 'Finished' : 'Stopped',
+        status,
+        progress: status === 'completed' ? 100 : 0,
+        currentStep: status === 'completed' ? 'Finished' : 'Stopped',
         beats: beats,
         logs: logs as JobSnapshot['logs'],
         downloadedCount,
@@ -380,39 +370,7 @@ export function registerJobsHandlers(): void {
     }
   })
 
-  ipcMain.handle('jobs:list', async (): Promise<JobSummary[]> => {
-    const list = await ProjectStore.list()
-    const checkPromises = list
-      .filter((job) => job.status !== 'completed' && job.status !== 'cancelled' && job.downloadPath)
-      .map(async (job) => {
-        try {
-          const manifestPath = join(job.downloadPath, 'manifest.json')
-          const data = await fs.readFile(manifestPath, 'utf-8')
-          const manifest = JSON.parse(data)
-          const beats = (manifest.beats || []) as JobSnapshot['beats']
-          if (areAllBeatsDownloaded(beats)) {
-            let completedCount = 0
-            for (const b of beats) {
-              if (b.assets) {
-                for (const a of b.assets) {
-                  if (a.status === 'completed') completedCount++
-                }
-              }
-            }
-            job.status = 'completed'
-            job.assetCount = completedCount
-            await ProjectStore.save(job)
-          }
-        } catch {
-          // ignore manifest read errors
-        }
-      })
-
-    if (checkPromises.length > 0) {
-      await Promise.all(checkPromises)
-    }
-    return list
-  })
+  ipcMain.handle('jobs:list', async (): Promise<JobSummary[]> => ProjectStore.list())
 
   ipcMain.handle('jobs:delete', async (_, rawJobId: unknown): Promise<void> => {
     const jobId = JobIdSchema.parse(rawJobId)

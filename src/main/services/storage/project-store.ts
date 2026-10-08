@@ -1,5 +1,7 @@
 import { app } from 'electron'
+import { promises as fs } from 'fs'
 import { join } from 'path'
+import { areAllBeatsDownloaded } from '../agent/tool-schemas.ts'
 import { loadRecoverableJson, writeJsonAtomic } from './state-file-recovery.ts'
 import { recoverInterruptedJobs } from './job-recovery.ts'
 
@@ -13,6 +15,25 @@ export interface JobSummary {
   updatedAt: string
   downloadPath: string
   assetCount: number
+}
+
+/**
+ * How many files a job has downloaded when its manifest shows every beat finished, else
+ * null. A missing or unreadable manifest counts as not finished.
+ */
+async function countDownloadsIfFinished(job: JobSummary): Promise<number | null> {
+  try {
+    const manifest = JSON.parse(await fs.readFile(join(job.downloadPath, 'manifest.json'), 'utf-8'))
+    const beats: Array<{ status: string; assets?: Array<{ status: string }> }> = Array.isArray(
+      manifest?.beats
+    )
+      ? manifest.beats
+      : []
+    if (!areAllBeatsDownloaded(beats)) return null
+    return beats.flatMap((b) => b.assets || []).filter((a) => a.status === 'completed').length
+  } catch {
+    return null
+  }
 }
 
 let projectsFile: string | null = null
@@ -84,13 +105,23 @@ export class ProjectStore {
 
   /**
    * Startup only: no runner exists yet, so any job still marked `running` was
-   * interrupted by a quit or crash. Mark those paused so they can be resumed.
+   * interrupted by a quit or crash. A job whose manifest shows every beat downloaded
+   * is completed; the others are marked paused so they can be resumed. This is the
+   * only place that corrects a status from the manifest: reads never do.
    * Returns how many jobs were recovered.
    */
   public static async recoverInterruptedJobs(): Promise<number> {
-    const interrupted = recoverInterruptedJobs(await this.list())
+    const jobs = await this.list()
+    const finished = new Map<string, number>()
+    for (const job of jobs) {
+      if (job.status !== 'running') continue
+      const downloaded = await countDownloadsIfFinished(job)
+      if (downloaded !== null) finished.set(job.jobId, downloaded)
+    }
+
+    const interrupted = recoverInterruptedJobs(jobs, (job) => finished.has(job.jobId))
     for (const job of interrupted) {
-      await this.save(job)
+      await this.save({ ...job, assetCount: finished.get(job.jobId) ?? job.assetCount })
     }
     return interrupted.length
   }
