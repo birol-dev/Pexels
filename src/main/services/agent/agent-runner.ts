@@ -4,6 +4,7 @@ import { join } from 'path'
 import {
   LlmProviderFactory,
   type AgentMessage,
+  type LlmToolTurnResult,
   type NormalizedToolCall,
   LLM_AGENT_REASONING,
   LLM_AGENT_TURN_MAX_OUTPUT_TOKENS,
@@ -13,8 +14,22 @@ import {
 import { PexelsClient } from '../pexels/pexels-client.ts'
 import { PexelsDownloader, type DownloadTask } from '../pexels/pexels-downloader.ts'
 import { validateDownloadUrl } from '../pexels/download-url-validation.ts'
-import { chooseVariant } from '../pexels/choose-variant.ts'
+import { chooseVariant, type Variant } from '../pexels/choose-variant.ts'
 import { variantDimensions } from '../pexels/variant-dimensions.ts'
+import {
+  candidateKey,
+  photoCandidate,
+  videoCandidate,
+  type PexelsCandidate
+} from '../pexels/candidates.ts'
+import type {
+  PexelsPhoto,
+  PexelsPhotoSearchInput,
+  PexelsPhotoSearchResult,
+  PexelsVideo,
+  PexelsVideoSearchInput,
+  PexelsVideoSearchResult
+} from '../pexels/pexels-types.ts'
 import { buildManifestAttribution } from '../pexels/pexels-attribution.ts'
 import {
   SUBMIT_BEAT_PLAN_TOOL,
@@ -27,6 +42,7 @@ import {
   type BeatAssetType
 } from '../llm/beat-parse-tool.ts'
 import { expandIdeaToScript } from '../llm/idea-expander.ts'
+import type { StructuredRequest } from '../llm/structured-request.ts'
 import {
   MIN_LLM_REQUEST_TIMEOUT_SECONDS,
   resolveLlmRequestTimeoutSeconds
@@ -109,26 +125,6 @@ import {
   shouldInjectPostToolBroadNudge,
   type SearchMode
 } from './search-mode.ts'
-
-export interface PexelsCandidate {
-  pexelsId: number
-  type: 'photo' | 'video'
-  photographer: string
-  photographerUrl?: string
-  width: number
-  height: number
-  imageUrl: string
-  duration?: number
-  query: string
-  variants: Array<{
-    label?: string
-    quality?: string
-    fileType?: string
-    url: string
-    width?: number
-    height?: number
-  }>
-}
 
 export interface VisualBeat {
   id: string
@@ -476,6 +472,86 @@ export class AgentRunner extends EventEmitter {
     } finally {
       cleanup()
     }
+  }
+
+  /** The key of the job's provider. A run that has none cannot start. */
+  private async requireApiKey(): Promise<string> {
+    const apiKey = await SecureSecrets.getSecret(`${this.providerId}Key`)
+    if (!apiKey) throw new Error(`Missing API Key for LLM provider: ${this.providerId}`)
+    return apiKey
+  }
+
+  /** Adds the tokens of one request to the job's total. */
+  private addUsage(usage: LlmToolTurnResult['usage']): void {
+    if (!usage) return
+    this.usage.inputTokens += usage.inputTokens || 0
+    this.usage.outputTokens += usage.outputTokens || 0
+    this.usage.totalTokens += usage.totalTokens || 0
+    this.usage.cachedInputTokens += usage.cachedInputTokens || 0
+  }
+
+  /**
+   * One request that makes the model call one tool: the job's provider and model, the job's
+   * timeout, its tokens counted, and a tool call written as text accepted when the model sent
+   * none. A request with no tool call at all throws. The provider adds the request quirks it has
+   * learned for the model and waits for its rate limit slot.
+   */
+  private async callStructured<T>(request: StructuredRequest<T>): Promise<T> {
+    const apiKey = await this.requireApiKey()
+    const provider = LlmProviderFactory.getProvider(this.providerId)
+
+    const response = await this.executeWithTimeout(this.llmRequestTimeoutSeconds, (signal) =>
+      provider.createToolTurn(
+        {
+          model: this.modelId,
+          systemPrompt: request.systemPrompt,
+          messages: [{ role: 'user', content: request.userContent }],
+          tools: [request.tool],
+          toolChoice: { name: request.tool.name },
+          temperature: request.temperature ?? 0.2,
+          maxOutputTokens: LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
+          abortSignal: signal,
+          sessionId: `stockfinder:${this.jobId}`,
+          reasoning: LLM_STRUCTURED_REASONING
+        },
+        { apiKey }
+      )
+    )
+
+    this.addUsage(response.usage)
+    if (request.label && response.usage) {
+      // One line per request, as the agent loop writes one per turn.
+      const tokens = {
+        request: request.label,
+        inputTokens: response.usage.inputTokens || 0,
+        cachedInputTokens: response.usage.cachedInputTokens || 0,
+        outputTokens: response.usage.outputTokens || 0
+      }
+      this.log(
+        'info',
+        `${request.label}: ${tokens.inputTokens.toLocaleString('en-US')} input tokens (${tokens.cachedInputTokens.toLocaleString('en-US')} cached), ${tokens.outputTokens.toLocaleString('en-US')} output.`,
+        tokens
+      )
+    }
+
+    const isThisTool = (call: NormalizedToolCall): boolean => call.name === request.tool.name
+    let toolCall = response.toolCalls.find(isThisTool)
+    if (!toolCall && response.assistantMessage.content) {
+      toolCall = extractToolCallsFromText(response.assistantMessage.content, [
+        request.tool.name
+      ]).find(isThisTool)
+    }
+    if (!toolCall) {
+      this.log(
+        'error',
+        `Model did not call ${request.tool.name} (stop=${response.stopReason}, output=${response.usage?.outputTokens ?? '?'}, reasoning=${response.usage?.reasoningTokens ?? '?'}). Raw content: ${response.assistantMessage.content || ''}`
+      )
+      throw (
+        request.missingCallError?.(response) ??
+        new Error(`The model did not call ${request.tool.name}.`)
+      )
+    }
+    return request.parse(toolCall.arguments)
   }
 
   public getSnapshot(): JobSnapshot {
@@ -1051,10 +1127,7 @@ export class AgentRunner extends EventEmitter {
       `💡 Expanding video concept "${rawIdea.trim().slice(0, 60)}${rawIdea.length > 60 ? '…' : ''}" into a full narration script and visual strategy...`
     )
 
-    const providerKey = await SecureSecrets.getSecret(`${this.providerId}Key`)
-    if (!providerKey) {
-      throw new Error(`Missing API Key for LLM provider: ${this.providerId}`)
-    }
+    const providerKey = await this.requireApiKey()
 
     const expanded = await expandIdeaToScript({
       idea: rawIdea.trim(),
@@ -1070,12 +1143,7 @@ export class AgentRunner extends EventEmitter {
       apiKey: providerKey,
       abortSignal: this.abortController?.signal,
       sessionId: `stockfinder:${this.jobId}`,
-      onUsage: (usage) => {
-        this.usage.inputTokens += usage.inputTokens || 0
-        this.usage.outputTokens += usage.outputTokens || 0
-        this.usage.totalTokens += usage.totalTokens || 0
-        this.usage.cachedInputTokens += usage.cachedInputTokens || 0
-      }
+      onUsage: (usage) => this.addUsage(usage)
     })
 
     this.input.script = expanded.script
@@ -1109,70 +1177,28 @@ export class AgentRunner extends EventEmitter {
       `Contacting LLM provider (${this.providerId} / model: ${this.modelId}) to segment script into beats...`
     )
 
-    const providerKey = await SecureSecrets.getSecret(`${this.providerId}Key`)
-    if (!providerKey) {
-      throw new Error(`Missing API Key for LLM provider: ${this.providerId}`)
-    }
+    await this.requireApiKey()
 
     const sentences = splitScriptSentences(this.input.script)
     if (sentences.length === 0) {
       throw new Error('Script parsing failed: the script has no sentences.')
     }
 
-    const provider = LlmProviderFactory.getProvider(this.providerId)
-    const systemPrompt = buildBeatSplitSystemPrompt({
-      maxTotalDownloads: this.input.maxTotalDownloads,
-      avoidPeople: this.safetySettings.avoidPeople,
-      style: this.input.style,
-      visualConcept: this.input.visualConcept
+    const plan = await this.callStructured({
+      tool: SUBMIT_BEAT_PLAN_TOOL,
+      systemPrompt: buildBeatSplitSystemPrompt({
+        maxTotalDownloads: this.input.maxTotalDownloads,
+        avoidPeople: this.safetySettings.avoidPeople,
+        style: this.input.style,
+        visualConcept: this.input.visualConcept
+      }),
+      userContent: buildBeatSplitUserMessage(sentences),
+      parse: parseBeatPlanFromToolCall,
+      missingCallError: missingBeatToolCallError
     })
 
-    const response = await this.executeWithTimeout(this.llmRequestTimeoutSeconds, (signal) =>
-      provider.createToolTurn(
-        {
-          model: this.modelId,
-          systemPrompt,
-          messages: [{ role: 'user', content: buildBeatSplitUserMessage(sentences) }],
-          tools: [SUBMIT_BEAT_PLAN_TOOL],
-          toolChoice: { name: 'submit_beat_plan' },
-          temperature: 0.2,
-          maxOutputTokens: LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
-          abortSignal: signal,
-          sessionId: `stockfinder:${this.jobId}`,
-          reasoning: LLM_STRUCTURED_REASONING
-        },
-        { apiKey: providerKey }
-      )
-    )
-
-    if (response.usage) {
-      this.usage.inputTokens += response.usage.inputTokens || 0
-      this.usage.outputTokens += response.usage.outputTokens || 0
-      this.usage.totalTokens += response.usage.totalTokens || 0
-      this.usage.cachedInputTokens += response.usage.cachedInputTokens || 0
-    }
-
-    let beatToolCall = response.toolCalls.find((tc) => tc.name === 'submit_beat_plan')
-    if (!beatToolCall && response.assistantMessage.content) {
-      const extracted = extractToolCallsFromText(response.assistantMessage.content, [
-        'submit_beat_plan'
-      ])
-      beatToolCall = extracted.find((tc) => tc.name === 'submit_beat_plan')
-    }
-    if (!beatToolCall) {
-      const fallbackContent = response.assistantMessage.content || ''
-      this.log(
-        'error',
-        `Model did not call submit_beat_plan (stop=${response.stopReason}, output=${response.usage?.outputTokens ?? '?'}, reasoning=${response.usage?.reasoningTokens ?? '?'}). Raw content: ${fallbackContent}`
-      )
-      throw missingBeatToolCallError(response)
-    }
-
     // The beats are cut from the script's own sentences, so their text always matches it.
-    const { beats: plannedBeats, repaired } = beatsFromPlan(
-      sentences,
-      parseBeatPlanFromToolCall(beatToolCall.arguments)
-    )
+    const { beats: plannedBeats, repaired } = beatsFromPlan(sentences, plan)
     if (repaired) {
       this.log(
         'info',
@@ -1206,10 +1232,7 @@ export class AgentRunner extends EventEmitter {
   private async runAgentLoop(): Promise<void> {
     this.updateProgress('Executing agent search and downloads', 30)
 
-    const providerKey = await SecureSecrets.getSecret(`${this.providerId}Key`)
-    if (!providerKey) {
-      throw new Error(`Missing API Key for LLM provider: ${this.providerId}`)
-    }
+    const providerKey = await this.requireApiKey()
     const provider = LlmProviderFactory.getProvider(this.providerId)
 
     const searchMode: SearchMode = this.input.searchMode || DEFAULT_SEARCH_MODE
@@ -1316,10 +1339,7 @@ export class AgentRunner extends EventEmitter {
       )
 
       if (turnResult.usage) {
-        this.usage.inputTokens += turnResult.usage.inputTokens || 0
-        this.usage.outputTokens += turnResult.usage.outputTokens || 0
-        this.usage.totalTokens += turnResult.usage.totalTokens || 0
-        this.usage.cachedInputTokens += turnResult.usage.cachedInputTokens || 0
+        this.addUsage(turnResult.usage)
 
         // One line per turn, so a long job shows where the tokens went.
         const turnTokens = {
@@ -1436,15 +1456,7 @@ export class AgentRunner extends EventEmitter {
       // pending assets together. No request is in flight here, so nothing needs aborting.
       if (this.approvalRequested) {
         this.approvalRequested = false
-        // A pause or cancel during the turn already decided the status.
-        if (this.status === 'running') {
-          this.setStatus('paused', 'awaiting_approval')
-          this.log(
-            'info',
-            `Awaiting user approval for ${countPendingAssets(this.beats)} selected assets.`
-          )
-        }
-        await this.writeAgentState()
+        await this.holdForApproval()
         break
       }
 
@@ -1498,6 +1510,100 @@ export class AgentRunner extends EventEmitter {
     if (this.input.mix === 'photos only') return assetType === 'photo'
     if (this.input.mix === 'videos only') return assetType === 'video'
     return true
+  }
+
+  /**
+   * Searches Pexels for the job. A search with no shape asked for gets the shape of the platform.
+   * The error of a call that ran out of quota goes to `pauseIfPexelsQuotaExhausted`.
+   */
+  private searchPexels(
+    type: 'photo',
+    params: PexelsPhotoSearchInput,
+    signal?: AbortSignal
+  ): Promise<PexelsPhotoSearchResult>
+  private searchPexels(
+    type: 'video',
+    params: PexelsVideoSearchInput,
+    signal?: AbortSignal
+  ): Promise<PexelsVideoSearchResult>
+  private searchPexels(
+    type: 'photo' | 'video',
+    params: PexelsPhotoSearchInput | PexelsVideoSearchInput,
+    signal: AbortSignal | undefined = this.abortController?.signal
+  ): Promise<PexelsPhotoSearchResult | PexelsVideoSearchResult> {
+    const withShape = {
+      ...params,
+      orientation: params.orientation ?? shapeForPlatform(this.input.platform)
+    }
+    return type === 'photo'
+      ? PexelsClient.searchPhotos(withShape, signal)
+      : PexelsClient.searchVideos(withShape, signal)
+  }
+
+  /** Keeps search results as candidates. A pick is checked against them, so only these can be chosen. */
+  private cacheCandidates(results: PexelsPhoto[], type: 'photo', query: string): void
+  private cacheCandidates(results: PexelsVideo[], type: 'video', query: string): void
+  private cacheCandidates(
+    results: PexelsPhoto[] | PexelsVideo[],
+    type: 'photo' | 'video',
+    query: string
+  ): void {
+    this.storeCandidates(
+      type === 'photo'
+        ? (results as PexelsPhoto[]).map((photo) => photoCandidate(photo, query))
+        : (results as PexelsVideo[]).map((video) => videoCandidate(video, query))
+    )
+  }
+
+  private storeCandidates(candidates: PexelsCandidate[]): void {
+    for (const candidate of candidates) {
+      this.pexelsCandidates.set(candidateKey(candidate.type, candidate.pexelsId), candidate)
+    }
+  }
+
+  /**
+   * Records a chosen candidate on its beat, as a pending asset with the size of the file that
+   * will be downloaded. The caller has already checked that the beat may take it.
+   */
+  private createAssetRecord(
+    beat: VisualBeat,
+    candidate: PexelsCandidate,
+    variant: Variant
+  ): AssetRecord {
+    const record: AssetRecord = {
+      id: candidateKey(candidate.type, candidate.pexelsId),
+      pexelsId: candidate.pexelsId,
+      type: candidate.type,
+      url: variant.url,
+      imageUrl: candidate.imageUrl,
+      downloadUrl: variant.url,
+      // The size of the selected file, which is rarely the size of the original.
+      ...variantDimensions(candidate, variant.url),
+      duration: candidate.duration,
+      photographer: candidate.photographer,
+      photographerUrl: candidate.photographerUrl,
+      query: candidate.query,
+      status: 'pending'
+    }
+    beat.assets.push(record)
+    this.assetLookup.set(record.id, { asset: record, beat })
+    beat.status = 'selecting'
+    return record
+  }
+
+  /**
+   * Under approval mode, stops the run with its selections pending, for the user to review. A
+   * pause or cancel that came first already decided the status.
+   */
+  private async holdForApproval(): Promise<void> {
+    if (this.status === 'running') {
+      this.setStatus('paused', 'awaiting_approval')
+      this.log(
+        'info',
+        `Awaiting user approval for ${countPendingAssets(this.beats)} selected assets.`
+      )
+    }
+    await this.writeAgentState()
   }
 
   /** The one place a download starts: selection, approval, resume and the download tool all use it. */
@@ -1601,17 +1707,14 @@ export class AgentRunner extends EventEmitter {
           this.loopProgress()
         )
 
-        const searchRes = await PexelsClient.searchPhotos(
-          {
-            query: args.query,
-            orientation: args.orientation ?? shapeForPlatform(this.input.platform),
-            size: args.size,
-            color: args.color,
-            page: args.page,
-            per_page: args.perPage
-          },
-          this.abortController?.signal
-        )
+        const searchRes = await this.searchPexels('photo', {
+          query: args.query,
+          orientation: args.orientation,
+          size: args.size,
+          color: args.color,
+          page: args.page,
+          per_page: args.perPage
+        })
 
         // Hidden results are not cached, so the model cannot select them either.
         const photos = applySafetyFilters(
@@ -1621,25 +1724,7 @@ export class AgentRunner extends EventEmitter {
         )
 
         // Cache candidates for safety checks
-        for (const p of photos.shown) {
-          const key = `photo_${p.id}`
-          this.pexelsCandidates.set(key, {
-            pexelsId: p.id,
-            type: 'photo',
-            photographer: p.photographer || 'Unknown Photographer',
-            photographerUrl: p.photographer_url || undefined,
-            width: p.width,
-            height: p.height,
-            imageUrl: p.src.medium || p.src.original,
-            query: args.query,
-            variants: Object.entries(p.src)
-              .map(([label, url]) => ({ label, url: url || '' }))
-              .filter(
-                (v): v is { label: string; url: string } =>
-                  typeof v.url === 'string' && v.url.length > 0
-              )
-          })
-        }
+        this.cacheCandidates(photos.shown, 'photo', args.query)
 
         result = {
           total_results: searchRes.total_results,
@@ -1669,16 +1754,13 @@ export class AgentRunner extends EventEmitter {
           this.loopProgress()
         )
 
-        const searchRes = await PexelsClient.searchVideos(
-          {
-            query: args.query,
-            orientation: args.orientation ?? shapeForPlatform(this.input.platform),
-            size: args.size,
-            page: args.page,
-            per_page: args.perPage
-          },
-          this.abortController?.signal
-        )
+        const searchRes = await this.searchPexels('video', {
+          query: args.query,
+          orientation: args.orientation,
+          size: args.size,
+          page: args.page,
+          per_page: args.perPage
+        })
 
         // Hidden results are not cached, so the model cannot select them either.
         const videos = applySafetyFilters(
@@ -1688,27 +1770,7 @@ export class AgentRunner extends EventEmitter {
         )
 
         // Cache candidates for safety checks
-        for (const v of videos.shown) {
-          const key = `video_${v.id}`
-          this.pexelsCandidates.set(key, {
-            pexelsId: v.id,
-            type: 'video',
-            photographer: v.user?.name || 'Unknown Creator',
-            photographerUrl: v.user?.url || undefined,
-            width: v.width,
-            height: v.height,
-            imageUrl: v.image || '',
-            duration: v.duration || 0,
-            query: args.query,
-            variants: v.video_files.map((vf) => ({
-              quality: vf.quality || undefined,
-              fileType: vf.file_type || undefined,
-              url: vf.link,
-              width: vf.width ?? undefined,
-              height: vf.height ?? undefined
-            }))
-          })
-        }
+        this.cacheCandidates(videos.shown, 'video', args.query)
 
         result = {
           total_results: searchRes.total_results,
@@ -1829,24 +1891,7 @@ export class AgentRunner extends EventEmitter {
               continue
             }
 
-            const newAsset: AssetRecord = {
-              id: recordId,
-              pexelsId: sel.pexelsId,
-              type: sel.assetType,
-              url: variant.url,
-              imageUrl: candidate.imageUrl,
-              downloadUrl: variant.url,
-              // The size of the selected file, which is rarely the size of the original.
-              ...variantDimensions(candidate, variant.url),
-              duration: candidate.duration,
-              photographer: candidate.photographer,
-              photographerUrl: candidate.photographerUrl,
-              query: candidate.query,
-              status: 'pending'
-            }
-            beat.assets.push(newAsset)
-            this.assetLookup.set(recordId, { asset: newAsset, beat })
-            beat.status = 'selecting'
+            const newAsset = this.createAssetRecord(beat, candidate, variant)
 
             const queued = this.requireApproval ? null : this.queueDownload(newAsset, beat)
             selectionResults.push({
@@ -2005,14 +2050,7 @@ export class AgentRunner extends EventEmitter {
         this.log('error', `Tool execution ${tc.name} failed: ${failure.message}`)
       }
       result = failure.result
-      if (
-        error instanceof ApiError &&
-        error.statusCode === 429 &&
-        PexelsClient.isQuotaExhausted() &&
-        this.status === 'running'
-      ) {
-        this.pauseForPexelsQuota()
-      }
+      this.pauseIfPexelsQuotaExhausted(error)
     }
 
     this.log('tool_result', `Result for ${tc.name}`, summarizeToolResultForLog(tc.name, result))
@@ -2022,6 +2060,23 @@ export class AgentRunner extends EventEmitter {
       name: tc.name,
       content: JSON.stringify(result)
     })
+  }
+
+  /**
+   * An error from a Pexels call that says the quota is used up pauses the job. True when it did.
+   * The caller logs the error first, so the log reads as the failure and then the pause.
+   */
+  private pauseIfPexelsQuotaExhausted(error: unknown): boolean {
+    if (
+      error instanceof ApiError &&
+      error.statusCode === 429 &&
+      PexelsClient.isQuotaExhausted() &&
+      this.status === 'running'
+    ) {
+      this.pauseForPexelsQuota()
+      return true
+    }
+    return false
   }
 
   /** docs/04: on an exhausted quota, stop new Pexels calls for this job and say why. */
