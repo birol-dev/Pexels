@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { tailLogEntries } from '../src/main/services/agent/log-tail.ts'
+import { safetyFilterReport } from '../src/main/services/agent/content-filters.ts'
 import { summarizeToolResultForLog } from '../src/main/services/agent/tool-schemas.ts'
 import {
   photoResultForModel,
@@ -33,6 +34,26 @@ describe('summarizeToolResultForLog', () => {
       returned: 1,
       ids: [7]
     })
+  })
+
+  it('keeps the number of results the safety settings hid, and the note', () => {
+    const result = {
+      total_results: 12,
+      results: [photo(7, 'a quiet beach')].map(photoResultForModel),
+      ...safetyFilterReport(3, 1)
+    }
+
+    assert.deepEqual(summarizeToolResultForLog('search_pexels_photos', result), {
+      total_results: 12,
+      returned: 1,
+      filtered: 3,
+      ids: [7]
+    })
+    assert.deepEqual(
+      summarizeToolResultForLog('search_pexels_videos', { total_results: 5, results: [] }),
+      { total_results: 5, returned: 0, ids: [] },
+      'no filtered key when nothing was hidden'
+    )
   })
 
   it('reports a search that found nothing', () => {

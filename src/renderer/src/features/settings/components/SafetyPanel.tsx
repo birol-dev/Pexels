@@ -18,14 +18,14 @@ export function SafetyPanel({ settings, form }: SafetyPanelProps): React.JSX.Ele
         <ToggleRow
           id="skip-explicit"
           label="Skip explicit content"
-          description="Filter sensitive results"
+          description="Blocks explicit search terms and hides results described as explicit. Best effort."
           checked={settings.skipExplicitQueries}
           onCheckedChange={(skipExplicitQueries) => updateNow({ skipExplicitQueries })}
         />
         <ToggleRow
           id="avoid-people"
           label="Avoid people & faces"
-          description="For abstract stock requests"
+          description="Hides results whose description mentions people. Best effort: videos are judged by their title only."
           checked={settings.avoidPeopleAndFaces}
           onCheckedChange={(avoidPeopleAndFaces) => updateNow({ avoidPeopleAndFaces })}
         />

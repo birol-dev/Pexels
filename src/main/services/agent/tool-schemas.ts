@@ -434,11 +434,16 @@ export function describeToolFailure(status: string, error: unknown): ToolFailure
  */
 export function summarizeToolResultForLog(toolName: string, result: unknown): unknown {
   if (toolName !== 'search_pexels_photos' && toolName !== 'search_pexels_videos') return result
-  const found = result as { total_results?: number; results?: Array<{ pexelsId?: number }> } | null
+  const found = result as {
+    total_results?: number
+    filtered?: number
+    results?: Array<{ pexelsId?: number }>
+  } | null
   if (!found || !Array.isArray(found.results)) return result
   return {
     total_results: found.total_results,
     returned: found.results.length,
+    ...(found.filtered ? { filtered: found.filtered } : {}),
     ids: found.results.map((item) => item.pexelsId)
   }
 }

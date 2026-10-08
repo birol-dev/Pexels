@@ -47,6 +47,12 @@ import { compactForRequest } from './message-compaction.ts'
 import { tailLogEntries } from './log-tail.ts'
 import { photoResultForModel, shapeForPlatform, videoResultForModel } from './tool-results.ts'
 import {
+  EXPLICIT_QUERY_BLOCKED_MESSAGE,
+  applySafetyFilters,
+  isQueryBlocked,
+  safetyFilterReport
+} from './content-filters.ts'
+import {
   loadAgentConversationState,
   persistAgentConversationState,
   readSavedAgentState,
@@ -1562,6 +1568,9 @@ export class AgentRunner extends EventEmitter {
         if (!this.canUseAssetType('photo')) {
           throw new Error(`Photo search is disabled because asset mix is "${this.input.mix}".`)
         }
+        if (isQueryBlocked(args.query, this.safetySettings)) {
+          throw new Error(EXPLICIT_QUERY_BLOCKED_MESSAGE)
+        }
 
         const beat = this.beats.find((b) => b.id === args.beatId)
         if (beat) {
@@ -1588,8 +1597,15 @@ export class AgentRunner extends EventEmitter {
           this.abortController?.signal
         )
 
+        // Hidden results are not cached, so the model cannot select them either.
+        const photos = applySafetyFilters(
+          searchRes.photos,
+          (p) => photoResultForModel(p).about,
+          this.safetySettings
+        )
+
         // Cache candidates for safety checks
-        for (const p of searchRes.photos) {
+        for (const p of photos.shown) {
           const key = `photo_${p.id}`
           this.pexelsCandidates.set(key, {
             pexelsId: p.id,
@@ -1611,13 +1627,17 @@ export class AgentRunner extends EventEmitter {
 
         result = {
           total_results: searchRes.total_results,
-          results: searchRes.photos.map(photoResultForModel)
+          results: photos.shown.map(photoResultForModel),
+          ...safetyFilterReport(photos.filtered, photos.shown.length)
         }
       } else if (tc.name === 'search_pexels_videos') {
         const args = SearchPexelsVideosArgsSchema.parse(rawArgs)
         this.logPexelsQuotaIfNeeded()
         if (!this.canUseAssetType('video')) {
           throw new Error(`Video search is disabled because asset mix is "${this.input.mix}".`)
+        }
+        if (isQueryBlocked(args.query, this.safetySettings)) {
+          throw new Error(EXPLICIT_QUERY_BLOCKED_MESSAGE)
         }
 
         const beat = this.beats.find((b) => b.id === args.beatId)
@@ -1644,8 +1664,15 @@ export class AgentRunner extends EventEmitter {
           this.abortController?.signal
         )
 
+        // Hidden results are not cached, so the model cannot select them either.
+        const videos = applySafetyFilters(
+          searchRes.videos,
+          (v) => videoResultForModel(v).about,
+          this.safetySettings
+        )
+
         // Cache candidates for safety checks
-        for (const v of searchRes.videos) {
+        for (const v of videos.shown) {
           const key = `video_${v.id}`
           this.pexelsCandidates.set(key, {
             pexelsId: v.id,
@@ -1669,7 +1696,8 @@ export class AgentRunner extends EventEmitter {
 
         result = {
           total_results: searchRes.total_results,
-          results: searchRes.videos.map(videoResultForModel)
+          results: videos.shown.map(videoResultForModel),
+          ...safetyFilterReport(videos.filtered, videos.shown.length)
         }
       } else if (tc.name === 'select_assets_for_download') {
         const args = SelectAssetsForDownloadArgsSchema.parse(rawArgs)

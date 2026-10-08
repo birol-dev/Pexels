@@ -127,6 +127,8 @@ The in-app onboarding wizard walks you through setup.
 
 The app checks GitHub Releases for updates every six hours. You can turn this off in Settings.
 
+The Skip explicit content and Avoid people & faces settings are best effort, because they read the words Pexels gives each result (a photo's alt text, a video's page title) and not the picture; Pexels' terms ban uploading sexually explicit material and its license says identifiable people must not appear in a bad light or in a way that is offensive, so review the footage you keep.
+
 ---
 
 ## Development
