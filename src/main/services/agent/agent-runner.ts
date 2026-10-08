@@ -3,15 +3,15 @@ import { promises as fs } from 'fs'
 import { join } from 'path'
 import {
   LlmProviderFactory,
-  AgentMessage,
-  NormalizedToolCall,
+  type AgentMessage,
+  type NormalizedToolCall,
   LLM_AGENT_REASONING,
   LLM_AGENT_TURN_MAX_OUTPUT_TOKENS,
   LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
   LLM_STRUCTURED_REASONING
 } from '../llm/llm-provider.ts'
 import { PexelsClient } from '../pexels/pexels-client.ts'
-import { PexelsDownloader, DownloadTask } from '../pexels/pexels-downloader.ts'
+import { PexelsDownloader, type DownloadTask } from '../pexels/pexels-downloader.ts'
 import { validateDownloadUrl } from '../pexels/download-url-validation.ts'
 import { buildManifestAttribution } from '../pexels/pexels-attribution.ts'
 import {
@@ -29,8 +29,8 @@ import {
   resolveLlmRequestTimeoutSeconds
 } from '../llm/llm-timeout.ts'
 import { createTimeoutLinkedSignal } from '../http/abort-signal.ts'
-import { ManifestWriter, ManifestData } from '../files/manifest-writer.ts'
-import { ProjectStore, JobSummary } from '../storage/project-store.ts'
+import { ManifestWriter, type ManifestData } from '../files/manifest-writer.ts'
+import { ProjectStore, type JobSummary } from '../storage/project-store.ts'
 import { SecureSecrets } from '../storage/secure-secrets.ts'
 import { SettingsStore } from '../storage/settings-store.ts'
 import {
@@ -154,6 +154,7 @@ export interface JobSnapshot {
     inputTokens: number
     outputTokens: number
     totalTokens: number
+    cachedInputTokens?: number
   }
 }
 
@@ -215,7 +216,8 @@ export class AgentRunner extends EventEmitter {
   private usage = {
     inputTokens: 0,
     outputTokens: 0,
-    totalTokens: 0
+    totalTokens: 0,
+    cachedInputTokens: 0
   }
 
   private downloader!: PexelsDownloader
@@ -902,6 +904,7 @@ export class AgentRunner extends EventEmitter {
         this.usage.inputTokens += response.usage.inputTokens || 0
         this.usage.outputTokens += response.usage.outputTokens || 0
         this.usage.totalTokens += response.usage.totalTokens || 0
+        this.usage.cachedInputTokens += response.usage.cachedInputTokens || 0
       }
 
       let beatToolCall = response.toolCalls.find((tc) => tc.name === 'submit_script_beats')
@@ -1055,6 +1058,7 @@ export class AgentRunner extends EventEmitter {
         this.usage.inputTokens += turnResult.usage.inputTokens || 0
         this.usage.outputTokens += turnResult.usage.outputTokens || 0
         this.usage.totalTokens += turnResult.usage.totalTokens || 0
+        this.usage.cachedInputTokens += turnResult.usage.cachedInputTokens || 0
       }
 
       const assistantMsg = turnResult.assistantMessage

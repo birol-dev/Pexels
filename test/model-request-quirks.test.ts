@@ -5,6 +5,7 @@ import {
   type AgentMessage,
   type LlmToolTurnResult,
   LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
+  LLM_STRUCTURED_REASONING,
   learnModelRequestQuirk,
   resetModelRequestQuirks
 } from '../src/main/services/llm/llm-provider.ts'
@@ -181,7 +182,8 @@ describe('model request quirks (limits learned from provider 400s)', () => {
             input_tokens: 50,
             output_tokens: 30,
             total_tokens: 80,
-            output_tokens_details: { reasoning_tokens: 20 }
+            output_tokens_details: { reasoning_tokens: 20 },
+            input_tokens_details: { cached_tokens: 40 }
           }
         })
       } as Response
@@ -223,6 +225,7 @@ describe('model request quirks (limits learned from provider 400s)', () => {
       { id: 'call_1', name: 'report_ready', arguments: '{"ok":true}' }
     ])
     assert.equal(first.usage?.reasoningTokens, 20)
+    assert.equal(first.usage?.cachedInputTokens, 40)
 
     // The next turn goes straight to Responses and replays the reasoning item with the call.
     await toolTurn([
@@ -267,6 +270,169 @@ describe('model request quirks (limits learned from provider 400s)', () => {
       { apiKey: 'test-key' }
     )
     assert.deepEqual(generationConfig, { maxOutputTokens: 1000 })
+  })
+
+  describe('connection test', () => {
+    const readyCall = (): Response =>
+      ({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                content: null,
+                tool_calls: [
+                  {
+                    id: 'call_1',
+                    type: 'function',
+                    function: { name: 'report_ready', arguments: '{"ok":true}' }
+                  }
+                ]
+              },
+              finish_reason: 'tool_calls'
+            }
+          ]
+        })
+      }) as Response
+
+    it('sends a forced tool call with beat-split parameters', async () => {
+      let payload: Record<string, unknown> = {}
+      globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+        payload = JSON.parse(init?.body as string) as Record<string, unknown>
+        return readyCall()
+      }) as typeof globalThis.fetch
+
+      const result = await provider.testConnection({ apiKey: 'sk-test' }, '')
+      assert.deepEqual(result, { success: true, message: 'Connection successful!' })
+      assert.equal(
+        payload.model,
+        'gpt-4o',
+        'an empty model field tests the model jobs fall back to'
+      )
+      assert.equal(payload.temperature, 0.2)
+      assert.equal(payload.max_completion_tokens, LLM_STRUCTURED_MAX_OUTPUT_TOKENS)
+      assert.deepEqual(payload.tool_choice, {
+        type: 'function',
+        function: { name: 'report_ready' }
+      })
+    })
+
+    it('fails for a model that answers without calling the tool', async () => {
+      globalThis.fetch = (async () => okResponse()) as typeof globalThis.fetch
+
+      const result = await provider.testConnection({ apiKey: 'sk-test' }, 'text-only-model')
+      assert.equal(result.success, false)
+      assert.match(result.message, /text-only-model answered but did not call a tool/)
+    })
+
+    it('reports the output cap it learned', async () => {
+      globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+        const payload = JSON.parse(init?.body as string) as Record<string, unknown>
+        return (payload.max_completion_tokens as number) > 16384
+          ? badRequest(TOKEN_CAP_ERROR)
+          : readyCall()
+      }) as typeof globalThis.fetch
+
+      const result = await provider.testConnection({ apiKey: 'sk-test' }, 'gpt-4o')
+      assert.equal(result.success, true)
+      assert.match(result.message, /at most 16,384 output tokens/)
+    })
+  })
+
+  describe('Gemini thinking and usage', () => {
+    const gemini = LlmProviderFactory.getProvider('gemini')
+    const THINKING_ERROR = 'Thinking level is not supported for this model.'
+
+    const geminiTurn = (model: string): Promise<LlmToolTurnResult> =>
+      gemini.createToolTurn(
+        {
+          model,
+          systemPrompt: '',
+          messages: [{ role: 'user', content: 'ping' }],
+          tools: [],
+          toolChoice: 'none',
+          temperature: 0.2,
+          maxOutputTokens: 1000,
+          reasoning: LLM_STRUCTURED_REASONING
+        },
+        { apiKey: 'test-key' }
+      )
+
+    const geminiOk = (usageMetadata?: Record<string, number>): Response =>
+      ({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          candidates: [{ content: { parts: [{ text: 'pong' }] } }],
+          usageMetadata
+        })
+      }) as Response
+
+    it('asks for low thinking on low-effort calls and drops it when rejected', async () => {
+      assert.deepEqual(learnModelRequestQuirk(THINKING_ERROR, 1000), { omitThinkingConfig: true })
+
+      const sent: Array<Record<string, unknown>> = []
+      globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+        const body = JSON.parse(init?.body as string) as {
+          generationConfig: Record<string, unknown>
+        }
+        sent.push(body.generationConfig)
+        return 'thinkingConfig' in body.generationConfig ? badRequest(THINKING_ERROR) : geminiOk()
+      }) as typeof globalThis.fetch
+
+      await geminiTurn('no-thinking-model')
+      assert.deepEqual(sent, [
+        { maxOutputTokens: 1000, thinkingConfig: { thinkingLevel: 'low' } },
+        { maxOutputTokens: 1000 }
+      ])
+
+      await geminiTurn('no-thinking-model')
+      assert.deepEqual(sent[2], { maxOutputTokens: 1000 }, 'later turns start without it')
+    })
+
+    it('counts thinking as output and reports cached input', async () => {
+      globalThis.fetch = (async () =>
+        geminiOk({
+          promptTokenCount: 9000,
+          candidatesTokenCount: 120,
+          thoughtsTokenCount: 300,
+          totalTokenCount: 9420,
+          cachedContentTokenCount: 8000
+        })) as typeof globalThis.fetch
+
+      const result = await geminiTurn('gemini-3.8-flash')
+      assert.deepEqual(result.usage, {
+        inputTokens: 9000,
+        outputTokens: 420,
+        totalTokens: 9420,
+        reasoningTokens: 300,
+        cachedInputTokens: 8000
+      })
+    })
+  })
+
+  it('reads cached input tokens from Chat Completions usage', async () => {
+    globalThis.fetch = (async () =>
+      ({
+        ok: true,
+        status: 200,
+        headers: new Headers(),
+        json: async () => ({
+          choices: [{ message: { content: 'pong' }, finish_reason: 'stop' }],
+          usage: {
+            prompt_tokens: 9000,
+            completion_tokens: 20,
+            total_tokens: 9020,
+            prompt_tokens_details: { cached_tokens: 8000 }
+          }
+        })
+      }) as Response) as typeof globalThis.fetch
+
+    const result = (await turn('gpt-4o')) as LlmToolTurnResult
+    assert.equal(result.usage?.cachedInputTokens, 8000)
   })
 
   it('does not retry unrelated 400s', async () => {

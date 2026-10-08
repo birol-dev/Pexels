@@ -57,6 +57,7 @@ export interface JobSnapshot {
     inputTokens: number
     outputTokens: number
     totalTokens: number
+    cachedInputTokens?: number
   }
 }
 

@@ -262,10 +262,16 @@ describe('OpenRouterProvider', () => {
           choices: [
             {
               message: {
-                content: 'pong',
-                tool_calls: undefined
+                content: null,
+                tool_calls: [
+                  {
+                    id: 'call_1',
+                    type: 'function',
+                    function: { name: 'report_ready', arguments: '{"ok":true}' }
+                  }
+                ]
               },
-              finish_reason: 'stop'
+              finish_reason: 'tool_calls'
             }
           ]
         })

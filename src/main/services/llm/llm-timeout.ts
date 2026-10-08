@@ -5,8 +5,7 @@ export const DEFAULT_REQUEST_TIMEOUT_SECONDS = 60
  * LLM chat completions are non-streaming: the client sees no bytes until the
  * full reply is generated. Slow OpenRouter routes (especially `:floor`) routinely
  * exceed 60s on multi-thousand-token tool calls even though the provider later
- * succeeds — which is why Settings "Test connection" (10 tokens) can pass while
- * a real job logs "Request timed out after 60 seconds."
+ * succeeds, so a 60s limit made real jobs log "Request timed out after 60 seconds."
  *
  * 32,768 completion tokens at ~55–60 tok/s (DeepInfra) needs about 9 minutes if
  * the model fills the budget, so the LLM floor matches the Settings slider max.

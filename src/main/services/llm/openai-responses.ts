@@ -34,6 +34,7 @@ export interface ResponsesApiBody {
     output_tokens?: number
     total_tokens?: number
     output_tokens_details?: { reasoning_tokens?: number }
+    input_tokens_details?: { cached_tokens?: number }
   }
 }
 
@@ -147,7 +148,8 @@ export function parseResponsesResult(
           inputTokens: data.usage.input_tokens,
           outputTokens: data.usage.output_tokens,
           totalTokens: data.usage.total_tokens,
-          reasoningTokens: data.usage.output_tokens_details?.reasoning_tokens
+          reasoningTokens: data.usage.output_tokens_details?.reasoning_tokens,
+          cachedInputTokens: data.usage.input_tokens_details?.cached_tokens
         }
       : undefined,
     raw: data

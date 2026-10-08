@@ -25,7 +25,10 @@ export interface NormalizedToolCall {
   arguments: string // JSON string
 }
 
-/** OpenRouter unified reasoning. Ignored by OpenAI and Gemini providers. */
+/**
+ * OpenRouter unified reasoning. The Gemini provider reads only `effort` (as a
+ * thinking level); the OpenAI provider ignores it.
+ */
 export interface LlmReasoningConfig {
   effort?: 'low' | 'high' | 'max'
   enabled?: boolean
@@ -59,7 +62,7 @@ export interface LlmToolTurnInput {
   abortSignal?: AbortSignal
   /** OpenRouter sticky-routing / prompt-cache key. Ignored by other providers. */
   sessionId?: string
-  /** OpenRouter reasoning control. Ignored by other providers. */
+  /** Reasoning control: full on OpenRouter, thinking level on Gemini, ignored by OpenAI. */
   reasoning?: LlmReasoningConfig
 }
 
@@ -72,6 +75,8 @@ export interface LlmToolTurnResult {
     outputTokens?: number
     totalTokens?: number
     reasoningTokens?: number
+    /** The part of inputTokens the provider read from its prompt cache. */
+    cachedInputTokens?: number
   }
   raw: unknown
 }
@@ -107,6 +112,8 @@ interface ModelRequestQuirks {
   omitTemperature?: boolean
   /** Chat Completions refuses function tools for this model; use the Responses API. */
   useResponsesApi?: boolean
+  /** Gemini rejected our thinkingConfig for this model; send none. */
+  omitThinkingConfig?: boolean
 }
 
 /** One correction per kind of quirk a single turn can run into. */
@@ -123,6 +130,10 @@ const modelRequestQuirks = new Map<string, ModelRequestQuirks>()
 
 export function resetModelRequestQuirks(): void {
   modelRequestQuirks.clear()
+}
+
+export function learnedQuirksFor(quirkKey: string): Readonly<ModelRequestQuirks> | undefined {
+  return modelRequestQuirks.get(quirkKey)
 }
 
 /**
@@ -167,6 +178,11 @@ export function learnModelRequestQuirk(
     }
   }
 
+  // Gemini: "Thinking level is not supported for this model.", "The thinking budget 1 is invalid...".
+  if (!known.omitThinkingConfig && /thinking/i.test(message)) {
+    return { omitThinkingConfig: true }
+  }
+
   return null
 }
 
@@ -182,6 +198,7 @@ async function sendWithLearnedQuirks(
     maxOutputTokens: number
     omitTemperature: boolean
     useResponsesApi: boolean
+    omitThinkingConfig: boolean
   }) => Promise<Response>
 ): Promise<Response> {
   for (let correction = 0; ; correction++) {
@@ -191,7 +208,8 @@ async function sendWithLearnedQuirks(
       return await send({
         maxOutputTokens,
         omitTemperature: Boolean(quirks?.omitTemperature),
-        useResponsesApi: Boolean(quirks?.useResponsesApi)
+        useResponsesApi: Boolean(quirks?.useResponsesApi),
+        omitThinkingConfig: Boolean(quirks?.omitThinkingConfig)
       })
     } catch (error) {
       const learned =
@@ -452,6 +470,7 @@ async function createOpenAiCompatibleToolTurn(
       total_tokens?: number
       reasoning_tokens?: number
       completion_tokens_details?: { reasoning_tokens?: number }
+      prompt_tokens_details?: { cached_tokens?: number }
     }
   }
 
@@ -490,18 +509,55 @@ async function createOpenAiCompatibleToolTurn(
           inputTokens: data.usage.prompt_tokens,
           outputTokens: data.usage.completion_tokens,
           totalTokens: data.usage.total_tokens,
-          reasoningTokens
+          reasoningTokens,
+          cachedInputTokens: data.usage.prompt_tokens_details?.cached_tokens
         }
       : undefined,
     raw: data
   }
 }
 
+const CONNECTION_TEST_TOOL: NormalizedToolDefinition = {
+  name: 'report_ready',
+  description: 'Confirm that the connection works.',
+  parameters: {
+    type: 'object',
+    properties: { ok: { type: 'boolean' } },
+    required: ['ok']
+  }
+}
+
+/** Says what the test learned about the model, so the user knows what jobs will send. */
+function describeConnectionSuccess(quirks: Readonly<ModelRequestQuirks> | undefined): string {
+  const notes: string[] = []
+  if (quirks?.maxOutputTokens) {
+    notes.push(
+      `This model allows at most ${quirks.maxOutputTokens.toLocaleString('en-US')} output tokens, so StockFinder will use that.`
+    )
+  }
+  if (quirks?.useResponsesApi) {
+    notes.push(
+      'This model calls tools through the OpenAI Responses API, so StockFinder will use it.'
+    )
+  }
+  return ['Connection successful!', ...notes].join(' ')
+}
+
+/**
+ * Sends one forced tool call with the same temperature, output cap and reasoning as a
+ * beat split, so a model that cannot do what a job needs fails here, and any request
+ * limit is learned before the first job.
+ */
 async function testConnectionWithPing(
   provider: LlmProvider,
   credentials: ProviderCredentials,
   modelId: string,
-  options: { providerName: string; defaultModel: string }
+  options: {
+    providerName: string
+    defaultModel: string
+    /** The key createToolTurn stores this model's learned quirks under. */
+    quirkKey: (model: string) => string
+  }
 ): Promise<ProviderTestResult> {
   const trimmedKey = credentials.apiKey?.trim() || ''
   if (!trimmedKey) {
@@ -510,20 +566,31 @@ async function testConnectionWithPing(
       message: `${options.providerName} API key is missing. Please enter an API key.`
     }
   }
+  const model = modelId?.trim() || options.defaultModel
   try {
-    await provider.createToolTurn(
+    const turn = await provider.createToolTurn(
       {
-        model: modelId?.trim() || options.defaultModel,
-        systemPrompt: 'Respond only with pong',
-        messages: [{ role: 'user', content: 'ping' }],
-        tools: [],
-        toolChoice: 'none',
-        temperature: 0.1,
-        maxOutputTokens: 10
+        model,
+        systemPrompt: 'Call report_ready with ok set to true.',
+        messages: [{ role: 'user', content: 'Connection test.' }],
+        tools: [CONNECTION_TEST_TOOL],
+        toolChoice: { name: CONNECTION_TEST_TOOL.name },
+        temperature: 0.2,
+        maxOutputTokens: LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
+        reasoning: LLM_STRUCTURED_REASONING
       },
       { apiKey: trimmedKey }
     )
-    return { success: true, message: 'Connection successful!' }
+    if (!turn.toolCalls.some((call) => call.name === CONNECTION_TEST_TOOL.name)) {
+      return {
+        success: false,
+        message: `${model} answered but did not call a tool. StockFinder needs a model with tool (function) calling.`
+      }
+    }
+    return {
+      success: true,
+      message: describeConnectionSuccess(learnedQuirksFor(options.quirkKey(model)))
+    }
   } catch (error) {
     return {
       success: false,
@@ -531,6 +598,9 @@ async function testConnectionWithPing(
     }
   }
 }
+
+const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions'
+const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 class OpenAiProvider implements LlmProvider {
   public id = 'openai' as const
@@ -541,7 +611,7 @@ class OpenAiProvider implements LlmProvider {
   ): Promise<LlmToolTurnResult> {
     return createOpenAiCompatibleToolTurn(input, credentials, {
       providerName: 'OpenAI',
-      url: 'https://api.openai.com/v1/chat/completions',
+      url: OPENAI_CHAT_URL,
       defaultModel: DEFAULT_MODEL_IDS.openai,
       label: 'OpenAI chat completions',
       maxTokensField: 'max_completion_tokens',
@@ -555,7 +625,8 @@ class OpenAiProvider implements LlmProvider {
   ): Promise<ProviderTestResult> {
     return testConnectionWithPing(this, credentials, modelId, {
       providerName: 'OpenAI',
-      defaultModel: DEFAULT_MODEL_IDS.openai
+      defaultModel: DEFAULT_MODEL_IDS.openai,
+      quirkKey: (model) => `${OPENAI_CHAT_URL}::${model}`
     })
   }
 }
@@ -569,7 +640,7 @@ class OpenRouterProvider implements LlmProvider {
   ): Promise<LlmToolTurnResult> {
     return createOpenAiCompatibleToolTurn(input, credentials, {
       providerName: 'OpenRouter',
-      url: 'https://openrouter.ai/api/v1/chat/completions',
+      url: OPENROUTER_CHAT_URL,
       defaultModel: DEFAULT_MODEL_IDS.openrouter,
       label: 'OpenRouter chat completions',
       maxTokensField: 'max_tokens',
@@ -588,7 +659,8 @@ class OpenRouterProvider implements LlmProvider {
   ): Promise<ProviderTestResult> {
     return testConnectionWithPing(this, credentials, modelId, {
       providerName: 'OpenRouter',
-      defaultModel: DEFAULT_MODEL_IDS.openrouter
+      defaultModel: DEFAULT_MODEL_IDS.openrouter,
+      quirkKey: (model) => `${OPENROUTER_CHAT_URL}::${model}`
     })
   }
 }
@@ -639,6 +711,12 @@ function normalizeGeminiSchema(schema: unknown): unknown {
     }
   }
   return result
+}
+
+function geminiGenerateContentUrl(model: string): string {
+  const rawModel = (model || DEFAULT_MODEL_IDS.gemini).trim()
+  const cleanModel = rawModel.startsWith('models/') ? rawModel : `models/${rawModel}`
+  return `https://generativelanguage.googleapis.com/v1beta/${cleanModel}:generateContent`
 }
 
 // 3. Gemini Implementation
@@ -733,9 +811,7 @@ class GeminiProvider implements LlmProvider {
     if (!trimmedKey) {
       throw new Error('Gemini API key is missing.')
     }
-    const rawModel = (input.model || DEFAULT_MODEL_IDS.gemini).trim()
-    const cleanModel = rawModel.startsWith('models/') ? rawModel : `models/${rawModel}`
-    const url = `https://generativelanguage.googleapis.com/v1beta/${cleanModel}:generateContent`
+    const url = geminiGenerateContentUrl(input.model)
     const headers = {
       'Content-Type': 'application/json',
       'x-goog-api-key': trimmedKey
@@ -780,7 +856,14 @@ class GeminiProvider implements LlmProvider {
     const response = await sendWithLearnedQuirks(url, input.maxOutputTokens, (limits) => {
       // No temperature: Google recommends the default (1.0) for Gemini 3 models and
       // warns that lower values can cause looping.
-      payload.generationConfig = { maxOutputTokens: limits.maxOutputTokens }
+      // Thinking counts toward maxOutputTokens, so a low-effort call asks for the
+      // lowest level every current model accepts ("minimal" is rejected by some).
+      payload.generationConfig = {
+        maxOutputTokens: limits.maxOutputTokens,
+        ...(input.reasoning?.effort === 'low' && !limits.omitThinkingConfig
+          ? { thinkingConfig: { thinkingLevel: 'low' } }
+          : {})
+      }
       return llmFetch({
         url,
         label: 'Gemini generateContent',
@@ -817,6 +900,8 @@ class GeminiProvider implements LlmProvider {
         promptTokenCount?: number
         candidatesTokenCount?: number
         totalTokenCount?: number
+        thoughtsTokenCount?: number
+        cachedContentTokenCount?: number
       }
     }
     if (data.error) {
@@ -870,15 +955,22 @@ class GeminiProvider implements LlmProvider {
       stopReason = 'length'
     }
 
+    const usage = data.usageMetadata
     return {
       assistantMessage,
       toolCalls,
       stopReason,
-      usage: data.usageMetadata
+      usage: usage
         ? {
-            inputTokens: data.usageMetadata.promptTokenCount,
-            outputTokens: data.usageMetadata.candidatesTokenCount,
-            totalTokens: data.usageMetadata.totalTokenCount
+            inputTokens: usage.promptTokenCount,
+            // Thinking is billed as output, but candidatesTokenCount leaves it out.
+            outputTokens:
+              usage.candidatesTokenCount === undefined && usage.thoughtsTokenCount === undefined
+                ? undefined
+                : (usage.candidatesTokenCount ?? 0) + (usage.thoughtsTokenCount ?? 0),
+            totalTokens: usage.totalTokenCount,
+            reasoningTokens: usage.thoughtsTokenCount,
+            cachedInputTokens: usage.cachedContentTokenCount
           }
         : undefined,
       raw: data
@@ -891,7 +983,8 @@ class GeminiProvider implements LlmProvider {
   ): Promise<ProviderTestResult> {
     return testConnectionWithPing(this, credentials, modelId, {
       providerName: 'Gemini',
-      defaultModel: DEFAULT_MODEL_IDS.gemini
+      defaultModel: DEFAULT_MODEL_IDS.gemini,
+      quirkKey: geminiGenerateContentUrl
     })
   }
 }

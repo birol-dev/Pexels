@@ -40,8 +40,8 @@ export function PerformancePanel({
         />
         <SliderField
           id="request-timeout"
-          label="Request Timeout (Secs)"
-          hint="Pexels searches use this value. LLM replies wait at least 10 minutes because slower OpenRouter models can keep generating after 60s."
+          label="Pexels and Download Timeout (Secs)"
+          hint="Applies to Pexels searches and downloads. LLM requests can take up to 10 minutes on long scripts."
           value={settings.requestTimeoutSeconds}
           min={10}
           max={600}
