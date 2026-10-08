@@ -27,6 +27,10 @@ export function AgentConsole({ logs }: { logs: AgentLogEvent[] }): React.JSX.Ele
             <LogEntry key={index} log={log} />
           ))}
         </div>
+
+        <p className="px-5 py-3 border-t-2 border-edge bg-surface-container-lowest font-body-md text-xs text-outline">
+          Full search results are saved in agent-state.json in the project folder.
+        </p>
       </Card>
     </div>
   )

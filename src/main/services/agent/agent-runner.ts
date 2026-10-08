@@ -43,6 +43,7 @@ import {
 } from '../../../shared/llm-defaults.ts'
 import { extractToolCallsFromText } from './tool-parser.ts'
 import { compactForRequest } from './message-compaction.ts'
+import { tailLogEntries } from './log-tail.ts'
 import { photoResultForModel, shapeForPlatform, videoResultForModel } from './tool-results.ts'
 import {
   loadAgentConversationState,
@@ -67,6 +68,7 @@ import {
   remainingIterations,
   selectionBudgetViolation,
   statusAfterInterruptedSearch,
+  summarizeToolResultForLog,
   getUnfulfilledBeats,
   hasPendingUnqueuedAssets,
   USER_REJECTION_REASON
@@ -582,19 +584,7 @@ export class AgentRunner extends EventEmitter {
       try {
         const logsPath = join(this.projectDir, 'agent-log.jsonl')
         const logData = await fs.readFile(logsPath, 'utf-8')
-        if (logData.trim()) {
-          this.logs = logData
-            .split('\n')
-            .filter((line) => line.trim())
-            .map((line) => {
-              try {
-                return JSON.parse(line) as AgentLogEvent
-              } catch {
-                return null
-              }
-            })
-            .filter((log): log is AgentLogEvent => log !== null)
-        }
+        if (logData.trim()) this.logs = tailLogEntries(logData.split('\n'))
       } catch (logErr) {
         console.warn('Failed to load logs from agent-log.jsonl:', logErr)
       }
@@ -1885,7 +1875,7 @@ export class AgentRunner extends EventEmitter {
       }
     }
 
-    this.log('tool_result', `Result for ${tc.name}`, result)
+    this.log('tool_result', `Result for ${tc.name}`, summarizeToolResultForLog(tc.name, result))
     this.messages.push({
       role: 'tool',
       tool_call_id: tc.id,

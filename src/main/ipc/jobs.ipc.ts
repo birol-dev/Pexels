@@ -7,6 +7,7 @@ import {
 } from '../services/agent/agent-runner.ts'
 import { readSavedAgentState } from '../services/agent/agent-state.ts'
 import { savedStatusReason } from '../services/agent/job-status.ts'
+import { tailLogEntries } from '../services/agent/log-tail.ts'
 import { resolveSearchModeFromSnapshot } from '../services/agent/search-mode.ts'
 import { ProjectStore, type JobSummary } from '../services/storage/project-store.ts'
 import { SettingsStore } from '../services/storage/settings-store.ts'
@@ -317,18 +318,8 @@ export function registerJobsHandlers(): void {
       let logs: unknown[] = []
       try {
         const logsPath = join(summary.downloadPath, 'agent-log.jsonl')
-        const logData = await fs.readFile(logsPath, 'utf-8')
-        logs = logData
-          .split('\n')
-          .filter((line) => line.trim())
-          .map((line) => {
-            try {
-              return JSON.parse(line) as unknown
-            } catch {
-              return null
-            }
-          })
-          .filter((log) => log !== null)
+        // Only the newest entries are parsed, so a log of many megabytes loads quickly.
+        logs = tailLogEntries((await fs.readFile(logsPath, 'utf-8')).split('\n'))
       } catch {
         // Logs file may be missing, which is fine
       }

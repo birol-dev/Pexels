@@ -53,6 +53,8 @@ export interface SavedJobOptions {
   agentState?: Record<string, unknown> | null
   /** Write no manifest.json, or one that is not valid JSON. */
   manifest?: 'missing' | 'corrupt'
+  /** Lines of agent-log.jsonl, as they are on disk. */
+  logLines?: string[]
 }
 
 /**
@@ -119,6 +121,10 @@ export async function writeSavedJob(
         ...options.agentState
       })
     )
+  }
+
+  if (options.logLines) {
+    await writeFile(join(projectDir, 'agent-log.jsonl'), options.logLines.join('\n') + '\n')
   }
   return { jobId, projectDir }
 }

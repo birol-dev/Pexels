@@ -426,6 +426,21 @@ export function describeToolFailure(status: string, error: unknown): ToolFailure
 }
 
 /**
+ * What the run log keeps of a tool result. The full result stays in the conversation
+ * (agent-state.json). Selection, download and error results are small and pass through.
+ */
+export function summarizeToolResultForLog(toolName: string, result: unknown): unknown {
+  if (toolName !== 'search_pexels_photos' && toolName !== 'search_pexels_videos') return result
+  const found = result as { total_results?: number; results?: Array<{ pexelsId?: number }> } | null
+  if (!found || !Array.isArray(found.results)) return result
+  return {
+    total_results: found.total_results,
+    returned: found.results.length,
+    ids: found.results.map((item) => item.pexelsId)
+  }
+}
+
+/**
  * Status a beat should return to when its search was interrupted. Searching is
  * transient, so derive the status from what the beat actually holds.
  */
