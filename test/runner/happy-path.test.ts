@@ -77,7 +77,7 @@ describe('runner: a complete fake job', () => {
     const [beatSplit, firstTurn] = network.llmRequests()
     assert.deepEqual(beatSplit.tool_choice, {
       type: 'function',
-      function: { name: 'submit_script_beats' }
+      function: { name: 'submit_beat_plan' }
     })
     assert.equal(firstTurn.tool_choice, 'auto')
     assert.equal(network.llmRequests().length, 3, 'no turn is spent on queuing downloads')

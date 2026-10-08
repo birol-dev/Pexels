@@ -111,6 +111,17 @@ describe('StockScout system prompt search modes', () => {
     assert.match(prompt, /- Safety: .*Keep people out of frame/)
   })
 
+  it('mentions suggested queries in the prompt only when the beats have them', () => {
+    const withQueries = buildStockScoutSystemPrompt({
+      ...promptInput,
+      searchMode: 'focused',
+      suggestedQueries: true
+    })
+    const withoutQueries = buildStockScoutSystemPrompt({ ...promptInput, searchMode: 'focused' })
+    assert.match(withQueries, /Each beat comes with suggested queries\. Start with the first\./)
+    assert.doesNotMatch(withoutQueries, /suggested queries/)
+  })
+
   it('keeps the system prompt identical when only live beat status changes', () => {
     const first = buildStockScoutSystemPrompt({ ...promptInput, searchMode: 'focused' })
     const second = buildStockScoutSystemPrompt({ ...promptInput, searchMode: 'focused' })
@@ -144,6 +155,22 @@ describe('cache-stable beat catalog vs live status', () => {
     assert.equal(buildBeatCatalogUserContent([pendingBeat]).includes('"status"'), false)
     assert.match(buildLiveBeatStatusUserContent([completedBeat]), /"status": "completed"/)
     assert.equal(buildLiveBeatStatusUserContent([completedBeat]).includes('ocean sunrise'), false)
+  })
+
+  it('puts the suggested queries and asset type of a beat in the catalog', () => {
+    const catalog = JSON.parse(
+      buildBeatCatalogUserContent([
+        { ...pendingBeat, queries: ['ocean sunrise', 'calm sea'], assetType: 'video' },
+        { ...pendingBeat, id: 'beat_2', queries: [] }
+      ])
+        .split('\n')
+        .slice(1)
+        .join('\n')
+    )
+    assert.deepEqual(catalog[0].queries, ['ocean sunrise', 'calm sea'])
+    assert.equal(catalog[0].assetType, 'video')
+    assert.equal('queries' in catalog[1], false, 'an empty list is left out')
+    assert.equal('assetType' in catalog[1], false)
   })
 
   it('puts the catalog before conversation and live status after it', () => {

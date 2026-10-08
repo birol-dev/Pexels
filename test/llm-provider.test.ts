@@ -499,10 +499,10 @@ describe('OpenRouterProvider', () => {
 describe('normalizeChatToolCalls', () => {
   it('keeps function tool calls even when type is omitted', () => {
     const calls = normalizeChatToolCalls([
-      { id: 'a', function: { name: 'submit_script_beats', arguments: '{"beats":[]}' } }
+      { id: 'a', function: { name: 'submit_beat_plan', arguments: '{"beats":[]}' } }
     ])
     assert.equal(calls.length, 1)
-    assert.equal(calls[0].name, 'submit_script_beats')
+    assert.equal(calls[0].name, 'submit_beat_plan')
   })
 })
 

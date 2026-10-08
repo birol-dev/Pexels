@@ -57,7 +57,7 @@ describe('summarizeToolResultForLog', () => {
 
     assert.equal(summarizeToolResultForLog('select_assets_for_download', selection), selection)
     assert.equal(summarizeToolResultForLog('download_selected_assets', download), download)
-    assert.equal(summarizeToolResultForLog('submit_script_beats', failure), failure)
+    assert.equal(summarizeToolResultForLog('submit_beat_plan', failure), failure)
   })
 
   it('passes a failed search through, since it has no results to list', () => {

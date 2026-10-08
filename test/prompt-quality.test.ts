@@ -1,10 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import {
-  buildBeatCorrectionMessage,
-  buildBeatSplitSystemPrompt,
-  findScriptMismatch
-} from '../src/main/services/llm/beat-parse-tool.ts'
+import { buildBeatSplitSystemPrompt } from '../src/main/services/llm/beat-parse-tool.ts'
 import {
   parseDurationSeconds,
   wordGuidanceForDuration
@@ -57,99 +53,41 @@ describe('wordGuidanceForDuration', () => {
   })
 })
 
-describe('findScriptMismatch', () => {
-  const beat = (text: string): { text: string; visualPrompt: string } => ({
-    text,
-    visualPrompt: 'x'
-  })
-
-  it('accepts beats that reproduce the script', () => {
-    const script = 'The sun rises. Birds sing. A city wakes up.'
-    assert.equal(
-      findScriptMismatch(script, [beat('The sun rises.'), beat('Birds sing. A city wakes up.')]),
-      null
-    )
-  })
-
-  it('ignores case, punctuation and whitespace differences', () => {
-    const script = 'The sun rises.\n\nBirds sing -- loudly!'
-    assert.equal(
-      findScriptMismatch(script, [beat('the SUN rises'), beat('birds sing, loudly')]),
-      null
-    )
-  })
-
-  it('reports a dropped sentence with its position', () => {
-    const script = 'One two three. Four five six. Seven eight nine.'
-    const message = findScriptMismatch(script, [beat('One two three.'), beat('Seven eight nine.')])
-    assert.ok(message)
-    assert.match(message, /script has 9 words and the beats have 6/)
-    assert.match(message, /differ at word 4/)
-    assert.match(message, /four five six/)
-  })
-
-  it('reports a reworded beat', () => {
-    const message = findScriptMismatch('The cat sat down.', [beat('The cat took a seat.')])
-    assert.ok(message)
-    assert.match(message, /differ at word 3/)
-  })
-
-  it('reports extra text the model added at the end', () => {
-    const message = findScriptMismatch('Hello world.', [beat('Hello world.'), beat('Thanks!')])
-    assert.ok(message)
-    assert.match(message, /differ at word 3/)
-  })
-
-  it('reports beats that are out of order', () => {
-    assert.ok(
-      findScriptMismatch('Alpha beta. Gamma delta.', [beat('Gamma delta.'), beat('Alpha beta.')])
-    )
-  })
-
-  it('handles non-latin scripts', () => {
-    assert.equal(
-      findScriptMismatch('שלום עולם. מה נשמע', [beat('שלום עולם.'), beat('מה נשמע')]),
-      null
-    )
-    assert.ok(findScriptMismatch('שלום עולם. מה נשמע', [beat('שלום עולם.')]))
-  })
-
-  it('flags empty beats against a real script', () => {
-    assert.ok(findScriptMismatch('Something to say.', []))
-  })
-
-  it('builds a correction message that quotes the problem', () => {
-    const message = buildBeatCorrectionMessage('The beats do not reproduce the script.')
-    assert.match(message, /^The beats do not reproduce the script\./)
-    assert.match(message, /submit_script_beats again/)
-    assert.match(message, /verbatim/)
-  })
-})
-
 describe('buildBeatSplitSystemPrompt', () => {
   const splitBase = { maxTotalDownloads: 15, avoidPeople: false, style: 'cinematic' }
 
   it('tells the model how large a beat is and how many it may use', () => {
     const prompt = buildBeatSplitSystemPrompt({ ...splitBase, maxTotalDownloads: 12 })
-    assert.match(prompt, /at most 12 beats/)
-    assert.match(prompt, /only 12 assets in total/)
-    assert.match(prompt, /one beat per sentence/)
-    assert.match(prompt, /reproduce the full script/)
+    assert.match(prompt, /^Plan the stock footage for a narrated video\./)
+    assert.match(prompt, /1\. Group consecutive sentences into beats\./)
+    assert.match(prompt, /about 8 to 15 spoken words, or 3 to 6 seconds/)
+    assert.match(prompt, /The last beat ends at the last sentence\./)
+    assert.match(prompt, /2\. Use at most 12 beats\./)
+    assert.match(prompt, /3\. For each beat, write a visual prompt, 2 or 3 Pexels queries/)
+    assert.match(prompt, /whether it needs video, a photo, or either/)
     assert.match(prompt, /abstract narration/)
+    assert.match(prompt, /Call submit_beat_plan once\.$/)
   })
 
-  it('adds the no-people rule only when the user asked for it', () => {
+  it('asks for sentence numbers, not for the script back', () => {
+    const prompt = buildBeatSplitSystemPrompt(splitBase)
+    assert.match(prompt, /lists the script's sentences, one per line, each with its number/)
+    assert.doesNotMatch(prompt, /exactly|reproduce|verbatim|submit_script_beats/)
+    assert.doesNotMatch(prompt, /professional video editor/)
+  })
+
+  it('adds the no-people line only when the user asked for it', () => {
     assert.doesNotMatch(buildBeatSplitSystemPrompt(splitBase), /no people/)
     assert.match(
       buildBeatSplitSystemPrompt({ ...splitBase, avoidPeople: true }),
-      /no people in the footage/
+      /\nThe user wants no people in the footage: describe objects, places, nature, hands/
     )
   })
 
   it('gives the visual style, and the visual direction when there is one', () => {
     const plain = buildBeatSplitSystemPrompt(splitBase)
     assert.match(plain, /Visual style: cinematic\. Favor wide establishing shots/)
-    assert.match(plain, /Write visual prompts that fit this look\./)
+    assert.match(plain, /Write visual prompts and queries that fit this look\./)
     assert.doesNotMatch(plain, /Visual direction for this video/)
 
     const directed = buildBeatSplitSystemPrompt({
@@ -159,6 +97,15 @@ describe('buildBeatSplitSystemPrompt', () => {
     })
     assert.match(directed, /Visual style: vintage 8mm film\. The user describes the style as/)
     assert.match(directed, /\nVisual direction for this video: Grainy harbor mornings\.\n/)
+  })
+
+  it('keeps no word in capitals except tool names and acronyms', () => {
+    const prompt = buildBeatSplitSystemPrompt({
+      ...splitBase,
+      avoidPeople: true,
+      visualConcept: 'Grainy harbor mornings.'
+    })
+    assert.deepEqual(prompt.match(/\b[A-Z]{4,}\b/g) ?? [], [])
   })
 })
 

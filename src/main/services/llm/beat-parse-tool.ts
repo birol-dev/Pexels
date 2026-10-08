@@ -1,35 +1,51 @@
 import { visualStyleLine } from '../agent/style-guidance.ts'
 import type { NormalizedToolDefinition } from './llm-provider.ts'
 
-export interface ParsedScriptBeat {
+export type BeatAssetType = 'video' | 'photo' | 'either'
+
+export interface PlannedBeat {
   text: string
   visualPrompt: string
+  queries: string[]
+  assetType: BeatAssetType
 }
 
-export const SUBMIT_SCRIPT_BEATS_TOOL: NormalizedToolDefinition = {
-  name: 'submit_script_beats',
+/** One beat as the model plans it: where it ends, and what footage it needs. */
+export type BeatPlanItem = Omit<PlannedBeat, 'text'> & { lastSentence: number }
+
+export const SUBMIT_BEAT_PLAN_TOOL: NormalizedToolDefinition = {
+  name: 'submit_beat_plan',
   description:
-    'Submit the script broken into visual beats. Each beat must preserve the exact script wording and include a concrete stock-media search prompt.',
+    'Group the numbered script sentences into visual beats and plan footage for each beat.',
   parameters: {
     type: 'object',
     properties: {
       beats: {
         type: 'array',
-        description: 'Ordered list of visual beats covering the full script.',
+        description: 'Beats in script order. Each beat starts right after the previous one ends.',
         items: {
           type: 'object',
           properties: {
-            text: {
-              type: 'string',
-              description: 'Exact script text for this beat. Do not paraphrase or omit words.'
+            lastSentence: {
+              type: 'integer',
+              description: 'Number of the last sentence in this beat.'
             },
             visualPrompt: {
               type: 'string',
-              description:
-                'Concrete Pexels-friendly visual description for stock photo/video search.'
+              description: 'What the footage shows, 3 to 8 words.'
+            },
+            queries: {
+              type: 'array',
+              items: { type: 'string' },
+              description: '2 or 3 Pexels queries of 1 to 4 words, most specific first.'
+            },
+            assetType: {
+              type: 'string',
+              enum: ['video', 'photo', 'either'],
+              description: 'video for motion, photo for objects, textures, or establishing shots.'
             }
           },
-          required: ['text', 'visualPrompt']
+          required: ['lastSentence', 'visualPrompt', 'queries', 'assetType']
         }
       }
     },
@@ -37,7 +53,33 @@ export const SUBMIT_SCRIPT_BEATS_TOOL: NormalizedToolDefinition = {
   }
 }
 
-export function parseBeatsFromToolCall(argumentsJson: string): ParsedScriptBeat[] {
+/** Sentences of the script, in order. Very long sentences are cut into chunks so a beat stays short. */
+export function splitScriptSentences(script: string, maxWords = 40, chunkWords = 15): string[] {
+  const segmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' })
+  const sentences = [...segmenter.segment(script)]
+    .map((s) => s.segment.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+  return sentences.flatMap((sentence) => {
+    const words = sentence.split(' ')
+    if (words.length <= maxWords) return [sentence]
+    const chunks: string[] = []
+    for (let i = 0; i < words.length; i += chunkWords)
+      chunks.push(words.slice(i, i + chunkWords).join(' '))
+    return chunks
+  })
+}
+
+/** The user message of the beat split: one numbered sentence per line. */
+export function buildBeatSplitUserMessage(sentences: string[]): string {
+  return sentences.map((sentence, index) => `[${index + 1}] ${sentence}`).join('\n')
+}
+
+/**
+ * Reads the plan the model submitted. Only a missing or empty list is an error: anything wrong
+ * inside an item (a bad number, a missing query list, an unknown asset type) is repaired by
+ * `beatsFromPlan` or given a default here, because the script text no longer depends on it.
+ */
+export function parseBeatPlanFromToolCall(argumentsJson: string): BeatPlanItem[] {
   let parsed: unknown
   try {
     parsed = JSON.parse(argumentsJson)
@@ -61,16 +103,62 @@ export function parseBeatsFromToolCall(argumentsJson: string): ParsedScriptBeat[
       throw new Error(`Beat at index ${index} is not an object.`)
     }
 
-    const record = beat as { text?: unknown; visualPrompt?: unknown }
-    const text = typeof record.text === 'string' ? record.text.trim() : ''
-    const visualPrompt = typeof record.visualPrompt === 'string' ? record.visualPrompt.trim() : ''
-
-    if (!text || !visualPrompt) {
-      throw new Error(`Beat at index ${index} is missing text or visualPrompt.`)
+    const record = beat as {
+      lastSentence?: unknown
+      visualPrompt?: unknown
+      queries?: unknown
+      assetType?: unknown
     }
-
-    return { text, visualPrompt }
+    return {
+      lastSentence: Number(record.lastSentence),
+      visualPrompt: typeof record.visualPrompt === 'string' ? record.visualPrompt : '',
+      queries: Array.isArray(record.queries)
+        ? record.queries.filter((query): query is string => typeof query === 'string')
+        : [],
+      assetType:
+        record.assetType === 'video' || record.assetType === 'photo' ? record.assetType : 'either'
+    }
   })
+}
+
+/**
+ * Turns the model's beat ends into beats that cover every sentence once, in order.
+ * Out-of-range or non-increasing ends are clamped. Sentences after the last beat join it.
+ */
+export function beatsFromPlan(
+  sentences: string[],
+  plan: BeatPlanItem[]
+): { beats: PlannedBeat[]; repaired: boolean } {
+  const beats: PlannedBeat[] = []
+  let start = 0
+  let repaired = false
+  for (const item of plan) {
+    if (start >= sentences.length) {
+      repaired = true
+      break
+    }
+    const requested = Number.isFinite(item.lastSentence) ? Math.trunc(item.lastSentence) : 0
+    const end = Math.min(Math.max(requested, start + 1), sentences.length)
+    if (end !== item.lastSentence) repaired = true
+    const text = sentences.slice(start, end).join(' ')
+    const queries = item.queries
+      .map((q) => q.trim())
+      .filter(Boolean)
+      .slice(0, 3)
+    beats.push({
+      text,
+      // A beat the model gave no picture for is searched by its first query, or by its own words.
+      visualPrompt: item.visualPrompt.trim() || queries[0] || text,
+      queries,
+      assetType: item.assetType
+    })
+    start = end
+  }
+  if (start < sentences.length && beats.length > 0) {
+    beats[beats.length - 1].text += ' ' + sentences.slice(start).join(' ')
+    repaired = true
+  }
+  return { beats, repaired }
 }
 
 export type BeatSplitPromptInput = {
@@ -83,58 +171,23 @@ export type BeatSplitPromptInput = {
 }
 
 export function buildBeatSplitSystemPrompt(input: BeatSplitPromptInput): string {
-  const peopleRule = input.avoidPeople
-    ? '\n6. The user wants no people in the footage: describe objects, places, nature, hands, or silhouettes instead of faces, crowds, or close-ups of individuals.'
+  const peopleLine = input.avoidPeople
+    ? '\nThe user wants no people in the footage: describe objects, places, nature, hands, or silhouettes instead of faces, crowds, or close-ups of individuals.'
     : ''
-
   const visualConcept = input.visualConcept?.trim()
   const conceptLine = visualConcept ? `\nVisual direction for this video: ${visualConcept}` : ''
 
-  return `You are a professional video editor and script analyzer.
-Break the provided script into visual beats (scenes or moments of visual focus).
+  return `Plan the stock footage for a narrated video. The user message lists the script's sentences, one per line, each with its number.
 
 Rules:
-1. Cover the whole script, in order. Copy each beat's text exactly from the script: do not omit, reorder, summarize, or reword anything. Joined together, the beats' text must reproduce the full script.
-2. Size beats by visual change: roughly one beat per sentence, or per 3-6 seconds of narration (about 8-15 spoken words). Merge short sentences that share one image.
-3. Use at most ${input.maxTotalDownloads} beats. The job can download only ${input.maxTotalDownloads} assets in total and every beat needs at least one, so for a long script make beats longer instead of adding more.
-4. Write each visualPrompt as a concrete, filmable stock-search description in English: a visible subject plus an action or setting, 3-8 words (for example "empty trading floor at dusk"). For abstract narration such as "freedom" or "growth", pick a literal image a stock library would have, such as an open road or a seedling in sunlight.
-5. Never put brand names, logos, or named people in a visualPrompt.${peopleRule}
+1. Group consecutive sentences into beats. A beat changes when the picture should change: about 8 to 15 spoken words, or 3 to 6 seconds. The last beat ends at the last sentence.
+2. Use at most ${input.maxTotalDownloads} beats.
+3. For each beat, write a visual prompt, 2 or 3 Pexels queries (1 to 4 words, English, filmable, no brands or named people), and whether it needs video, a photo, or either. For abstract narration such as "freedom" or "growth", pick a literal image a stock library would have, such as an open road or a seedling in sunlight.
 
 Visual style: ${visualStyleLine(input.style)}${conceptLine}
-Write visual prompts that fit this look.
+Write visual prompts and queries that fit this look.${peopleLine}
 
-Call the submit_script_beats tool once with the complete ordered beats array.`
-}
-
-function scriptWords(text: string): string[] {
-  return text
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter(Boolean)
-}
-
-/**
- * Check that the beats, joined in order, reproduce the script (ignoring case, punctuation and
- * whitespace). Returns null when they do, or a description of the first difference that is
- * written to be fed back to the model.
- */
-export function findScriptMismatch(script: string, beats: ParsedScriptBeat[]): string | null {
-  const expected = scriptWords(script)
-  const actual = scriptWords(beats.map((beat) => beat.text).join(' '))
-
-  const limit = Math.min(expected.length, actual.length)
-  let index = 0
-  while (index < limit && expected[index] === actual[index]) index++
-
-  if (index === expected.length && index === actual.length) return null
-
-  const around = (words: string[]): string =>
-    words.slice(Math.max(0, index - 3), index + 4).join(' ')
-  return `The beats do not reproduce the script. The script has ${expected.length} words and the beats have ${actual.length}. They first differ at word ${index + 1}: the script reads "${around(expected)}" but the beats read "${around(actual)}".`
-}
-
-export function buildBeatCorrectionMessage(mismatch: string): string {
-  return `${mismatch} Call submit_script_beats again. Copy the script verbatim into the beats' text fields, in order, without dropping or rewording anything.`
+Call submit_beat_plan once.`
 }
 
 export function missingBeatToolCallError(input: {

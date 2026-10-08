@@ -7,6 +7,7 @@ import {
   type StartJobInput,
   type VisualBeat
 } from '../../src/main/services/agent/agent-runner.ts'
+import { splitScriptSentences } from '../../src/main/services/llm/beat-parse-tool.ts'
 import { resetLlmCircuit } from '../../src/main/services/llm/llm-fetch.ts'
 import { resetModelRequestQuirks } from '../../src/main/services/llm/llm-provider.ts'
 import { PexelsClient } from '../../src/main/services/pexels/pexels-client.ts'
@@ -139,12 +140,24 @@ export function toolResults(run: JobRun, tool: string): Array<Record<string, unk
     .map((entry) => entry.data as Record<string, unknown>)
 }
 
-/** The beat-split reply: one beat per text, in order. */
+/**
+ * The beat-split reply: one beat per text, in order. Each beat ends at the last sentence of its
+ * text, so the texts must be the sentences of the script, in order, for the beats to match it.
+ */
 export function submitBeats(texts: string[]): ToolCallSpec {
+  let lastSentence = 0
   return {
-    name: 'submit_script_beats',
+    name: 'submit_beat_plan',
     args: {
-      beats: texts.map((text, index) => ({ text, visualPrompt: `stock footage ${index + 1}` }))
+      beats: texts.map((text, index) => {
+        lastSentence += splitScriptSentences(text).length
+        return {
+          lastSentence,
+          visualPrompt: `stock footage ${index + 1}`,
+          queries: [`stock footage ${index + 1}`],
+          assetType: 'either'
+        }
+      })
     }
   }
 }

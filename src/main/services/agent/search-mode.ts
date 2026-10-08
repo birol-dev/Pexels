@@ -46,6 +46,8 @@ export type BuildStockScoutSystemPromptInput = {
   avoidPeople: boolean
   /** Number of beats in the job; lets the prompt call out a cap lower than the beat count. */
   beatCount?: number
+  /** True when the beats in the catalog come with suggested queries (jobs from before they did, have none). */
+  suggestedQueries?: boolean
   /** Job-wide model-turn budget; lets the prompt tell the model to batch its calls. */
   maxIterations?: number
 }
@@ -54,6 +56,10 @@ export type BeatCatalogItem = {
   id: string
   text?: string
   visualPrompt: string
+  /** Queries the beat split suggested, most specific first. */
+  queries?: string[]
+  /** Left out for a mix that allows a single type, where it would say nothing. */
+  assetType?: 'video' | 'photo' | 'either'
 }
 
 export function buildStockScoutSystemPrompt(input: BuildStockScoutSystemPromptInput): string {
@@ -77,6 +83,9 @@ export function buildStockScoutSystemPrompt(input: BuildStockScoutSystemPromptIn
   ].filter(Boolean)
   const safetyLine = safety.length > 0 ? `\n- Safety: ${safety.join(' ')}` : ''
 
+  const suggestedQueriesNote = input.suggestedQueries
+    ? '\nEach beat comes with suggested queries. Start with the first. Use the others if its results are weak.'
+    : ''
   const visualConcept = input.visualConcept?.trim()
   const conceptLine = visualConcept ? `\n- Visual direction for this video: ${visualConcept}` : ''
 
@@ -128,7 +137,7 @@ Script configuration:
 - Max assets per beat: ${input.maxAssetsPerBeat}
 - Max total downloads allowed: ${input.maxTotalDownloads}${safetyLine}
 
-The visual beat catalog is provided in the first user message and does not change during the job.
+The visual beat catalog is provided in the first user message and does not change during the job.${suggestedQueriesNote}
 A later user message may include a live beat status snapshot; treat that snapshot as the current truth for asset progress.
 
 How to work efficiently:
@@ -167,7 +176,9 @@ export function buildBeatCatalogUserContent(beats: BeatCatalogItem[]): string {
   const catalog = beats.map((beat) => ({
     id: beat.id,
     text: beat.text,
-    visualPrompt: beat.visualPrompt
+    visualPrompt: beat.visualPrompt,
+    queries: beat.queries?.length ? beat.queries : undefined,
+    assetType: beat.assetType
   }))
   return `Visual beat catalog (stable for this job):
 ${JSON.stringify(catalog, null, 2)}`

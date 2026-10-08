@@ -17,13 +17,14 @@ import { chooseVariant } from '../pexels/choose-variant.ts'
 import { variantDimensions } from '../pexels/variant-dimensions.ts'
 import { buildManifestAttribution } from '../pexels/pexels-attribution.ts'
 import {
-  SUBMIT_SCRIPT_BEATS_TOOL,
-  buildBeatCorrectionMessage,
+  SUBMIT_BEAT_PLAN_TOOL,
+  beatsFromPlan,
   buildBeatSplitSystemPrompt,
-  findScriptMismatch,
+  buildBeatSplitUserMessage,
   missingBeatToolCallError,
-  parseBeatsFromToolCall,
-  type ParsedScriptBeat
+  parseBeatPlanFromToolCall,
+  splitScriptSentences,
+  type BeatAssetType
 } from '../llm/beat-parse-tool.ts'
 import { expandIdeaToScript } from '../llm/idea-expander.ts'
 import {
@@ -126,6 +127,10 @@ export interface VisualBeat {
   id: string
   text: string
   visualPrompt: string
+  /** Queries the beat split suggested, most specific first. Jobs from before it did so have none. */
+  queries?: string[]
+  /** The type of footage the beat split asked for. Jobs from before it did so have none. */
+  assetType?: BeatAssetType
   searchQueries: string[]
   assets: AssetRecord[]
   rejectedAssets?: Array<{ type: 'photo' | 'video'; pexelsId: number; reason: string }>
@@ -1102,6 +1107,11 @@ export class AgentRunner extends EventEmitter {
       throw new Error(`Missing API Key for LLM provider: ${this.providerId}`)
     }
 
+    const sentences = splitScriptSentences(this.input.script)
+    if (sentences.length === 0) {
+      throw new Error('Script parsing failed: the script has no sentences.')
+    }
+
     const provider = LlmProviderFactory.getProvider(this.providerId)
     const systemPrompt = buildBeatSplitSystemPrompt({
       maxTotalDownloads: this.input.maxTotalDownloads,
@@ -1110,82 +1120,72 @@ export class AgentRunner extends EventEmitter {
       visualConcept: this.input.visualConcept
     })
 
-    const requestBeats = async (userContent: string): Promise<ParsedScriptBeat[]> => {
-      const response = await this.executeWithTimeout(this.llmRequestTimeoutSeconds, (signal) =>
-        provider.createToolTurn(
-          {
-            model: this.modelId,
-            systemPrompt,
-            messages: [{ role: 'user', content: userContent }],
-            tools: [SUBMIT_SCRIPT_BEATS_TOOL],
-            toolChoice: { name: 'submit_script_beats' },
-            temperature: 0.2,
-            maxOutputTokens: LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
-            abortSignal: signal,
-            sessionId: `stockfinder:${this.jobId}`,
-            reasoning: LLM_STRUCTURED_REASONING
-          },
-          { apiKey: providerKey }
-        )
+    const response = await this.executeWithTimeout(this.llmRequestTimeoutSeconds, (signal) =>
+      provider.createToolTurn(
+        {
+          model: this.modelId,
+          systemPrompt,
+          messages: [{ role: 'user', content: buildBeatSplitUserMessage(sentences) }],
+          tools: [SUBMIT_BEAT_PLAN_TOOL],
+          toolChoice: { name: 'submit_beat_plan' },
+          temperature: 0.2,
+          maxOutputTokens: LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
+          abortSignal: signal,
+          sessionId: `stockfinder:${this.jobId}`,
+          reasoning: LLM_STRUCTURED_REASONING
+        },
+        { apiKey: providerKey }
       )
+    )
 
-      if (response.usage) {
-        this.usage.inputTokens += response.usage.inputTokens || 0
-        this.usage.outputTokens += response.usage.outputTokens || 0
-        this.usage.totalTokens += response.usage.totalTokens || 0
-        this.usage.cachedInputTokens += response.usage.cachedInputTokens || 0
-      }
-
-      let beatToolCall = response.toolCalls.find((tc) => tc.name === 'submit_script_beats')
-      if (!beatToolCall && response.assistantMessage.content) {
-        const extracted = extractToolCallsFromText(response.assistantMessage.content, [
-          'submit_script_beats'
-        ])
-        beatToolCall = extracted.find((tc) => tc.name === 'submit_script_beats')
-      }
-      if (!beatToolCall) {
-        const fallbackContent = response.assistantMessage.content || ''
-        this.log(
-          'error',
-          `Model did not call submit_script_beats (stop=${response.stopReason}, output=${response.usage?.outputTokens ?? '?'}, reasoning=${response.usage?.reasoningTokens ?? '?'}). Raw content: ${fallbackContent}`
-        )
-        throw missingBeatToolCallError(response)
-      }
-
-      return parseBeatsFromToolCall(beatToolCall.arguments)
+    if (response.usage) {
+      this.usage.inputTokens += response.usage.inputTokens || 0
+      this.usage.outputTokens += response.usage.outputTokens || 0
+      this.usage.totalTokens += response.usage.totalTokens || 0
+      this.usage.cachedInputTokens += response.usage.cachedInputTokens || 0
     }
 
-    let parsedBeats = await requestBeats(this.input.script)
-    const mismatch = findScriptMismatch(this.input.script, parsedBeats)
-    if (mismatch) {
-      // Beat text drives the catalog the agent works from, so a dropped sentence would
-      // silently never get footage. Ask once for a faithful copy; keep going if still off.
-      this.log('info', `Warning: beat segmentation changed the script. Retrying once. ${mismatch}`)
-      const retried = await requestBeats(
-        `${this.input.script}\n\n---\n${buildBeatCorrectionMessage(mismatch)}`
+    let beatToolCall = response.toolCalls.find((tc) => tc.name === 'submit_beat_plan')
+    if (!beatToolCall && response.assistantMessage.content) {
+      const extracted = extractToolCallsFromText(response.assistantMessage.content, [
+        'submit_beat_plan'
+      ])
+      beatToolCall = extracted.find((tc) => tc.name === 'submit_beat_plan')
+    }
+    if (!beatToolCall) {
+      const fallbackContent = response.assistantMessage.content || ''
+      this.log(
+        'error',
+        `Model did not call submit_beat_plan (stop=${response.stopReason}, output=${response.usage?.outputTokens ?? '?'}, reasoning=${response.usage?.reasoningTokens ?? '?'}). Raw content: ${fallbackContent}`
       )
-      const retryMismatch = findScriptMismatch(this.input.script, retried)
-      if (!retryMismatch) {
-        parsedBeats = retried
-      } else {
-        this.log(
-          'info',
-          `Warning: beats still do not match the script after a retry; continuing with the first attempt. ${retryMismatch}`
-        )
-      }
+      throw missingBeatToolCallError(response)
     }
 
-    if (parsedBeats.length > this.input.maxTotalDownloads) {
+    // The beats are cut from the script's own sentences, so their text always matches it.
+    const { beats: plannedBeats, repaired } = beatsFromPlan(
+      sentences,
+      parseBeatPlanFromToolCall(beatToolCall.arguments)
+    )
+    if (repaired) {
       this.log(
         'info',
-        `Warning: the script has ${parsedBeats.length} beats but the download cap is ${this.input.maxTotalDownloads}, so some beats will get no footage. Raise the cap to cover every beat.`
+        `Warning: the beat plan did not end each beat at a sentence of the script, so its ends were adjusted. The script has ${sentences.length} sentences.`
       )
     }
 
-    this.beats = parsedBeats.map((beat, index) => ({
+    if (plannedBeats.length > this.input.maxTotalDownloads) {
+      this.log(
+        'info',
+        `Warning: the script has ${plannedBeats.length} beats but the download cap is ${this.input.maxTotalDownloads}, so some beats will get no footage. Raise the cap to cover every beat.`
+      )
+    }
+
+    this.beats = plannedBeats.map((beat, index) => ({
       id: `beat_${index + 1}`,
       text: beat.text,
       visualPrompt: beat.visualPrompt,
+      queries: beat.queries,
+      assetType: beat.assetType,
       searchQueries: [],
       assets: [],
       status: 'pending'
@@ -1217,6 +1217,7 @@ export class AgentRunner extends EventEmitter {
       skipExplicit: this.safetySettings.skipExplicit,
       avoidPeople: this.safetySettings.avoidPeople,
       beatCount: this.beats.length,
+      suggestedQueries: this.beats.some((b) => b.queries && b.queries.length > 0),
       maxIterations: this.maxIterations
     })
 
@@ -1280,6 +1281,12 @@ export class AgentRunner extends EventEmitter {
                 id: b.id,
                 text: b.text,
                 visualPrompt: b.visualPrompt,
+                queries: b.queries,
+                // A preference between types means nothing when the mix allows only one.
+                assetType:
+                  this.canUseAssetType('video') && this.canUseAssetType('photo')
+                    ? b.assetType
+                    : undefined,
                 status: b.status,
                 assets: b.assets.map((a) => ({ id: a.id, type: a.type, status: a.status }))
               })),
