@@ -126,6 +126,7 @@ export interface PublicSettings {
    * controlled, so settings saved by earlier versions still work.
    */
   hideEstimatedCost?: boolean
+  autoCheckForUpdates?: boolean
 }
 
 export interface ModalState {

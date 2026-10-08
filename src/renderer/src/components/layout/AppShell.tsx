@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useAppStore } from '@renderer/lib/store'
 import { Sidebar } from './Sidebar'
 import { TabBar } from './TabBar'
+import { UpdateBanner } from './UpdateBanner'
 
 export function AppShell({ children }: { children: React.ReactNode }): React.JSX.Element {
   const [collapsed, setCollapsed] = useState(false)
@@ -19,6 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }): React.JSX
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
       <main className="relative z-10 flex min-w-0 flex-1 flex-col bg-background">
         <TabBar />
+        <UpdateBanner />
         <div ref={scrollRef} className="min-h-0 grow overflow-y-auto [scrollbar-gutter:stable]">
           <div
             key={`${currentRoute}:${activeTabId}`}

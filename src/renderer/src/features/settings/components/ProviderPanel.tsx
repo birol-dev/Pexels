@@ -1,4 +1,4 @@
-import { ArrowsLeftRightIcon, CircleNotchIcon, CpuIcon } from '@phosphor-icons/react'
+import { ArrowsLeftRightIcon, CircleNotchIcon, CpuIcon, TrashIcon } from '@phosphor-icons/react'
 import { Badge } from '@renderer/components/ui/badge'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
@@ -13,6 +13,7 @@ import { api } from '@renderer/lib/api-client'
 import type { PublicSettings } from '@renderer/lib/store'
 import { useConnectionTest } from '../hooks/useConnectionTest'
 import type { SettingsForm } from '../hooks/useSettingsForm'
+import { switchProviderModel } from '../model-memory'
 import {
   DEFAULT_MODEL_BY_PROVIDER,
   PROVIDER_OPTIONS,
@@ -35,8 +36,12 @@ export function ProviderPanel({
   form,
   className
 }: ProviderPanelProps): React.JSX.Element {
-  const { keys, setKey, update, updateNow } = form
+  const { keys, setKey, commitKey, removeKey, update, updateNow } = form
   const keyField = secretFieldForProvider(settings.llmProvider)
+  const providerLabel =
+    PROVIDER_OPTIONS.find((option) => option.value === settings.llmProvider)?.label ??
+    settings.llmProvider
+  const hasStoredKey = Boolean(settings[keyField])
 
   const { testing, result, run, reset } = useConnectionTest(async () => {
     const response = await api.settings.testProvider({
@@ -48,7 +53,11 @@ export function ProviderPanel({
   }, 'Connection test failed.')
 
   const handleProviderChange = (provider: LlmProvider): void => {
-    updateNow({ llmProvider: provider, modelId: DEFAULT_MODEL_BY_PROVIDER[provider] })
+    // Switching back restores the model last used with that provider, not its default.
+    updateNow({
+      llmProvider: provider,
+      ...switchProviderModel(settings, provider, DEFAULT_MODEL_BY_PROVIDER)
+    })
     reset()
   }
 
@@ -92,14 +101,22 @@ export function ProviderPanel({
         </SettingsField>
       </div>
 
-      <SettingsField label="API Key" htmlFor="llm-api-key">
+      <SettingsField
+        label="API Key"
+        htmlFor="llm-api-key"
+        hint="Saved when you press Enter or leave the field."
+      >
         <div className="flex gap-4">
           <Input
             id="llm-api-key"
             type="password"
-            placeholder={settings[keyField] ? '••••••••••••••••' : 'Enter provider key...'}
+            placeholder={hasStoredKey ? '••••••••••••••••' : 'Enter provider key...'}
             value={keys[keyField]}
             onChange={(e) => setKey(keyField, e.target.value)}
+            onBlur={(e) => commitKey(keyField, e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitKey(keyField, e.currentTarget.value)
+            }}
             className="flex-1 font-mono tracking-widest"
           />
           <Button type="button" variant="secondary" disabled={testing} onClick={run}>
@@ -110,6 +127,17 @@ export function ProviderPanel({
             )}
             <span className="font-label-sm text-label-sm uppercase">Test Key</span>
           </Button>
+          {hasStoredKey && !keys[keyField] && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="hover:border-error hover:bg-error-container hover:text-on-error-container"
+              onClick={() => removeKey(keyField, providerLabel)}
+            >
+              <TrashIcon size={18} aria-hidden />
+              <span className="font-label-sm text-label-sm uppercase">Remove key</span>
+            </Button>
+          )}
         </div>
       </SettingsField>
 

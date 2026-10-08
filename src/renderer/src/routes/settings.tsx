@@ -8,6 +8,7 @@ import { PexelsPanel } from '@renderer/features/settings/components/PexelsPanel'
 import { ProviderPanel } from '@renderer/features/settings/components/ProviderPanel'
 import { SafetyPanel } from '@renderer/features/settings/components/SafetyPanel'
 import { StoragePanel } from '@renderer/features/settings/components/StoragePanel'
+import { UpdatesPanel } from '@renderer/features/settings/components/UpdatesPanel'
 import { useSettingsForm } from '@renderer/features/settings/hooks/useSettingsForm'
 
 export default function SettingsView(): React.JSX.Element {
@@ -44,6 +45,7 @@ export default function SettingsView(): React.JSX.Element {
           <AppearancePanel settings={settings} form={form} />
           <SafetyPanel settings={settings} form={form} />
         </div>
+        <UpdatesPanel settings={settings} form={form} className="md:col-span-12" />
         <div className="md:col-span-12">
           <ActionsBar />
         </div>

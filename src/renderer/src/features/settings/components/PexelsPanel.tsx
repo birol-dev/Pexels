@@ -1,4 +1,4 @@
-import { CheckCircleIcon, CircleNotchIcon, ImagesIcon } from '@phosphor-icons/react'
+import { CheckCircleIcon, CircleNotchIcon, ImagesIcon, TrashIcon } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { api } from '@renderer/lib/api-client'
@@ -17,7 +17,8 @@ interface PexelsPanelProps {
 }
 
 export function PexelsPanel({ settings, form, className }: PexelsPanelProps): React.JSX.Element {
-  const { keys, setKey } = form
+  const { keys, setKey, commitKey, removeKey } = form
+  const hasStoredKey = Boolean(settings.pexelsKey)
 
   const { testing, result, run } = useConnectionTest(async () => {
     const response = await api.settings.testPexelsKey(keys.pexelsKey || 'CURRENT_KEY_ON_DISK')
@@ -38,11 +39,18 @@ export function PexelsPanel({ settings, form, className }: PexelsPanelProps): Re
         <Input
           id="pexels-key"
           type="password"
-          placeholder={settings.pexelsKey ? '••••••••••••••••' : 'Enter Pexels key...'}
+          placeholder={hasStoredKey ? '••••••••••••••••' : 'Enter Pexels key...'}
           value={keys.pexelsKey}
           onChange={(e) => setKey('pexelsKey', e.target.value)}
+          onBlur={(e) => commitKey('pexelsKey', e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commitKey('pexelsKey', e.currentTarget.value)
+          }}
           className="font-mono"
         />
+        <p className="select-none text-xs text-muted-foreground">
+          Saved when you press Enter or leave the field.
+        </p>
         <Button
           type="button"
           variant="secondary"
@@ -57,6 +65,17 @@ export function PexelsPanel({ settings, form, className }: PexelsPanelProps): Re
           )}
           <span className="font-label-sm text-label-sm uppercase">Verify Connection</span>
         </Button>
+        {hasStoredKey && !keys.pexelsKey && (
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full hover:border-error hover:bg-error-container hover:text-on-error-container"
+            onClick={() => removeKey('pexelsKey', 'Pexels')}
+          >
+            <TrashIcon size={18} aria-hidden />
+            <span className="font-label-sm text-label-sm uppercase">Remove key</span>
+          </Button>
+        )}
       </SettingsField>
       <TestResult title="Pexels Connection Test" result={result} />
     </SettingsSection>

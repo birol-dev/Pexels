@@ -1,4 +1,4 @@
-import { CheckIcon } from '@phosphor-icons/react'
+import { CheckIcon, WarningIcon } from '@phosphor-icons/react'
 import { Badge } from '@renderer/components/ui/badge'
 import { cn } from '@renderer/lib/utils'
 
@@ -7,6 +7,8 @@ interface SummaryCardProps {
   title: string
   value: string
   status: string
+  /** False marks something the user still has to fix. Defaults to true. */
+  ok?: boolean
   mono?: boolean
   className?: string
 }
@@ -16,6 +18,7 @@ export function SummaryCard({
   title,
   value,
   status,
+  ok = true,
   mono,
   className
 }: SummaryCardProps): React.JSX.Element {
@@ -26,7 +29,14 @@ export function SummaryCard({
         className
       )}
     >
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-sm border border-secondary/20 bg-secondary/10 text-secondary [&_svg]:size-5">
+      <div
+        className={cn(
+          'flex size-9 shrink-0 items-center justify-center rounded-sm border [&_svg]:size-5',
+          ok
+            ? 'border-secondary/20 bg-secondary/10 text-secondary'
+            : 'border-edge bg-error-container text-on-error-container'
+        )}
+      >
         {icon}
       </div>
       <div className="min-w-0 grow">
@@ -36,9 +46,14 @@ export function SummaryCard({
         </p>
         <Badge
           variant="outline"
-          className="mt-1.5 gap-1 border-secondary/20 bg-secondary/10 font-mono text-[11px] text-secondary uppercase"
+          className={cn(
+            'mt-1.5 gap-1 font-mono text-[11px] uppercase',
+            ok
+              ? 'border-secondary/20 bg-secondary/10 text-secondary'
+              : 'border-edge bg-error-container text-on-error-container'
+          )}
         >
-          <CheckIcon size={10} weight="bold" />
+          {ok ? <CheckIcon size={10} weight="bold" /> : <WarningIcon size={10} weight="bold" />}
           {status}
         </Badge>
       </div>

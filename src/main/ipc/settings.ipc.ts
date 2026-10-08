@@ -27,6 +27,7 @@ const SettingsUpdateSchema = z.object({
   isOnboarded: z.boolean().optional(),
   theme: z.enum(['flat-black', 'flat-white']).optional(),
   hideEstimatedCost: z.boolean().optional(),
+  autoCheckForUpdates: z.boolean().optional(),
   // Keys are sent in the update payload but stored securely in Keychain, not in settings.json
   openaiKey: z.string().optional(),
   geminiKey: z.string().optional(),
@@ -116,7 +117,8 @@ export function registerSettingsHandlers(): void {
         avoidPeopleAndFaces: input.avoidPeopleAndFaces,
         isOnboarded: input.isOnboarded,
         theme: input.theme,
-        hideEstimatedCost: input.hideEstimatedCost
+        hideEstimatedCost: input.hideEstimatedCost,
+        autoCheckForUpdates: input.autoCheckForUpdates
       }).filter(([, value]) => value !== undefined)
     )
     await SettingsStore.updateSettings(publicSettings)
@@ -185,8 +187,14 @@ export function registerSettingsHandlers(): void {
   })
 
   ipcMain.handle('settings:chooseDownloadFolder', async () => {
+    // Electron 43 stopped remembering the last folder, so open at the current download folder.
+    const current = await SettingsStore.getSettings().then(
+      (settings) => settings.downloadFolder,
+      () => undefined
+    )
     const result = await dialog.showOpenDialog({
-      properties: ['openDirectory']
+      properties: ['openDirectory'],
+      ...(current ? { defaultPath: current } : {})
     })
     return result.canceled ? null : result.filePaths[0]
   })

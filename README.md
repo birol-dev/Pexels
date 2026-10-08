@@ -123,6 +123,12 @@ The in-app onboarding wizard walks you through setup.
 
 ---
 
+## Privacy
+
+The app checks GitHub Releases for updates every six hours. You can turn this off in Settings.
+
+---
+
 ## Development
 
 ### Requirements
