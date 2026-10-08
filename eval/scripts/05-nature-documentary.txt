@@ -1,0 +1,14 @@
+---
+title: Spring on the tundra
+about: A nature documentary passage. Specific animals and places, with two assets allowed per beat.
+platform: YouTube
+style: nature
+mix: videos only
+maxAssetsPerBeat: 2
+maxTotalDownloads: 16
+---
+At the edge of the Arctic, winter loosens its grip slowly. For eight months the tundra has lain frozen under a sky that barely saw the sun. Now meltwater runs in thin silver threads across the ground, and the first green shoots push up through the moss.
+
+A herd of caribou moves north, thousands strong, following a route older than memory. Calves born only days ago must already keep pace. Overhead, snow geese arrive in loose white ribbons after a journey of three thousand miles. On a ridge, an Arctic fox still half in its winter coat listens for lemmings under the snow.
+
+Summer here lasts only a few weeks. Everything that lives on the tundra must feed, breed, and raise its young before the light fades and the ice returns.

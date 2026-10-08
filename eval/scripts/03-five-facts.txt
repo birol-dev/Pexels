@@ -1,0 +1,22 @@
+---
+title: Five facts about coffee
+about: A "5 facts" list script. Each fact needs its own image, and the counting lines ("Number one.") carry no image at all.
+platform: YouTube
+style: documentary
+mix: videos + photos
+maxAssetsPerBeat: 1
+maxTotalDownloads: 15
+---
+Here are five facts about coffee that will change how you look at your morning cup.
+
+Number one. Coffee beans are not beans. They are the seeds of a bright red fruit called a coffee cherry.
+
+Number two. According to legend, an Ethiopian goat herder discovered coffee when his goats ate the cherries and would not stop dancing.
+
+Number three. Finland drinks more coffee per person than any other country, about four cups a day.
+
+Number four. A shot of espresso has less caffeine than a regular cup of filter coffee, because the serving is so small.
+
+Number five. Coffee is one of the most traded farm products on Earth, and around twenty-five million small farms depend on it.
+
+So the next time you take a sip, remember how far it travelled to reach you.

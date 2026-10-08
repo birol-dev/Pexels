@@ -1,0 +1,10 @@
+---
+title: Brot um vier Uhr morgens
+about: A German script. Beat text must stay German, word for word, while visual prompts and Pexels queries are written in English.
+platform: YouTube
+style: documentary
+mix: videos + photos
+maxAssetsPerBeat: 1
+maxTotalDownloads: 12
+---
+Um vier Uhr morgens, wenn die Stadt noch schläft, brennt in der Backstube schon Licht. Der Bäcker knetet den Teig mit beiden Händen, so wie es schon sein Großvater getan hat. Mehl, Wasser, Salz und Sauerteig, mehr braucht ein gutes Brot nicht. Der Teig ruht viele Stunden, und in dieser Zeit entsteht der Geschmack. Dann schiebt der Bäcker die Laibe in den heißen Steinofen. Langsam färbt sich die Kruste dunkelbraun, und der Duft zieht hinaus auf die Straße. Um sechs Uhr stehen die ersten Kunden vor der Tür. In Deutschland gibt es mehr als dreitausend Brotsorten, und jede Region hat ihre eigene. Doch immer mehr kleine Bäckereien schließen, weil der Nachwuchs fehlt. Wer morgens ein frisches Brot kauft, hält ein Stück Handwerk in der Hand, das es zu bewahren gilt.

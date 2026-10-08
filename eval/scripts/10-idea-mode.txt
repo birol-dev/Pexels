@@ -1,0 +1,13 @@
+---
+title: How cats land on their feet
+about: An idea-mode input. The text below is the idea, not a script, so the job first expands it into a narration and a visual concept.
+platform: TikTok
+style: cinematic
+mix: videos only
+maxAssetsPerBeat: 1
+maxTotalDownloads: 8
+inputMode: idea
+targetDuration: 30s
+tone: Educational & Explainer
+---
+Why do cats almost always land on their feet? Explain the righting reflex step by step, the way you would to a curious ten-year-old, and end with one surprising fact about how high a cat can fall and still walk away.

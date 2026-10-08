@@ -1,0 +1,11 @@
+---
+title: A slow Sunday
+about: A people-heavy lifestyle script, run with "Avoid people & faces" on. Every sentence is about people, so the footage has to show the places and objects around them.
+platform: Instagram Reels
+style: lifestyle
+mix: videos only
+maxAssetsPerBeat: 1
+maxTotalDownloads: 10
+avoidPeople: true
+---
+Sunday is for slowing down. Friends crowd around the kitchen table while someone flips pancakes and someone else pours the coffee. The kids race down the hallway in their pajamas, laughing at nothing. Later, a couple walks the dog through the park, hand in hand, in no hurry at all. Grandma calls, and the whole family squeezes onto the couch to wave at the screen. In the afternoon the neighbors gather in the backyard, and the grill starts to smoke. As the sun goes down, everyone lingers at the long table, talking over empty plates. That is the whole secret. Good people, good food, and nowhere else to be.
