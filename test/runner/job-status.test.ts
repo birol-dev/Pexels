@@ -7,6 +7,7 @@ import { AgentRunner, type StartJobInput } from '../../src/main/services/agent/a
 import { ProjectStore } from '../../src/main/services/storage/project-store.ts'
 import { invokeIpc } from '../support/electron-stub.mjs'
 import { installFakeNetwork, type FakeNetwork } from '../support/fake-network.ts'
+import { holdLlmRequest, holdVideoSearch, until } from '../support/gates.ts'
 import { video, videoFileUrl } from '../support/pexels-fixtures.ts'
 import {
   applyTestSettings,
@@ -30,40 +31,6 @@ const ONE_BEAT_INPUT: StartJobInput = {
   mix: 'videos + photos',
   maxAssetsPerBeat: 1,
   maxTotalDownloads: 10
-}
-
-/** Holds the answer to the nth chat completion request until `release()` is called. */
-function holdLlmRequest(nth: number): { reached: Promise<void>; release: () => void } {
-  const fakeFetch = globalThis.fetch
-  let seen = 0
-  let release = (): void => {}
-  let reachedResolve = (): void => {}
-  const reached = new Promise<void>((resolve) => (reachedResolve = resolve))
-  const gate = new Promise<void>((resolve) => (release = resolve))
-  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
-    if (String(input).endsWith('/chat/completions') && ++seen === nth) {
-      reachedResolve()
-      await gate
-    }
-    return fakeFetch(input, init)
-  }) as typeof globalThis.fetch
-  return { reached, release }
-}
-
-/** Holds the answer to a video search for `query` until `ready()` is true. */
-function holdSearchUntil(query: string, ready: () => boolean): void {
-  const fakeFetch = globalThis.fetch
-  globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
-    const url = new URL(String(input))
-    if (url.pathname === '/v1/videos/search' && url.searchParams.get('query') === query) {
-      const startedAt = Date.now()
-      while (!ready()) {
-        if (Date.now() - startedAt > 5000) throw new Error('The condition never became true.')
-        await new Promise((resolve) => setTimeout(resolve, 5))
-      }
-    }
-    return fakeFetch(input, init)
-  }) as typeof globalThis.fetch
 }
 
 async function savedReason(projectDir: string): Promise<unknown> {
@@ -111,12 +78,13 @@ describe('runner: job status', () => {
 
       await applyTestSettings()
       const runner = new AgentRunner(nextJobId(), { ...ONE_BEAT_INPUT })
-      holdSearchUntil(
-        'busy road',
-        () => runner.getSnapshot().beats[0]?.assets[0]?.status === 'completed'
-      )
+      const search = holdVideoSearch('busy road')
       await runner.ensureRegistered()
-      await withDeadline(runner, runner.start())
+      const run = runner.start()
+      await search.reached
+      await until(() => runner.getSnapshot().beats[0]?.assets[0]?.status === 'completed')
+      search.release()
+      await withDeadline(runner, run)
 
       const snapshot = runner.getSnapshot()
       const { summary, manifest } = await readJob(snapshot.jobId)

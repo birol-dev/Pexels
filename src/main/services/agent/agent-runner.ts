@@ -80,6 +80,8 @@ import {
 } from './job-status.ts'
 import { createTrailingThrottle } from './progress-throttle.ts'
 import { removeStaleDownloadTemps } from '../files/temp-cleanup.ts'
+import { isPathInside } from '../files/path-safety.ts'
+import { moveFileToTrash } from '../files/trash-file.ts'
 import {
   DEFAULT_SEARCH_MODE,
   buildBroadSearchNudgeMessage,
@@ -283,6 +285,34 @@ export class AgentRunner extends EventEmitter {
     await this.saveRegistry()
     await this.writeAgentState()
     await this.writeManifest(true)
+  }
+
+  private recountAssets(): void {
+    let downloaded = 0
+    let failed = 0
+    for (const b of this.beats) {
+      for (const a of b.assets || []) {
+        if (a.status === 'completed') downloaded++
+        else if (a.status === 'failed') failed++
+      }
+    }
+    this.downloadedCount = downloaded
+    this.failedCount = failed
+  }
+
+  /**
+   * The live record for an asset id. The lookup map is filled lazily, so it can miss records
+   * loaded from the manifest; a released duplicate (failed) never shadows the live one.
+   */
+  private findAssetRecord(assetId: string): AssetRecord | undefined {
+    let found: AssetRecord | undefined
+    for (const b of this.beats) {
+      for (const a of b.assets || []) {
+        if (a.id !== assetId) continue
+        if (!found || (found.status === 'failed' && a.status !== 'failed')) found = a
+      }
+    }
+    return found
   }
 
   private rebuildAssetLookup(): void {
@@ -570,18 +600,7 @@ export class AgentRunner extends EventEmitter {
       }
 
       // Update metrics
-      let downloaded = 0
-      let failed = 0
-      for (const b of this.beats) {
-        if (b.assets) {
-          for (const a of b.assets) {
-            if (a.status === 'completed') downloaded++
-            else if (a.status === 'failed') failed++
-          }
-        }
-      }
-      this.downloadedCount = downloaded
-      this.failedCount = failed
+      this.recountAssets()
       this.rebuildAssetLookup()
     } catch {
       // Manifest doesn't exist yet, which is normal for new runs
@@ -783,6 +802,50 @@ export class AgentRunner extends EventEmitter {
       await this.writeAgentState()
       await this.writeManifest()
     }
+    this.emitSnapshot()
+  }
+
+  /**
+   * Library correction: files that disappeared from disk. The record changes in memory first,
+   * so the runner's next write cannot bring the file back.
+   */
+  public async markFilesMissing(assetIds: string[]): Promise<void> {
+    let changed = false
+    for (const id of assetIds) {
+      const record = this.findAssetRecord(id)
+      if (record?.status === 'completed') {
+        record.status = 'failed'
+        record.error = 'File not found on disk'
+        record.filePath = undefined
+        changed = true
+      }
+    }
+    if (!changed) return
+    this.recountAssets()
+    await this.persistSnapshot()
+    this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
+    this.emitSnapshot()
+  }
+
+  /**
+   * Library delete. The file goes to the trash first, so a failed trash leaves the record
+   * as it was. Refuses while the asset is still downloading.
+   */
+  public async deleteLocalAsset(assetId: string): Promise<void> {
+    const record = this.findAssetRecord(assetId)
+    if (!record) return
+    if (record.status === 'downloading') {
+      throw new Error('Wait for this download to finish before deleting it.')
+    }
+    if (record.filePath && this.projectDir && isPathInside(this.projectDir, record.filePath)) {
+      await moveFileToTrash(record.filePath)
+    }
+    record.status = 'failed'
+    record.error = 'Deleted by user'
+    record.filePath = undefined
+    this.recountAssets()
+    await this.persistSnapshot()
+    this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
     this.emitSnapshot()
   }
 
@@ -2020,19 +2083,7 @@ export class AgentRunner extends EventEmitter {
         parentBeat.status = 'failed'
       }
 
-      // Fast count recalculation
-      let downloaded = 0
-      let failed = 0
-      for (const b of this.beats) {
-        if (b.assets) {
-          for (const a of b.assets) {
-            if (a.status === 'completed') downloaded++
-            else if (a.status === 'failed') failed++
-          }
-        }
-      }
-      this.downloadedCount = downloaded
-      this.failedCount = failed
+      this.recountAssets()
 
       // Whether the job is finished is decided when the loop ends (finalizeRun), never here:
       // the model may be in the middle of a turn whose remaining calls still have to run.
