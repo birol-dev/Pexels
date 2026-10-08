@@ -304,6 +304,7 @@ export function registerJobsHandlers(): void {
       targetDuration: input.targetDuration,
       tone: input.tone,
       title: input.title,
+      avoidPeople: settings.avoidPeopleAndFaces,
       timeoutSeconds: settings.requestTimeoutSeconds,
       providerId,
       modelId,

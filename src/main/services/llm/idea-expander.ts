@@ -14,7 +14,6 @@ export interface ExpandedScriptResult {
   title?: string
   script: string
   visualConcept: string
-  keyThemes?: string[]
 }
 
 export interface ExpandIdeaParams {
@@ -24,6 +23,8 @@ export interface ExpandIdeaParams {
   targetDuration?: string
   tone?: string
   title?: string
+  /** The creator wants no people on screen, so the script should not need any. */
+  avoidPeople?: boolean
   timeoutSeconds?: number
   providerId: 'openai' | 'gemini' | 'openrouter'
   modelId: string
@@ -54,11 +55,6 @@ export const SUBMIT_EXPANDED_SCRIPT_TOOL: NormalizedToolDefinition = {
         type: 'string',
         description:
           'A summary of the visual direction, stock b-roll mood, cinematography style, and pacing for this video.'
-      },
-      keyThemes: {
-        type: 'array',
-        items: { type: 'string' },
-        description: '3-5 key visual themes or subjects for stock media search.'
       }
     },
     required: ['script', 'visualConcept']
@@ -83,17 +79,11 @@ export function parseExpandedScriptFromToolCall(argumentsJson: string): Expanded
     title?: unknown
     script?: unknown
     visualConcept?: unknown
-    keyThemes?: unknown
   }
 
   const script = typeof record.script === 'string' ? record.script.trim() : ''
   const visualConcept = typeof record.visualConcept === 'string' ? record.visualConcept.trim() : ''
   const title = typeof record.title === 'string' ? record.title.trim() : undefined
-  const keyThemes = Array.isArray(record.keyThemes)
-    ? record.keyThemes.filter(
-        (t): t is string => typeof t === 'string' && !Number.isNaN(t) && !!t.trim()
-      )
-    : undefined
 
   if (!script) {
     throw new Error('Expanded script tool response is missing valid "script" text.')
@@ -102,8 +92,7 @@ export function parseExpandedScriptFromToolCall(argumentsJson: string): Expanded
   return {
     title,
     script,
-    visualConcept: visualConcept || 'Dynamic stock footage reflecting the narrative pacing.',
-    keyThemes
+    visualConcept: visualConcept || 'Dynamic stock footage reflecting the narrative pacing.'
   }
 }
 
@@ -130,6 +119,25 @@ export function parseFallbackExpandedScript(rawText: string): ExpandedScriptResu
   }
 }
 
+export function buildIdeaExpanderSystemPrompt(input: { avoidPeople?: boolean } = {}): string {
+  const peopleRule = input.avoidPeople
+    ? '\n- The creator wants no people on screen. Write sentences whose images can be places, objects, nature, or hands.'
+    : ''
+  const scenes = input.avoidPeople
+    ? 'places, objects, actions, textures, emotions'
+    : 'places, people, objects, actions, textures, emotions'
+
+  return `Write a voiceover script for a short video from the creator's idea, a one-paragraph visual direction for finding stock footage, and a title.
+
+Scriptwriting rules:
+- Write natural spoken English meant to be read as a voiceover narration.
+- Do not include bracketed video directions or timestamps inside the "script" field (for example, do not write "[Cut to drone shot]" or "0:05"). Put purely the spoken voiceover text in "script" so it can be cleanly broken into visual beats.
+- Ensure every sentence naturally evokes concrete visual scenes (${scenes}).${peopleRule}
+- End with a satisfying closing thought or clear call-to-action.
+
+Call the submit_expanded_script tool once with the complete output.`
+}
+
 export async function expandIdeaToScript(params: ExpandIdeaParams): Promise<ExpandedScriptResult> {
   const providerId = params.providerId || DEFAULT_LLM_PROVIDER
   const modelId = params.modelId || DEFAULT_MODEL_IDS[providerId]
@@ -154,19 +162,7 @@ export async function expandIdeaToScript(params: ExpandIdeaParams): Promise<Expa
   const isVertical =
     platform === 'Shorts' || platform === 'TikTok' || platform === 'Instagram Reels'
 
-  const systemPrompt = `You are a world-class video producer, viral content scriptwriter, and stock b-roll creative director.
-Your mission is to take a creator's short idea, topic, or premise and expand it into:
-1. A punchy, highly engaging, voiceover-ready narration script.
-2. A clear visual concept strategy optimized for stock footage curation on Pexels.
-3. A catchy, high-CTR video title.
-
-Scriptwriting Rules:
-- Write natural spoken English meant to be read as a voiceover narration.
-- Do NOT include bracketed video directions or timestamps inside the "script" field (e.g. do NOT write "[Cut to drone shot]" or "0:05"). Put purely the spoken voiceover text in "script" so it can be cleanly broken into visual beats.
-- Ensure every sentence naturally evokes concrete visual scenes (places, people, objects, actions, textures, emotions).
-- End with a satisfying closing thought or clear call-to-action.
-
-Call the submit_expanded_script tool once with the complete output.`
+  const systemPrompt = buildIdeaExpanderSystemPrompt({ avoidPeople: params.avoidPeople })
 
   const userPrompt = `Format and Pacing Guidelines:
 - Platform: ${platform} (${isVertical ? 'Vertical 9:16 format — fast hook in first 3 seconds, high retention flow, vivid visual cues' : 'Horizontal 16:9 format — clear narrative progression, immersive pacing'})

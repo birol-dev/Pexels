@@ -1,3 +1,4 @@
+import { visualStyleLine } from '../agent/style-guidance.ts'
 import type { NormalizedToolDefinition } from './llm-provider.ts'
 
 export interface ParsedScriptBeat {
@@ -76,12 +77,18 @@ export type BeatSplitPromptInput = {
   /** Total download cap for the job; every beat needs at least one asset. */
   maxTotalDownloads: number
   avoidPeople: boolean
+  style: string
+  /** The one-paragraph visual direction the idea step wrote, when there is one. */
+  visualConcept?: string
 }
 
 export function buildBeatSplitSystemPrompt(input: BeatSplitPromptInput): string {
   const peopleRule = input.avoidPeople
     ? '\n6. The user wants no people in the footage: describe objects, places, nature, hands, or silhouettes instead of faces, crowds, or close-ups of individuals.'
     : ''
+
+  const visualConcept = input.visualConcept?.trim()
+  const conceptLine = visualConcept ? `\nVisual direction for this video: ${visualConcept}` : ''
 
   return `You are a professional video editor and script analyzer.
 Break the provided script into visual beats (scenes or moments of visual focus).
@@ -92,6 +99,9 @@ Rules:
 3. Use at most ${input.maxTotalDownloads} beats. The job can download only ${input.maxTotalDownloads} assets in total and every beat needs at least one, so for a long script make beats longer instead of adding more.
 4. Write each visualPrompt as a concrete, filmable stock-search description in English: a visible subject plus an action or setting, 3-8 words (for example "empty trading floor at dusk"). For abstract narration such as "freedom" or "growth", pick a literal image a stock library would have, such as an open road or a seedling in sunlight.
 5. Never put brand names, logos, or named people in a visualPrompt.${peopleRule}
+
+Visual style: ${visualStyleLine(input.style)}${conceptLine}
+Write visual prompts that fit this look.
 
 Call the submit_script_beats tool once with the complete ordered beats array.`
 }

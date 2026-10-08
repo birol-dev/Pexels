@@ -1,3 +1,4 @@
+import { visualStyleLine } from './style-guidance.ts'
 import type { BeatAssetStatus } from './tool-schemas.ts'
 
 export type SearchMode = 'focused' | 'broad'
@@ -36,6 +37,8 @@ export type BuildStockScoutSystemPromptInput = {
   searchMode: SearchMode
   platform: string
   style: string
+  /** The one-paragraph visual direction the idea step wrote, when there is one. */
+  visualConcept?: string
   mix: string
   maxAssetsPerBeat: number
   maxTotalDownloads: number
@@ -73,6 +76,9 @@ export function buildStockScoutSystemPrompt(input: BuildStockScoutSystemPromptIn
       : ''
   ].filter(Boolean)
   const safetyLine = safety.length > 0 ? `\n- Safety: ${safety.join(' ')}` : ''
+
+  const visualConcept = input.visualConcept?.trim()
+  const conceptLine = visualConcept ? `\n- Visual direction for this video: ${visualConcept}` : ''
 
   // The tool list already limits the model to the types the mix allows.
   const mixesTypes = input.mix !== 'videos only' && input.mix !== 'photos only'
@@ -117,7 +123,7 @@ Script configuration:
       : ' (tighter match to each beat)'
   }
 - Platform: ${input.platform}
-- Visual style: ${input.style}
+- Visual style: ${visualStyleLine(input.style)}${conceptLine}
 - Asset mix: ${input.mix}
 - Max assets per beat: ${input.maxAssetsPerBeat}
 - Max total downloads allowed: ${input.maxTotalDownloads}${safetyLine}

@@ -1051,6 +1051,7 @@ export class AgentRunner extends EventEmitter {
       targetDuration: this.input.targetDuration,
       tone: this.input.tone,
       title: this.input.title,
+      avoidPeople: this.safetySettings.avoidPeople,
       timeoutSeconds: this.llmRequestTimeoutSeconds,
       providerId: this.providerId,
       modelId: this.modelId,
@@ -1104,7 +1105,9 @@ export class AgentRunner extends EventEmitter {
     const provider = LlmProviderFactory.getProvider(this.providerId)
     const systemPrompt = buildBeatSplitSystemPrompt({
       maxTotalDownloads: this.input.maxTotalDownloads,
-      avoidPeople: this.safetySettings.avoidPeople
+      avoidPeople: this.safetySettings.avoidPeople,
+      style: this.input.style,
+      visualConcept: this.input.visualConcept
     })
 
     const requestBeats = async (userContent: string): Promise<ParsedScriptBeat[]> => {
@@ -1207,6 +1210,7 @@ export class AgentRunner extends EventEmitter {
       searchMode,
       platform: this.input.platform,
       style: this.input.style,
+      visualConcept: this.input.visualConcept,
       mix: this.input.mix,
       maxAssetsPerBeat: this.input.maxAssetsPerBeat,
       maxTotalDownloads: this.input.maxTotalDownloads,

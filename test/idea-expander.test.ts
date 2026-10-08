@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
   SUBMIT_EXPANDED_SCRIPT_TOOL,
+  buildIdeaExpanderSystemPrompt,
   parseExpandedScriptFromToolCall,
   parseFallbackExpandedScript
 } from '../src/main/services/llm/idea-expander.ts'
@@ -22,15 +23,13 @@ describe('parseExpandedScriptFromToolCall', () => {
       script:
         'Beneath the dark waves lies a world rarely seen by human eyes. Mysterious creatures illuminate the abyss with bioluminescent glow. Scientists continue to uncover new species every single year.',
       visualConcept:
-        'Moody, dark underwater cinematography featuring glowing bioluminescent deep-sea organisms and submarine explorations.',
-      keyThemes: ['deep ocean', 'bioluminescence', 'underwater exploration']
+        'Moody, dark underwater cinematography featuring glowing bioluminescent deep-sea organisms and submarine explorations.'
     })
 
     const result = parseExpandedScriptFromToolCall(json)
     assert.equal(result.title, '5 Secrets to Deep Ocean Exploration')
     assert.ok(result.script.includes('Beneath the dark waves'))
     assert.ok(result.visualConcept.includes('Moody, dark underwater'))
-    assert.equal(result.keyThemes?.length, 3)
   })
 
   it('rejects invalid JSON arguments', () => {
@@ -62,14 +61,47 @@ describe('parseExpandedScriptFromToolCall', () => {
     assert.equal(result.title, undefined)
   })
 
-  it('filters out empty or invalid keyThemes', () => {
+  it('ignores keyThemes when an older model answer or saved reply still has them', () => {
     const json = JSON.stringify({
       script: 'Narration text goes here.',
       visualConcept: 'Visual direction',
       keyThemes: ['nature', '', '   ', 123, null]
     })
     const result = parseExpandedScriptFromToolCall(json)
-    assert.deepEqual(result.keyThemes, ['nature'])
+    assert.deepEqual(Object.keys(result).sort(), ['script', 'title', 'visualConcept'])
+    assert.equal(result.visualConcept, 'Visual direction')
+  })
+})
+
+describe('keyThemes', () => {
+  it('is no longer asked for', () => {
+    const properties = Object.keys(SUBMIT_EXPANDED_SCRIPT_TOOL.parameters.properties ?? {})
+    assert.deepEqual(properties, ['title', 'script', 'visualConcept'])
+  })
+})
+
+describe('buildIdeaExpanderSystemPrompt', () => {
+  it('says what to write in plain words, with no persona', () => {
+    const prompt = buildIdeaExpanderSystemPrompt()
+    assert.match(prompt, /^Write a voiceover script for a short video from the creator's idea/)
+    assert.match(prompt, /one-paragraph visual direction for finding stock footage, and a title\./)
+    assert.doesNotMatch(prompt, /world-class|viral|creative director|Your mission/)
+    assert.doesNotMatch(prompt, /\bNOT\b/)
+    assert.match(prompt, /Call the submit_expanded_script tool once/)
+  })
+
+  it('adds the no-people line only when the creator turned that setting on', () => {
+    const off = buildIdeaExpanderSystemPrompt({ avoidPeople: false })
+    assert.equal(off, buildIdeaExpanderSystemPrompt())
+    assert.doesNotMatch(off, /no people on screen/)
+    assert.match(off, /\(places, people, objects, actions, textures, emotions\)/)
+
+    const on = buildIdeaExpanderSystemPrompt({ avoidPeople: true })
+    assert.match(
+      on,
+      /- The creator wants no people on screen\. Write sentences whose images can be places, objects, nature, or hands\./
+    )
+    assert.doesNotMatch(on, /places, people, objects/)
   })
 })
 

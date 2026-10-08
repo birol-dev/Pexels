@@ -127,8 +127,10 @@ describe('findScriptMismatch', () => {
 })
 
 describe('buildBeatSplitSystemPrompt', () => {
+  const splitBase = { maxTotalDownloads: 15, avoidPeople: false, style: 'cinematic' }
+
   it('tells the model how large a beat is and how many it may use', () => {
-    const prompt = buildBeatSplitSystemPrompt({ maxTotalDownloads: 12, avoidPeople: false })
+    const prompt = buildBeatSplitSystemPrompt({ ...splitBase, maxTotalDownloads: 12 })
     assert.match(prompt, /at most 12 beats/)
     assert.match(prompt, /only 12 assets in total/)
     assert.match(prompt, /one beat per sentence/)
@@ -137,14 +139,26 @@ describe('buildBeatSplitSystemPrompt', () => {
   })
 
   it('adds the no-people rule only when the user asked for it', () => {
-    assert.doesNotMatch(
-      buildBeatSplitSystemPrompt({ maxTotalDownloads: 15, avoidPeople: false }),
-      /no people/
-    )
+    assert.doesNotMatch(buildBeatSplitSystemPrompt(splitBase), /no people/)
     assert.match(
-      buildBeatSplitSystemPrompt({ maxTotalDownloads: 15, avoidPeople: true }),
+      buildBeatSplitSystemPrompt({ ...splitBase, avoidPeople: true }),
       /no people in the footage/
     )
+  })
+
+  it('gives the visual style, and the visual direction when there is one', () => {
+    const plain = buildBeatSplitSystemPrompt(splitBase)
+    assert.match(plain, /Visual style: cinematic\. Favor wide establishing shots/)
+    assert.match(plain, /Write visual prompts that fit this look\./)
+    assert.doesNotMatch(plain, /Visual direction for this video/)
+
+    const directed = buildBeatSplitSystemPrompt({
+      ...splitBase,
+      style: 'vintage 8mm film',
+      visualConcept: '  Grainy harbor mornings.  '
+    })
+    assert.match(directed, /Visual style: vintage 8mm film\. The user describes the style as/)
+    assert.match(directed, /\nVisual direction for this video: Grainy harbor mornings\.\n/)
   })
 })
 
@@ -260,6 +274,28 @@ describe('StockScout prompt quality rules', () => {
       assert.doesNotMatch(single, /Only call search tools/)
       assert.doesNotMatch(single, /\n5\. /)
     }
+  })
+
+  it('gives the visual style with what it changes, and the visual direction when there is one', () => {
+    const plain = buildStockScoutSystemPrompt(base)
+    assert.match(plain, /- Visual style: cinematic\. Favor wide establishing shots/)
+    assert.doesNotMatch(plain, /Visual direction for this video/)
+
+    const custom = buildStockScoutSystemPrompt({
+      ...base,
+      style: 'vintage 8mm film',
+      visualConcept: 'Grainy harbor mornings.'
+    })
+    assert.match(custom, /- Visual style: vintage 8mm film\. The user describes the style as/)
+    assert.match(custom, /\n- Visual direction for this video: Grainy harbor mornings\.\n/)
+
+    const empty = buildStockScoutSystemPrompt({
+      ...base,
+      style: 'custom style',
+      visualConcept: '  '
+    })
+    assert.match(empty, /- Visual style: custom style\n/)
+    assert.doesNotMatch(empty, /Visual direction for this video/)
   })
 
   it('asks for rejection reasons only as an option', () => {

@@ -193,7 +193,6 @@ interface AppStore {
     title?: string
     script: string
     visualConcept: string
-    keyThemes?: string[]
   }>
 
   navigate: (route: 'input' | 'run' | 'stuff' | 'settings') => void
@@ -467,7 +466,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
         title?: string
         script: string
         visualConcept: string
-        keyThemes?: string[]
       }
       get().updateInputTabState(tabId, {
         script: typedResult.script,
