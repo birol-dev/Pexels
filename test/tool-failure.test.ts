@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
   describeToolFailure,
-  statusAfterInterruptedSearch
+  statusAfterInterruptedSearch,
+  statusDuringSearch
 } from '../src/main/services/agent/tool-schemas.ts'
 import { ApiError } from '../src/main/services/http/api-errors.ts'
 
@@ -71,5 +72,19 @@ describe('statusAfterInterruptedSearch', () => {
 
   it('restores selecting when assets are only selected', () => {
     assert.equal(statusAfterInterruptedSearch({ assets: [{ status: 'pending' }] }), 'selecting')
+  })
+})
+
+describe('statusDuringSearch', () => {
+  it('is searching for a beat with no usable assets', () => {
+    assert.equal(statusDuringSearch({ assets: [] }), 'searching')
+    assert.equal(statusDuringSearch({}), 'searching')
+    assert.equal(statusDuringSearch({ assets: [{ status: 'failed' }] }), 'searching')
+  })
+
+  it('keeps the status of a beat that already has an asset', () => {
+    assert.equal(statusDuringSearch({ assets: [{ status: 'completed' }] }), 'completed')
+    assert.equal(statusDuringSearch({ assets: [{ status: 'downloading' }] }), 'downloading')
+    assert.equal(statusDuringSearch({ assets: [{ status: 'pending' }] }), 'selecting')
   })
 })

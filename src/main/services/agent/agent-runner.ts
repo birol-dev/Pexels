@@ -69,6 +69,7 @@ import {
   remainingIterations,
   selectionBudgetViolation,
   statusAfterInterruptedSearch,
+  statusDuringSearch,
   summarizeToolResultForLog,
   getUnfulfilledBeats,
   hasPendingUnqueuedAssets,
@@ -1553,7 +1554,7 @@ export class AgentRunner extends EventEmitter {
 
         const beat = this.beats.find((b) => b.id === args.beatId)
         if (beat) {
-          beat.status = 'searching'
+          beat.status = statusDuringSearch(beat)
           if (!beat.searchQueries.includes(args.query)) {
             beat.searchQueries.push(args.query)
           }
@@ -1610,7 +1611,7 @@ export class AgentRunner extends EventEmitter {
 
         const beat = this.beats.find((b) => b.id === args.beatId)
         if (beat) {
-          beat.status = 'searching'
+          beat.status = statusDuringSearch(beat)
           if (!beat.searchQueries.includes(args.query)) {
             beat.searchQueries.push(args.query)
           }

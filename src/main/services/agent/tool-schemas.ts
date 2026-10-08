@@ -457,6 +457,18 @@ export function statusAfterInterruptedSearch(beat: {
   return 'selecting'
 }
 
+/**
+ * Status a beat shows while it is searched. A beat that already holds a usable asset keeps the
+ * status that asset gives it: nothing sets it back once the search is over, so "searching" would
+ * stay on a beat that has its footage.
+ */
+export function statusDuringSearch(beat: {
+  assets?: Array<{ status: string }>
+}): 'searching' | 'selecting' | 'downloading' | 'completed' {
+  const held = statusAfterInterruptedSearch(beat)
+  return held === 'pending' ? 'searching' : held
+}
+
 function decideRunFinalizeFromBeats(input: {
   beats: BeatAssetStatus[]
   hitIterationLimit: boolean
