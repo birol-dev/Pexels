@@ -70,3 +70,7 @@ test-results/
 
 # Agent worktrees
 .claude/worktrees/
+
+# Live evaluation output and the recorded Pexels responses (see eval/README.md)
+eval-results/
+eval-cache/

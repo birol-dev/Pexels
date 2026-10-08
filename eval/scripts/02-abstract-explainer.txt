@@ -1,0 +1,15 @@
+---
+title: The curve nobody waits for
+about: A 60-second explainer built on abstract ideas (compound interest, focus, patience). Few sentences name anything a camera can film.
+platform: YouTube
+style: abstract
+mix: videos + photos
+maxAssetsPerBeat: 1
+maxTotalDownloads: 15
+searchMode: broad
+---
+Compound interest is simple to describe and hard to feel. You earn a return, and then that return starts earning a return of its own. In the first years almost nothing seems to happen. A hundred dollars becomes a hundred and seven, and you shrug. But growth that feeds on itself is not a straight line. It curves, slowly at first, and then all at once.
+
+The same thing happens with focus. One distraction-free hour does not change your life. It only makes tomorrow's hour a little easier, because you start from where you stopped. Skills stack. Trust stacks. Reputation stacks.
+
+The catch is patience, because the early part of every curve looks like failure. Most people quit there, right before the line bends. So the real question is not how to grow faster. It is whether you can stay bored long enough for the math to work.

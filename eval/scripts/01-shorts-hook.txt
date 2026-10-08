@@ -1,0 +1,10 @@
+---
+title: Why you wake up at 3 a.m.
+about: A 30-second YouTube Short hook. Vertical footage, quick cuts, one idea.
+platform: Shorts
+style: cinematic
+mix: videos only
+maxAssetsPerBeat: 1
+maxTotalDownloads: 8
+---
+You woke up at 3 a.m. again, and it is not random. In the second half of the night your sleep gets lighter, and your body temperature sits near its lowest point. One small noise, one stray thought, and you are staring at the ceiling. Then you reach for your phone, and the bright screen tells your brain it is morning. Tonight, leave the phone across the room and keep the bedroom cool. You will probably sleep straight through.

@@ -17,6 +17,7 @@
     "typecheck": "tsc -b --noEmit",
     "check:contrast": "node scripts/check-contrast.mjs",
     "test": "node --experimental-strip-types --import ./test/support/register.mjs --test test/**/*.test.ts",
+    "eval": "node --experimental-strip-types --import ./test/support/register.mjs scripts/eval-agent.mts",
     "start": "install-electron && electron-vite dev",
     "dev": "install-electron && electron-vite dev",
     "preview": "install-electron && electron-vite preview",

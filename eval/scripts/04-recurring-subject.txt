@@ -1,0 +1,10 @@
+---
+title: My grandfather's boat
+about: A narrative with one recurring subject. The same blue fishing boat is in every sentence, which tempts the model to pick one clip for several beats.
+platform: YouTube
+style: cinematic
+mix: videos + photos
+maxAssetsPerBeat: 1
+maxTotalDownloads: 10
+---
+My grandfather bought the boat in 1968, a small wooden fishing boat painted blue. Every morning before sunrise, he pushed the boat off the sand and rowed out past the rocks. The boat was slow, and it leaked a little, but it always came home. When I was seven, he let me sit at the front of the boat and hold the net. In winter the boat rested upside down on the beach, and we scraped and painted it together. After he died, the boat sat untouched for years, its blue paint peeling in the sun. Last spring I sanded the boat down and painted it blue again. Now, every morning before sunrise, I push the boat off the sand, and for a moment it feels like he is the one rowing.

@@ -1,0 +1,10 @@
+---
+title: The phone that ate everything
+about: A tech product explainer full of brand names and one named person. Queries and visual prompts must use generic equivalents.
+platform: YouTube
+style: tech
+mix: videos + photos
+maxAssetsPerBeat: 1
+maxTotalDownloads: 10
+---
+In 2007, Steve Jobs walked on stage and pulled the first iPhone out of his pocket. It had no keyboard and no stylus, and plenty of people expected the BlackBerry to crush it. Today more than a billion people carry an iPhone, and Samsung's Galaxy phones fight it for every sale. Inside both you will find the same idea: a slab of glass, a chip faster than an old laptop, and a camera good enough to shoot a Netflix documentary. Google's Android runs on most of the world's phones, while Apple keeps iOS to itself. Meanwhile Tesla turned the car into a phone on wheels that updates itself overnight over Wi-Fi. And with ChatGPT in your pocket, the next upgrade is not the hardware at all. It is the assistant that lives inside it.

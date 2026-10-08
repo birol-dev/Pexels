@@ -1,0 +1,26 @@
+---
+title: The box that shrank the world
+about: A 3-minute deep dive with 38 sentences and a download cap of 20, so the beat split has to merge sentences and the cap is reached.
+platform: YouTube
+style: documentary
+mix: videos + photos
+maxAssetsPerBeat: 1
+maxTotalDownloads: 20
+---
+Look around the room you are sitting in. Almost everything you can see spent part of its life inside a steel box. The shipping container is eight feet wide, up to forty feet long, and so ordinary that nobody looks at it twice. Yet this plain box changed the world economy more than almost any invention of the last century.
+
+Before the container, loading a ship was slow, dangerous work. Dockworkers carried sacks, barrels, and crates up the gangway one piece at a time. A single ship could sit in port for a week or more. Cargo was dropped, soaked by rain, or quietly stolen along the way. Moving goods across an ocean often cost more than making them.
+
+Then, in 1956, a trucking businessman named Malcom McLean tried something different. He loaded fifty-eight truck trailers, without their wheels, onto an old tanker in Newark, New Jersey. Less than a week later the ship arrived in Houston, and cranes lifted every box straight onto waiting trucks. Nothing had been unpacked. Nothing had been touched. The cost of loading a ton of cargo fell from almost six dollars to about sixteen cents.
+
+Ports that adopted the box grew quickly. Ports that refused it faded. The old docks of London and Manhattan fell quiet, while new terminals rose in Rotterdam, Singapore, and Shanghai. Giant cranes replaced gangs of men. Today one crane operator, sitting high above the quay, can move thirty containers an hour.
+
+The ships grew too. The largest now carry more than twenty thousand containers, stacked as high as an apartment building. Lined up end to end, those boxes would stretch for more than seventy miles. A crew of about twenty-five people is enough to sail all of it across the Pacific.
+
+Inside the boxes is nearly everything. Sneakers, bananas, car parts, phones, furniture, and frozen fish all travel the same way. A refrigerated container can keep fruit fresh for weeks, which is why you can buy grapes in winter. Each box carries a code, and software tracks it from factory to truck to ship to train.
+
+The system is so efficient that distance almost stopped mattering. A factory could be on one continent, its suppliers on another, and its customers on a third. That is how a shirt can be sewn in Bangladesh from cotton grown in Texas and sold in Berlin for the price of a sandwich.
+
+But the box has a hidden cost. When a single ship blocked the Suez Canal in 2021, hundreds of vessels waited, and store shelves emptied weeks later. More than a thousand containers fall overboard in a typical year and drift or sink in the open sea. And the ships that carry them burn some of the dirtiest fuel on Earth.
+
+So the next time a truck passes you on the highway, look at the box on its back. It probably crossed an ocean to reach you. And it will cross another one soon.
