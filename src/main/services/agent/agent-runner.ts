@@ -122,6 +122,7 @@ import { moveFileToTrash } from '../files/trash-file.ts'
 import {
   DEFAULT_SEARCH_MODE,
   buildBroadSearchNudgeMessage,
+  buildEmptyReplyNudgeMessage,
   buildStockScoutSystemPrompt,
   messagesWithCacheStablePrefix,
   shouldInjectPostToolBroadNudge,
@@ -1387,14 +1388,12 @@ export class AgentRunner extends EventEmitter {
       }
 
       if (effectiveToolCalls.length === 0) {
-        const pendingBeats = getUnfulfilledBeats(
-          this.beats,
-          assetsNeededPerBeat({
-            beatCount: this.beats.length,
-            optionsPerBeat: this.input.maxAssetsPerBeat,
-            maxTotalDownloads: this.input.maxTotalDownloads
-          })
-        )
+        const assetsNeeded = assetsNeededPerBeat({
+          beatCount: this.beats.length,
+          optionsPerBeat: this.input.maxAssetsPerBeat,
+          maxTotalDownloads: this.input.maxTotalDownloads
+        })
+        const pendingBeats = getUnfulfilledBeats(this.beats, assetsNeeded)
         const allBeatsFulfilled = areBeatsSatisfiedForLoop(
           this.beats,
           this.input.maxTotalDownloads,
@@ -1415,23 +1414,10 @@ export class AgentRunner extends EventEmitter {
             'info',
             `Model responded with text without calling search tools (${emptyToolTurnCount}/${maxEmptyToolNudges}). Nudging agent to search for pending beats...`
           )
-          const broadNudge =
-            searchMode === 'broad' ? buildBroadSearchNudgeMessage(this.beats) : null
-          if (broadNudge) {
-            this.messages.push({
-              role: 'user',
-              content: broadNudge
-            })
-          } else {
-            const pendingSample = pendingBeats
-              .slice(0, 4)
-              .map((b) => `${b.id} ("${b.visualPrompt.slice(0, 50)}")`)
-              .join(', ')
-            this.messages.push({
-              role: 'user',
-              content: `${pendingBeats.length} beats still need footage, for example ${pendingSample}. Search for them now.`
-            })
-          }
+          this.messages.push({
+            role: 'user',
+            content: buildEmptyReplyNudgeMessage(pendingBeats, assetsNeeded, searchMode)
+          })
           continue
         } else {
           this.log(

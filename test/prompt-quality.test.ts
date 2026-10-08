@@ -9,6 +9,7 @@ import {
 } from '../src/main/services/llm/duration-guidance.ts'
 import {
   buildBroadSearchNudgeMessage,
+  buildEmptyReplyNudgeMessage,
   buildLiveBeatStatusUserContent,
   buildStockScoutSystemPrompt,
   describeTurnBudget,
@@ -238,6 +239,29 @@ describe('StockScout prompt quality rules', () => {
       }
     ])
     assert.deepEqual(inCapitals(nudge ?? ''), [])
+
+    const short = [
+      {
+        id: 'beat_1',
+        visualPrompt: 'busy street',
+        status: 'pending',
+        searchQueries: [],
+        assets: []
+      },
+      {
+        id: 'beat_2',
+        visualPrompt: 'quiet forest path',
+        status: 'searching',
+        searchQueries: ['forest path'],
+        assets: [{ status: 'completed' }]
+      }
+    ]
+    for (const searchMode of ['focused', 'broad'] as const) {
+      for (const needed of [1, 3]) {
+        const empty = buildEmptyReplyNudgeMessage(short, needed, searchMode)
+        assert.deepEqual(inCapitals(empty), [], `${searchMode} / ${needed}`)
+      }
+    }
   })
 
   it('states the mix as a fact, and recommends a type only when both are allowed', () => {

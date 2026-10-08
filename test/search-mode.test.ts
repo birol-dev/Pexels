@@ -6,12 +6,14 @@ import {
   DEFAULT_SEARCH_MODE,
   buildBeatCatalogUserContent,
   buildBroadSearchNudgeMessage,
+  buildEmptyReplyNudgeMessage,
   buildLiveBeatStatusUserContent,
   buildStockScoutSystemPrompt,
   getBeatsNeedingBroaderSearch,
   messagesWithCacheStablePrefix,
   resolveSearchModeFromSnapshot,
-  shouldInjectPostToolBroadNudge
+  shouldInjectPostToolBroadNudge,
+  type BroadNudgeBeat
 } from '../src/main/services/agent/search-mode.ts'
 
 const StartJobInputSchema = z
@@ -243,7 +245,7 @@ describe('Broad search nudge path', () => {
     ]
     const msg = buildBroadSearchNudgeMessage(beats)
     assert.ok(msg)
-    assert.match(msg!, /^1 beats have no usable results yet \(/)
+    assert.match(msg!, /^1 beat has no usable results yet \(/)
     assert.match(
       msg!,
       /beat_1 \("vintage typewriter on desk"\) tried "vintage brass typewriter mahogany desk"/
@@ -266,6 +268,87 @@ describe('Broad search nudge path', () => {
       }
     ])
     assert.match(msg!, /beat_3 \("city skyline"\) not searched yet/)
+  })
+})
+
+describe('buildEmptyReplyNudgeMessage', () => {
+  const beat = (id: string, assets: string[], searchQueries: string[] = []): BroadNudgeBeat => ({
+    id,
+    visualPrompt: `footage for ${id}`,
+    status: 'searching',
+    searchQueries,
+    assets: assets.map((status) => ({ status }))
+  })
+
+  it('counts every beat that is short, and says "beat" for one', () => {
+    assert.equal(
+      buildEmptyReplyNudgeMessage([beat('beat_1', [])], 1, 'focused'),
+      '1 beat still needs footage, for example beat_1 ("footage for beat_1"). Search for it now.'
+    )
+    assert.equal(
+      buildEmptyReplyNudgeMessage([beat('beat_1', []), beat('beat_2', [])], 1, 'focused'),
+      '2 beats still need footage, for example beat_1 ("footage for beat_1"), beat_2 ("footage for beat_2"). Search for them now.'
+    )
+  })
+
+  it('names at most four beats', () => {
+    const beats = Array.from({ length: 6 }, (_, i) => beat(`beat_${i + 1}`, []))
+    const msg = buildEmptyReplyNudgeMessage(beats, 1, 'focused')
+    assert.match(msg, /^6 beats still need footage/)
+    assert.match(msg, /beat_4 /)
+    assert.doesNotMatch(msg, /beat_5/)
+  })
+
+  it('says how many assets a beat has when it has some but not enough', () => {
+    assert.equal(
+      buildEmptyReplyNudgeMessage([beat('beat_1', ['completed'])], 3, 'focused'),
+      '1 beat does not have its 3 assets yet, for example beat_1 ("footage for beat_1") has 1. Search for it now.'
+    )
+    assert.equal(
+      buildEmptyReplyNudgeMessage(
+        [beat('beat_1', []), beat('beat_2', ['downloading', 'completed'])],
+        3,
+        'focused'
+      ),
+      '2 beats do not have their 3 assets yet, for example beat_1 ("footage for beat_1") has none, beat_2 ("footage for beat_2") has 2. Search for them now.'
+    )
+  })
+
+  it('does not count a failed asset toward what a beat has', () => {
+    const msg = buildEmptyReplyNudgeMessage([beat('beat_1', ['failed', 'completed'])], 2, 'focused')
+    assert.match(msg, /beat_1 \("footage for beat_1"\) has 1\./)
+    const empty = buildEmptyReplyNudgeMessage([beat('beat_1', ['failed'])], 2, 'focused')
+    assert.match(empty, /^1 beat still needs footage/)
+  })
+
+  it('keeps the broader-query message for beats with nothing in broad mode', () => {
+    const beats = [beat('beat_1', [], ['busy street'])]
+    assert.equal(
+      buildEmptyReplyNudgeMessage(beats, 3, 'broad'),
+      buildBroadSearchNudgeMessage(beats)
+    )
+  })
+
+  it('adds the broader-query message for the empty beats when others have some assets', () => {
+    const msg = buildEmptyReplyNudgeMessage(
+      [beat('beat_1', []), beat('beat_2', ['completed'])],
+      2,
+      'broad'
+    )
+    assert.match(msg, /^2 beats do not have their 2 assets yet, /)
+    assert.match(msg, /beat_2 \("footage for beat_2"\) has 1\./)
+    assert.match(
+      msg,
+      /1 beat has no usable results yet \(beat_1 \("footage for beat_1"\) not searched yet\)/
+    )
+    assert.doesNotMatch(msg, /beat_2[^.]*not searched yet/)
+  })
+
+  it('leaves out the broader-query message in focused mode, and when a beat already tried two queries', () => {
+    const beats = [beat('beat_1', []), beat('beat_2', ['completed'])]
+    assert.doesNotMatch(buildEmptyReplyNudgeMessage(beats, 2, 'focused'), /broader query/)
+    const triedTwice = [beat('beat_1', [], ['a', 'b']), beat('beat_2', ['completed'])]
+    assert.doesNotMatch(buildEmptyReplyNudgeMessage(triedTwice, 2, 'broad'), /broader query/)
   })
 })
 

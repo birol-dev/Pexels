@@ -253,7 +253,42 @@ export function buildBroadSearchNudgeMessage(beats: BroadNudgeBeat[]): string | 
     })
     .join('; ')
 
-  return `${needy.length} beats have no usable results yet (${sample}). Search again with a broader query: drop adjectives or try a synonym, place, or mood.`
+  return `${needy.length} ${needy.length === 1 ? 'beat has' : 'beats have'} no usable results yet (${sample}). Search again with a broader query: drop adjectives or try a synonym, place, or mood.`
+}
+
+const beatLabel = (beat: BroadNudgeBeat): string =>
+  `${beat.id} ("${beat.visualPrompt.slice(0, 50)}")`
+
+const usableAssetCount = (beat: BeatAssetStatus): number =>
+  (beat.assets || []).filter((a) => a.status !== 'failed').length
+
+/**
+ * What to tell the model when it replies without a tool call while beats are short of their
+ * target. `shortBeats` are the beats with fewer than `needed` usable assets. A beat that has some
+ * assets is named with how many, so it is not told to look for footage it already has.
+ */
+export function buildEmptyReplyNudgeMessage(
+  shortBeats: BroadNudgeBeat[],
+  needed: number,
+  searchMode: SearchMode
+): string {
+  const count = shortBeats.length
+  const withNone = shortBeats.filter((beat) => usableAssetCount(beat) === 0)
+  // Only a beat with nothing is sent to a broader query; one that has some assets needs more.
+  const broadNudge = searchMode === 'broad' ? buildBroadSearchNudgeMessage(withNone) : null
+
+  if (withNone.length === count) {
+    if (broadNudge) return broadNudge
+    const sample = shortBeats.slice(0, 4).map(beatLabel).join(', ')
+    return `${count} ${count === 1 ? 'beat still needs' : 'beats still need'} footage, for example ${sample}. Search for ${count === 1 ? 'it' : 'them'} now.`
+  }
+
+  const sample = shortBeats
+    .slice(0, 4)
+    .map((beat) => `${beatLabel(beat)} has ${usableAssetCount(beat) || 'none'}`)
+    .join(', ')
+  const message = `${count} ${count === 1 ? 'beat does not have its' : 'beats do not have their'} ${needed} assets yet, for example ${sample}. Search for ${count === 1 ? 'it' : 'them'} now.`
+  return broadNudge ? `${message} ${broadNudge}` : message
 }
 
 /**
