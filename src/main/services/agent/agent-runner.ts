@@ -28,6 +28,7 @@ import {
   MIN_LLM_REQUEST_TIMEOUT_SECONDS,
   resolveLlmRequestTimeoutSeconds
 } from '../llm/llm-timeout.ts'
+import { ApiError } from '../http/api-errors.ts'
 import { createTimeoutLinkedSignal } from '../http/abort-signal.ts'
 import { ManifestWriter, type ManifestData } from '../files/manifest-writer.ts'
 import { ProjectStore, type JobSummary } from '../storage/project-store.ts'
@@ -1714,6 +1715,14 @@ export class AgentRunner extends EventEmitter {
         this.log('error', `Tool execution ${tc.name} failed: ${failure.message}`)
       }
       result = failure.result
+      if (
+        error instanceof ApiError &&
+        error.statusCode === 429 &&
+        PexelsClient.isQuotaExhausted() &&
+        this.status === 'running'
+      ) {
+        this.pauseForPexelsQuota()
+      }
     }
 
     this.log('tool_result', `Result for ${tc.name}`, result)
@@ -1723,6 +1732,19 @@ export class AgentRunner extends EventEmitter {
       name: tc.name,
       content: JSON.stringify(result)
     })
+  }
+
+  /** docs/04: on an exhausted quota, stop new Pexels calls for this job and say why. */
+  private pauseForPexelsQuota(): void {
+    const quota = PexelsClient.getQuotaSnapshot()
+    const resetNote = quota ? ` It resets ${new Date(quota.resetAt * 1000).toLocaleString()}.` : ''
+    this.status = 'paused'
+    this.log(
+      'error',
+      `Pexels API quota is exhausted, so the job was paused.${resetNote} Resume after the reset, or add a different Pexels key in Settings.`
+    )
+    this.updateProgress('Paused — Pexels quota exhausted', this.progress)
+    this.abortController?.abort()
   }
 
   public async approveAndResume(decision: ApprovalDecision = {}): Promise<void> {

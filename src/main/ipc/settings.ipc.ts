@@ -9,6 +9,13 @@ import { z } from 'zod'
 const SettingsUpdateSchema = z.object({
   llmProvider: z.enum(['openai', 'openrouter', 'gemini']).optional(),
   modelId: z.string().optional(),
+  modelIdByProvider: z
+    .object({
+      openai: z.string().optional(),
+      openrouter: z.string().optional(),
+      gemini: z.string().optional()
+    })
+    .optional(),
   downloadFolder: z.string().optional(),
   maxConcurrentDownloads: z.number().min(1).max(10).optional(),
   maxAgentIterations: z.number().min(5).max(50).optional(),
@@ -24,7 +31,11 @@ const SettingsUpdateSchema = z.object({
   openaiKey: z.string().optional(),
   geminiKey: z.string().optional(),
   openrouterKey: z.string().optional(),
-  pexelsKey: z.string().optional()
+  pexelsKey: z.string().optional(),
+  // Blank key fields mean "leave unchanged", so deleting a stored key is its own request.
+  removeSecrets: z
+    .array(z.enum(['openaiKey', 'geminiKey', 'openrouterKey', 'pexelsKey']))
+    .optional()
 })
 
 const ProviderTestRequestSchema = z.object({
@@ -76,6 +87,13 @@ export function registerSettingsHandlers(): void {
       const trimmed = value.trim()
       if (!trimmed) return
       await SecureSecrets.setSecret(key, trimmed)
+      // Quota headers belong to the key that produced them.
+      if (key === 'pexelsKey') PexelsClient.resetQuota()
+    }
+
+    for (const key of input.removeSecrets ?? []) {
+      await SecureSecrets.setSecret(key, '')
+      if (key === 'pexelsKey') PexelsClient.resetQuota()
     }
 
     await applySecret('openaiKey', input.openaiKey)
@@ -87,6 +105,7 @@ export function registerSettingsHandlers(): void {
       Object.entries({
         llmProvider: input.llmProvider,
         modelId: input.modelId?.trim(),
+        modelIdByProvider: input.modelIdByProvider,
         downloadFolder: input.downloadFolder,
         maxConcurrentDownloads: input.maxConcurrentDownloads,
         maxAgentIterations: input.maxAgentIterations,

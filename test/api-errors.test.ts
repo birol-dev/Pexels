@@ -125,4 +125,48 @@ describe('fetchWithRetry', () => {
     assert.equal(calls, 1)
     assert.ok(Date.now() - started < 2000)
   })
+
+  it('fails with the error onErrorResponse returns instead of retrying', async () => {
+    let calls = 0
+    globalThis.fetch = async () => {
+      calls++
+      return new Response('rate limited', { status: 429, headers: { 'X-Quota-Left': '0' } })
+    }
+
+    const started = Date.now()
+    await assert.rejects(
+      () =>
+        fetchWithRetry('https://example.com', {
+          maxRetries: 3,
+          onErrorResponse: (response) =>
+            response.headers.get('X-Quota-Left') === '0'
+              ? new ApiError('quota spent', 'permanent', 429)
+              : null
+        }),
+      (error: unknown) => error instanceof ApiError && error.message === 'quota spent'
+    )
+    assert.equal(calls, 1)
+    assert.ok(Date.now() - started < 400, 'no backoff was slept')
+  })
+
+  it('classifies the response itself when onErrorResponse returns nothing', async () => {
+    const seen: number[] = []
+    globalThis.fetch = async () => new Response('missing', { status: 404 })
+
+    await assert.rejects(
+      () =>
+        fetchWithRetry('https://example.com', {
+          label: 'Lookup',
+          onErrorResponse: (response) => {
+            seen.push(response.status)
+            return null
+          }
+        }),
+      (error: unknown) =>
+        error instanceof ApiError &&
+        error.statusCode === 404 &&
+        error.message === 'Lookup failed: HTTP 404: missing'
+    )
+    assert.deepEqual(seen, [404])
+  })
 })

@@ -48,3 +48,25 @@ export function validateDownloadUrl(urlStr: string): void {
     throw new Error(`Security Check Failed: Direct IP download URLs are not allowed.`)
   }
 }
+
+const MAX_DOWNLOAD_REDIRECTS = 5
+
+/**
+ * Fetches a download URL, following redirects by hand so each hop is allowlist-checked
+ * before it is requested. With the default `redirect: 'follow'` the request to a
+ * disallowed host has already been sent by the time the final URL can be inspected.
+ */
+export async function fetchValidatedDownload(url: string, signal?: AbortSignal): Promise<Response> {
+  let current = url
+  for (let hop = 0; hop <= MAX_DOWNLOAD_REDIRECTS; hop++) {
+    validateDownloadUrl(current)
+    const response = await fetch(current, { signal, redirect: 'manual' })
+    const location = response.headers.get('location')
+    if (response.status < 300 || response.status >= 400 || !location) {
+      return response
+    }
+    await response.body?.cancel()
+    current = new URL(location, current).toString()
+  }
+  throw new Error(`Download redirected more than ${MAX_DOWNLOAD_REDIRECTS} times: ${url}`)
+}

@@ -24,6 +24,15 @@ export class PexelsClient {
     pexelsCircuit.reset()
   }
 
+  /** Forget quota learned from a previous API key. */
+  public static resetQuota(): void {
+    PexelsRateLimitTracker.clear()
+  }
+
+  public static isQuotaExhausted(): boolean {
+    return PexelsRateLimitTracker.isExhausted()
+  }
+
   private static async getHeaders(): Promise<HeadersInit> {
     const key = await SecureSecrets.getSecret('pexelsKey')
     if (!key || !key.trim()) {
@@ -55,13 +64,18 @@ export class PexelsClient {
 
     let timeoutId: NodeJS.Timeout | null = null
 
+    // Outside the try below: an exhausted quota is not an upstream failure and
+    // must not count toward the circuit breaker.
     try {
       await PexelsRateLimitTracker.waitForQuota((waitMs) => {
-        console.info(
-          `[Pexels] Monthly quota exhausted. Waiting ${Math.ceil(waitMs / 1000)}s for reset.`
-        )
+        console.info(`[Pexels] Quota exhausted. Waiting ${Math.ceil(waitMs / 1000)}s for reset.`)
       }, controller.signal)
+    } catch (error) {
+      parentSignal?.removeEventListener('abort', onParentAbort)
+      throw error
+    }
 
+    try {
       // Start the HTTP timeout clock only after quota wait finishes
       timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
@@ -72,18 +86,27 @@ export class PexelsClient {
           ...init,
           signal: controller.signal
         },
-        isAborted: () => controller.signal.aborted
+        isAborted: () => controller.signal.aborted,
+        // docs/04: capture rate-limit headers when present. A 429 whose headers show a
+        // spent quota is final, so it is not backed off and retried.
+        onErrorResponse: (errorResponse) => {
+          PexelsRateLimitTracker.updateFromHeaders(errorResponse.headers)
+          return errorResponse.status === 429 ? PexelsRateLimitTracker.exhaustedError() : null
+        }
       })
 
       PexelsRateLimitTracker.updateFromHeaders(response.headers)
       pexelsCircuit.recordSuccess()
       return response
     } catch (error) {
+      // The spent-quota error from above: like the wait before the request, it is not
+      // an upstream failure, and it keeps its own message.
+      const quotaSpent = error instanceof ApiError && error.statusCode === 429 && !error.isRetryable
       // Caller cancel/pause must not open the circuit — only real upstream failures.
-      if (!parentSignal?.aborted) {
+      if (!parentSignal?.aborted && !quotaSpent) {
         pexelsCircuit.recordFailure()
       }
-      if (error instanceof ApiError && error.statusCode === 429) {
+      if (error instanceof ApiError && error.statusCode === 429 && !quotaSpent) {
         throw new ApiError(
           'pexels_rate_limited: Pexels API rate limit reached.',
           'transient',

@@ -1,3 +1,5 @@
+import { ApiError } from '../http/api-errors.ts'
+
 export interface PexelsQuotaSnapshot {
   limit: number
   remaining: number
@@ -6,7 +8,12 @@ export interface PexelsQuotaSnapshot {
 }
 
 const LOW_QUOTA_THRESHOLD = 10
-const MAX_WAIT_MS = 3_600_000
+/**
+ * Longest reset we will sit out inline. X-Ratelimit-Reset is the monthly rollover,
+ * so an exhausted quota is usually days away: docs/04 says to stop new Pexels calls
+ * for the job and surface `pexels_rate_limited` rather than stall silently.
+ */
+const MAX_INLINE_WAIT_MS = 90_000
 
 export class PexelsRateLimitTracker {
   private static state: PexelsQuotaSnapshot | null = null
@@ -48,15 +55,35 @@ export class PexelsRateLimitTracker {
     this.state = null
   }
 
+  /** Time until an exhausted quota resets, with a second of slack. Zero while quota remains. */
+  private static resetWaitMs(): number {
+    if (!this.isExhausted() || !this.state) return 0
+    return Math.max(0, this.state.resetAt * 1000 - Date.now()) + 1000
+  }
+
+  /**
+   * The error for a quota that is spent and resets too late to sit out, or null.
+   * `waitForQuota` throws it before a request is sent, and a 429 that carries the
+   * quota headers fails with it instead of being retried.
+   */
+  public static exhaustedError(): ApiError | null {
+    if (!this.state || this.resetWaitMs() <= MAX_INLINE_WAIT_MS) return null
+    return new ApiError(
+      `pexels_rate_limited: Pexels API quota is exhausted until ${new Date(this.state.resetAt * 1000).toLocaleString()}.`,
+      'permanent',
+      429
+    )
+  }
+
   public static async waitForQuota(
     onWait?: (waitMs: number) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    if (!this.isExhausted() || !this.state) return
-
-    const waitMs = Math.min(MAX_WAIT_MS, Math.max(0, this.state.resetAt * 1000 - Date.now()) + 1000)
-
+    const waitMs = this.resetWaitMs()
     if (waitMs <= 0) return
+
+    const exhausted = this.exhaustedError()
+    if (exhausted) throw exhausted
 
     if (signal?.aborted) {
       throw new Error('Pexels quota wait aborted')

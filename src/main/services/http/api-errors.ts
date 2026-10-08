@@ -105,6 +105,13 @@ export interface FetchWithRetryOptions {
   label?: string
   onRetry?: (attempt: number, error: ApiError, delayMs: number) => void
   isAborted?: () => boolean
+  /**
+   * Sees every non-2xx response (body already read) before it is classified. An error
+   * returned here replaces the default one for that attempt, so a caller can make a
+   * status permanent, and end the retries, when the response's headers show that
+   * retrying cannot help.
+   */
+  onErrorResponse?: (response: Response) => ApiError | null | undefined
 }
 
 export function extractErrorMessage(errText: string): string {
@@ -163,6 +170,11 @@ export async function fetchWithRetry(
 
       const retryAfter = response.headers.get('Retry-After')
       const rawErrText = await response.text().catch(() => '')
+      const callerError = options.onErrorResponse?.(response)
+      if (callerError) {
+        throw callerError
+      }
+
       const detailedMsg = extractErrorMessage(rawErrText)
       const bodyRetryAfterMs = parseRetryFromBody(rawErrText)
       const apiError = classifyHttpStatus(response.status, retryAfter)

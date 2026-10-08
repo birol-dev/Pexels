@@ -3,9 +3,15 @@ import { createWriteStream, promises as fsPromises } from 'fs'
 import { join } from 'path'
 import { Readable, PassThrough } from 'stream'
 import { pipeline } from 'stream/promises'
-import { validateDownloadUrl } from './download-url-validation.ts'
+import { fetchValidatedDownload, validateDownloadUrl } from './download-url-validation.ts'
 import { findInFlightDownload, isRetryableDownloadStatus } from './download-task-utils.ts'
 import { ApiError, classifyFetchError } from '../http/api-errors.ts'
+
+// ponytail: fixed limits; make them settings if anyone actually hits them.
+/** Far above any Pexels asset — stops a runaway or mislabelled response filling the disk. */
+const MAX_DOWNLOAD_BYTES = 4 * 1024 ** 3
+/** Free space to leave untouched after a download completes. */
+const DISK_SPACE_MARGIN_BYTES = 200 * 1024 ** 2
 
 export interface DownloadTask {
   id: string // unique job/task ID
@@ -232,11 +238,7 @@ export class PexelsDownloader {
 
     let response: Response
     try {
-      response = await fetch(task.url, { signal: controller.signal })
-
-      if (response.url) {
-        validateDownloadUrl(response.url)
-      }
+      response = await fetchValidatedDownload(task.url, controller.signal)
 
       if (!response.ok) {
         throw new ApiError(
@@ -267,11 +269,24 @@ export class PexelsDownloader {
       const fileName = `${task.type}_${task.assetId}_${task.width}x${task.height}_${slugifiedQuery}${ext}`
       const finalPath = join(targetFolder, fileName)
 
+      const contentLength = Number(response.headers.get('content-length') || 0)
+      if (contentLength > MAX_DOWNLOAD_BYTES) {
+        throw new ApiError(
+          `Asset is too large to download (${Math.round(contentLength / 1024 ** 2)} MB)`,
+          'permanent'
+        )
+      }
+      if (contentLength > 0) {
+        // statfs is unsupported on some network shares; a failed probe must not block the download.
+        const stats = await fsPromises.statfs(targetFolder).catch(() => null)
+        if (stats && stats.bavail * stats.bsize < contentLength + DISK_SPACE_MARGIN_BYTES) {
+          throw new ApiError('Not enough free disk space for this download', 'permanent')
+        }
+      }
+
       // Stream download
       const tempPath = finalPath + '.tmp'
       const fileStream = createWriteStream(tempPath)
-
-      const contentLength = Number(response.headers.get('content-length') || 0)
 
       let downloadedBytes = 0
 
@@ -280,6 +295,12 @@ export class PexelsDownloader {
       progressStream.on('data', (chunk: Buffer) => {
         resetTimeout()
         downloadedBytes += chunk.length
+        if (downloadedBytes > MAX_DOWNLOAD_BYTES) {
+          progressStream.destroy(
+            new ApiError('Asset exceeded the download size limit', 'permanent')
+          )
+          return
+        }
         if (contentLength > 0) {
           const newProgress = Math.round((downloadedBytes / contentLength) * 100)
           if (newProgress !== task.progress) {
