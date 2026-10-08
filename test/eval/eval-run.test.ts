@@ -17,7 +17,6 @@ import {
 import { installFakeNetwork, type FakeNetwork } from '../support/fake-network.ts'
 import { photo, video, videoFileUrl } from '../support/pexels-fixtures.ts'
 import {
-  download,
   resetNetworkState,
   searchPhotos,
   searchVideos,
@@ -52,12 +51,6 @@ function scriptTwoBeatJob(network: FakeNetwork): void {
           variantUrl: videoFileUrl(clip, 'hd')
         },
         { beatId: 'beat_2', assetType: 'photo', pexelsId: 201, variantUrl: still.src.original }
-      ])
-    ])
-    .tools([
-      download([
-        { assetType: 'video', pexelsId: 101 },
-        { assetType: 'photo', pexelsId: 201 }
       ])
     ])
 }
@@ -133,8 +126,8 @@ describe('eval: a dry run on the fake network', () => {
       orientationMatch: { count: 2, total: 2, ratio: 1 },
       resolution: { count: 2, total: 2, ratio: 1 },
       clipLength: { count: 1, total: 1, ratio: 1 },
-      // Four LLM requests, each answered with 100 input and 20 output tokens.
-      cost: { llmCalls: 4, inputTokens: 400, cachedInputTokens: 0, outputTokens: 80 }
+      // Three LLM requests, each answered with 100 input and 20 output tokens.
+      cost: { llmCalls: 3, inputTokens: 300, cachedInputTokens: 0, outputTokens: 60 }
     })
     assert.ok(seconds >= 0 && seconds < 10, `the job took ${seconds} s`)
     assert.deepEqual(report.network, {
@@ -143,7 +136,7 @@ describe('eval: a dry run on the fake network', () => {
       pexelsReplayed: 0,
       mediaRequests: 2
     })
-    assert.equal(report.runnerUsage?.totalTokens, 4 * 120, 'the wire count agrees with the runner')
+    assert.equal(report.runnerUsage?.totalTokens, 3 * 120, 'the wire count agrees with the runner')
 
     // The job's project folder is inside the run folder, with the downloads in it.
     const assets = report.beats.flatMap((beat) => beat.assets)
@@ -164,7 +157,7 @@ describe('eval: a dry run on the fake network', () => {
     assert.match(summary, /^- Pexels API requests: 2 live, 0 replayed from the cache$/m)
     assert.match(
       summary,
-      /^\| 01-two-beats \| completed \| 2 \| yes \| 2\/2 \(100%\) \| 0 \| 2\/2 \(100%\) \| 2\/2 \(100%\) \| 1\/1 \(100%\) \| 4 \| 400 \| 0 \| 80 \| \d+ \|$/m
+      /^\| 01-two-beats \| completed \| 2 \| yes \| 2\/2 \(100%\) \| 0 \| 2\/2 \(100%\) \| 2\/2 \(100%\) \| 1\/1 \(100%\) \| 3 \| 300 \| 0 \| 60 \| \d+ \|$/m
     )
 
     // contact-sheet.html
@@ -272,7 +265,6 @@ describe('eval: a dry run on the fake network', () => {
           }
         ])
       ])
-      .tools([download([{ assetType: 'video', pexelsId: 301 }])])
 
     const result = await dryRun([idea])
 
@@ -284,12 +276,12 @@ describe('eval: a dry run on the fake network', () => {
     assert.equal(report.metrics.scriptFidelity, true)
     assert.deepEqual(report.metrics.orientationMatch, { count: 1, total: 1, ratio: 1 })
     assert.deepEqual(report.metrics.clipLength, { count: 1, total: 1, ratio: 1 })
-    // Five requests on the wire: the expansion, the beat split and three agent turns.
+    // Four requests on the wire: the expansion, the beat split and two agent turns.
     assert.deepEqual(report.metrics.cost, {
-      llmCalls: 5,
-      inputTokens: 500,
+      llmCalls: 4,
+      inputTokens: 400,
       cachedInputTokens: 0,
-      outputTokens: 100
+      outputTokens: 80
     })
     assert.equal(idea.input.script, '', 'the script object of the run is left as it was')
   })
@@ -314,7 +306,7 @@ describe('eval: a dry run on the fake network', () => {
     assert.ok(existsSync(result.files.reports[0]))
 
     assert.equal(completed.job.status, 'completed')
-    assert.equal(completed.metrics.cost.llmCalls, 4, 'each script is counted on its own')
+    assert.equal(completed.metrics.cost.llmCalls, 3, 'each script is counted on its own')
 
     const summary = await readFile(result.files.summary, 'utf8')
     assert.match(summary, /^\| 01-fails \| failed \| 0 \| no \| n\/a \|/m)
