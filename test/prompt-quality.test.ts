@@ -224,6 +224,12 @@ describe('StockScout prompt quality rules', () => {
     assert.doesNotMatch(prompt, /poor composition/)
   })
 
+  it('says older search results may be shortened, and can still be selected from', () => {
+    const prompt = buildStockScoutSystemPrompt(base)
+    assert.match(prompt, /Older search results may be shortened to a list of ids and descriptions/)
+    assert.match(prompt, /marked compacted\. You can still select from them\./)
+  })
+
   it('asks for a plain-text summary instead of an unspecified structure', () => {
     const prompt = buildStockScoutSystemPrompt(base)
     assert.match(prompt, /short plain-text summary/)

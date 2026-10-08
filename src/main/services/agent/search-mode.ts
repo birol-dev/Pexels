@@ -96,7 +96,7 @@ ${modeBlock}
 
 ${PEXELS_QUERY_GUIDANCE}
 
-What you can see: search results are text only. A photo result has alt text, size, and average color. A video result has the Pexels page URL, size, and duration. The slug in that URL names the clip, for example ".../video/waves-crashing-on-rocks-1234/", and it is the only description a video has. You cannot view the images, so judge relevance from the alt text or slug and do not claim to have judged composition or visual quality. Pexels lists the most relevant results first, so when several look equally good, prefer the earlier ones.
+What you can see: search results are text only. A photo result has alt text, size, and average color. A video result has the Pexels page URL, size, and duration. The slug in that URL names the clip, for example ".../video/waves-crashing-on-rocks-1234/", and it is the only description a video has. You cannot view the images, so judge relevance from the alt text or slug and do not claim to have judged composition or visual quality. Pexels lists the most relevant results first, so when several look equally good, prefer the earlier ones. Older search results may be shortened to a list of ids and descriptions marked compacted. You can still select from them.
 
 When selecting assets, prioritize:
 - relevance to the script beat, judged from the alt text or slug
