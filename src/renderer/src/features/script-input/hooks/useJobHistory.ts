@@ -26,7 +26,8 @@ export function useJobHistory(): JobHistory {
   const deleteJob = async (jobId: string, jobTitle: string): Promise<void> => {
     const isConfirmed = await confirm(
       'Delete Project',
-      `Are you sure you want to delete the project "${jobTitle}"?\n\nThis will permanently delete all downloaded photos, videos, and settings logs associated with this project from your hard drive.`
+      `Delete the project "${jobTitle}"?\n\nIts folder, with every downloaded photo and video and the run log, moves to the trash. You can restore it from there if you change your mind.`,
+      { confirmText: 'Move to trash' }
     )
     if (!isConfirmed) return
     try {
