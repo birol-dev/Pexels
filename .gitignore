@@ -67,3 +67,6 @@ stitch_pexels_final/
 # Wrangler local state
 .wrangler/
 test-results/
+
+# Agent worktrees
+.claude/worktrees/
