@@ -132,6 +132,13 @@ export async function runJob(
   return { jobId, runner, events, summary, manifest, snapshot: runner.getSnapshot() }
 }
 
+/** What the model was sent for each call of a tool, read from the run's log. */
+export function toolResults(run: JobRun, tool: string): Array<Record<string, unknown>> {
+  return run.snapshot.logs
+    .filter((entry) => entry.type === 'tool_result' && entry.message === `Result for ${tool}`)
+    .map((entry) => entry.data as Record<string, unknown>)
+}
+
 /** The beat-split reply: one beat per text, in order. */
 export function submitBeats(texts: string[]): ToolCallSpec {
   return {

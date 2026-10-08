@@ -7,6 +7,7 @@ import { validateDownloadUrl } from '../src/main/services/pexels/download-url-va
 import { LlmProviderFactory } from '../src/main/services/llm/llm-provider.ts'
 import {
   areAllBeatsDownloaded,
+  countPendingAssets,
   countQueuedOrCompleted,
   decideRunFinalize,
   hasPendingUnqueuedAssets,
@@ -107,6 +108,17 @@ describe('Fixes & Security Hardening Regression Suite', () => {
       assert.equal(areBeatsSatisfiedForLoop(beats, 10), true)
       // Cap/selection satisfied, but pending downloads must keep the loop alive.
       assert.equal(areBeatsSatisfiedForLoop(beats, 10) && !hasPendingUnqueuedAssets(beats), false)
+    })
+
+    it('counts only the assets still waiting to be queued', () => {
+      const beats = [
+        { status: 'selecting', assets: [{ status: 'pending' }, { status: 'downloading' }] },
+        { status: 'completed', assets: [{ status: 'completed' }, { status: 'failed' }] },
+        { status: 'selecting', assets: [{ status: 'pending' }] },
+        { status: 'pending' }
+      ]
+      assert.equal(countPendingAssets(beats), 2)
+      assert.equal(countPendingAssets([]), 0)
     })
   })
 

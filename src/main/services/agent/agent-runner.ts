@@ -56,6 +56,7 @@ import {
   areAllBeatsDownloaded,
   areBeatsSatisfiedForLoop,
   beatUsingAsset,
+  countPendingAssets,
   countQueuedOrCompleted,
   decideRunFinalize,
   describeToolFailure,
@@ -232,6 +233,8 @@ export class AgentRunner extends EventEmitter {
   private projectDir = ''
   private createdAt = new Date().toISOString()
   private hitIterationLimit = false
+  // Set by a select call under approval mode; the loop pauses once the whole turn is processed.
+  private approvalRequested = false
   private iterationsUsed = 0
   private loopError: string | null = null
   private modelId = DEFAULT_MODEL_IDS[DEFAULT_LLM_PROVIDER]
@@ -1048,6 +1051,7 @@ export class AgentRunner extends EventEmitter {
       ]
     }
     this.hitIterationLimit = false
+    this.approvalRequested = false
     let emptyToolTurnCount = 0
     const maxEmptyToolNudges = 3
 
@@ -1192,6 +1196,22 @@ export class AgentRunner extends EventEmitter {
           continue
         }
         await this.executeToolCall(tc)
+      }
+
+      // Under approval mode, every call of the turn runs first; then the user reviews the
+      // pending assets together. No request is in flight here, so nothing needs aborting.
+      if (this.approvalRequested) {
+        this.approvalRequested = false
+        // A pause or cancel during the turn already decided the status.
+        if (this.status === 'running') {
+          this.status = 'paused'
+          this.log(
+            'info',
+            `Awaiting user approval for ${countPendingAssets(this.beats)} selected assets.`
+          )
+        }
+        await this.writeAgentState()
+        break
       }
 
       // Broad mode light enforcement (no auto query rewrite). Do not nudge after a
@@ -1640,19 +1660,12 @@ export class AgentRunner extends EventEmitter {
         ).length
 
         if (this.requireApproval && acceptedSelectionCount > 0) {
-          this.status = 'paused'
-          this.log('info', `Awaiting user approval for ${acceptedSelectionCount} selected assets.`)
-
+          this.approvalRequested = true
           result = {
             status: 'awaiting_user_approval',
-            message:
-              'Assets selected. Pausing execution for user approval. Please approve from UI.',
+            message: 'Selections recorded. The user will review them after this turn.',
             selections: selectionResults,
             rejections: rejectionResults
-          }
-
-          if (this.abortController) {
-            this.abortController.abort()
           }
         } else {
           result = {

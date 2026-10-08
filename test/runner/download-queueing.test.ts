@@ -11,16 +11,9 @@ import {
   searchVideos,
   select,
   submitBeats,
-  type JobRun
+  toolResults
 } from '../support/run-job.ts'
 import { ONE_BEAT_SCRIPT, scriptOneBeatJob } from '../support/scenarios.ts'
-
-/** The data of a logged tool result, which is exactly what the model was sent. */
-function toolResults(run: JobRun, tool: string): Array<Record<string, unknown>> {
-  return run.snapshot.logs
-    .filter((entry) => entry.type === 'tool_result' && entry.message === `Result for ${tool}`)
-    .map((entry) => entry.data as Record<string, unknown>)
-}
 
 /** Changes a setting the first time the app asks Pexels for anything, which is mid-run. */
 function changeSettingDuringFirstSearch(change: { requireApprovalBeforeDownload: boolean }): void {

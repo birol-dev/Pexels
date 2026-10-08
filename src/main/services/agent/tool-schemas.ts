@@ -221,6 +221,11 @@ export function countQueuedOrCompleted(beats: BeatAssetStatus[]): number {
     .filter((a) => a.status === 'completed' || a.status === 'downloading').length
 }
 
+/** Assets selected but not yet queued, which is what the user reviews under approval mode. */
+export function countPendingAssets(beats: BeatAssetStatus[]): number {
+  return beats.flatMap((b) => b.assets || []).filter((a) => a.status === 'pending').length
+}
+
 export function hasPendingUnqueuedAssets(beats: BeatAssetStatus[]): boolean {
   return beats.some((b) => (b.assets || []).some((a) => a.status === 'pending'))
 }
