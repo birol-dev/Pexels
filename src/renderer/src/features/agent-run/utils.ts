@@ -107,7 +107,8 @@ export function pinnedSettingsDiffer(job: JobSnapshot, current: PublicSettings |
     pinned.requestTimeoutSeconds !== current.requestTimeoutSeconds ||
     pinned.skipExplicit !== current.skipExplicitQueries ||
     pinned.avoidPeople !== current.avoidPeopleAndFaces ||
-    pinned.requireApproval !== current.requireApprovalBeforeDownload
+    pinned.requireApproval !== current.requireApprovalBeforeDownload ||
+    (pinned.engine ?? 'loop') !== (current.agentEngine ?? 'loop')
   )
 }
 

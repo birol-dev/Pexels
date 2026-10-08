@@ -2,6 +2,7 @@ import { promises as fs } from 'fs'
 import { join } from 'path'
 import { ManifestWriter } from '../files/manifest-writer.ts'
 import { loadRecoverableJson } from '../storage/state-file-recovery.ts'
+import { parsePipelineState, type PipelineState } from '../pipeline/context.ts'
 import { parseRuntimeSettings, type JobRuntimeSettings } from './job-settings.ts'
 import type { StatusReason } from './job-status.ts'
 
@@ -13,6 +14,8 @@ export interface LoadedAgentConversation {
   iterationsUsed: number
   /** Message index before which large tool results are digested. Old state files have none. */
   compactedBefore: number
+  /** Where a pipeline job stopped. Loop jobs and old state files have none. */
+  pipelineState?: PipelineState
   source: AgentStateSource
   persistToAgentStateFile: boolean
 }
@@ -24,6 +27,7 @@ interface AgentStateFile {
   compactedBefore?: unknown
   statusReason?: unknown
   runtimeSettings?: unknown
+  pipelineState?: unknown
 }
 
 function toCount(value: unknown): number {
@@ -71,6 +75,7 @@ export async function loadAgentConversationState(
         : manifest.pexelsCandidates,
       iterationsUsed: toCount(result.value.iterationsUsed),
       compactedBefore: toCount(result.value.compactedBefore),
+      pipelineState: parsePipelineState(result.value.pipelineState),
       source: 'agent-state',
       persistToAgentStateFile: true
     }
@@ -96,7 +101,9 @@ export async function persistAgentConversationState(
   /** Why the job last changed status, for showing a paused job's reason after a restart. */
   statusReason?: StatusReason,
   /** What the job runs with. Fixed when the job is created. */
-  runtimeSettings?: JobRuntimeSettings
+  runtimeSettings?: JobRuntimeSettings,
+  /** Where a pipeline job stopped, so a resume or a restart carries on from there. */
+  pipelineState?: PipelineState
 ): Promise<void> {
   await ManifestWriter.writeJsonFile(projectDir, 'agent-state.json', {
     schemaVersion: 1,
@@ -105,7 +112,8 @@ export async function persistAgentConversationState(
     iterationsUsed,
     compactedBefore,
     statusReason,
-    runtimeSettings
+    runtimeSettings,
+    pipelineState
   })
 }
 

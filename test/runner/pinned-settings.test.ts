@@ -39,7 +39,8 @@ const PINNED = {
   requestTimeoutSeconds: 60,
   skipExplicit: true,
   avoidPeople: false,
-  requireApproval: false
+  requireApproval: false,
+  engine: 'loop'
 }
 
 async function savedState(projectDir: string): Promise<Record<string, unknown>> {

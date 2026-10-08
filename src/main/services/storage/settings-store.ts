@@ -28,6 +28,11 @@ export interface PublicSettings {
    * controlled, so settings saved by earlier versions still work.
    */
   hideEstimatedCost?: boolean
+  /**
+   * Which engine a new job runs on: the agent loop (default) or the fixed-step pipeline.
+   * Read when a job is created and pinned to it; a job already running keeps its own.
+   */
+  agentEngine?: 'loop' | 'pipeline'
   /** Ask GitHub Releases for a newer version every few hours. Default on. */
   autoCheckForUpdates?: boolean
 }
@@ -73,6 +78,7 @@ export function getDefaultSettings(): PublicSettings {
       isOnboarded: false,
       theme: 'flat-black',
       hideEstimatedCost: false,
+      agentEngine: 'loop',
       autoCheckForUpdates: true
     }
   }

@@ -65,6 +65,11 @@ export interface ManifestData {
   messages?: unknown[]
   pexelsCandidates?: Array<[string, unknown]>
   sourceDocsCheckedAt?: string
+  /**
+   * What a finished pipeline run did, written by code: how many beats have footage, which do
+   * not and what was tried for them. Loop jobs have none.
+   */
+  summary?: string
   /** LLM tokens spent on this project so far, summed across runs and resumes. */
   usage?: TokenUsage
   attribution?: PexelsManifestAttribution

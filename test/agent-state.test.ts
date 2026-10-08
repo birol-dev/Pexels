@@ -9,6 +9,7 @@ import {
   shouldEmbedConversationInManifest
 } from '../src/main/services/agent/agent-state.ts'
 import { ManifestWriter } from '../src/main/services/files/manifest-writer.ts'
+import { initialPipelineState } from '../src/main/services/pipeline/context.ts'
 
 async function withTempDir(fn: (dir: string) => Promise<void>): Promise<void> {
   const dir = await fs.mkdtemp(join(tmpdir(), 'stockfinder-agent-state-'))
@@ -134,6 +135,54 @@ describe('agent conversation persistence', () => {
         assert.equal((await loadAgentConversationState(dir, {})).compactedBefore, 0)
       })
     }
+  })
+
+  it('keeps where a pipeline job stopped, next to an empty conversation', async () => {
+    await withTempDir(async (dir) => {
+      await ManifestWriter.ensureProjectStructure(dir)
+      const stopped = {
+        ...initialPipelineState(),
+        step: 'searched' as const,
+        candidatesByBeat: { beat_1: ['video_1', 'photo_2'], beat_2: [] },
+        rankingByBeat: { beat_1: ['photo_2'] },
+        modelCalls: 2
+      }
+      await persistAgentConversationState(
+        dir,
+        [],
+        sampleCandidates,
+        0,
+        0,
+        undefined,
+        undefined,
+        stopped
+      )
+
+      const loaded = await loadAgentConversationState(dir, {})
+
+      assert.equal(loaded.source, 'agent-state')
+      assert.deepEqual(loaded.messages, [])
+      assert.deepEqual(loaded.pipelineState, stopped)
+    })
+  })
+
+  it('loads a loop job, or a pipeline state that is not one, with no pipeline state', async () => {
+    await withTempDir(async (dir) => {
+      await ManifestWriter.ensureProjectStructure(dir)
+      await persistAgentConversationState(dir, sampleMessages, sampleCandidates)
+      assert.equal((await loadAgentConversationState(dir, {})).pipelineState, undefined)
+
+      for (const bad of ['searched', { step: 'unknown' }, { candidatesByBeat: {} }, null, 7]) {
+        await ManifestWriter.writeJsonFile(dir, 'agent-state.json', {
+          schemaVersion: 1,
+          messages: [],
+          pipelineState: bad
+        })
+        const loaded = await loadAgentConversationState(dir, {})
+        assert.equal(loaded.source, 'agent-state')
+        assert.equal(loaded.pipelineState, undefined, JSON.stringify(bad))
+      }
+    })
   })
 
   it('starts a legacy manifest conversation with no compaction', async () => {

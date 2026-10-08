@@ -18,7 +18,8 @@ const SAVED: JobRuntimeSettings = {
   requestTimeoutSeconds: 90,
   skipExplicit: false,
   avoidPeople: true,
-  requireApproval: true
+  requireApproval: true,
+  engine: 'pipeline'
 }
 
 describe('job settings', () => {
@@ -41,8 +42,15 @@ describe('job settings', () => {
       requestTimeoutSeconds: 45,
       skipExplicit: true,
       avoidPeople: false,
-      requireApproval: false
+      requireApproval: false,
+      engine: 'loop'
     })
+  })
+
+  it('pins the engine Settings names, and the loop when it names none', () => {
+    assert.equal(pinRuntimeSettings({ ...current, agentEngine: 'pipeline' }).engine, 'pipeline')
+    assert.equal(pinRuntimeSettings({ ...current, agentEngine: 'loop' }).engine, 'loop')
+    assert.equal(pinRuntimeSettings({ ...current, agentEngine: undefined }).engine, 'loop')
   })
 
   describe('parseRuntimeSettings', () => {
@@ -52,6 +60,20 @@ describe('job settings', () => {
 
     it('drops fields it does not know', () => {
       assert.deepEqual(parseRuntimeSettings({ ...SAVED, apiKey: 'sk-secret' }), SAVED)
+    })
+
+    it('reads a record saved before engines existed as a loop job', () => {
+      const beforeEngines: Partial<JobRuntimeSettings> = { ...SAVED }
+      delete beforeEngines.engine
+      assert.deepEqual(parseRuntimeSettings(beforeEngines), { ...SAVED, engine: 'loop' })
+    })
+
+    it('reads an engine it does not know as the loop, and keeps the rest of the record', () => {
+      assert.deepEqual(parseRuntimeSettings({ ...SAVED, engine: 'agent-v2' }), {
+        ...SAVED,
+        engine: 'loop'
+      })
+      assert.deepEqual(parseRuntimeSettings({ ...SAVED, engine: 7 }), { ...SAVED, engine: 'loop' })
     })
 
     it('rejects a record that is missing something or has the wrong kind of value', () => {
@@ -104,8 +126,18 @@ describe('job settings', () => {
           requestTimeoutSeconds: 45,
           skipExplicit: true,
           avoidPeople: false,
-          requireApproval: false
+          requireApproval: false,
+          engine: 'loop'
         }
+      )
+    })
+
+    it('keeps a job from before settings were pinned on the loop, whatever Settings say now', () => {
+      const pipelineNow = { ...current, agentEngine: 'pipeline' as const }
+      assert.equal(resolveRuntimeSettings(undefined, undefined, pipelineNow).engine, 'loop')
+      assert.equal(
+        resolveRuntimeSettings(undefined, { provider: 'gemini', modelId: 'g' }, pipelineNow).engine,
+        'loop'
       )
     })
 

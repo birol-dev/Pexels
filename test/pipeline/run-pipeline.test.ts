@@ -4,7 +4,7 @@ import {
   initialPipelineState,
   type PipelineState
 } from '../../src/main/services/pipeline/context.ts'
-import { runPipeline } from '../../src/main/services/pipeline/run-pipeline.ts'
+import { hasPicksToMake, runPipeline } from '../../src/main/services/pipeline/run-pipeline.ts'
 import type { PexelsVideo } from '../../src/main/services/pexels/pexels-types.ts'
 import { video } from '../support/pexels-fixtures.ts'
 import {
@@ -119,6 +119,28 @@ describe('runPipeline from the start', () => {
     )
     assert.ok(fake.progress.some((p) => p.step === 'Searching Pexels (3 of 3)'))
     assert.ok(fake.progress.some((p) => p.step === 'Ranking footage (batch 1 of 1)'))
+  })
+
+  it('says how many beats it ranks and in how many batches, in the right number', async () => {
+    const sixBeats = fakeContext({
+      beats: Array.from({ length: 6 }, (_, i) =>
+        pipelineBeat(`beat_${i + 1}`, { queries: [`q${i + 1}`], assetType: 'video' })
+      ),
+      videos: Object.fromEntries(
+        Array.from({ length: 6 }, (_, i) => [`q${i + 1}`, videosFrom(i * 10 + 1, 6)])
+      )
+    })
+    await runPipeline(sixBeats.ctx)
+    assert.ok(
+      sixBeats.logs.some((l) => l.message === 'Ranking footage for 6 beats in 2 batches.'),
+      sixBeats.logs.map((l) => l.message).join(' | ')
+    )
+
+    const threeBeatRun = threeBeats()
+    await runPipeline(threeBeatRun.ctx)
+    assert.ok(
+      threeBeatRun.logs.some((l) => l.message === 'Ranking footage for 3 beats in 1 batch.')
+    )
   })
 
   it('asks every beat for as many assets as the target says', async () => {
@@ -306,6 +328,48 @@ describe('runPipeline resumed at each step', () => {
     await runPipeline(fake.ctx, { state })
     assert.equal(state.step, 'done')
     assert.equal(Object.keys(state.rankingByBeat).length, 3)
+  })
+})
+
+describe('hasPicksToMake', () => {
+  const ranked = (): { fake: FakeContext; state: PipelineState } => {
+    const state = stateAt({ step: 'done', ...REAL_CANDIDATES, ...REAL_RANKINGS })
+    const fake = threeBeats()
+    cacheFor(fake, state)
+    return { fake, state }
+  }
+
+  it('is false while every beat holds what it needs', () => {
+    const { fake, state } = ranked()
+    fake.beats[0].held = ['video_2']
+    fake.beats[1].held = ['video_12']
+    fake.beats[2].held = ['video_22']
+    assert.equal(hasPicksToMake(fake.ctx, state), false)
+  })
+
+  it('is true for a beat whose pick failed and has another ranked candidate', () => {
+    const { fake, state } = ranked()
+    fake.beats[0].held = ['video_2']
+    fake.beats[1].excluded = ['video_12']
+    fake.beats[2].held = ['video_22']
+    assert.equal(hasPicksToMake(fake.ctx, state), true)
+  })
+
+  it('is false when the ranking of the short beat is spent', () => {
+    const { fake, state } = ranked()
+    fake.beats[0].held = ['video_2']
+    fake.beats[1].excluded = ['video_12', 'video_11']
+    fake.beats[2].held = ['video_22']
+    assert.equal(hasPicksToMake(fake.ctx, state), false)
+  })
+
+  it('is false at the download cap, and makes no pick itself', () => {
+    const { fake, state } = ranked()
+    fake.ctx.settings.maxTotalDownloads = 2
+    fake.beats[0].held = ['video_2']
+    fake.beats[1].held = ['video_12']
+    assert.equal(hasPicksToMake(fake.ctx, state), false)
+    assert.equal(fake.selections.length, 0)
   })
 })
 

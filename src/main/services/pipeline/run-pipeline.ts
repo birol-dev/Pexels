@@ -31,7 +31,8 @@ export interface PipelineJob {
  */
 export type PipelineOutcome = 'finished' | 'held'
 
-const plural = (count: number, noun: string): string => `${count} ${noun}${count === 1 ? '' : 's'}`
+const plural = (count: number, noun: string): string =>
+  `${count} ${noun}${count === 1 ? '' : noun.endsWith('ch') ? 'es' : 's'}`
 
 async function searchStage(
   ctx: PipelineContext,
@@ -87,6 +88,38 @@ async function rankStage(
   })
 }
 
+/** The picks the rankings can still make for the free slots, leaving out what was refused. */
+function nextPicks(
+  ctx: PipelineContext,
+  state: PipelineState,
+  refused: Map<string, string[]> = new Map()
+): Array<{ beatId: string; key: string }> {
+  const beats = ctx.beats()
+  return allocateSlots({
+    beats: beats.map((beat) => ({
+      id: beat.id,
+      existing: beat.held,
+      excluded: [...beat.excluded, ...(refused.get(beat.id) ?? [])]
+    })),
+    rankingByBeat: state.rankingByBeat,
+    perBeatTarget: assetsNeededPerBeat({
+      beatCount: beats.length,
+      optionsPerBeat: ctx.settings.optionsPerBeat,
+      maxTotalDownloads: ctx.settings.maxTotalDownloads
+    }),
+    totalCap: ctx.settings.maxTotalDownloads,
+    takenKeys: new Set(beats.flatMap((beat) => beat.held))
+  })
+}
+
+/**
+ * Whether a free slot has a ranked candidate waiting for it. A download that failed leaves one:
+ * the beat is short, and the ranking has its next pick.
+ */
+export function hasPicksToMake(ctx: PipelineContext, state: PipelineState): boolean {
+  return nextPicks(ctx, state).length > 0
+}
+
 /**
  * Allocates the free slots from the rankings and records each pick on its beat. A pick the beat
  * cannot take is set aside and the beat gets its next one. Returns how many picks were made.
@@ -96,22 +129,7 @@ async function fill(ctx: PipelineContext, state: PipelineState): Promise<number>
   let selected = 0
 
   for (let round = 0; round < MAX_FILL_ROUNDS; round++) {
-    const beats = ctx.beats()
-    const allocations = allocateSlots({
-      beats: beats.map((beat) => ({
-        id: beat.id,
-        existing: beat.held,
-        excluded: [...beat.excluded, ...(refused.get(beat.id) ?? [])]
-      })),
-      rankingByBeat: state.rankingByBeat,
-      perBeatTarget: assetsNeededPerBeat({
-        beatCount: beats.length,
-        optionsPerBeat: ctx.settings.optionsPerBeat,
-        maxTotalDownloads: ctx.settings.maxTotalDownloads
-      }),
-      totalCap: ctx.settings.maxTotalDownloads,
-      takenKeys: new Set(beats.flatMap((beat) => beat.held))
-    })
+    const allocations = nextPicks(ctx, state, refused)
     if (allocations.length === 0) break
 
     let anyRefused = false

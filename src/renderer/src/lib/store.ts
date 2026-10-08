@@ -63,6 +63,8 @@ export interface JobRuntimeSettings {
   skipExplicit: boolean
   avoidPeople: boolean
   requireApproval: boolean
+  /** Jobs saved before the pipeline existed have none, and ran on the loop. */
+  engine?: 'loop' | 'pipeline'
 }
 
 export interface JobSnapshot {
@@ -126,6 +128,8 @@ export interface PublicSettings {
    * controlled, so settings saved by earlier versions still work.
    */
   hideEstimatedCost?: boolean
+  /** The engine new jobs run on. Missing means the agent loop. */
+  agentEngine?: 'loop' | 'pipeline'
   autoCheckForUpdates?: boolean
 }
 

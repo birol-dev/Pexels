@@ -2,6 +2,7 @@ import React from 'react'
 import { CircleNotchIcon } from '@phosphor-icons/react'
 import { ActionsBar } from '@renderer/features/settings/components/ActionsBar'
 import { AppearancePanel } from '@renderer/features/settings/components/AppearancePanel'
+import { ExperimentalPanel } from '@renderer/features/settings/components/ExperimentalPanel'
 import { GithubCard } from '@renderer/features/settings/components/GithubCard'
 import { PerformancePanel } from '@renderer/features/settings/components/PerformancePanel'
 import { PexelsPanel } from '@renderer/features/settings/components/PexelsPanel'
@@ -45,6 +46,7 @@ export default function SettingsView(): React.JSX.Element {
           <AppearancePanel settings={settings} form={form} />
           <SafetyPanel settings={settings} form={form} />
         </div>
+        <ExperimentalPanel settings={settings} form={form} className="md:col-span-12" />
         <UpdatesPanel settings={settings} form={form} className="md:col-span-12" />
         <div className="md:col-span-12">
           <ActionsBar />

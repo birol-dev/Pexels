@@ -36,6 +36,15 @@ import { expandIdeaToScript } from '../llm/idea-expander.ts'
 import type { StructuredRequest } from '../llm/structured-request.ts'
 import { planBeats } from '../pipeline/plan-beats.ts'
 import {
+  initialPipelineState,
+  type PipelineBeat,
+  type PipelineContext,
+  type PipelineState,
+  type SelectOutcome
+} from '../pipeline/context.ts'
+import { hasPicksToMake, runPipeline } from '../pipeline/run-pipeline.ts'
+import { summarizePipelineRun } from '../pipeline/summary.ts'
+import {
   MIN_LLM_REQUEST_TIMEOUT_SECONDS,
   resolveLlmRequestTimeoutSeconds
 } from '../llm/llm-timeout.ts'
@@ -97,6 +106,7 @@ import {
   missingPinnedKeyMessage,
   pinRuntimeSettings,
   resolveRuntimeSettings,
+  type AgentEngine,
   type JobRuntimeSettings
 } from './job-settings.ts'
 import {
@@ -266,6 +276,10 @@ export class AgentRunner extends EventEmitter {
   // Message index before which large tool results are sent as digests. Only moves when a
   // request would cross the context budget, so the prefix of later requests stays identical.
   private compactedBefore = 0
+  // Where a pipeline job stopped. A loop job has none.
+  private pipelineState: PipelineState | null = null
+  // What the last finished pipeline run did, as written by code. Kept in the manifest.
+  private pipelineSummary: string | undefined
   private loopError: string | null = null
   private modelId = DEFAULT_MODEL_IDS[DEFAULT_LLM_PROVIDER]
   private providerId: LlmProviderId = DEFAULT_LLM_PROVIDER
@@ -379,6 +393,11 @@ export class AgentRunner extends EventEmitter {
     this.requestTimeoutSeconds = pin.requestTimeoutSeconds
     this.llmRequestTimeoutSeconds = resolveLlmRequestTimeoutSeconds(pin.requestTimeoutSeconds)
     this.safetySettings = { skipExplicit: pin.skipExplicit, avoidPeople: pin.avoidPeople }
+  }
+
+  /** The engine the job runs on: fixed when the job was created, like the rest of its settings. */
+  private get engine(): AgentEngine {
+    return this.pin?.engine ?? 'loop'
   }
 
   /** A resume the missing key would only fail again is refused, and the job stays paused. */
@@ -742,6 +761,7 @@ export class AgentRunner extends EventEmitter {
     }
     this.iterationsUsed = loaded.iterationsUsed
     this.compactedBefore = loaded.compactedBefore
+    this.pipelineState = loaded.pipelineState ?? null
   }
 
   private async writeAgentState(): Promise<boolean> {
@@ -754,7 +774,8 @@ export class AgentRunner extends EventEmitter {
         this.iterationsUsed,
         this.compactedBefore,
         this.statusReason,
-        this.pin ?? undefined
+        this.pin ?? undefined,
+        this.pipelineState ?? undefined
       )
       this.agentStateFileTrusted = true
       return true
@@ -844,13 +865,19 @@ export class AgentRunner extends EventEmitter {
     this.loopError = null
     await runLoopThenFinalize({
       getStatus: () => this.status,
-      runLoop: () => this.runAgentLoop(),
+      runLoop: () => (this.engine === 'pipeline' ? this.runPipelineEngine() : this.runAgentLoop()),
       onLoopError: (message) => {
         this.loopError = message
-        this.log('error', `Agent loop encountered an error: ${message}`)
+        this.log(
+          'error',
+          `${this.engine === 'pipeline' ? 'Pipeline' : 'Agent loop'} encountered an error: ${message}`
+        )
       },
       settleDownloads: () => this.waitForDownloadsToSettle(),
-      finalize: () => this.finalizeRun()
+      finalize: () => {
+        this.finalizeRun()
+        if (this.engine === 'pipeline') this.recordPipelineSummary()
+      }
     })
   }
 
@@ -925,13 +952,19 @@ export class AgentRunner extends EventEmitter {
     // and the status block sent with every request says which beats already have footage.
     this.messages = []
     this.compactedBefore = 0
+    // Another engine cannot carry on from where this one stopped; it starts from what the beats
+    // hold now.
+    const sameEngine = previous?.engine === next.engine
+    if (!sameEngine) this.pipelineState = null
     this.log(
       'info',
-      `Resumed with ${next.providerId} / ${next.modelId}. Earlier conversation dropped because ${
-        previous?.providerId !== next.providerId
-          ? 'it was written for another provider'
-          : 'the settings changed'
-      }.`
+      sameEngine && next.engine === 'pipeline'
+        ? `Resumed with ${next.providerId} / ${next.modelId}. The steps already done are kept.`
+        : `Resumed with ${next.providerId} / ${next.modelId}. Earlier conversation dropped because ${
+            previous?.providerId !== next.providerId
+              ? 'it was written for another provider'
+              : 'the settings changed'
+          }.`
     )
   }
 
@@ -1088,6 +1121,7 @@ export class AgentRunner extends EventEmitter {
       assets: completedAssets,
       failures: failedAssets,
       sourceDocsCheckedAt: new Date().toISOString(),
+      summary: this.pipelineSummary,
       usage: parseTokenUsage(this.usage),
       attribution: buildManifestAttribution(allAssetSnapshots),
       pexelsQuotaSnapshot: PexelsClient.getQuotaSnapshot() || undefined
@@ -1163,7 +1197,10 @@ export class AgentRunner extends EventEmitter {
   private async parseScriptIntoBeats(): Promise<void> {
     if (this.beats.length > 0) return // Already parsed if resuming
 
-    this.updateProgress('Analyzing script into beats', 15)
+    this.updateProgress(
+      this.engine === 'pipeline' ? 'Planning beats' : 'Analyzing script into beats',
+      15
+    )
     this.log(
       'info',
       `Contacting LLM provider (${this.providerId} / model: ${this.modelId}) to segment script into beats...`
@@ -1469,6 +1506,183 @@ export class AgentRunner extends EventEmitter {
       this.hitIterationLimit = true
       this.log('error', `Agent reached maximum iterations limit (${this.maxIterations})`)
     }
+  }
+
+  /**
+   * The pipeline engine: the same job, run as fixed steps. The model plans the beats (before this
+   * is called) and ranks what Pexels found; code does the rest. A pause, a quota stop or an
+   * approval stop leaves the state in `pipelineState`, and the next run carries on from it.
+   */
+  private async runPipelineEngine(): Promise<void> {
+    this.hitIterationLimit = false
+    this.approvalRequested = false
+    this.logPexelsQuotaIfNeeded()
+
+    const state = this.pipelineState ?? initialPipelineState()
+    // A job that stopped after its last step has downloads that may have failed since. One step
+    // back, the picks are topped up from the rankings and the model is not asked again.
+    if (state.step === 'done') state.step = 'retried'
+    // The steps write their progress into this object, so a pause keeps what was done.
+    this.pipelineState = state
+    const ctx = this.buildPipelineContext(
+      this.abortController?.signal ?? new AbortController().signal
+    )
+
+    try {
+      const outcome = await runPipeline(ctx, { state })
+      if (outcome === 'held' || this.status !== 'running') return
+
+      // A download that fails after the last pick leaves its beat short. The loop would carry
+      // on; here one more top-up replaces it from the rankings.
+      await this.waitForDownloadsToSettle()
+      if (this.status === 'running' && hasPicksToMake(ctx, state)) {
+        state.step = 'retried'
+        await runPipeline(ctx, { state })
+      }
+    } finally {
+      this.settleSearchingBeats()
+    }
+  }
+
+  /** The pipeline's view of the job, built from the runner's own seams. */
+  private buildPipelineContext(signal: AbortSignal): PipelineContext {
+    return {
+      settings: {
+        platform: this.input.platform,
+        mix: this.input.mix,
+        searchMode: this.input.searchMode || DEFAULT_SEARCH_MODE,
+        style: this.input.style,
+        visualConcept: this.input.visualConcept,
+        optionsPerBeat: this.input.maxAssetsPerBeat,
+        maxTotalDownloads: this.input.maxTotalDownloads,
+        skipExplicit: this.safetySettings.skipExplicit,
+        avoidPeople: this.safetySettings.avoidPeople,
+        requireApproval: this.requireApproval
+      },
+      signal,
+      beats: () => this.pipelineBeats(),
+      searchPhotos: (params) =>
+        this.pipelineSearch(() => this.searchPexels('photo', params, signal)),
+      searchVideos: (params) =>
+        this.pipelineSearch(() => this.searchPexels('video', params, signal)),
+      cacheCandidates: (candidates) => this.storeCandidates(candidates),
+      candidate: (key) => this.pexelsCandidates.get(key),
+      noteQuery: (beatId, query) => {
+        const beat = this.beats.find((b) => b.id === beatId)
+        if (!beat) return
+        beat.status = statusDuringSearch(beat)
+        if (!beat.searchQueries.includes(query)) beat.searchQueries.push(query)
+      },
+      callStructured: (request) => this.callStructured(request),
+      select: (beatId, key) => this.pipelineSelect(beatId, key),
+      holdForApproval: () => this.holdForApproval(),
+      log: (type, message) => this.log(type, message),
+      progress: (step, percent) => this.updateProgress(step, percent),
+      saveState: (state) => this.savePipelineState(state)
+    }
+  }
+
+  /**
+   * The beats as the steps see them. A failed asset is not held and is not offered to its beat
+   * again: a user's rejection, a download that failed and a file the user deleted all end so.
+   */
+  private pipelineBeats(): PipelineBeat[] {
+    return this.beats.map((beat) => ({
+      id: beat.id,
+      text: beat.text,
+      visualPrompt: beat.visualPrompt,
+      queries: beat.queries ?? [],
+      assetType: beat.assetType ?? 'either',
+      held: beat.assets.filter((a) => a.status !== 'failed').map((a) => a.id),
+      excluded: [
+        ...new Set([
+          ...(beat.rejectedAssets ?? []).map((r) => candidateKey(r.type, r.pexelsId)),
+          ...beat.assets.filter((a) => a.status === 'failed').map((a) => a.id)
+        ])
+      ],
+      tried: [...beat.searchQueries]
+    }))
+  }
+
+  /** A Pexels search for the pipeline. One that runs the quota out pauses the job, as in the loop. */
+  private async pipelineSearch<T>(search: () => Promise<T>): Promise<T> {
+    try {
+      return await search()
+    } catch (error) {
+      if (this.pexelsQuotaRanOut(error)) {
+        this.log(
+          'error',
+          `Pexels search failed: ${error instanceof Error ? error.message : String(error)}`
+        )
+        this.pauseIfPexelsQuotaExhausted(error)
+      }
+      throw error
+    }
+  }
+
+  /**
+   * Records a pick on its beat, and queues the download unless the job waits for approval. The
+   * checks are the ones the loop makes when the model selects an asset.
+   */
+  private pipelineSelect(beatId: string, key: string): SelectOutcome {
+    const beat = this.beats.find((b) => b.id === beatId)
+    const candidate = this.pexelsCandidates.get(key)
+    if (!beat || !candidate || !this.canUseAssetType(candidate.type)) return 'refused'
+
+    const variant = chooseVariant(candidate)
+    if (!variant) return 'refused'
+    try {
+      validateDownloadUrl(variant.url)
+    } catch {
+      return 'refused'
+    }
+
+    if (isAssetRejectedByUser(beat, candidate.type, candidate.pexelsId)) return 'refused'
+    if (beatUsingAsset(this.beats, beat.id, key)) return 'refused'
+    if (beat.assets.some((a) => a.id === key)) return 'refused'
+    const budgetViolation = selectionBudgetViolation({
+      beats: this.beats,
+      beatId: beat.id,
+      maxAssetsPerBeat: this.input.maxAssetsPerBeat,
+      maxTotalDownloads: this.input.maxTotalDownloads
+    })
+    if (budgetViolation) return 'refused'
+
+    const record = this.createAssetRecord(beat, candidate, variant)
+    if (!this.requireApproval) this.queueDownload(record, beat)
+    return 'selected'
+  }
+
+  /** A beat shows "searching" only while a search for it is out. */
+  private settleSearchingBeats(): void {
+    for (const beat of this.beats) {
+      if (beat.status === 'searching') beat.status = statusAfterInterruptedSearch(beat)
+    }
+  }
+
+  private async savePipelineState(state: PipelineState): Promise<void> {
+    this.pipelineState = state
+    this.settleSearchingBeats()
+    await this.writeAgentState()
+    await this.writeManifest()
+    this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
+  }
+
+  /** Logs what the run did, in words written by code, and keeps it in the manifest. */
+  private recordPipelineSummary(): void {
+    if (this.status !== 'completed' && this.status !== 'failed') return
+    this.pipelineSummary = summarizePipelineRun({
+      beats: this.beats.map((beat) => ({
+        id: beat.id,
+        text: beat.text,
+        assets: beat.assets.filter((a) => a.status !== 'failed').length,
+        tried: beat.searchQueries
+      })),
+      // The beat plan was one request; the steps counted the rest.
+      modelCalls: 1 + (this.pipelineState?.modelCalls ?? 0),
+      totalTokens: this.usage.totalTokens
+    })
+    this.log('info', this.pipelineSummary)
   }
 
   // ponytail: O(n) scan; fine until jobs have hundreds of beats
@@ -2039,16 +2253,19 @@ export class AgentRunner extends EventEmitter {
    * The caller logs the error first, so the log reads as the failure and then the pause.
    */
   private pauseIfPexelsQuotaExhausted(error: unknown): boolean {
-    if (
+    if (!this.pexelsQuotaRanOut(error)) return false
+    this.pauseForPexelsQuota()
+    return true
+  }
+
+  /** Whether a Pexels call failed because the quota is used up, in a run that is still going. */
+  private pexelsQuotaRanOut(error: unknown): boolean {
+    return (
       error instanceof ApiError &&
       error.statusCode === 429 &&
       PexelsClient.isQuotaExhausted() &&
       this.status === 'running'
-    ) {
-      this.pauseForPexelsQuota()
-      return true
-    }
-    return false
+    )
   }
 
   /** docs/04: on an exhausted quota, stop new Pexels calls for this job and say why. */
@@ -2124,7 +2341,10 @@ export class AgentRunner extends EventEmitter {
       if (!this.setStatus('running', 'approved')) return
       if (approvedPendingAssets.length === 0) {
         if (rejectedSet.size > 0) {
-          this.log('info', `User rejected ${rejectedSet.size} pending assets. Resuming agent loop.`)
+          this.log(
+            'info',
+            `User rejected ${rejectedSet.size} pending assets. Resuming ${this.engine === 'pipeline' ? 'the run' : 'agent loop'}.`
+          )
           this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
           await this.writeManifest()
         }
@@ -2142,12 +2362,15 @@ export class AgentRunner extends EventEmitter {
 
         this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
 
-        this.messages.push({
-          role: 'user',
-          content: `User has approved the selections: ${approvedPendingAssets.map((p) => `${p.asset.type} ${p.asset.pexelsId}`).join(', ')}.${
-            rejectedSet.size > 0 ? ` User rejected: ${Array.from(rejectedSet).join(', ')}.` : ''
-          } The approved downloads are now in progress.`
-        })
+        // The pipeline has no conversation to tell.
+        if (this.engine === 'loop') {
+          this.messages.push({
+            role: 'user',
+            content: `User has approved the selections: ${approvedPendingAssets.map((p) => `${p.asset.type} ${p.asset.pexelsId}`).join(', ')}.${
+              rejectedSet.size > 0 ? ` User rejected: ${Array.from(rejectedSet).join(', ')}.` : ''
+            } The approved downloads are now in progress.`
+          })
+        }
       }
 
       await this.runLoopAndFinalize()

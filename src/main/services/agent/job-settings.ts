@@ -14,7 +14,14 @@ export interface JobRuntimeSettings {
   skipExplicit: boolean
   avoidPeople: boolean
   requireApproval: boolean
+  /**
+   * The engine this job runs on. A record saved before the pipeline existed has none, and
+   * that means the loop.
+   */
+  engine: AgentEngine
 }
+
+export type AgentEngine = 'loop' | 'pipeline'
 
 const PROVIDER_LABELS: Record<LlmProviderId, string> = {
   openai: 'OpenAI',
@@ -38,7 +45,8 @@ export function pinRuntimeSettings(settings: PublicSettings): JobRuntimeSettings
     requestTimeoutSeconds: settings.requestTimeoutSeconds,
     skipExplicit: settings.skipExplicitQueries,
     avoidPeople: settings.avoidPeopleAndFaces,
-    requireApproval: settings.requireApprovalBeforeDownload
+    requireApproval: settings.requireApprovalBeforeDownload,
+    engine: settings.agentEngine === 'pipeline' ? 'pipeline' : 'loop'
   }
 }
 
@@ -65,7 +73,8 @@ export function parseRuntimeSettings(value: unknown): JobRuntimeSettings | undef
     requestTimeoutSeconds: v.requestTimeoutSeconds,
     skipExplicit: v.skipExplicit,
     avoidPeople: v.avoidPeople,
-    requireApproval: v.requireApproval
+    requireApproval: v.requireApproval,
+    engine: v.engine === 'pipeline' ? 'pipeline' : 'loop'
   }
 }
 
@@ -73,7 +82,8 @@ export function parseRuntimeSettings(value: unknown): JobRuntimeSettings | undef
  * The settings of a job that is loaded from disk: the saved record when there is one. A job
  * from before settings were pinned runs with today's settings, except that it keeps the
  * provider and model its manifest says it was started with. Provider and model go together:
- * a model id means nothing under another provider.
+ * a model id means nothing under another provider. It also stays on the loop, the only engine
+ * there was when it started.
  */
 export function resolveRuntimeSettings(
   saved: JobRuntimeSettings | undefined,
@@ -81,7 +91,7 @@ export function resolveRuntimeSettings(
   current: PublicSettings
 ): JobRuntimeSettings {
   if (saved) return saved
-  const pinned = pinRuntimeSettings(current)
+  const pinned: JobRuntimeSettings = { ...pinRuntimeSettings(current), engine: 'loop' }
   const provider = manifestSnapshot?.provider
   const modelId = manifestSnapshot?.modelId
   if (isProviderId(provider) && typeof modelId === 'string' && modelId.trim()) {

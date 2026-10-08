@@ -27,6 +27,7 @@ const SettingsUpdateSchema = z.object({
   isOnboarded: z.boolean().optional(),
   theme: z.enum(['flat-black', 'flat-white']).optional(),
   hideEstimatedCost: z.boolean().optional(),
+  agentEngine: z.enum(['loop', 'pipeline']).optional(),
   autoCheckForUpdates: z.boolean().optional(),
   // Keys are sent in the update payload but stored securely in Keychain, not in settings.json
   openaiKey: z.string().optional(),
@@ -118,6 +119,7 @@ export function registerSettingsHandlers(): void {
         isOnboarded: input.isOnboarded,
         theme: input.theme,
         hideEstimatedCost: input.hideEstimatedCost,
+        agentEngine: input.agentEngine,
         autoCheckForUpdates: input.autoCheckForUpdates
       }).filter(([, value]) => value !== undefined)
     )

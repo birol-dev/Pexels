@@ -41,6 +41,14 @@ export const THEME_OPTIONS: { value: PublicSettings['theme']; label: string }[] 
   { value: 'flat-black', label: 'Dark Mode (Cyber)' }
 ]
 
+export const ENGINE_OPTIONS: {
+  value: NonNullable<PublicSettings['agentEngine']>
+  label: string
+}[] = [
+  { value: 'loop', label: 'Agent loop' },
+  { value: 'pipeline', label: 'Pipeline (beta)' }
+]
+
 export function secretFieldForProvider(provider: LlmProvider): SecretKeyField {
   return `${provider}Key`
 }

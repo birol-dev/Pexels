@@ -14,7 +14,8 @@ const PINNED: NonNullable<JobSnapshot['runtimeSettings']> = {
   requestTimeoutSeconds: 60,
   skipExplicit: true,
   avoidPeople: false,
-  requireApproval: false
+  requireApproval: false,
+  engine: 'loop'
 }
 
 // Only the fields these helpers read; the rest of a snapshot or of Settings is not their business.
@@ -48,11 +49,24 @@ describe('run screen: Resume with current settings', () => {
       { requestTimeoutSeconds: 120 },
       { skipExplicitQueries: false },
       { avoidPeopleAndFaces: true },
-      { requireApprovalBeforeDownload: true }
+      { requireApprovalBeforeDownload: true },
+      { agentEngine: 'pipeline' }
     ]
     for (const change of changes) {
       assert.equal(pinnedSettingsDiffer(job(), settings(change)), true, JSON.stringify(change))
     }
+  })
+
+  it('reads a missing engine, on the job or in Settings, as the loop', () => {
+    const beforeEngines: Partial<typeof PINNED> = { ...PINNED }
+    delete beforeEngines.engine
+    const oldJob = job({ runtimeSettings: beforeEngines })
+    assert.equal(pinnedSettingsDiffer(oldJob, settings()), false)
+    assert.equal(pinnedSettingsDiffer(oldJob, settings({ agentEngine: 'loop' })), false)
+    assert.equal(pinnedSettingsDiffer(oldJob, settings({ agentEngine: 'pipeline' })), true)
+    const pipelineJob = job({ runtimeSettings: { ...PINNED, engine: 'pipeline' } })
+    assert.equal(pinnedSettingsDiffer(pipelineJob, settings({ agentEngine: 'pipeline' })), false)
+    assert.equal(pinnedSettingsDiffer(pipelineJob, settings()), true)
   })
 
   it('is not offered when either side is unknown', () => {
