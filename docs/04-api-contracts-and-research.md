@@ -38,7 +38,7 @@ GET /v1/search?query=<query>&orientation=<orientation>&size=<size>&color=<color>
 Video search endpoint from Pexels docs:
 
 ```http
-GET /videos/search?query=<query>&orientation=<orientation>&size=<size>&page=<page>&per_page=<perPage>
+GET /v1/videos/search?query=<query>&orientation=<orientation>&size=<size>&page=<page>&per_page=<perPage>
 ```
 
 Photo detail endpoint:
@@ -50,8 +50,10 @@ GET /v1/photos/<id>
 Video detail endpoint:
 
 ```http
-GET /videos/videos/<id>
+GET /v1/videos/videos/<id>
 ```
+
+The app uses the `/v1/videos/` paths. The old `/videos/` paths are deprecated.
 
 Implementation rules:
 
@@ -59,7 +61,7 @@ Implementation rules:
 - Default `per_page` should be conservative:
   - photos: `15`
   - videos: `10`
-- Never request more than Pexels allows; validate upper bounds from current docs.
+- Never request more than Pexels allows; validate upper bounds from current docs. The search tools accept `perPage` up to 30, which is below the Pexels maximum, so one result list stays small.
 - Capture rate-limit headers when present and write them to debug logs without secrets.
 - On `429`, stop new Pexels calls for that job and show `pexels_rate_limited`.
 - On `401` or `403`, show `invalid_api_key` or `pexels_auth_failed`.
@@ -126,6 +128,8 @@ type NormalizedPexelsVideo = {
 }
 ```
 
+These normalized records stay inside the app. The model is sent a smaller result with no URLs or creator names: `pexelsId`, `about`, `shape` and `size` for a photo, plus `seconds` and `fullHd` for a video (see `docs/02-agent-loop-prompts-tools.md`).
+
 ## Provider-Neutral Tool Contract
 
 Internal tools must use JSON Schema-compatible shapes because OpenAI-compatible providers and Gemini can both consume function declarations after adapter conversion.
@@ -147,7 +151,7 @@ type NormalizedToolDefinition = {
 type NormalizedToolCall = {
   id: string
   name: string
-  argumentsJson: string
+  arguments: string // JSON string
 }
 ```
 
@@ -246,8 +250,8 @@ Never let the model introduce arbitrary download URLs.
 Required behavior:
 
 1. Pexels search result enters app memory as trusted candidate data.
-2. Model can select by `pexelsId` and variant label/url from returned candidates.
-3. App verifies selected URL exactly matches one candidate URL from the same job.
+2. Model selects by `pexelsId`. It does not see download URLs, so the app picks the file. A `variantUrl` the model names anyway must match a candidate.
+3. App verifies any selected URL exactly matches one candidate URL from the same job.
 4. App downloads only verified Pexels candidate URLs.
 5. App writes only inside the selected project folder.
 

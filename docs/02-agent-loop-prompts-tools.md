@@ -9,13 +9,13 @@ The app needs a deterministic looping agent, not a loose chatbot.
 The main loop:
 
 1. Build initial agent state from script and user settings.
-2. Ask LLM to analyze script into visual beats.
-3. Ask LLM to create search queries for the next unresolved beat.
+2. Split the script into numbered sentences in code, then ask the LLM once, with the `submit_beat_plan` tool, where each visual beat ends. There is no retry: code repairs bad beat ends.
+3. Ask LLM to create search queries for the next unresolved beat. The beat plan already suggests 2 or 3 queries per beat.
 4. Allow LLM to call Pexels search tools.
 5. App executes tool calls in main process.
 6. Feed tool results back to the LLM.
 7. Ask LLM to select/reject assets.
-8. Download selected assets.
+8. Selecting an asset starts its download in code (after the user approves it, when approval is required). The model does not call a download tool.
 9. Repeat until all beats are resolved or max iterations is reached.
 10. Write final manifest and summary.
 
@@ -64,11 +64,11 @@ Stop the loop when any condition is true:
 - provider returns repeated invalid tool calls 3 times
 - no useful Pexels results after all generated queries
 
-Default `maxAgentIterations`: `20`.
+Default `maxAgentIterations`: `30`.
 
 ## System Prompt
 
-Use this prompt as the first implementation draft. Keep it in `src/main/services/agent/prompts.ts`.
+This is the first implementation draft. The prompt the app sends is built by `buildStockScoutSystemPrompt` in `src/main/services/agent/search-mode.ts`, and `test/prompt-quality.test.ts` pins what it says. It is shorter than this draft, and it tells the model that selecting starts the download.
 
 ```text
 You are StockScout, a careful stock-media research agent for YouTube creators.
@@ -119,7 +119,7 @@ Current job settings:
 - Target platform: {{targetPlatform}}
 - Visual style: {{visualStyle}}
 - Asset mix: {{assetMix}}
-- Max assets per beat: {{maxAssetsPerBeat}}
+- Options per beat: {{maxAssetsPerBeat}} (a target, not only an upper bound)
 - Max total downloads: {{maxTotalDownloads}}
 - Require approval before downloads: {{requireApprovalBeforeDownloads}}
 
@@ -130,27 +130,22 @@ Use only the available tools. If you need stock media, call a Pexels search tool
 
 The internal tool schema must be provider-neutral. Convert these definitions into OpenAI/OpenRouter/Gemini provider shapes in adapter code.
 
-### `analyze_script_beats`
+### `submit_beat_plan`
 
-This can be implemented as a tool or as a structured non-tool LLM step. Prefer structured output without external side effects.
+The beat split is one forced tool call with no external side effects (`src/main/services/llm/beat-parse-tool.ts`). Code splits the script into sentences (sentences over 40 words are cut into chunks of 15) and sends them numbered, one per line. The model never copies script text. It returns where each beat ends and what footage the beat needs. Code builds each beat's text from the sentences, so the beats always add up to the script.
 
 ```ts
-const AnalyzeScriptBeatsSchema = z.object({
-  beats: z
-    .array(
-      z.object({
-        scriptExcerpt: z.string().min(1),
-        visualIntent: z.string().min(1),
-        mood: z.string().min(1),
-        subjects: z.array(z.string()).min(1),
-        desiredAssetTypes: z.array(z.enum(['photo', 'video'])).min(1),
-        minNeeded: z.number().int().min(0).max(5)
-      })
-    )
-    .min(1)
-    .max(80)
-})
+type SubmitBeatPlanArgs = {
+  beats: Array<{
+    lastSentence: number // number of the last sentence in the beat
+    visualPrompt: string // 3 to 8 words
+    queries: string[] // 2 or 3 Pexels queries, most specific first
+    assetType: 'video' | 'photo' | 'either'
+  }>
+}
 ```
+
+A beat end that is out of range or does not increase is clamped, and sentences left over after the last beat join it, with a log line. A missing or empty `beats` list fails the job. The request is not repeated.
 
 ### `search_pexels_photos`
 
@@ -164,31 +159,26 @@ const SearchPexelsPhotosArgsSchema = z.object({
   size: z.enum(['large', 'medium', 'small']).optional(),
   color: z.string().optional(),
   page: z.number().int().min(1).max(10).default(1),
-  perPage: z.number().int().min(1).max(80).default(15)
+  perPage: z.number().int().min(1).max(30).default(15)
 })
 ```
 
-Tool result:
+`orientation` defaults to the platform's shape (landscape for YouTube, portrait otherwise) when the model leaves it out.
+
+Tool result. The model judges relevance from text only, so it gets no URLs, photographer names or preview links. The app keeps the full candidate (variants, photographer, preview) for the selection and the manifest.
 
 ```ts
 type SearchPexelsPhotosResult = {
+  total_results: number
   results: Array<{
     pexelsId: number
-    url: string
-    photographer: string
-    photographerUrl?: string
-    width: number
-    height: number
-    avgColor?: string
-    alt?: string
-    previewUrl: string
-    downloadableVariants: Array<{
-      label: string
-      url: string
-      width?: number
-      height?: number
-    }>
+    about: string // the alt text, or the slug of the Pexels page when there is none
+    shape: 'landscape' | 'portrait' | 'square'
+    size: string // "6000x4000"
   }>
+  // Only when the safety settings hid results:
+  filtered?: number
+  note?: string // set when every result was hidden
 }
 ```
 
@@ -203,32 +193,25 @@ const SearchPexelsVideosArgsSchema = z.object({
   orientation: z.enum(['landscape', 'portrait', 'square']).optional(),
   size: z.enum(['large', 'medium', 'small']).optional(),
   page: z.number().int().min(1).max(10).default(1),
-  perPage: z.number().int().min(1).max(80).default(10)
+  perPage: z.number().int().min(1).max(30).default(10)
 })
 ```
 
-Tool result:
+Tool result. Like the photo result it has no URLs, so the app chooses the file to download.
 
 ```ts
 type SearchPexelsVideosResult = {
+  total_results: number
   results: Array<{
     pexelsId: number
-    url: string
-    userName?: string
-    userUrl?: string
-    width: number
-    height: number
-    durationSeconds: number
-    previewImageUrl: string
-    downloadableVariants: Array<{
-      quality?: string
-      fileType?: string
-      width?: number
-      height?: number
-      fps?: number
-      url: string
-    }>
+    about: string // the slug of the Pexels page, the only description a video has
+    shape: 'landscape' | 'portrait' | 'square'
+    size: string // "3840x2160"
+    seconds: number
+    fullHd: boolean // a file of 1920 pixels or more exists
   }>
+  filtered?: number
+  note?: string
 }
 ```
 
@@ -236,7 +219,7 @@ type SearchPexelsVideosResult = {
 
 Purpose: let the LLM select candidates after search results are visible.
 
-This is a local decision tool. It should not download files by itself.
+Selecting is what starts a download. The app checks the selection (the asset came from a search of this job, the mix allows its type, the per-beat and total caps hold, no other beat has it), picks the file, and queues the download itself. When approval is required, the selection stays `pending` and the loop pauses after the turn until the user approves.
 
 ```ts
 const SelectAssetsForDownloadArgsSchema = z.object({
@@ -246,19 +229,18 @@ const SelectAssetsForDownloadArgsSchema = z.object({
         beatId: z.string().min(1),
         assetType: z.enum(['photo', 'video']),
         pexelsId: z.number().int().positive(),
-        variantUrl: z.string().url(),
-        reason: z.string().min(1).max(500)
+        variantUrl: z.string().url().optional(), // without it the app picks the best file
+        reason: z.string().max(500).optional()
       })
     )
-    .min(1)
-    .max(50),
+    .default([]),
   rejections: z
     .array(
       z.object({
         beatId: z.string().min(1),
         assetType: z.enum(['photo', 'video']),
         pexelsId: z.number().int().positive(),
-        reason: z.string().min(1).max(200)
+        reason: z.string().max(500).optional() // stored as "Not chosen" when empty
       })
     )
     .default([])
@@ -267,9 +249,9 @@ const SelectAssetsForDownloadArgsSchema = z.object({
 
 ### `download_selected_assets`
 
-Purpose: download previously selected Pexels assets.
+Purpose: report the download status of assets that were already selected. It is optional and the prompt does not mention it, because selecting already queues the download.
 
-Important: The model must not provide arbitrary download URLs here. The app should map selected `pexelsId + variantUrl` from prior search results and verify the URL was actually returned by Pexels.
+Important: The model must not provide arbitrary download URLs here. It names `pexelsId` and `assetType` only; assets that were not selected first, assets the user rejected, and assets waiting for approval are refused.
 
 ```ts
 const DownloadSelectedAssetsArgsSchema = z.object({
@@ -280,8 +262,7 @@ const DownloadSelectedAssetsArgsSchema = z.object({
         pexelsId: z.number().int().positive()
       })
     )
-    .min(1)
-    .max(50)
+    .default([])
 })
 ```
 
@@ -289,7 +270,7 @@ Tool result:
 
 ```ts
 type DownloadSelectedAssetsResult = {
-  downloaded: AssetRecord[]
+  downloaded: Array<{ assetType: 'photo' | 'video'; pexelsId: number; status: string }>
   failed: Array<{
     assetType: 'photo' | 'video'
     pexelsId: number
@@ -310,6 +291,7 @@ The app must validate every tool call before execution:
 5. Enforce user max downloads in code.
 6. Enforce provider and Pexels rate limits in code.
 7. Emit a structured error result back to the LLM for recoverable errors.
+8. Enforce the safety settings in code, not only in the prompt (`src/main/services/agent/content-filters.ts`). With "Skip explicit content" on, a query with an explicit word is refused and results described as explicit are dropped. With "Avoid people & faces" on, results whose description mentions people are dropped. Dropped results are never cached, so they cannot be selected, and the search result reports how many were hidden in `filtered`. Both are best effort: they read a photo's alt text or a video's page slug, not the picture.
 
 ## Query Strategy
 
@@ -358,8 +340,8 @@ Generic quality rules:
 
 If `requireApprovalBeforeDownloads` is true:
 
-1. Agent may search and select.
-2. App stops before `download_selected_assets`.
+1. Agent may search and select. A selection is recorded as `pending` and nothing is queued.
+2. App pauses the loop after the turn that selected.
 3. UI shows proposed assets.
 4. User approves/rejects.
 5. App downloads approved assets.
