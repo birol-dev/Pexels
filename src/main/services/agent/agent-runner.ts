@@ -1123,6 +1123,19 @@ export class AgentRunner extends EventEmitter {
         this.usage.outputTokens += turnResult.usage.outputTokens || 0
         this.usage.totalTokens += turnResult.usage.totalTokens || 0
         this.usage.cachedInputTokens += turnResult.usage.cachedInputTokens || 0
+
+        // One line per turn, so a long job shows where the tokens went.
+        const turnTokens = {
+          turn: iteration,
+          inputTokens: turnResult.usage.inputTokens || 0,
+          cachedInputTokens: turnResult.usage.cachedInputTokens || 0,
+          outputTokens: turnResult.usage.outputTokens || 0
+        }
+        this.log(
+          'info',
+          `Turn ${iteration}: ${turnTokens.inputTokens.toLocaleString('en-US')} input tokens (${turnTokens.cachedInputTokens.toLocaleString('en-US')} cached), ${turnTokens.outputTokens.toLocaleString('en-US')} output.`,
+          turnTokens
+        )
       }
 
       const assistantMsg = turnResult.assistantMessage
