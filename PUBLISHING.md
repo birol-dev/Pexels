@@ -1,21 +1,25 @@
 # Publishing StockFinder AI
 
-This project publishes releases from git tags. Pushing a tag matching `v*` triggers three parallel GitHub Actions workflows that build installers for every platform and upload them to the same GitHub Release.
+This project publishes releases from git tags. Pushing a tag matching `v*` triggers three parallel GitHub Actions workflows that build installers for every platform. On a tag build, electron-builder (`--publish always`) uploads them to one **draft** GitHub Release, together with the metadata an updater needs to find and verify the files. You publish the draft by hand.
 
-| Workflow                                             | Runner           | Artifacts uploaded to the release                   |
-| ---------------------------------------------------- | ---------------- | --------------------------------------------------- |
-| [build-win.yml](.github/workflows/build-win.yml)     | `windows-latest` | `stockfinder-ai-*-setup.exe`                        |
-| [build-mac.yml](.github/workflows/build-mac.yml)     | `macos-latest`   | `stockfinder-ai-*.dmg`                              |
-| [build-linux.yml](.github/workflows/build-linux.yml) | `ubuntu-latest`  | `stockfinder-ai-*.AppImage`, `stockfinder-ai-*.deb` |
+| Workflow                                             | Runner           | Files uploaded to the draft release                                                     |
+| ---------------------------------------------------- | ---------------- | --------------------------------------------------------------------------------------- |
+| [build-win.yml](.github/workflows/build-win.yml)     | `windows-latest` | `stockfinder-ai-<version>-setup.exe`, its `.exe.blockmap`, `latest.yml`                 |
+| [build-mac.yml](.github/workflows/build-mac.yml)     | `macos-latest`   | `stockfinder-ai-<version>.dmg`, the `.zip`, a `.blockmap` for each, `latest-mac.yml`    |
+| [build-linux.yml](.github/workflows/build-linux.yml) | `ubuntu-latest`  | `stockfinder-ai-<version>.AppImage`, `stockfinder-ai-<version>.deb`, `latest-linux.yml` |
 
-All three workflows also run on pull requests (build only, no release upload) and can be started manually from the Actions tab via **Run workflow**.
+`latest.yml`, `latest-mac.yml` and `latest-linux.yml` name the newest version and carry the size and SHA-512 of each installer. The `.blockmap` files let an updater download only the parts that changed. Don't delete or rename any of them in the draft.
+
+All three workflows also run on pull requests and on pushes to `main` (build only, `--publish never`, installers kept as workflow artifacts) and can be started manually from the Actions tab via **Run workflow**.
 
 ## Prerequisites
 
 - Work from `main`.
 - Keep unrelated user changes out of the release commit.
 - Use Node.js 22 or newer.
-- `GITHUB_TOKEN` is provided automatically in Actions — no extra secrets are required for draft/published release uploads.
+- `GITHUB_TOKEN` is provided automatically in Actions — no extra secrets are required to create the draft release and upload to it.
+- The tag must be `v` followed by the `version` in `package.json` (`v1.4.0` for `1.4.0`). electron-builder names the release after `package.json`, not after the pushed tag, so each workflow fails early when the two differ.
+- Don't create the release for the tag by hand first. electron-builder uploads only to a draft: when a published release with the same tag already exists, it skips the upload and the build still passes.
 
 ## Release Steps
 
@@ -79,18 +83,20 @@ git push origin main
 git push origin v1.2.9
 ```
 
-8. Confirm publishing.
+8. Check the draft.
 
 - Open **GitHub → Actions** and wait for all three workflows to pass:
   - **Build Windows Installer**
   - **Build macOS Installer**
   - **Build Linux Packages**
-- Open **GitHub → Releases** and confirm the release contains:
-  - Windows `.exe` installer
-  - macOS `.dmg`
-  - Linux `.AppImage` and `.deb`
+- Open **GitHub → Releases** and confirm there is exactly one draft for the tag, containing:
+  - Windows: `stockfinder-ai-<version>-setup.exe`, `stockfinder-ai-<version>-setup.exe.blockmap`, `latest.yml`
+  - macOS: the `.dmg`, the `.zip`, their `.blockmap` files, `latest-mac.yml`
+  - Linux: the `.AppImage`, the `.deb`, `latest-linux.yml`
 
-The first workflow to finish creates the GitHub Release; the others attach their platform files to the same release.
+The first workflow to reach its upload creates the draft. The others find it by its tag name and add their files. Each one looks for the draft and creates it when there is none, without a lock, so two workflows that get there at the same moment can each create a draft. If you see two, delete the one with fewer files and re-run the workflows whose files it held.
+
+9. Publish the draft from **GitHub → Releases** once its contents are right.
 
 ## Manual workflow runs
 
@@ -101,6 +107,8 @@ To build installers without tagging (for testing CI):
 3. Click **Run workflow** → choose `main` → **Run workflow**.
 
 Artifacts are saved to the workflow run even when no release is published.
+
+A run started on a branch never publishes. A run started on a tag (choose the tag instead of `main`) uploads to that version's draft release, which is how you redo one platform after a failed build.
 
 ## Platform notes
 
