@@ -5,8 +5,6 @@ on:
     branches: [main, master]
     tags:
       - 'v*'
-  release:
-    types: [published]
   pull_request:
     branches: [main, master]
   workflow_dispatch:
@@ -50,8 +48,21 @@ jobs:
             }
           }
 
+      # electron-builder names the release after package.json, not after the pushed tag.
+      - name: Check Tag Matches package.json Version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+
+      # On a tag, electron-builder uploads the installer, its blockmap and latest.yml to
+      # the draft release for this version. Other builds stay local.
+      # Runs in bash: under PowerShell, npm.ps1 swallows the "--" and the --publish flag
+      # never reaches electron-builder.
       - name: Build and Package App
-        run: npm run build:win -- --publish never
+        shell: bash
+        run: npm run build:win -- --publish ${{ startsWith(github.ref, 'refs/tags/') && 'always' || 'never' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Windows Installer Artifact
         uses: actions/upload-artifact@v4
@@ -59,11 +70,3 @@ jobs:
           name: StockFinder-AI-Windows-Setup
           path: dist/stockfinder-ai-*-setup.exe
           if-no-files-found: error
-
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
-        with:
-          files: dist/stockfinder-ai-*-setup.exe
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

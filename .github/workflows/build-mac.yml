@@ -5,8 +5,6 @@ on:
     branches: [main, master]
     tags:
       - 'v*'
-  release:
-    types: [published]
   pull_request:
     branches: [main, master]
   workflow_dispatch:
@@ -46,8 +44,17 @@ jobs:
           mkdir -p ~/Library/Caches/electron
           cp ~/Library/Caches/electron/*/electron-v*.zip ~/Library/Caches/electron/ 2>/dev/null || true
 
+      # electron-builder names the release after package.json, not after the pushed tag.
+      - name: Check Tag Matches package.json Version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+
+      # On a tag, electron-builder uploads the dmg, the zip, their blockmaps and
+      # latest-mac.yml to the draft release for this version. Other builds stay local.
       - name: Build and Package App
-        run: npm run build:mac -- --publish never
+        run: npm run build:mac -- --publish ${{ startsWith(github.ref, 'refs/tags/') && 'always' || 'never' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload macOS Installer Artifact
         uses: actions/upload-artifact@v4
@@ -57,13 +64,3 @@ jobs:
             dist/stockfinder-ai-*.dmg
             dist/stockfinder-ai-*.zip
           if-no-files-found: error
-
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
-        with:
-          files: |
-            dist/stockfinder-ai-*.dmg
-            dist/stockfinder-ai-*.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

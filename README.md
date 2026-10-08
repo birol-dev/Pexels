@@ -91,6 +91,28 @@ Inspect the code, report bugs, or contribute on [GitHub](https://github.com/biro
 | macOS    | `npm run build:mac`         |
 | Linux    | `npm run build:linux`       |
 
+### System requirements
+
+StockFinder AI runs on Electron 44, so it has the platform minimums of that release:
+
+| Platform | Minimum                                                  | Architectures                                                      |
+| -------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
+| Windows  | Windows 10                                               | 64-bit only: x64 and ARM64. 32-bit Windows (ia32) is not supported |
+| macOS    | macOS 13 (Ventura)                                       | Intel and Apple Silicon. macOS 12 and earlier are not supported    |
+| Linux    | A distribution that Chromium and its maker still support | x64 and ARM64. 32-bit ARM (armv7l) is not supported                |
+
+These are Electron's limits. The build commands above build for the architecture of the machine they run on.
+
+### Check a Linux download
+
+The Linux packages are not signed. Releases after v1.3.2 include a `SHA256SUMS` file with the SHA-256 of the `.AppImage` and the `.deb`. Download it into the same folder as the package and run:
+
+```bash
+sha256sum --check --ignore-missing SHA256SUMS
+```
+
+`stockfinder-ai-<version>.AppImage: OK` means the file matches the one the release build produced. `FAILED` means the download is incomplete or was changed: delete it and download again. `SHA256SUMS` comes from the same release page as the packages, so it catches a damaged download. It does not prove who built the release.
+
 ### What you need before your first run
 
 1. A [Pexels API key](https://www.pexels.com/api/) (free)
@@ -105,7 +127,7 @@ The in-app onboarding wizard walks you through setup.
 
 ### Requirements
 
-- **Node.js** 20+
+- **Node.js** 22.12+ (the `electron` 44 package requires it)
 - **npm** 11+
 - Recommended: [VS Code](https://code.visualstudio.com/) with [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) and [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
 
@@ -114,6 +136,8 @@ The in-app onboarding wizard walks you through setup.
 ```bash
 npm install
 ```
+
+`npm install` no longer downloads the Electron binary (Electron 42 and later fetch it on first use). `npm start`, `npm run dev` and `npm run preview` download it on the first run through `install-electron`, so the first start needs network access and takes a little longer.
 
 ### Run locally (hot reload)
 
@@ -183,7 +207,7 @@ StockFinder AI is created and maintained by [Birol](https://birol.tech).
 ### v1.3.2 - DeepSeek Reasoning Budget (2026-09-20)
 
 - **Reasoning vs tool calls**: OpenRouter DeepSeek V4.1 Flash defaults to high reasoning, which spent the whole 4,000-token cap thinking (`finish_reason: length`) and never called `submit_script_beats`. Structured turns now send `reasoning.enabled=false` / `effort=low`.
-- **32,768 output tokens**: Beat parsing, idea expand, and agent turns use the completion budget OpenRouter documents for reasoning models (`max_tokens` covers thinking + visible tokens).
+- **32,768 output tokens**: Beat parsing, idea expand, and agent turns ask for up to 32,768 output tokens, the completion budget OpenRouter documents for reasoning models (`max_tokens` covers thinking + visible tokens). Builds after 1.3.2 treat this as the first request, not a fixed cap: when a provider answers HTTP 400 because the model allows fewer (for example `gpt-4o` at 16,384), the app reads the limit from the error message, or halves the request when the message gives no number, resends the turn, and keeps that limit for the same endpoint and model until the app is closed. There is no model table, and the model id you enter is still sent unchanged.
 - **10-minute LLM wait**: LLM replies wait at least 600 seconds so a full 32k generation on a ~60 tok/s OpenRouter route can finish. Pexels still uses the timeout slider.
 
 ### v1.3.1 - LLM Timeout Floor & OpenRouter Cache (2026-09-20)
