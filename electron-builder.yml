@@ -16,6 +16,11 @@ files:
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   - '!{website,test,stitch_stockfinder_ai,docs}/**'
+  - '!{.agents,.claude,.cursor,.github,test-results,playwright-report}/**'
+  - '!{eval,eval-cache,eval-results,scripts,.wrangler}/**'
+  - '!{skills-lock.json,postcss.config.js,.gitattributes,.editorconfig}'
+  - '!{components.json,wrangler.jsonc}'
+  - '!*.tsbuildinfo'
 asarUnpack:
   - resources/**
 win:
