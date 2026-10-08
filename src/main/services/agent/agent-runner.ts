@@ -13,6 +13,7 @@ import {
 import { PexelsClient } from '../pexels/pexels-client.ts'
 import { PexelsDownloader, type DownloadTask } from '../pexels/pexels-downloader.ts'
 import { validateDownloadUrl } from '../pexels/download-url-validation.ts'
+import { variantDimensions } from '../pexels/variant-dimensions.ts'
 import { buildManifestAttribution } from '../pexels/pexels-attribution.ts'
 import {
   SUBMIT_SCRIPT_BEATS_TOOL,
@@ -1564,8 +1565,8 @@ export class AgentRunner extends EventEmitter {
               url: sel.variantUrl,
               imageUrl: candidate.imageUrl,
               downloadUrl: sel.variantUrl,
-              width: candidate.width,
-              height: candidate.height,
+              // The size of the selected file, which is rarely the size of the original.
+              ...variantDimensions(candidate, sel.variantUrl),
               duration: candidate.duration,
               photographer: candidate.photographer,
               photographerUrl: candidate.photographerUrl,
