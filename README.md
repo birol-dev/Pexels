@@ -91,6 +91,18 @@ Inspect the code, report bugs, or contribute on [GitHub](https://github.com/biro
 | macOS    | `npm run build:mac`         |
 | Linux    | `npm run build:linux`       |
 
+### System requirements
+
+StockFinder AI runs on Electron 44, so it has the platform minimums of that release:
+
+| Platform | Minimum                                                  | Architectures                                                      |
+| -------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
+| Windows  | Windows 10                                               | 64-bit only: x64 and ARM64. 32-bit Windows (ia32) is not supported |
+| macOS    | macOS 13 (Ventura)                                       | Intel and Apple Silicon. macOS 12 and earlier are not supported    |
+| Linux    | A distribution that Chromium and its maker still support | x64 and ARM64. 32-bit ARM (armv7l) is not supported                |
+
+These are Electron's limits. The build commands above build for the architecture of the machine they run on.
+
 ### Check a Linux download
 
 The Linux packages are not signed. Releases after v1.3.2 include a `SHA256SUMS` file with the SHA-256 of the `.AppImage` and the `.deb`. Download it into the same folder as the package and run:
@@ -115,7 +127,7 @@ The in-app onboarding wizard walks you through setup.
 
 ### Requirements
 
-- **Node.js** 20+
+- **Node.js** 22.12+ (the `electron` 44 package requires it)
 - **npm** 11+
 - Recommended: [VS Code](https://code.visualstudio.com/) with [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) and [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
 
@@ -124,6 +136,8 @@ The in-app onboarding wizard walks you through setup.
 ```bash
 npm install
 ```
+
+`npm install` no longer downloads the Electron binary (Electron 42 and later fetch it on first use). `npm start`, `npm run dev` and `npm run preview` download it on the first run through `install-electron`, so the first start needs network access and takes a little longer.
 
 ### Run locally (hot reload)
 
