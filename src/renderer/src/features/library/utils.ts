@@ -19,9 +19,13 @@ export function assetFilename(asset: FlatAsset): string {
     : `${asset.type}_${asset.pexelsId}`
 }
 
+/** Seconds as `m:ss` (75 -> `1:15`, 5 -> `0:05`). Empty when there is no duration. */
 export function formatDuration(duration: number | undefined): string {
-  if (!duration) return ''
-  return duration < 10 ? `00:0${duration}` : `00:${duration}`
+  if (!duration || !Number.isFinite(duration) || duration < 0) return ''
+  const total = Math.round(duration)
+  const minutes = Math.floor(total / 60)
+  const seconds = String(total % 60).padStart(2, '0')
+  return `${minutes}:${seconds}`
 }
 
 export function matchesFilters(

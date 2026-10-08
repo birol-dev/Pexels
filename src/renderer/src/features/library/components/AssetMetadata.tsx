@@ -3,7 +3,7 @@ import { ArrowSquareOutIcon } from '@phosphor-icons/react'
 import { Card } from '@renderer/components/ui/card'
 import { Separator } from '@renderer/components/ui/separator'
 import type { FlatAsset } from '../types'
-import { buildCreditLine, pexelsAssetPageUrl } from '../utils'
+import { buildCreditLine, formatDuration, pexelsAssetPageUrl } from '../utils'
 
 function FieldLabel({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
@@ -57,10 +57,10 @@ export function AssetMetadata({ asset }: { asset: FlatAsset }): React.JSX.Elemen
             {asset.width} × {asset.height}
           </p>
         </div>
-        {asset.duration !== undefined && (
+        {formatDuration(asset.duration) && (
           <div>
             <FieldLabel>Duration</FieldLabel>
-            <p className="mt-0.5 font-bold text-on-surface">{asset.duration}s</p>
+            <p className="mt-0.5 font-bold text-on-surface">{formatDuration(asset.duration)}</p>
           </div>
         )}
         <div>

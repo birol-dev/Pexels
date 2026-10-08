@@ -123,6 +123,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps): React.JSX.Elemen
           <PlusIcon size={20} weight="bold" className="shrink-0" />
           <CollapsibleLabel collapsed={collapsed}>New Project</CollapsibleLabel>
         </Button>
+        <p
+          className="mt-3 select-text text-center font-label-sm text-xs text-outline"
+          title="StockFinder AI version"
+        >
+          v{__APP_VERSION__}
+        </p>
       </div>
     </aside>
   )

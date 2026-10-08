@@ -185,8 +185,14 @@ export function registerSettingsHandlers(): void {
   })
 
   ipcMain.handle('settings:chooseDownloadFolder', async () => {
+    // Electron 43 stopped remembering the last folder, so open at the current download folder.
+    const current = await SettingsStore.getSettings().then(
+      (settings) => settings.downloadFolder,
+      () => undefined
+    )
     const result = await dialog.showOpenDialog({
-      properties: ['openDirectory']
+      properties: ['openDirectory'],
+      ...(current ? { defaultPath: current } : {})
     })
     return result.canceled ? null : result.filePaths[0]
   })

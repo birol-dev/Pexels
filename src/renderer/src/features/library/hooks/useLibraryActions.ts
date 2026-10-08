@@ -39,7 +39,8 @@ export function useLibraryActions({
     if (!targetJobId) return
     const isConfirmed = await confirm(
       'Delete Asset',
-      'Are you sure you want to delete this file from local storage?'
+      'Move this file to the trash? You can restore it from there if you change your mind.',
+      { confirmText: 'Move to trash' }
     )
     if (!isConfirmed) return
     try {
@@ -54,7 +55,7 @@ export function useLibraryActions({
     } catch (err) {
       await alert(
         'Delete Failed',
-        err instanceof Error ? err.message : 'Could not delete the asset from disk.'
+        err instanceof Error ? err.message : 'Could not move the asset to the trash.'
       )
     }
   }
