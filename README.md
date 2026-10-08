@@ -91,6 +91,16 @@ Inspect the code, report bugs, or contribute on [GitHub](https://github.com/biro
 | macOS    | `npm run build:mac`         |
 | Linux    | `npm run build:linux`       |
 
+### Check a Linux download
+
+The Linux packages are not signed. Releases after v1.3.2 include a `SHA256SUMS` file with the SHA-256 of the `.AppImage` and the `.deb`. Download it into the same folder as the package and run:
+
+```bash
+sha256sum --check --ignore-missing SHA256SUMS
+```
+
+`stockfinder-ai-<version>.AppImage: OK` means the file matches the one the release build produced. `FAILED` means the download is incomplete or was changed: delete it and download again. `SHA256SUMS` comes from the same release page as the packages, so it catches a damaged download. It does not prove who built the release.
+
 ### What you need before your first run
 
 1. A [Pexels API key](https://www.pexels.com/api/) (free)
@@ -183,7 +193,7 @@ StockFinder AI is created and maintained by [Birol](https://birol.tech).
 ### v1.3.2 - DeepSeek Reasoning Budget (2026-09-20)
 
 - **Reasoning vs tool calls**: OpenRouter DeepSeek V4.1 Flash defaults to high reasoning, which spent the whole 4,000-token cap thinking (`finish_reason: length`) and never called `submit_script_beats`. Structured turns now send `reasoning.enabled=false` / `effort=low`.
-- **32,768 output tokens**: Beat parsing, idea expand, and agent turns use the completion budget OpenRouter documents for reasoning models (`max_tokens` covers thinking + visible tokens).
+- **32,768 output tokens**: Beat parsing, idea expand, and agent turns ask for up to 32,768 output tokens, the completion budget OpenRouter documents for reasoning models (`max_tokens` covers thinking + visible tokens). Builds after 1.3.2 treat this as the first request, not a fixed cap: when a provider answers HTTP 400 because the model allows fewer (for example `gpt-4o` at 16,384), the app reads the limit from the error message, or halves the request when the message gives no number, resends the turn, and keeps that limit for the same endpoint and model until the app is closed. There is no model table, and the model id you enter is still sent unchanged.
 - **10-minute LLM wait**: LLM replies wait at least 600 seconds so a full 32k generation on a ~60 tok/s OpenRouter route can finish. Pexels still uses the timeout slider.
 
 ### v1.3.1 - LLM Timeout Floor & OpenRouter Cache (2026-09-20)
