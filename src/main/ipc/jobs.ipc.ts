@@ -110,7 +110,7 @@ async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInp
     platform: 'YouTube',
     style: 'cinematic',
     mix: 'videos + photos',
-    maxAssetsPerBeat: 3,
+    maxAssetsPerBeat: 1,
     maxTotalDownloads: 15,
     searchMode: 'focused'
   }
@@ -147,7 +147,7 @@ async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInp
         platform: snap.targetPlatform || 'YouTube',
         style: snap.visualStyle || 'cinematic',
         mix: mapAssetMixBack(snap.assetMix),
-        maxAssetsPerBeat: snap.maxAssetsPerBeat || 3,
+        maxAssetsPerBeat: snap.maxAssetsPerBeat || 1,
         maxTotalDownloads: snap.maxTotalDownloads || 15,
         searchMode: resolveSearchModeFromSnapshot(snap.searchMode)
       }

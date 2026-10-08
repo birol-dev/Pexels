@@ -199,11 +199,25 @@ export function areAllBeatsDownloaded(
 
 export type BeatAssetStatus = { status: string; assets?: Array<{ status: string }> }
 
-/** Beats with no usable assets (empty or all failed). */
-export function getUnfulfilledBeats<T extends BeatAssetStatus>(beats: T[]): T[] {
-  return beats.filter(
-    (b) => !b.assets || b.assets.length === 0 || b.assets.every((a) => a.status === 'failed')
-  )
+/**
+ * Usable assets each beat is asked to have. "Options per beat" is a target, but a beat is not
+ * asked for more than an even share of the download cap, and always for at least one.
+ */
+export function assetsNeededPerBeat(input: {
+  beatCount: number
+  optionsPerBeat: number
+  maxTotalDownloads: number
+}): number {
+  const share =
+    input.beatCount > 0
+      ? Math.floor(input.maxTotalDownloads / input.beatCount)
+      : input.optionsPerBeat
+  return Math.max(1, Math.min(input.optionsPerBeat, share))
+}
+
+/** Beats with fewer usable assets (not failed) than `needed`: by default, beats with none. */
+export function getUnfulfilledBeats<T extends BeatAssetStatus>(beats: T[], needed = 1): T[] {
+  return beats.filter((b) => (b.assets || []).filter((a) => a.status !== 'failed').length < needed)
 }
 
 export function countNonFailedAssets(beats: BeatAssetStatus[]): number {
@@ -230,12 +244,24 @@ export function hasPendingUnqueuedAssets(beats: BeatAssetStatus[]): boolean {
   return beats.some((b) => (b.assets || []).some((a) => a.status === 'pending'))
 }
 
-/** Loop-exit readiness: every beat has assets, or the download cap is saturated. */
+/**
+ * Loop-exit readiness: every beat has the options it is asked for (at least one asset), or the
+ * download cap is saturated. `optionsPerBeat` is the job's "options per beat" target.
+ */
 export function areBeatsSatisfiedForLoop(
   beats: BeatAssetStatus[],
-  maxTotalDownloads: number
+  maxTotalDownloads: number,
+  optionsPerBeat = 1
 ): boolean {
-  return getUnfulfilledBeats(beats).length === 0 || countNonFailedAssets(beats) >= maxTotalDownloads
+  const needed = assetsNeededPerBeat({
+    beatCount: beats.length,
+    optionsPerBeat,
+    maxTotalDownloads
+  })
+  return (
+    getUnfulfilledBeats(beats, needed).length === 0 ||
+    countNonFailedAssets(beats) >= maxTotalDownloads
+  )
 }
 
 export type RunFinalizeDecision = {

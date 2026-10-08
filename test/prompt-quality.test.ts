@@ -115,7 +115,7 @@ describe('StockScout prompt quality rules', () => {
     platform: 'YouTube',
     style: 'cinematic',
     mix: 'videos + photos',
-    maxAssetsPerBeat: 3,
+    maxAssetsPerBeat: 1,
     maxTotalDownloads: 15,
     skipExplicit: true,
     avoidPeople: false
@@ -161,6 +161,39 @@ describe('StockScout prompt quality rules', () => {
     assert.doesNotMatch(prompt, /Available tools/)
     assert.doesNotMatch(prompt, /queue everything/)
     assert.doesNotMatch(prompt, /waiting to be queued/)
+  })
+
+  it('names the options per beat in the configuration', () => {
+    assert.match(buildStockScoutSystemPrompt(base), /^- Options per beat: 1$/m)
+    assert.match(
+      buildStockScoutSystemPrompt({ ...base, maxAssetsPerBeat: 3 }),
+      /^- Options per beat: 3$/m
+    )
+    assert.doesNotMatch(buildStockScoutSystemPrompt(base), /Max assets per beat/)
+  })
+
+  it('asks for several options per beat when the target is more than one', () => {
+    const prompt = buildStockScoutSystemPrompt({ ...base, maxAssetsPerBeat: 3 })
+    assert.match(prompt, /1. Search for every beat that does not have its 3 assets yet/)
+    assert.match(
+      prompt,
+      /2. Select 3 options for each beat in one select_assets_for_download call: the best result, and others that show something different./
+    )
+    assert.match(prompt, /When every beat has 3 assets, stop calling tools/)
+    assert.doesNotMatch(prompt, /When every beat has an asset/)
+  })
+
+  it('asks for no more options than a beat has a share of the download cap for', () => {
+    // 15 downloads over 8 beats is one each; over 5 beats it is three each.
+    const crowded = buildStockScoutSystemPrompt({ ...base, maxAssetsPerBeat: 3, beatCount: 8 })
+    assert.match(crowded, /^- Options per beat: 1$/m)
+    assert.match(crowded, /When every beat has an asset, stop calling tools/)
+
+    const roomy = buildStockScoutSystemPrompt({ ...base, maxAssetsPerBeat: 3, beatCount: 5 })
+    assert.match(roomy, /^- Options per beat: 3$/m)
+
+    const middle = buildStockScoutSystemPrompt({ ...base, maxAssetsPerBeat: 5, beatCount: 6 })
+    assert.match(middle, /^- Options per beat: 2$/m)
   })
 
   it('does not call the model a YouTube agent or ask it to download', () => {

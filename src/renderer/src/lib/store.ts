@@ -251,7 +251,7 @@ const DEFAULT_INPUT_TAB_STATE: InputFormState = {
   style: 'cinematic',
   customStyleText: '',
   mix: 'videos + photos',
-  maxAssetsPerBeat: 3,
+  maxAssetsPerBeat: 1,
   maxTotalDownloads: 15,
   searchMode: 'focused'
 }

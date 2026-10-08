@@ -1,5 +1,5 @@
 import { visualStyleLine } from './style-guidance.ts'
-import type { BeatAssetStatus } from './tool-schemas.ts'
+import { assetsNeededPerBeat, type BeatAssetStatus } from './tool-schemas.ts'
 
 export type SearchMode = 'focused' | 'broad'
 
@@ -40,6 +40,7 @@ export type BuildStockScoutSystemPromptInput = {
   /** The one-paragraph visual direction the idea step wrote, when there is one. */
   visualConcept?: string
   mix: string
+  /** The "options per beat" target: how many assets to offer for each beat. */
   maxAssetsPerBeat: number
   maxTotalDownloads: number
   skipExplicit: boolean
@@ -74,6 +75,24 @@ export function buildStockScoutSystemPrompt(input: BuildStockScoutSystemPromptIn
     input.maxIterations !== undefined
       ? `\n- The whole job has at most ${input.maxIterations} turns and each reply you send is one turn. The live status snapshot shows how many are left.`
       : ''
+
+  // Options per beat is a target, but no beat is asked for more than its share of the cap.
+  const options =
+    input.beatCount !== undefined
+      ? assetsNeededPerBeat({
+          beatCount: input.beatCount,
+          optionsPerBeat: input.maxAssetsPerBeat,
+          maxTotalDownloads: input.maxTotalDownloads
+        })
+      : input.maxAssetsPerBeat
+  const workflow =
+    options > 1
+      ? `1. Search for every beat that does not have its ${options} assets yet, one search call per beat, all in one reply.
+2. Select ${options} options for each beat in one select_assets_for_download call: the best result, and others that show something different. Selecting starts the download.
+3. Repeat for beats whose results were weak. When every beat has ${options} assets, stop calling tools. Nothing else is needed.`
+      : `1. Search for every beat that has no asset yet, one search call per beat, all in one reply.
+2. Select the best result for each beat in one select_assets_for_download call. Selecting starts the download.
+3. Repeat for beats whose results were weak. When every beat has an asset, stop calling tools. Nothing else is needed.`
 
   const safety = [
     input.skipExplicit ? 'Do not search for explicit or adult content.' : '',
@@ -134,7 +153,7 @@ Script configuration:
 - Platform: ${input.platform}
 - Visual style: ${visualStyleLine(input.style)}${conceptLine}
 - Asset mix: ${input.mix}
-- Max assets per beat: ${input.maxAssetsPerBeat}
+- Options per beat: ${options}
 - Max total downloads allowed: ${input.maxTotalDownloads}${safetyLine}
 
 The visual beat catalog is provided in the first user message and does not change during the job.${suggestedQueriesNote}
@@ -144,9 +163,7 @@ How to work efficiently:
 - Make several tool calls in one turn. Do not spend a whole turn on one beat while others are waiting.${budgetNote}${capNote}
 
 Your workflow:
-1. Search for every beat that has no asset yet, one search call per beat, all in one reply.
-2. Select the best result for each beat in one select_assets_for_download call. Selecting starts the download.
-3. Repeat for beats whose results were weak. When every beat has an asset, stop calling tools. Nothing else is needed.
+${workflow}
 
 If a tool result says a call was interrupted, repeat it if it is still needed. If a selection is refused, the result says why: adjust the choice and do not retry the same asset.
 `

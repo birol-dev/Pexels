@@ -65,6 +65,7 @@ import {
   SelectAssetsForDownloadArgsSchema,
   DownloadSelectedAssetsArgsSchema,
   areBeatsSatisfiedForLoop,
+  assetsNeededPerBeat,
   beatUsingAsset,
   countPendingAssets,
   countQueuedOrCompleted,
@@ -1249,7 +1250,11 @@ export class AgentRunner extends EventEmitter {
     const maxEmptyToolNudges = 3
 
     while (this.iterationsUsed < this.maxIterations && this.status === 'running') {
-      const allBeatsFulfilled = areBeatsSatisfiedForLoop(this.beats, this.input.maxTotalDownloads)
+      const allBeatsFulfilled = areBeatsSatisfiedForLoop(
+        this.beats,
+        this.input.maxTotalDownloads,
+        this.input.maxAssetsPerBeat
+      )
       const hasUnqueuedPendingAssets = hasPendingUnqueuedAssets(this.beats)
 
       if (allBeatsFulfilled && this.beats.length > 0 && !hasUnqueuedPendingAssets) {
@@ -1353,8 +1358,19 @@ export class AgentRunner extends EventEmitter {
       }
 
       if (effectiveToolCalls.length === 0) {
-        const pendingBeats = getUnfulfilledBeats(this.beats)
-        const allBeatsFulfilled = areBeatsSatisfiedForLoop(this.beats, this.input.maxTotalDownloads)
+        const pendingBeats = getUnfulfilledBeats(
+          this.beats,
+          assetsNeededPerBeat({
+            beatCount: this.beats.length,
+            optionsPerBeat: this.input.maxAssetsPerBeat,
+            maxTotalDownloads: this.input.maxTotalDownloads
+          })
+        )
+        const allBeatsFulfilled = areBeatsSatisfiedForLoop(
+          this.beats,
+          this.input.maxTotalDownloads,
+          this.input.maxAssetsPerBeat
+        )
 
         if (allBeatsFulfilled) {
           this.log(
