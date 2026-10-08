@@ -277,8 +277,8 @@ StockFinder AI is created and maintained by [Birol](https://birol.tech).
   - Integrated a review lock when `requireApprovalBeforeDownload` is enabled, pausing the agent runner and rendering an **Approve & Download** action button in the progress view.
 - **Timeout Enforcement**:
   - Implemented combined timeout abort controllers (based on the user's `requestTimeoutSeconds` setting) across Pexels API calls, downloader connections, and LLM text generation turns.
-- **Real-time Token and Cost Tracking**:
-  - Added tracking properties mapping input and output token counts, displaying real-time usage statistics and estimated LLM fees in the progress header.
+- **Token Usage**:
+  - Shows input, cached, and output tokens for each job on the Run screen.
 - **UI Refinements**:
   - Added a dedicated failed-run **Error Alert Card** with a retry runner trigger.
   - Exposed controls for request timeout and human approvals in the settings view.

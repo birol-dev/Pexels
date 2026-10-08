@@ -4,16 +4,24 @@ import { Badge } from '@renderer/components/ui/badge'
 import { Button } from '@renderer/components/ui/button'
 import { cn } from '@renderer/lib/utils'
 import type { JobSnapshot } from '@renderer/lib/store'
-import { getPauseReasonText, getStatusBadgeClass } from '../utils'
+import { getPauseReasonText, getStatusBadgeClass, getTokenUsageText } from '../utils'
 
 interface RunHeaderProps {
   job: JobSnapshot
+  /** The Settings toggle that hides the token line. */
+  hideTokenUsage?: boolean
   onBack: () => void
   actions: React.ReactNode
 }
 
-export function RunHeader({ job, onBack, actions }: RunHeaderProps): React.JSX.Element {
+export function RunHeader({
+  job,
+  hideTokenUsage,
+  onBack,
+  actions
+}: RunHeaderProps): React.JSX.Element {
   const pauseReason = getPauseReasonText(job)
+  const tokenUsage = hideTokenUsage ? null : getTokenUsageText(job)
   return (
     <header className="relative z-10 flex items-end justify-between border-b-2 border-edge pb-8">
       <div className="flex flex-col gap-2">
@@ -39,6 +47,7 @@ export function RunHeader({ job, onBack, actions }: RunHeaderProps): React.JSX.E
           <ClockIcon size={18} />
           Status: {job.currentStep}
         </p>
+        {tokenUsage && <p className="font-body-md text-body-md text-outline">{tokenUsage}</p>}
       </div>
       {actions}
     </header>

@@ -62,6 +62,18 @@ export function getStatusBadgeClass(status: JobSnapshot['status']): string {
   }
 }
 
+export function formatTokens(count: number): string {
+  return count.toLocaleString()
+}
+
+/** "12,400 tokens in (9,000 cached) · 1,200 out". Null for a job that reports no usage. */
+export function getTokenUsageText(job: JobSnapshot): string | null {
+  const usage = job.usage
+  if (!usage) return null
+  const cached = usage.cachedInputTokens ? ` (${formatTokens(usage.cachedInputTokens)} cached)` : ''
+  return `${formatTokens(usage.inputTokens)} tokens in${cached} · ${formatTokens(usage.outputTokens)} out`
+}
+
 /** What a paused job is waiting for. Jobs that are not paused have nothing to explain. */
 export function getPauseReasonText(job: JobSnapshot): string | null {
   if (job.status !== 'paused') return null

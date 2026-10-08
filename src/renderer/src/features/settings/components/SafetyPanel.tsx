@@ -40,8 +40,8 @@ export function SafetyPanel({ settings, form }: SafetyPanelProps): React.JSX.Ele
         />
         <ToggleRow
           id="hide-cost"
-          label="Hide estimated cost"
-          description="Do not show run costs in UI"
+          label="Hide token usage"
+          description="Do not show token counts on the Run screen"
           checked={settings.hideEstimatedCost || false}
           onCheckedChange={(hideEstimatedCost) => updateNow({ hideEstimatedCost })}
         />

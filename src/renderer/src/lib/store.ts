@@ -121,6 +121,10 @@ export interface PublicSettings {
   geminiKey?: string
   openrouterKey?: string
   pexelsKey?: string
+  /**
+   * Hides the token usage line. The key keeps the name of the cost display it first
+   * controlled, so settings saved by earlier versions still work.
+   */
   hideEstimatedCost?: boolean
 }
 

@@ -23,6 +23,10 @@ export interface PublicSettings {
   avoidPeopleAndFaces: boolean
   isOnboarded: boolean
   theme: 'flat-black' | 'flat-white'
+  /**
+   * Hides the token usage line. The key keeps the name of the cost display it first
+   * controlled, so settings saved by earlier versions still work.
+   */
   hideEstimatedCost?: boolean
 }
 

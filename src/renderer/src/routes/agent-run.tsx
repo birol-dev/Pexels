@@ -54,6 +54,7 @@ export default function AgentRunView(): React.JSX.Element {
     <div className="space-y-6">
       <RunHeader
         job={activeJob}
+        hideTokenUsage={settings?.hideEstimatedCost}
         onBack={() => navigate('input')}
         actions={
           <RunActions
