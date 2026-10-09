@@ -3,11 +3,15 @@ import { afterEach, beforeEach, describe, it } from 'node:test'
 import {
   LlmProviderFactory,
   type AgentMessage,
+  type LlmReasoningConfig,
   type LlmToolTurnResult,
+  LLM_AGENT_REASONING,
+  LLM_AGENT_THINKING_BUDGET,
   LLM_STRUCTURED_MAX_OUTPUT_TOKENS,
   LLM_STRUCTURED_REASONING,
   learnModelRequestQuirk,
-  resetModelRequestQuirks
+  resetModelRequestQuirks,
+  statedMinimum
 } from '../src/main/services/llm/llm-provider.ts'
 import { resetLlmCircuit } from '../src/main/services/llm/llm-fetch.ts'
 
@@ -344,8 +348,13 @@ describe('model request quirks (limits learned from provider 400s)', () => {
   describe('Gemini thinking and usage', () => {
     const gemini = LlmProviderFactory.getProvider('gemini')
     const THINKING_ERROR = 'Thinking level is not supported for this model.'
+    const MIN_BUDGET_ERROR =
+      'The thinking budget 0 is invalid. Please choose a value between 128 and 32768.'
 
-    const geminiTurn = (model: string): Promise<LlmToolTurnResult> =>
+    const geminiTurn = (
+      model: string,
+      reasoning: LlmReasoningConfig = LLM_STRUCTURED_REASONING
+    ): Promise<LlmToolTurnResult> =>
       gemini.createToolTurn(
         {
           model,
@@ -355,10 +364,28 @@ describe('model request quirks (limits learned from provider 400s)', () => {
           toolChoice: 'none',
           temperature: 0.2,
           maxOutputTokens: 1000,
-          reasoning: LLM_STRUCTURED_REASONING
+          reasoning
         },
         { apiKey: 'test-key' }
       )
+
+    /** Records each request's generationConfig; `answer` decides what the fake model says. */
+    const fakeGemini = (
+      answer: (config: Record<string, unknown>) => Response
+    ): Array<Record<string, unknown>> => {
+      const sent: Array<Record<string, unknown>> = []
+      globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+        const body = JSON.parse(init?.body as string) as {
+          generationConfig: Record<string, unknown>
+        }
+        sent.push(body.generationConfig)
+        return answer(body.generationConfig)
+      }) as typeof globalThis.fetch
+      return sent
+    }
+
+    const thinkingOf = (config: Record<string, unknown>): Record<string, number | string> | null =>
+      (config.thinkingConfig as Record<string, number | string> | undefined) ?? null
 
     const geminiOk = (usageMetadata?: Record<string, number>): Response =>
       ({
@@ -371,26 +398,127 @@ describe('model request quirks (limits learned from provider 400s)', () => {
         })
       }) as Response
 
-    it('asks for low thinking on low-effort calls and drops it when rejected', async () => {
-      assert.deepEqual(learnModelRequestQuirk(THINKING_ERROR, 1000), { omitThinkingConfig: true })
+    it('reads the minimum a provider states', () => {
+      assert.equal(statedMinimum(MIN_BUDGET_ERROR), 128)
+      assert.equal(statedMinimum('The supported range is from 1,024 (inclusive) to 32768.'), 1024)
+      assert.equal(statedMinimum('thinking_budget must be at least 512'), 512)
+      assert.equal(statedMinimum('Thinking requires a minimum of 256 tokens.'), 256)
+      assert.equal(statedMinimum(THINKING_ERROR), null)
+    })
 
-      const sent: Array<Record<string, unknown>> = []
-      globalThis.fetch = (async (_url: string, init?: RequestInit) => {
-        const body = JSON.parse(init?.body as string) as {
-          generationConfig: Record<string, unknown>
-        }
-        sent.push(body.generationConfig)
-        return 'thinkingConfig' in body.generationConfig ? badRequest(THINKING_ERROR) : geminiOk()
-      }) as typeof globalThis.fetch
+    it('walks the thinking ladder one rung per rejection', () => {
+      assert.deepEqual(learnModelRequestQuirk(THINKING_ERROR, 1000, {}, { thinkingLevel: 'low' }), {
+        useThinkingBudget: true
+      })
+      const budget0 = { thinkingBudget: 0 }
+      assert.deepEqual(
+        learnModelRequestQuirk(MIN_BUDGET_ERROR, 1000, { useThinkingBudget: true }, budget0),
+        { minThinkingBudget: 128 }
+      )
+      // No minimum stated, or one the request already met: nothing is left but none.
+      assert.deepEqual(
+        learnModelRequestQuirk(THINKING_ERROR, 1000, { useThinkingBudget: true }, budget0),
+        { omitThinkingConfig: true }
+      )
+      assert.deepEqual(
+        learnModelRequestQuirk(
+          MIN_BUDGET_ERROR,
+          1000,
+          { useThinkingBudget: true, minThinkingBudget: 128 },
+          { thinkingBudget: 128 }
+        ),
+        { omitThinkingConfig: true }
+      )
+      // Nothing was sent, so a mention of thinking is not about us.
+      assert.equal(learnModelRequestQuirk(THINKING_ERROR, 1000), null)
+    })
 
-      await geminiTurn('no-thinking-model')
+    it('falls back from thinkingLevel to a zero budget on structured calls', async () => {
+      const sent = fakeGemini((config) =>
+        thinkingOf(config)?.thinkingLevel ? badRequest(THINKING_ERROR) : geminiOk()
+      )
+
+      await geminiTurn('gemini-2.5-flash')
       assert.deepEqual(sent, [
         { maxOutputTokens: 1000, thinkingConfig: { thinkingLevel: 'low' } },
-        { maxOutputTokens: 1000 }
+        { maxOutputTokens: 1000, thinkingConfig: { thinkingBudget: 0 } }
+      ])
+
+      await geminiTurn('gemini-2.5-flash')
+      assert.equal(sent.length, 3, 'the next turn is not rejected first')
+      assert.deepEqual(thinkingOf(sent[2]), { thinkingBudget: 0 })
+    })
+
+    it('falls back to the agent budget on agent turns', async () => {
+      const sent = fakeGemini((config) =>
+        thinkingOf(config)?.thinkingLevel ? badRequest(THINKING_ERROR) : geminiOk()
+      )
+
+      await geminiTurn('gemini-2.5-flash', LLM_AGENT_REASONING)
+      assert.equal(LLM_AGENT_THINKING_BUDGET, 1024)
+      assert.deepEqual(sent.map(thinkingOf), [
+        { thinkingLevel: 'low' },
+        { thinkingBudget: LLM_AGENT_THINKING_BUDGET }
+      ])
+
+      await geminiTurn('gemini-2.5-flash', LLM_AGENT_REASONING)
+      assert.equal(sent.length, 3)
+      assert.deepEqual(thinkingOf(sent[2]), { thinkingBudget: LLM_AGENT_THINKING_BUDGET })
+    })
+
+    it('raises the budget to the minimum the model states', async () => {
+      const sent = fakeGemini((config) => {
+        const thinking = thinkingOf(config)
+        if (thinking?.thinkingLevel) return badRequest(THINKING_ERROR)
+        return typeof thinking?.thinkingBudget === 'number' && thinking.thinkingBudget < 128
+          ? badRequest(MIN_BUDGET_ERROR)
+          : geminiOk()
+      })
+
+      await geminiTurn('gemini-2.5-pro')
+      assert.deepEqual(sent.map(thinkingOf), [
+        { thinkingLevel: 'low' },
+        { thinkingBudget: 0 },
+        { thinkingBudget: 128 }
+      ])
+
+      await geminiTurn('gemini-2.5-pro')
+      assert.equal(sent.length, 4)
+      assert.deepEqual(thinkingOf(sent[3]), { thinkingBudget: 128 })
+    })
+
+    it('drops thinkingConfig once level and budget are both rejected', async () => {
+      const sent = fakeGemini((config) =>
+        'thinkingConfig' in config ? badRequest(THINKING_ERROR) : geminiOk()
+      )
+
+      await geminiTurn('no-thinking-model')
+      assert.deepEqual(sent.map(thinkingOf), [
+        { thinkingLevel: 'low' },
+        { thinkingBudget: 0 },
+        null
       ])
 
       await geminiTurn('no-thinking-model')
-      assert.deepEqual(sent[2], { maxOutputTokens: 1000 }, 'later turns start without it')
+      assert.equal(sent.length, 4)
+      assert.deepEqual(sent[3], { maxOutputTokens: 1000 }, 'later turns start without it')
+    })
+
+    it('does not resend a thinking complaint when no thinkingConfig was sent', async () => {
+      let calls = 0
+      globalThis.fetch = (async () => {
+        calls++
+        return badRequest('Thinking mode is unavailable for this account.')
+      }) as typeof globalThis.fetch
+
+      // Gemini without low-effort reasoning, and OpenAI, which never sends one.
+      await assert.rejects(
+        () => geminiTurn('gemini-3.8-flash', { effort: 'high' }),
+        /Thinking mode/
+      )
+      assert.equal(calls, 1)
+      await assert.rejects(() => turn('gpt-4o'), /Thinking mode/)
+      assert.equal(calls, 2)
     })
 
     it('counts thinking as output and reports cached input', async () => {

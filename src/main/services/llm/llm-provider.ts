@@ -50,6 +50,8 @@ export const LLM_AGENT_TURN_MAX_OUTPUT_TOKENS = 32768
  */
 export const LLM_STRUCTURED_REASONING: LlmReasoningConfig = { enabled: false, effort: 'low' }
 export const LLM_AGENT_REASONING: LlmReasoningConfig = { effort: 'low' }
+/** Thinking budget for agent turns on Gemini models that take a budget instead of a level. */
+export const LLM_AGENT_THINKING_BUDGET = 1024
 
 export interface LlmToolTurnInput {
   model: string
@@ -112,11 +114,21 @@ interface ModelRequestQuirks {
   omitTemperature?: boolean
   /** Chat Completions refuses function tools for this model; use the Responses API. */
   useResponsesApi?: boolean
-  /** Gemini rejected our thinkingConfig for this model; send none. */
+  /** Gemini rejected thinkingLevel for this model (Gemini 2.5 takes thinkingBudget instead). */
+  useThinkingBudget?: boolean
+  /** The smallest thinkingBudget Gemini accepts for this model, read from its error. */
+  minThinkingBudget?: number
+  /** Gemini rejected every thinkingConfig we tried for this model; send none. */
   omitThinkingConfig?: boolean
 }
 
-/** One correction per kind of quirk a single turn can run into. */
+type GeminiThinkingConfig = { thinkingLevel: 'low' } | { thinkingBudget: number }
+
+/**
+ * One correction per kind of quirk a single turn can run into. Gemini thinking can take
+ * up to three on its own (level, budget, minimum); a turn that runs out of corrections
+ * fails, and the next one starts from what was learned.
+ */
 const MAX_QUIRK_CORRECTIONS = 3
 
 /**
@@ -152,11 +164,41 @@ export function statedTokenCap(message: string): number | null {
   return range[2].toLowerCase() === 'exclusive' ? bound - 1 : bound
 }
 
-/** Returns the adjustment a 400 message asks for, or null when it is unrelated. */
+/**
+ * The lower bound a provider's error message states, or null when it names none:
+ * "Please choose a value between 128 and 32768", "the supported range is from 128",
+ * "at least 128", "a minimum of 128".
+ */
+export function statedMinimum(message: string): number | null {
+  const stated = message.match(/(?:between|range is from|at least|minimum of)\s+(\d[\d,]*)/i)
+  return stated ? Number(stated[1].replace(/,/g, '')) : null
+}
+
+/**
+ * What a call asks of Gemini's thinking, given what was learned for the model. Only
+ * low-effort calls ask: thinkingLevel first (the Gemini 3 family), then thinkingBudget
+ * (Gemini 2.5), 0 for structured calls and a small fixed budget for agent turns.
+ */
+function geminiThinkingConfig(
+  reasoning: LlmReasoningConfig | undefined,
+  quirks: ModelRequestQuirks | undefined
+): GeminiThinkingConfig | undefined {
+  if (reasoning?.effort !== 'low' || quirks?.omitThinkingConfig) return undefined
+  if (!quirks?.useThinkingBudget) return { thinkingLevel: 'low' }
+  const wanted = reasoning.enabled === false ? 0 : LLM_AGENT_THINKING_BUDGET
+  return { thinkingBudget: Math.max(wanted, quirks.minThinkingBudget ?? 0) }
+}
+
+/**
+ * Returns the adjustment a 400 message asks for, or null when it is unrelated.
+ * `sentThinking` is the thinkingConfig the rejected request carried, if any: a thinking
+ * complaint teaches nothing when the request asked for no thinking.
+ */
 export function learnModelRequestQuirk(
   message: string,
   sentMaxTokens: number,
-  known: ModelRequestQuirks = {}
+  known: ModelRequestQuirks = {},
+  sentThinking?: GeminiThinkingConfig
 ): ModelRequestQuirks | null {
   if (!known.useResponsesApi && TOOLS_NEED_RESPONSES_API.test(message)) {
     return { useResponsesApi: true }
@@ -178,8 +220,15 @@ export function learnModelRequestQuirk(
     }
   }
 
-  // Gemini: "Thinking level is not supported for this model.", "The thinking budget 1 is invalid...".
-  if (!known.omitThinkingConfig && /thinking/i.test(message)) {
+  // Gemini: "Thinking level is not supported for this model.", "The thinking budget 0 is
+  // invalid. Please choose a value between 128 and 32768." Level, then budget, then the
+  // stated minimum; a budget that already met the minimum and still failed means none.
+  if (sentThinking && /thinking/i.test(message)) {
+    if ('thinkingLevel' in sentThinking) return { useThinkingBudget: true }
+    const minimum = statedMinimum(message)
+    if (minimum !== null && minimum > sentThinking.thinkingBudget) {
+      return { minThinkingBudget: minimum }
+    }
     return { omitThinkingConfig: true }
   }
 
@@ -190,6 +239,8 @@ export function learnModelRequestQuirk(
  * Sends a turn with the limits already learned for this endpoint + model. When the
  * provider answers 400 with a limit we can read, the limit is remembered and the
  * turn is resent. At most MAX_QUIRK_CORRECTIONS corrections per turn.
+ * `geminiReasoning` is the reasoning a Gemini call asks for; other providers pass none
+ * and never receive a thinkingConfig.
  */
 async function sendWithLearnedQuirks(
   quirkKey: string,
@@ -198,23 +249,25 @@ async function sendWithLearnedQuirks(
     maxOutputTokens: number
     omitTemperature: boolean
     useResponsesApi: boolean
-    omitThinkingConfig: boolean
-  }) => Promise<Response>
+    thinkingConfig: GeminiThinkingConfig | undefined
+  }) => Promise<Response>,
+  geminiReasoning?: LlmReasoningConfig
 ): Promise<Response> {
   for (let correction = 0; ; correction++) {
     const quirks = modelRequestQuirks.get(quirkKey)
     const maxOutputTokens = Math.min(requestedMaxTokens, quirks?.maxOutputTokens ?? Infinity)
+    const thinkingConfig = geminiThinkingConfig(geminiReasoning, quirks)
     try {
       return await send({
         maxOutputTokens,
         omitTemperature: Boolean(quirks?.omitTemperature),
         useResponsesApi: Boolean(quirks?.useResponsesApi),
-        omitThinkingConfig: Boolean(quirks?.omitThinkingConfig)
+        thinkingConfig
       })
     } catch (error) {
       const learned =
         correction < MAX_QUIRK_CORRECTIONS && error instanceof ApiError && error.statusCode === 400
-          ? learnModelRequestQuirk(error.message, maxOutputTokens, quirks)
+          ? learnModelRequestQuirk(error.message, maxOutputTokens, quirks, thinkingConfig)
           : null
       if (!learned) throw error
       modelRequestQuirks.set(quirkKey, { ...quirks, ...learned })
@@ -853,28 +906,32 @@ class GeminiProvider implements LlmProvider {
       }
     }
 
-    const response = await sendWithLearnedQuirks(url, input.maxOutputTokens, (limits) => {
-      // No temperature: Google recommends the default (1.0) for Gemini 3 models and
-      // warns that lower values can cause looping.
-      // Thinking counts toward maxOutputTokens, so a low-effort call asks for the
-      // lowest level every current model accepts ("minimal" is rejected by some).
-      payload.generationConfig = {
-        maxOutputTokens: limits.maxOutputTokens,
-        ...(input.reasoning?.effort === 'low' && !limits.omitThinkingConfig
-          ? { thinkingConfig: { thinkingLevel: 'low' } }
-          : {})
-      }
-      return llmFetch({
-        url,
-        label: 'Gemini generateContent',
-        init: {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload),
-          signal: input.abortSignal
+    const response = await sendWithLearnedQuirks(
+      url,
+      input.maxOutputTokens,
+      (limits) => {
+        // No temperature: Google recommends the default (1.0) for Gemini 3 models and
+        // warns that lower values can cause looping.
+        // Thinking counts toward maxOutputTokens, so a low-effort call asks for the
+        // lowest level every current model accepts ("minimal" is rejected by some),
+        // and for a budget on the models that reject levels.
+        payload.generationConfig = {
+          maxOutputTokens: limits.maxOutputTokens,
+          ...(limits.thinkingConfig ? { thinkingConfig: limits.thinkingConfig } : {})
         }
-      })
-    })
+        return llmFetch({
+          url,
+          label: 'Gemini generateContent',
+          init: {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload),
+            signal: input.abortSignal
+          }
+        })
+      },
+      input.reasoning
+    )
 
     interface GeminiResponseCandidate {
       content?: {
