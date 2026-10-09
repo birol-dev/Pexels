@@ -284,6 +284,8 @@ export class AgentRunner extends EventEmitter {
   // What the last finished pipeline run did, as written by code. Kept in the manifest.
   private pipelineSummary: string | undefined
   private loopError: string | null = null
+  /** Whether the log already says the model takes no images, so a ranking does not repeat it. */
+  private imagesOmittedLogged = false
   private modelId = DEFAULT_MODEL_IDS[DEFAULT_LLM_PROVIDER]
   private providerId: LlmProviderId = DEFAULT_LLM_PROVIDER
   private maxIterations = 30
@@ -553,7 +555,14 @@ export class AgentRunner extends EventEmitter {
         {
           model: this.modelId,
           systemPrompt: request.systemPrompt,
-          messages: [{ role: 'user', content: request.userContent }],
+          messages: [
+            {
+              role: 'user',
+              content: request.userContent,
+              // Only a request that has images gets the field, so any other is as it always was.
+              ...(request.images?.length ? { images: request.images } : {})
+            }
+          ],
           tools: [request.tool],
           toolChoice: { name: request.tool.name },
           temperature: request.temperature ?? 0.2,
@@ -567,6 +576,14 @@ export class AgentRunner extends EventEmitter {
     )
 
     this.addUsage(response.usage)
+    if (response.imagesOmitted && !this.imagesOmittedLogged) {
+      // The model refused the images, now or earlier in this session. Said once per job.
+      this.imagesOmittedLogged = true
+      this.log(
+        'info',
+        `${this.modelId} does not accept images, so the ranking goes on without thumbnails.`
+      )
+    }
     if (request.label && response.usage) {
       // One line per request, as the agent loop writes one per turn.
       const tokens = {

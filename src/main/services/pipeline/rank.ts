@@ -14,6 +14,12 @@ export const RANK_BATCH_SIZE = 5
 /** Ranking requests in flight at once. The provider's rate limit paces them further. */
 export const RANK_PARALLEL = 4
 export const MAX_RANKED_PER_BEAT = 5
+/**
+ * Thumbnails attached for one beat when the job ranks with thumbnails: its first candidates that
+ * have one. The rest are still listed and judged by their description. A batch of RANK_BATCH_SIZE
+ * beats carries at most RANK_BATCH_SIZE times this many images.
+ */
+export const RANK_THUMBNAILS_PER_BEAT = 8
 
 export const SUBMIT_RANKINGS_TOOL: NormalizedToolDefinition = {
   name: 'submit_rankings',
@@ -47,7 +53,17 @@ export type RankingPromptInput = {
   /** The one-paragraph visual direction the idea step wrote, when there is one. */
   visualConcept?: string
   avoidPeople: boolean
+  /** The user message comes with thumbnails of some candidates, so the model can look at them. */
+  thumbnails?: boolean
 }
+
+/** Rule 1 when the model cannot look at the footage, as it always was. */
+const RULE_DESCRIPTIONS_ONLY =
+  '1. You cannot see the footage. Judge each candidate by its description, which is the alt text or the page slug Pexels gives it.'
+
+/** Rule 1 when thumbnails come with the message. */
+const RULE_WITH_THUMBNAILS =
+  '1. Small thumbnails of some candidates come with the user message, which lists them in order by candidate key. Judge each candidate by its description, which is the alt text or the page slug Pexels gives it, and by what its thumbnail shows. A thumbnail is a still of the footage; for a video it is the preview image. Judge a candidate whose thumbnail is missing by its description alone.'
 
 export function buildRankingSystemPrompt(input: RankingPromptInput): string {
   const visualConcept = input.visualConcept?.trim()
@@ -59,7 +75,7 @@ export function buildRankingSystemPrompt(input: RankingPromptInput): string {
   return `Choose stock footage for the beats of a narrated video. The user message lists each beat with its narration, its visual prompt, and the Pexels candidates found for it. Each candidate has a key, a description, its shape, and for a video its length in seconds.
 
 Rules:
-1. You cannot see the footage. Judge each candidate by its description, which is the alt text or the page slug Pexels gives it.
+${input.thumbnails ? RULE_WITH_THUMBNAILS : RULE_DESCRIPTIONS_ONLY}
 2. For each beat, list the keys of the candidates that fit it, best first, at most ${MAX_RANKED_PER_BEAT}. Prefer candidates that show the beat's subject and action. Candidates are listed in Pexels' own relevance order, so when several look equally good, prefer the earlier ones.
 3. Leave a beat's list empty when none of its candidates fit. Do not list a poor match to fill the list.
 4. Use only the keys listed under that beat.
@@ -86,10 +102,46 @@ export function describeBeatForRanking(beat: PipelineBeat, candidates: Candidate
   ].join('\n')
 }
 
+type RankingEntry = { beat: PipelineBeat; candidates: Candidate[] }
+
+/** A thumbnail attached to a ranking request, and the candidate it shows. */
+export interface RankingThumbnail {
+  key: string
+  url: string
+}
+
+/**
+ * The thumbnails to attach for a batch: for each beat in order, the first RANK_THUMBNAILS_PER_BEAT
+ * of its candidates that have one, in the order the candidates are listed.
+ */
+export function pickRankingThumbnails(entries: RankingEntry[]): RankingThumbnail[] {
+  return entries.flatMap((entry) =>
+    entry.candidates
+      .flatMap((candidate) =>
+        candidate.thumbnailUrl ? [{ key: candidate.key, url: candidate.thumbnailUrl }] : []
+      )
+      .slice(0, RANK_THUMBNAILS_PER_BEAT)
+  )
+}
+
+/**
+ * The user message of a ranking request. With thumbnails it ends with the order the images are
+ * attached in, by candidate key; without, it is the beats and nothing else.
+ */
 export function buildRankingUserContent(
-  entries: Array<{ beat: PipelineBeat; candidates: Candidate[] }>
+  entries: RankingEntry[],
+  thumbnails: RankingThumbnail[] = []
 ): string {
-  return entries.map((entry) => describeBeatForRanking(entry.beat, entry.candidates)).join('\n\n')
+  const beats = entries
+    .map((entry) => describeBeatForRanking(entry.beat, entry.candidates))
+    .join('\n\n')
+  if (thumbnails.length === 0) return beats
+  return [
+    beats,
+    '',
+    'Thumbnails are attached to this message in this order, and a candidate not listed has none:',
+    ...thumbnails.map((thumbnail, index) => `Thumbnail ${index + 1} = ${thumbnail.key}`)
+  ].join('\n')
 }
 
 /**
@@ -170,11 +222,13 @@ export async function rankBeats(
   if (Object.keys(empty).length > 0) onBatch(empty, 0)
 
   const batches = chunk(withCandidates, RANK_BATCH_SIZE)
-  const systemPrompt = buildRankingSystemPrompt({
-    style: ctx.settings.style,
-    visualConcept: ctx.settings.visualConcept,
-    avoidPeople: ctx.settings.avoidPeople
-  })
+  const promptFor = (thumbnails: boolean): string =>
+    buildRankingSystemPrompt({
+      style: ctx.settings.style,
+      visualConcept: ctx.settings.visualConcept,
+      avoidPeople: ctx.settings.avoidPeople,
+      thumbnails
+    })
   const pool = createPool(RANK_PARALLEL, ctx.signal)
 
   const settled = await Promise.allSettled(
@@ -184,10 +238,14 @@ export async function rankBeats(
           entries.map((entry) => [entry.beat.id, new Set(entry.candidates.map((c) => c.key))])
         )
         const unrecognised = new Set<string>()
+        // A job with thumbnails off, or a batch none of whose candidates has one, sends exactly
+        // the request a job built without thumbnails sends: no images, and the original texts.
+        const thumbnails = ctx.settings.rankWithThumbnails ? pickRankingThumbnails(entries) : []
         const request: StructuredRequest<Map<string, string[]>> = {
           tool: SUBMIT_RANKINGS_TOOL,
-          systemPrompt,
-          userContent: buildRankingUserContent(entries),
+          systemPrompt: promptFor(thumbnails.length > 0),
+          userContent: buildRankingUserContent(entries, thumbnails),
+          ...(thumbnails.length > 0 ? { images: thumbnails.map(({ url }) => ({ url })) } : {}),
           parse: (argumentsJson) => parseRankings(argumentsJson, offered, unrecognised),
           label: `Ranking batch ${index + 1} of ${batches.length}`
         }

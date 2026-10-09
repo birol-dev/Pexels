@@ -59,7 +59,7 @@ describe('the setting "Use thumbnails when ranking"', () => {
       for (const value of ['yes', 1, null, {}]) {
         await assert.rejects(
           () => invokeIpc('settings:updateSettings', { rankWithThumbnails: value }),
-          undefined,
+          () => true,
           JSON.stringify(value)
         )
       }

@@ -9,6 +9,11 @@ export interface StructuredRequest<T> {
   tool: NormalizedToolDefinition
   systemPrompt: string
   userContent: string
+  /**
+   * Images sent with the user message, in the order the message states them. Left out of a
+   * request that has none, so such a request is the same as before images existed.
+   */
+  images?: Array<{ url: string }>
   /** Reads the tool call's JSON arguments. A throw fails the request. */
   parse(argumentsJson: string): T
   temperature?: number

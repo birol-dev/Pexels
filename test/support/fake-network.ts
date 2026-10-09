@@ -18,12 +18,18 @@ export interface ToolCallSpec {
   args: unknown
 }
 
+/** One part of a message that carries images, as OpenAI Chat Completions takes it. */
+export type LlmContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string; detail?: string } }
+
 /** An OpenAI chat completion request body, as the app sent it. */
 export interface LlmRequestBody {
   model: string
   messages: Array<{
     role: string
-    content: string | null
+    /** A string, or parts when the message carries images. */
+    content: string | LlmContentPart[] | null
     name?: string
     tool_call_id?: string
     tool_calls?: unknown[]

@@ -2,7 +2,7 @@ import type { SearchMode } from '../agent/search-mode.ts'
 import { shapeOf, type Shape } from '../agent/tool-results.ts'
 import type { BeatAssetType } from '../llm/beat-parse-tool.ts'
 import type { StructuredRequest } from '../llm/structured-request.ts'
-import { candidateKey, type PexelsCandidate } from '../pexels/candidates.ts'
+import { candidateKey, thumbnailUrlOf, type PexelsCandidate } from '../pexels/candidates.ts'
 import type {
   PexelsPhotoSearchInput,
   PexelsPhotoSearchResult,
@@ -56,7 +56,8 @@ export interface Candidate {
   width: number
   height: number
   seconds?: number
-  thumbnailUrl: string
+  /** A small image of the candidate on images.pexels.com. Missing when it has none to show. */
+  thumbnailUrl?: string
 }
 
 export function describeCandidate(candidate: PexelsCandidate): Candidate {
@@ -69,7 +70,7 @@ export function describeCandidate(candidate: PexelsCandidate): Candidate {
     width: candidate.width,
     height: candidate.height,
     seconds: candidate.type === 'video' ? candidate.duration : undefined,
-    thumbnailUrl: candidate.imageUrl
+    thumbnailUrl: thumbnailUrlOf(candidate)
   }
 }
 

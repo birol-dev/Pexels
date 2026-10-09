@@ -219,7 +219,8 @@ describe('images in a user message: Gemini', () => {
     bytes: Uint8Array,
     type = 'image/jpeg',
     headers: Record<string, string> = {}
-  ): Response => new Response(bytes, { status: 200, headers: { 'content-type': type, ...headers } })
+  ): Response =>
+    new Response(bytes as BodyInit, { status: 200, headers: { 'content-type': type, ...headers } })
 
   const geminiOk = (): Response =>
     new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'ok' }] } }] }), {

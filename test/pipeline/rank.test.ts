@@ -1,14 +1,19 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import type { PexelsCandidate } from '../../src/main/services/pexels/candidates.ts'
 import {
   MAX_RANKED_PER_BEAT,
   RANK_BATCH_SIZE,
+  RANK_THUMBNAILS_PER_BEAT,
   buildRankingUserContent,
   describeBeatForRanking,
   parseRankings,
   rankBeats
 } from '../../src/main/services/pipeline/rank.ts'
-import { describeCandidate } from '../../src/main/services/pipeline/context.ts'
+import {
+  describeCandidate,
+  type PipelineSettings
+} from '../../src/main/services/pipeline/context.ts'
 import {
   beatIdsIn,
   fakeContext,
@@ -347,5 +352,260 @@ describe('rankBeats', () => {
       }))
     )
     assert.deepEqual(beatIdsIn(content), ['beat_1', 'beat_2'])
+  })
+})
+
+/** The system prompt of a ranking request before thumbnails existed, for a "Cinematic" job. */
+const PROMPT_BEFORE_THUMBNAILS = [
+  'Choose stock footage for the beats of a narrated video. The user message lists each beat with its narration, its visual prompt, and the Pexels candidates found for it. Each candidate has a key, a description, its shape, and for a video its length in seconds.',
+  '',
+  'Rules:',
+  '1. You cannot see the footage. Judge each candidate by its description, which is the alt text or the page slug Pexels gives it.',
+  "2. For each beat, list the keys of the candidates that fit it, best first, at most 5. Prefer candidates that show the beat's subject and action. Candidates are listed in Pexels' own relevance order, so when several look equally good, prefer the earlier ones.",
+  "3. Leave a beat's list empty when none of its candidates fit. Do not list a poor match to fill the list.",
+  '4. Use only the keys listed under that beat.',
+  '5. Prefer variety within the batch: when two beats could use similar clips, give them different ones.',
+  '',
+  'Visual style: Cinematic. The user describes the style as: "Cinematic".',
+  'Rank the candidates that fit this look first.',
+  '',
+  'Call submit_rankings once, with every beat of the user message.'
+].join('\n')
+
+/** The user message of a ranking request before thumbnails existed: two beats of two clips. */
+const USER_CONTENT_BEFORE_THUMBNAILS = [
+  'beat_1: "Narration of beat_1."',
+  'Visual prompt: Footage for beat_1',
+  'Candidates:',
+  '- video_1: clip 1 1, landscape, 12s',
+  '- video_2: clip 1 2, landscape, 12s',
+  '',
+  'beat_2: "Narration of beat_2."',
+  'Visual prompt: Footage for beat_2',
+  'Candidates:',
+  '- video_101: clip 2 1, landscape, 12s',
+  '- video_102: clip 2 2, landscape, 12s'
+].join('\n')
+
+/** A video candidate's thumbnail as the ranking attaches it. */
+const tinyOf = (id: number): string =>
+  `https://images.pexels.com/videos/${id}/pictures/preview-0.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=200&w=280`
+
+/** The candidate keys a user message lists as attached thumbnails, in the order it states. */
+function thumbnailOrder(userContent: string): string[] {
+  return [...userContent.matchAll(/^Thumbnail (\d+) = (\S+)$/gm)].map((match, index) => {
+    assert.equal(Number(match[1]), index + 1, 'the thumbnails are numbered from 1 without gaps')
+    return match[2]
+  })
+}
+
+/** Beats beat_1..beat_n with the candidates given for each, cached on a context with these settings. */
+function setupCandidates(
+  candidatesPerBeat: PexelsCandidate[][],
+  settings: Partial<PipelineSettings> = {}
+): { fake: FakeContext; candidatesByBeat: Record<string, string[]> } {
+  const beats = candidatesPerBeat.map((_, i) => pipelineBeat(`beat_${i + 1}`))
+  const fake = fakeContext({ beats, settings })
+  const candidatesByBeat: Record<string, string[]> = {}
+  beats.forEach((beat, b) => {
+    fake.ctx.cacheCandidates(candidatesPerBeat[b])
+    candidatesByBeat[beat.id] = candidatesPerBeat[b].map((c) => `${c.type}_${c.pexelsId}`)
+  })
+  return { fake, candidatesByBeat }
+}
+
+/** `count` video candidates for each of `beatCount` beats, with ids beat * 100 + 1.. as in setup(). */
+function clipsPerBeat(beatCount: number, count: number): PexelsCandidate[][] {
+  return Array.from({ length: beatCount }, (_, b) =>
+    Array.from({ length: count }, (_, i) => videoCand(b * 100 + i + 1, `clip-${b + 1}-${i + 1}`))
+  )
+}
+
+describe('rankBeats with thumbnails', () => {
+  const ON = { rankWithThumbnails: true }
+
+  describe('off, which is the default', () => {
+    it('sends the request it sent before thumbnails existed: the same texts and no images', async () => {
+      const { fake, candidatesByBeat } = setupCandidates(clipsPerBeat(2, 2))
+      await rank(fake, candidatesByBeat)
+
+      assert.equal(fake.requests.length, 1)
+      assert.equal(fake.requests[0].systemPrompt, PROMPT_BEFORE_THUMBNAILS)
+      assert.equal(fake.requests[0].userContent, USER_CONTENT_BEFORE_THUMBNAILS)
+      assert.ok(!('images' in fake.requests[0]), 'the request has no images')
+    })
+
+    it('sends no images however many candidates a beat has', async () => {
+      const { fake, candidatesByBeat } = setupCandidates(clipsPerBeat(6, 12), {
+        rankWithThumbnails: false
+      })
+      await rank(fake, candidatesByBeat)
+
+      assert.equal(fake.requests.length, 2)
+      for (const request of fake.requests) {
+        assert.ok(!('images' in request))
+        assert.ok(!/thumbnail/i.test(request.userContent))
+        assert.equal(request.systemPrompt, PROMPT_BEFORE_THUMBNAILS)
+      }
+    })
+  })
+
+  describe('on', () => {
+    it('attaches each candidate thumbnail, and states the order of the images by candidate key', async () => {
+      const { fake, candidatesByBeat } = setupCandidates(clipsPerBeat(2, 3), ON)
+      const { rankings } = await rank(fake, candidatesByBeat)
+
+      assert.equal(fake.requests.length, 1)
+      const { images, userContent } = fake.requests[0]
+      const order = thumbnailOrder(userContent)
+      assert.deepEqual(order, [
+        'video_1',
+        'video_2',
+        'video_3',
+        'video_101',
+        'video_102',
+        'video_103'
+      ])
+      assert.deepEqual(
+        images?.map((image) => image.url),
+        [1, 2, 3, 101, 102, 103].map(tinyOf)
+      )
+      // The nth image is the thumbnail of the nth key the message states.
+      order.forEach((key, i) => {
+        const candidate = fake.ctx.candidate(key)
+        assert.equal(images?.[i].url, candidate && describeCandidate(candidate).thumbnailUrl, key)
+      })
+      assert.deepEqual(Object.keys(rankings), ['beat_1', 'beat_2'])
+    })
+
+    it('keeps the beats and their candidates in the text as they were, and adds the order after them', async () => {
+      const { fake, candidatesByBeat } = setupCandidates(clipsPerBeat(2, 2), ON)
+      await rank(fake, candidatesByBeat)
+
+      const { userContent } = fake.requests[0]
+      assert.ok(userContent.startsWith(`${USER_CONTENT_BEFORE_THUMBNAILS}\n\n`))
+      const order = userContent.slice(USER_CONTENT_BEFORE_THUMBNAILS.length + 2)
+      assert.equal(
+        order,
+        [
+          'Thumbnails are attached to this message in this order, and a candidate not listed has none:',
+          'Thumbnail 1 = video_1',
+          'Thumbnail 2 = video_2',
+          'Thumbnail 3 = video_101',
+          'Thumbnail 4 = video_102'
+        ].join('\n')
+      )
+    })
+
+    it('tells the model it can look at the thumbnails, and keeps the other rules', async () => {
+      const { fake, candidatesByBeat } = setupCandidates(clipsPerBeat(1, 2), ON)
+      await rank(fake, candidatesByBeat)
+
+      const { systemPrompt } = fake.requests[0]
+      assert.ok(!systemPrompt.includes('You cannot see the footage'))
+      assert.match(systemPrompt, /^1\. .*thumbnail/im)
+      for (const rule of PROMPT_BEFORE_THUMBNAILS.split('\n').slice(4)) {
+        assert.ok(systemPrompt.includes(rule), rule)
+      }
+    })
+
+    it('attaches at most RANK_THUMBNAILS_PER_BEAT thumbnails for a beat, the first ones, and lists every candidate', async () => {
+      const { fake, candidatesByBeat } = setupCandidates(clipsPerBeat(1, 12), ON)
+      await rank(fake, candidatesByBeat)
+
+      assert.equal(RANK_THUMBNAILS_PER_BEAT, 8)
+      const { images, userContent } = fake.requests[0]
+      assert.equal(images?.length, RANK_THUMBNAILS_PER_BEAT)
+      assert.deepEqual(
+        thumbnailOrder(userContent),
+        candidatesByBeat.beat_1.slice(0, RANK_THUMBNAILS_PER_BEAT)
+      )
+      assert.deepEqual(offeredKeys(userContent).get('beat_1'), candidatesByBeat.beat_1)
+    })
+
+    it('applies the cap to each beat of a batch, not to the batch', async () => {
+      const { fake, candidatesByBeat } = setupCandidates(clipsPerBeat(RANK_BATCH_SIZE, 12), ON)
+      await rank(fake, candidatesByBeat)
+
+      const { images, userContent } = fake.requests[0]
+      assert.equal(images?.length, RANK_BATCH_SIZE * RANK_THUMBNAILS_PER_BEAT)
+      const expected = Object.values(candidatesByBeat).flatMap((keys) =>
+        keys.slice(0, RANK_THUMBNAILS_PER_BEAT)
+      )
+      assert.deepEqual(thumbnailOrder(userContent), expected)
+    })
+
+    it('numbers the thumbnails again from 1 in each batch', async () => {
+      const { fake, candidatesByBeat } = setupCandidates(clipsPerBeat(6, 2), ON)
+      await rank(fake, candidatesByBeat)
+
+      assert.equal(fake.requests.length, 2)
+      assert.equal(fake.requests[0].images?.length, 10)
+      assert.equal(fake.requests[1].images?.length, 2)
+      assert.deepEqual(thumbnailOrder(fake.requests[1].userContent), ['video_501', 'video_502'])
+    })
+
+    it('still lists a candidate with no thumbnail, and ranks it from its description', async () => {
+      const [first] = clipsPerBeat(1, 4)
+      const noPreview = { ...first[1], imageUrl: '' }
+      const { fake, candidatesByBeat } = setupCandidates(
+        [[first[0], noPreview, first[2], first[3]]],
+        ON
+      )
+      const { rankings } = await rank(fake, candidatesByBeat)
+
+      const { images, userContent } = fake.requests[0]
+      assert.deepEqual(thumbnailOrder(userContent), ['video_1', 'video_3', 'video_4'])
+      assert.deepEqual(
+        images?.map((image) => image.url),
+        [1, 3, 4].map(tinyOf)
+      )
+      assert.deepEqual(offeredKeys(userContent).get('beat_1'), [
+        'video_1',
+        'video_2',
+        'video_3',
+        'video_4'
+      ])
+      assert.deepEqual(rankings.beat_1, ['video_1', 'video_2', 'video_3', 'video_4'])
+    })
+
+    it('counts the cap in thumbnails, so candidates without one do not use it up', async () => {
+      const [clips] = clipsPerBeat(1, 12)
+      const candidates = clips.map((c, i) => (i < 3 ? { ...c, imageUrl: '' } : c))
+      const { fake, candidatesByBeat } = setupCandidates([candidates], ON)
+      await rank(fake, candidatesByBeat)
+
+      assert.deepEqual(
+        thumbnailOrder(fake.requests[0].userContent),
+        candidatesByBeat.beat_1.slice(3, 3 + RANK_THUMBNAILS_PER_BEAT)
+      )
+    })
+
+    it('sends the request it sent before when no candidate of the batch has a thumbnail', async () => {
+      const bare = clipsPerBeat(2, 2).map((beat) => beat.map((c) => ({ ...c, imageUrl: '' })))
+      const { fake, candidatesByBeat } = setupCandidates(bare, ON)
+      await rank(fake, candidatesByBeat)
+
+      assert.equal(fake.requests[0].systemPrompt, PROMPT_BEFORE_THUMBNAILS)
+      assert.equal(fake.requests[0].userContent, USER_CONTENT_BEFORE_THUMBNAILS)
+      assert.ok(!('images' in fake.requests[0]))
+    })
+
+    it('uses the tiny size of a photo and the preview of a video, together', async () => {
+      const { fake, candidatesByBeat } = setupCandidates(
+        [[photoCand(8, 'Sea foam'), videoCand(7, 'waves-on-a-beach')]],
+        ON
+      )
+      await rank(fake, candidatesByBeat)
+
+      assert.deepEqual(thumbnailOrder(fake.requests[0].userContent), ['photo_8', 'video_7'])
+      assert.deepEqual(
+        fake.requests[0].images?.map((image) => image.url),
+        [
+          'https://images.pexels.com/photos/8/pexels-photo-8.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=200&w=280',
+          tinyOf(7)
+        ]
+      )
+    })
   })
 })

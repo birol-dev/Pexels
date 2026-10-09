@@ -32,9 +32,30 @@ export function footageForBeats(network: FakeNetwork, count: number): void {
   for (let n = 1; n <= count; n++) network.pexels.videos(queryOfBeat(n), clipsOfBeat(n))
 }
 
-/** The text of the last user message of a request: what the step sent. */
+/**
+ * The text of the last user message of a request: what the step sent. A message that carries
+ * images is made of parts, and its text is the text part.
+ */
 export function userContentOf(request: LlmRequestBody): string {
-  return request.messages.findLast((message) => message.role === 'user')?.content ?? ''
+  const content = request.messages.findLast((message) => message.role === 'user')?.content
+  if (Array.isArray(content)) {
+    return content.map((part) => (part.type === 'text' ? part.text : '')).join('')
+  }
+  return content ?? ''
+}
+
+/** The images of the last user message of a request, in the order they were attached. */
+export function imagesOf(request: LlmRequestBody): Array<{ url: string; detail?: string }> {
+  const content = request.messages.findLast((message) => message.role === 'user')?.content
+  if (!Array.isArray(content)) return []
+  return content.flatMap((part) => (part.type === 'image_url' ? [part.image_url] : []))
+}
+
+/** Whether a request carries an image anywhere in its messages. */
+export function carriesImages(request: LlmRequestBody): boolean {
+  return request.messages.some(
+    (message) => Array.isArray(message.content) && message.content.some((p) => p.type !== 'text')
+  )
 }
 
 /** The name of the one tool a request offers. */

@@ -124,7 +124,13 @@ export interface FakeContext {
   /** The beats as the context shows them now. */
   beats: PipelineBeat[]
   searches: Array<{ type: 'video' | 'photo'; query: string }>
-  requests: Array<{ tool: string; systemPrompt: string; userContent: string }>
+  requests: Array<{
+    tool: string
+    systemPrompt: string
+    userContent: string
+    /** Present only when the request carried images. */
+    images?: Array<{ url: string }>
+  }>
   selections: Array<{ beatId: string; key: string }>
   holds: number
   /** A copy of the state at each save. */
@@ -195,7 +201,8 @@ export function fakeContext(options: FakeContextOptions): FakeContext {
       fake.requests.push({
         tool: request.tool.name,
         systemPrompt: request.systemPrompt,
-        userContent: request.userContent
+        userContent: request.userContent,
+        ...(request.images ? { images: request.images } : {})
       })
       fake.controller.signal.throwIfAborted()
       const reply = answer(request as StructuredRequest<unknown>, fake.requests.length)
