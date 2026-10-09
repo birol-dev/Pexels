@@ -41,7 +41,19 @@ export interface ResponsesApiBody {
 function toResponsesInput(messages: AgentMessage[]): unknown[] {
   const input: unknown[] = []
   for (const msg of messages) {
-    if (msg.role === 'system' || msg.role === 'user') {
+    if (msg.role === 'user' && msg.images?.length) {
+      input.push({
+        role: 'user',
+        content: [
+          { type: 'input_text', text: msg.content || '' },
+          ...msg.images.map((image) => ({
+            type: 'input_image',
+            image_url: image.url,
+            detail: 'low'
+          }))
+        ]
+      })
+    } else if (msg.role === 'system' || msg.role === 'user') {
       input.push({ role: msg.role, content: msg.content || '' })
     } else if (msg.role === 'tool') {
       input.push({

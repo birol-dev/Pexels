@@ -7,6 +7,8 @@ export interface AgentMessage {
   rawParts?: unknown[]
   /** OpenAI Responses API output items for this turn, replayed as-is (they carry reasoning). */
   responseItems?: unknown[]
+  /** Images shown to the model with this message, in order. Only user messages carry them. */
+  images?: Array<{ url: string }>
 }
 
 export interface NormalizedToolDefinition {
@@ -309,9 +311,13 @@ function toOpenAiTools(tools: NormalizedToolDefinition[]): OpenAiToolFunction[] 
   }))
 }
 
+type OpenAiContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string; detail: 'low' } }
+
 interface OpenAiMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
-  content: string | null
+  content: string | OpenAiContentPart[] | null
   name?: string
   tool_call_id?: string
   tool_calls?: Array<{
@@ -334,7 +340,20 @@ function toOpenAiMessages(messages: AgentMessage[], systemPrompt?: string): Open
     if (msg.role === 'system') {
       result.push({ role: 'system', content: msg.content || '' })
     } else if (msg.role === 'user') {
-      result.push({ role: 'user', content: msg.content || '' })
+      result.push({
+        role: 'user',
+        content: msg.images?.length
+          ? [
+              { type: 'text', text: msg.content || '' },
+              ...msg.images.map(
+                (image): OpenAiContentPart => ({
+                  type: 'image_url',
+                  image_url: { url: image.url, detail: 'low' }
+                })
+              )
+            ]
+          : msg.content || ''
+      })
     } else if (msg.role === 'assistant') {
       const hasToolCalls = Boolean(msg.tool_calls && msg.tool_calls.length > 0)
       // OpenAI allows content: null when the assistant message has tool_calls
