@@ -19,6 +19,11 @@ export interface JobRuntimeSettings {
    * that means the loop.
    */
   engine: AgentEngine
+  /**
+   * Whether the pipeline's ranking step attaches a thumbnail of each candidate. A record
+   * saved before thumbnails existed has none, and that means off. The loop never uses it.
+   */
+  rankWithThumbnails: boolean
 }
 
 export type AgentEngine = 'loop' | 'pipeline'
@@ -46,7 +51,8 @@ export function pinRuntimeSettings(settings: PublicSettings): JobRuntimeSettings
     skipExplicit: settings.skipExplicitQueries,
     avoidPeople: settings.avoidPeopleAndFaces,
     requireApproval: settings.requireApprovalBeforeDownload,
-    engine: settings.agentEngine === 'pipeline' ? 'pipeline' : 'loop'
+    engine: settings.agentEngine === 'pipeline' ? 'pipeline' : 'loop',
+    rankWithThumbnails: settings.rankWithThumbnails === true
   }
 }
 
@@ -74,7 +80,8 @@ export function parseRuntimeSettings(value: unknown): JobRuntimeSettings | undef
     skipExplicit: v.skipExplicit,
     avoidPeople: v.avoidPeople,
     requireApproval: v.requireApproval,
-    engine: v.engine === 'pipeline' ? 'pipeline' : 'loop'
+    engine: v.engine === 'pipeline' ? 'pipeline' : 'loop',
+    rankWithThumbnails: v.rankWithThumbnails === true
   }
 }
 
@@ -91,7 +98,11 @@ export function resolveRuntimeSettings(
   current: PublicSettings
 ): JobRuntimeSettings {
   if (saved) return saved
-  const pinned: JobRuntimeSettings = { ...pinRuntimeSettings(current), engine: 'loop' }
+  const pinned: JobRuntimeSettings = {
+    ...pinRuntimeSettings(current),
+    engine: 'loop',
+    rankWithThumbnails: false
+  }
   const provider = manifestSnapshot?.provider
   const modelId = manifestSnapshot?.modelId
   if (isProviderId(provider) && typeof modelId === 'string' && modelId.trim()) {

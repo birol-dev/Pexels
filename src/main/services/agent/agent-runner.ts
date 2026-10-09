@@ -1588,7 +1588,8 @@ export class AgentRunner extends EventEmitter {
         maxTotalDownloads: this.input.maxTotalDownloads,
         skipExplicit: this.safetySettings.skipExplicit,
         avoidPeople: this.safetySettings.avoidPeople,
-        requireApproval: this.requireApproval
+        requireApproval: this.requireApproval,
+        rankWithThumbnails: this.pin?.rankWithThumbnails ?? false
       },
       signal,
       beats: () => this.pipelineBeats(),

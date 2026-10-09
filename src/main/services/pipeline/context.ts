@@ -23,6 +23,11 @@ export interface PipelineSettings {
   skipExplicit: boolean
   avoidPeople: boolean
   requireApproval: boolean
+  /**
+   * The ranking step attaches a thumbnail of each candidate, up to a cap per beat. Off by
+   * default: a job that has it off sends the same requests as one built without the feature.
+   */
+  rankWithThumbnails: boolean
 }
 
 /** A beat as the steps see it. The runner builds it from the live beat each time it is asked. */

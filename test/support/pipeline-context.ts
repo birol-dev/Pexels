@@ -42,7 +42,8 @@ export const DEFAULT_SETTINGS: PipelineSettings = {
   maxTotalDownloads: 20,
   skipExplicit: true,
   avoidPeople: false,
-  requireApproval: false
+  requireApproval: false,
+  rankWithThumbnails: false
 }
 
 export function pipelineBeat(id: string, over: Partial<PipelineBeat> = {}): PipelineBeat {

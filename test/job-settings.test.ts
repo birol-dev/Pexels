@@ -19,7 +19,8 @@ const SAVED: JobRuntimeSettings = {
   skipExplicit: false,
   avoidPeople: true,
   requireApproval: true,
-  engine: 'pipeline'
+  engine: 'pipeline',
+  rankWithThumbnails: true
 }
 
 describe('job settings', () => {
@@ -43,7 +44,8 @@ describe('job settings', () => {
       skipExplicit: true,
       avoidPeople: false,
       requireApproval: false,
-      engine: 'loop'
+      engine: 'loop',
+      rankWithThumbnails: false
     })
   })
 
@@ -51,6 +53,19 @@ describe('job settings', () => {
     assert.equal(pinRuntimeSettings({ ...current, agentEngine: 'pipeline' }).engine, 'pipeline')
     assert.equal(pinRuntimeSettings({ ...current, agentEngine: 'loop' }).engine, 'loop')
     assert.equal(pinRuntimeSettings({ ...current, agentEngine: undefined }).engine, 'loop')
+  })
+
+  it('pins whether the ranking uses thumbnails, off unless Settings turn it on', () => {
+    assert.equal(getDefaultSettings().rankWithThumbnails, false)
+    assert.equal(pinRuntimeSettings(current).rankWithThumbnails, false)
+    assert.equal(
+      pinRuntimeSettings({ ...current, rankWithThumbnails: true }).rankWithThumbnails,
+      true
+    )
+    assert.equal(
+      pinRuntimeSettings({ ...current, rankWithThumbnails: undefined }).rankWithThumbnails,
+      false
+    )
   })
 
   describe('parseRuntimeSettings', () => {
@@ -74,6 +89,15 @@ describe('job settings', () => {
         engine: 'loop'
       })
       assert.deepEqual(parseRuntimeSettings({ ...SAVED, engine: 7 }), { ...SAVED, engine: 'loop' })
+    })
+
+    it('reads a record saved before thumbnails existed, or with something else in their place, as off', () => {
+      const beforeThumbnails: Partial<JobRuntimeSettings> = { ...SAVED }
+      delete beforeThumbnails.rankWithThumbnails
+      const off = { ...SAVED, rankWithThumbnails: false }
+      assert.deepEqual(parseRuntimeSettings(beforeThumbnails), off)
+      assert.deepEqual(parseRuntimeSettings({ ...SAVED, rankWithThumbnails: 'yes' }), off)
+      assert.deepEqual(parseRuntimeSettings({ ...SAVED, rankWithThumbnails: 1 }), off)
     })
 
     it('rejects a record that is missing something or has the wrong kind of value', () => {
@@ -127,17 +151,27 @@ describe('job settings', () => {
           skipExplicit: true,
           avoidPeople: false,
           requireApproval: false,
-          engine: 'loop'
+          engine: 'loop',
+          rankWithThumbnails: false
         }
       )
     })
 
     it('keeps a job from before settings were pinned on the loop, whatever Settings say now', () => {
-      const pipelineNow = { ...current, agentEngine: 'pipeline' as const }
+      const pipelineNow = {
+        ...current,
+        agentEngine: 'pipeline' as const,
+        rankWithThumbnails: true
+      }
       assert.equal(resolveRuntimeSettings(undefined, undefined, pipelineNow).engine, 'loop')
       assert.equal(
         resolveRuntimeSettings(undefined, { provider: 'gemini', modelId: 'g' }, pipelineNow).engine,
         'loop'
+      )
+      assert.equal(
+        resolveRuntimeSettings(undefined, undefined, pipelineNow).rankWithThumbnails,
+        false,
+        'the loop has no thumbnails to turn on'
       )
     })
 

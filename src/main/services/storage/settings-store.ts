@@ -33,6 +33,12 @@ export interface PublicSettings {
    * Read when a job is created and pinned to it; a job already running keeps its own.
    */
   agentEngine?: 'loop' | 'pipeline'
+  /**
+   * Whether the pipeline engine attaches a small thumbnail of each candidate when the model
+   * ranks them (more tokens; only models that accept images can use it). Default off. Read
+   * when a job is created and pinned to it. The loop engine never sends thumbnails.
+   */
+  rankWithThumbnails?: boolean
   /** Ask GitHub Releases for a newer version every few hours. Default on. */
   autoCheckForUpdates?: boolean
 }
@@ -79,6 +85,7 @@ export function getDefaultSettings(): PublicSettings {
       theme: 'flat-black',
       hideEstimatedCost: false,
       agentEngine: 'loop',
+      rankWithThumbnails: false,
       autoCheckForUpdates: true
     }
   }
