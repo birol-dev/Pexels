@@ -542,6 +542,227 @@ describe('model request quirks (limits learned from provider 400s)', () => {
     })
   })
 
+  describe('a model that rejects images', () => {
+    const IMAGE_ERROR = 'Invalid content type. image_url is only supported by certain models.'
+    const GEMINI_IMAGE_ERROR = 'Image input modality is not enabled for models/gemma-text-only.'
+    const THUMB =
+      'https://images.pexels.com/photos/1/pexels-photo-1.jpeg?auto=compress&cs=tinysrgb&dpr=1&fit=crop&h=200&w=280'
+
+    const imageTurn = (model: string, withImages = true): Promise<LlmToolTurnResult> =>
+      provider.createToolTurn(
+        {
+          model,
+          systemPrompt: '',
+          messages: [
+            {
+              role: 'user',
+              content: 'Rank these.',
+              ...(withImages ? { images: [{ url: THUMB }] } : {})
+            }
+          ],
+          tools: [],
+          toolChoice: 'none',
+          temperature: 0.2,
+          maxOutputTokens: LLM_STRUCTURED_MAX_OUTPUT_TOKENS
+        },
+        { apiKey: 'sk-test' }
+      )
+
+    /** The content of the user message of each chat request, in the order sent. */
+    const userContents = (sent: Array<Record<string, unknown>>): unknown[] =>
+      sent.map(
+        (payload) =>
+          (payload.messages as Array<{ role: string; content: unknown }>).find(
+            (m) => m.role === 'user'
+          )?.content
+      )
+
+    it('learns it from a message about images, and only when the request carried images', () => {
+      for (const message of [
+        IMAGE_ERROR,
+        'This model does not support image input.',
+        'Vision is not available for this model.',
+        'The model is not multimodal.',
+        'Unknown field inlineData in contents[0].parts[1]'
+      ]) {
+        assert.deepEqual(learnModelRequestQuirk(message, 32768, {}, undefined, true), {
+          omitImages: true
+        })
+        assert.equal(learnModelRequestQuirk(message, 32768), null, message)
+      }
+      assert.equal(
+        learnModelRequestQuirk('Invalid API key provided.', 32768, {}, undefined, true),
+        null
+      )
+      // A cap in the message is still read as a cap.
+      assert.deepEqual(learnModelRequestQuirk(TOKEN_CAP_ERROR, 32768, {}, undefined, true), {
+        maxOutputTokens: 16384
+      })
+    })
+
+    it('resends without the images, and starts later turns without them', async () => {
+      const sent: Array<Record<string, unknown>> = []
+      globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+        const payload = JSON.parse(init?.body as string) as Record<string, unknown>
+        sent.push(payload)
+        return JSON.stringify(payload).includes('image_url')
+          ? badRequest(IMAGE_ERROR)
+          : okResponse()
+      }) as typeof globalThis.fetch
+
+      const first = await imageTurn('gpt-text-only')
+      assert.deepEqual(userContents(sent), [
+        [
+          { type: 'text', text: 'Rank these.' },
+          { type: 'image_url', image_url: { url: THUMB, detail: 'low' } }
+        ],
+        'Rank these.'
+      ])
+      assert.equal(first.imagesOmitted, true, 'the result says the images were left out')
+
+      const second = await imageTurn('gpt-text-only')
+      assert.equal(sent.length, 3, 'the learned quirk is reused without another rejected request')
+      assert.equal(userContents(sent)[2], 'Rank these.')
+      assert.equal(second.imagesOmitted, true)
+
+      const plain = await imageTurn('gpt-text-only', false)
+      assert.equal(plain.imagesOmitted, undefined, 'a request with no images was not changed')
+    })
+
+    it('learns nothing from the same message when the request had no images', async () => {
+      const sent: Array<Record<string, unknown>> = []
+      globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+        sent.push(JSON.parse(init?.body as string) as Record<string, unknown>)
+        return sent.length === 1 ? badRequest(IMAGE_ERROR) : okResponse()
+      }) as typeof globalThis.fetch
+
+      await assert.rejects(() => imageTurn('gpt-4o', false), /image_url is only supported/)
+      assert.equal(sent.length, 1, 'no resend')
+
+      const next = await imageTurn('gpt-4o')
+      assert.equal(sent.length, 2)
+      assert.ok(Array.isArray(userContents(sent)[1]), 'the next request still carries its images')
+      assert.equal(next.imagesOmitted, undefined)
+    })
+
+    it('keeps the quirk to the model that was rejected', async () => {
+      const sent: Array<Record<string, unknown>> = []
+      globalThis.fetch = (async (_url: string, init?: RequestInit) => {
+        const payload = JSON.parse(init?.body as string) as Record<string, unknown>
+        sent.push(payload)
+        return payload.model === 'gpt-text-only' && JSON.stringify(payload).includes('image_url')
+          ? badRequest(IMAGE_ERROR)
+          : okResponse()
+      }) as typeof globalThis.fetch
+
+      await imageTurn('gpt-text-only')
+      await imageTurn('gpt-4o')
+
+      assert.ok(Array.isArray(userContents(sent)[2]), 'another model still gets its images')
+    })
+
+    it('does not resend a message about something else', async () => {
+      let calls = 0
+      globalThis.fetch = (async () => {
+        calls++
+        return badRequest('Invalid API key provided.')
+      }) as typeof globalThis.fetch
+
+      await assert.rejects(() => imageTurn('gpt-4o'), /Invalid API key/)
+      assert.equal(calls, 1)
+    })
+
+    it('resends a Responses API request without its images', async () => {
+      const sent: Array<{ url: string; payload: Record<string, unknown> }> = []
+      globalThis.fetch = (async (url: string, init?: RequestInit) => {
+        const payload = JSON.parse(init?.body as string) as Record<string, unknown>
+        sent.push({ url, payload })
+        if (url.endsWith('/chat/completions')) return badRequest(TOOLS_NEED_RESPONSES_ERROR)
+        return JSON.stringify(payload).includes('input_image')
+          ? badRequest('Image inputs are not supported by this model.')
+          : ({
+              ok: true,
+              status: 200,
+              headers: new Headers(),
+              json: async () => ({
+                status: 'completed',
+                output: [{ type: 'message', content: [{ type: 'output_text', text: 'ok' }] }]
+              })
+            } as Response)
+      }) as typeof globalThis.fetch
+
+      const result = await imageTurn('gpt-6-astra')
+
+      const inputs = sent.filter((s) => s.url.endsWith('/v1/responses')).map((s) => s.payload.input)
+      assert.deepEqual(inputs, [
+        [
+          {
+            role: 'user',
+            content: [
+              { type: 'input_text', text: 'Rank these.' },
+              { type: 'input_image', image_url: THUMB, detail: 'low' }
+            ]
+          }
+        ],
+        [{ role: 'user', content: 'Rank these.' }]
+      ])
+      assert.equal(result.imagesOmitted, true)
+    })
+
+    it('resends a Gemini request without its images, and stops fetching them', async () => {
+      const generated: Array<{ contents: Array<{ parts: unknown[] }> }> = []
+      const fetchedImages: string[] = []
+      globalThis.fetch = (async (url: string, init?: RequestInit) => {
+        if (url.startsWith('https://images.pexels.com/')) {
+          fetchedImages.push(url)
+          return new Response(Uint8Array.from([1, 2, 3]), {
+            status: 200,
+            headers: { 'content-type': 'image/jpeg' }
+          })
+        }
+        const body = JSON.parse(init?.body as string) as { contents: Array<{ parts: unknown[] }> }
+        generated.push(body)
+        return JSON.stringify(body).includes('inlineData')
+          ? badRequest(GEMINI_IMAGE_ERROR)
+          : ({
+              ok: true,
+              status: 200,
+              headers: new Headers(),
+              json: async () => ({ candidates: [{ content: { parts: [{ text: 'ok' }] } }] })
+            } as Response)
+      }) as typeof globalThis.fetch
+
+      const gemini = LlmProviderFactory.getProvider('gemini')
+      const geminiTurn = (): Promise<LlmToolTurnResult> =>
+        gemini.createToolTurn(
+          {
+            model: 'gemma-text-only',
+            systemPrompt: '',
+            messages: [{ role: 'user', content: 'Rank these.', images: [{ url: THUMB }] }],
+            tools: [],
+            toolChoice: 'none',
+            temperature: 0.2,
+            maxOutputTokens: 1000
+          },
+          { apiKey: 'test-key' }
+        )
+
+      const first = await geminiTurn()
+      assert.deepEqual(
+        generated.map((g) => g.contents[0].parts.length),
+        [3, 1],
+        'text, label and image; then the text alone'
+      )
+      assert.equal(first.imagesOmitted, true)
+      assert.equal(fetchedImages.length, 1, 'the image was fetched once, for the first attempt')
+
+      await geminiTurn()
+      assert.equal(generated.length, 3)
+      assert.equal(generated[2].contents[0].parts.length, 1)
+      assert.equal(fetchedImages.length, 1, 'the next turn did not fetch it again')
+    })
+  })
+
   it('reads cached input tokens from Chat Completions usage', async () => {
     globalThis.fetch = (async () =>
       ({

@@ -38,10 +38,10 @@ export interface ResponsesApiBody {
   }
 }
 
-function toResponsesInput(messages: AgentMessage[]): unknown[] {
+function toResponsesInput(messages: AgentMessage[], omitImages: boolean): unknown[] {
   const input: unknown[] = []
   for (const msg of messages) {
-    if (msg.role === 'user' && msg.images?.length) {
+    if (msg.role === 'user' && msg.images?.length && !omitImages) {
       input.push({
         role: 'user',
         content: [
@@ -83,11 +83,12 @@ function toResponsesInput(messages: AgentMessage[]): unknown[] {
 export function buildResponsesPayload(
   input: LlmToolTurnInput,
   model: string,
-  maxOutputTokens: number
+  maxOutputTokens: number,
+  omitImages = false
 ): Record<string, unknown> {
   const payload: Record<string, unknown> = {
     model,
-    input: toResponsesInput(input.messages),
+    input: toResponsesInput(input.messages, omitImages),
     max_output_tokens: maxOutputTokens,
     reasoning: { effort: RESPONSES_REASONING_EFFORT },
     store: false

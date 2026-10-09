@@ -82,6 +82,8 @@ export interface LlmToolTurnResult {
     /** The part of inputTokens the provider read from its prompt cache. */
     cachedInputTokens?: number
   }
+  /** Set when the request had images and went out without them: the model rejects images. */
+  imagesOmitted?: true
   raw: unknown
 }
 
@@ -123,6 +125,8 @@ interface ModelRequestQuirks {
   minThinkingBudget?: number
   /** Gemini rejected every thinkingConfig we tried for this model; send none. */
   omitThinkingConfig?: boolean
+  /** The model rejected images in a request; send its requests without them. */
+  omitImages?: boolean
 }
 
 type GeminiThinkingConfig = { thinkingLevel: 'low' } | { thinkingBudget: number }
@@ -140,6 +144,12 @@ const MAX_QUIRK_CORRECTIONS = 3
  * reasoning_effort to 'none'."
  */
 const TOOLS_NEED_RESPONSES_API = /function tools[\s\S]*\/v1\/responses/i
+
+/**
+ * A 400 about images: "Invalid content type. image_url is only supported by certain models.",
+ * "Image input modality is not enabled for models/...", "unknown variant `image_url`".
+ */
+const MESSAGE_IS_ABOUT_IMAGES = /image|\bvision\b|multi-?modal|inline_?data/i
 
 const modelRequestQuirks = new Map<string, ModelRequestQuirks>()
 
@@ -195,13 +205,15 @@ function geminiThinkingConfig(
 /**
  * Returns the adjustment a 400 message asks for, or null when it is unrelated.
  * `sentThinking` is the thinkingConfig the rejected request carried, if any: a thinking
- * complaint teaches nothing when the request asked for no thinking.
+ * complaint teaches nothing when the request asked for no thinking. Likewise `sentImages`
+ * is whether it carried images: a complaint about images teaches nothing when it had none.
  */
 export function learnModelRequestQuirk(
   message: string,
   sentMaxTokens: number,
   known: ModelRequestQuirks = {},
-  sentThinking?: GeminiThinkingConfig
+  sentThinking?: GeminiThinkingConfig,
+  sentImages = false
 ): ModelRequestQuirks | null {
   if (!known.useResponsesApi && TOOLS_NEED_RESPONSES_API.test(message)) {
     return { useResponsesApi: true }
@@ -235,6 +247,10 @@ export function learnModelRequestQuirk(
     return { omitThinkingConfig: true }
   }
 
+  if (sentImages && MESSAGE_IS_ABOUT_IMAGES.test(message)) {
+    return { omitImages: true }
+  }
+
   return null
 }
 
@@ -243,7 +259,8 @@ export function learnModelRequestQuirk(
  * provider answers 400 with a limit we can read, the limit is remembered and the
  * turn is resent. At most MAX_QUIRK_CORRECTIONS corrections per turn.
  * `geminiReasoning` is the reasoning a Gemini call asks for; other providers pass none
- * and never receive a thinkingConfig.
+ * and never receive a thinkingConfig. `carriesImages` says the turn has images to send, which
+ * a model that rejected them is sent without (`omitImages`).
  */
 async function sendWithLearnedQuirks(
   quirkKey: string,
@@ -253,24 +270,33 @@ async function sendWithLearnedQuirks(
     omitTemperature: boolean
     useResponsesApi: boolean
     thinkingConfig: GeminiThinkingConfig | undefined
+    omitImages: boolean
   }) => Promise<Response>,
-  geminiReasoning?: LlmReasoningConfig
+  options: { geminiReasoning?: LlmReasoningConfig; carriesImages?: boolean } = {}
 ): Promise<Response> {
   for (let correction = 0; ; correction++) {
     const quirks = modelRequestQuirks.get(quirkKey)
     const maxOutputTokens = Math.min(requestedMaxTokens, quirks?.maxOutputTokens ?? Infinity)
-    const thinkingConfig = geminiThinkingConfig(geminiReasoning, quirks)
+    const thinkingConfig = geminiThinkingConfig(options.geminiReasoning, quirks)
+    const omitImages = Boolean(quirks?.omitImages)
     try {
       return await send({
         maxOutputTokens,
         omitTemperature: Boolean(quirks?.omitTemperature),
         useResponsesApi: Boolean(quirks?.useResponsesApi),
-        thinkingConfig
+        thinkingConfig,
+        omitImages
       })
     } catch (error) {
       const learned =
         correction < MAX_QUIRK_CORRECTIONS && error instanceof ApiError && error.statusCode === 400
-          ? learnModelRequestQuirk(error.message, maxOutputTokens, quirks, thinkingConfig)
+          ? learnModelRequestQuirk(
+              error.message,
+              maxOutputTokens,
+              quirks,
+              thinkingConfig,
+              Boolean(options.carriesImages) && !omitImages
+            )
           : null
       if (!learned) throw error
       modelRequestQuirks.set(quirkKey, { ...quirks, ...learned })
@@ -331,8 +357,17 @@ interface OpenAiMessage {
   }>
 }
 
+/** Whether any message has images to send. */
+function carriesImages(messages: AgentMessage[]): boolean {
+  return messages.some((msg) => msg.role === 'user' && msg.images?.length)
+}
+
 // Helper to convert AgentMessage array to OpenAI format
-function toOpenAiMessages(messages: AgentMessage[], systemPrompt?: string): OpenAiMessage[] {
+function toOpenAiMessages(
+  messages: AgentMessage[],
+  systemPrompt?: string,
+  omitImages = false
+): OpenAiMessage[] {
   const result: OpenAiMessage[] = []
   if (systemPrompt) {
     result.push({ role: 'system', content: systemPrompt })
@@ -343,17 +378,18 @@ function toOpenAiMessages(messages: AgentMessage[], systemPrompt?: string): Open
     } else if (msg.role === 'user') {
       result.push({
         role: 'user',
-        content: msg.images?.length
-          ? [
-              { type: 'text', text: msg.content || '' },
-              ...msg.images.map(
-                (image): OpenAiContentPart => ({
-                  type: 'image_url',
-                  image_url: { url: image.url, detail: 'low' }
-                })
-              )
-            ]
-          : msg.content || ''
+        content:
+          msg.images?.length && !omitImages
+            ? [
+                { type: 'text', text: msg.content || '' },
+                ...msg.images.map(
+                  (image): OpenAiContentPart => ({
+                    type: 'image_url',
+                    image_url: { url: image.url, detail: 'low' }
+                  })
+                )
+              ]
+            : msg.content || ''
       })
     } else if (msg.role === 'assistant') {
       const hasToolCalls = Boolean(msg.tool_calls && msg.tool_calls.length > 0)
@@ -479,11 +515,14 @@ async function createOpenAiCompatibleToolTurn(
     }
   }
 
+  const hasImages = carriesImages(input.messages)
   let answeredByResponsesApi = false
+  let imagesLeftOut = false
   const response = await sendWithLearnedQuirks(
     `${options.url}::${model}`,
     input.maxOutputTokens,
     (limits) => {
+      imagesLeftOut = hasImages && limits.omitImages
       if (limits.useResponsesApi && options.responsesUrl) {
         answeredByResponsesApi = true
         return llmFetch({
@@ -492,10 +531,15 @@ async function createOpenAiCompatibleToolTurn(
           init: {
             method: 'POST',
             headers,
-            body: JSON.stringify(buildResponsesPayload(input, model, limits.maxOutputTokens)),
+            body: JSON.stringify(
+              buildResponsesPayload(input, model, limits.maxOutputTokens, limits.omitImages)
+            ),
             signal: input.abortSignal
           }
         })
+      }
+      if (hasImages) {
+        payload.messages = toOpenAiMessages(input.messages, input.systemPrompt, limits.omitImages)
       }
       payload[options.maxTokensField] = limits.maxOutputTokens
       if (limits.omitTemperature) {
@@ -513,11 +557,16 @@ async function createOpenAiCompatibleToolTurn(
           signal: input.abortSignal
         }
       })
-    }
+    },
+    { carriesImages: hasImages }
   )
+  const imagesOmitted = imagesLeftOut ? ({ imagesOmitted: true } as const) : {}
 
   if (answeredByResponsesApi) {
-    return parseResponsesResult((await response.json()) as ResponsesApiBody, options.providerName)
+    return {
+      ...parseResponsesResult((await response.json()) as ResponsesApiBody, options.providerName),
+      ...imagesOmitted
+    }
   }
 
   const data = (await response.json()) as {
@@ -586,6 +635,7 @@ async function createOpenAiCompatibleToolTurn(
           cachedInputTokens: data.usage.prompt_tokens_details?.cached_tokens
         }
       : undefined,
+    ...imagesOmitted,
     raw: data
   }
 }
@@ -934,11 +984,12 @@ class GeminiProvider implements LlmProvider {
       'x-goog-api-key': trimmedKey
     }
 
-    const hasImages = input.messages.some((m) => m.role === 'user' && m.images?.length)
-    const contents = this.toGeminiContents(
-      input.messages,
-      hasImages ? await this.fetchImageParts(input.messages, input.abortSignal) : undefined
-    )
+    // The images are fetched on the first attempt that sends them, and not at all for a model
+    // that is known to reject them.
+    const hasImages = carriesImages(input.messages)
+    const contents = this.toGeminiContents(input.messages)
+    let contentsWithImages: GeminiContent[] | undefined
+    let imagesLeftOut = false
 
     // generationConfig is filled in per attempt by sendWithLearnedQuirks below.
     const payload: Record<string, unknown> = { contents }
@@ -977,7 +1028,15 @@ class GeminiProvider implements LlmProvider {
     const response = await sendWithLearnedQuirks(
       url,
       input.maxOutputTokens,
-      (limits) => {
+      async (limits) => {
+        imagesLeftOut = hasImages && limits.omitImages
+        if (hasImages && !limits.omitImages) {
+          contentsWithImages ??= this.toGeminiContents(
+            input.messages,
+            await this.fetchImageParts(input.messages, input.abortSignal)
+          )
+        }
+        payload.contents = contentsWithImages && !limits.omitImages ? contentsWithImages : contents
         // No temperature: Google recommends the default (1.0) for Gemini 3 models and
         // warns that lower values can cause looping.
         // Thinking counts toward maxOutputTokens, so a low-effort call asks for the
@@ -998,7 +1057,7 @@ class GeminiProvider implements LlmProvider {
           }
         })
       },
-      input.reasoning
+      { geminiReasoning: input.reasoning, carriesImages: hasImages }
     )
 
     interface GeminiResponseCandidate {
@@ -1098,6 +1157,7 @@ class GeminiProvider implements LlmProvider {
             cachedInputTokens: usage.cachedContentTokenCount
           }
         : undefined,
+      ...(imagesLeftOut ? ({ imagesOmitted: true } as const) : {}),
       raw: data
     }
   }
