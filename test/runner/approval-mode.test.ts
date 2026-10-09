@@ -183,4 +183,37 @@ describe('runner: approval before download', () => {
       false
     )
   })
+
+  it('does not report the iteration limit when the last allowed turn pauses for approval', async () => {
+    const clip = video(101, 'city')
+    network.pexels.videos('city street', [clip])
+    network.llm
+      .tools([submitBeats(['First sentence.'])])
+      .tools([searchVideos('beat_1', 'city street')])
+      .tools([
+        select([
+          {
+            beatId: 'beat_1',
+            assetType: 'video',
+            pexelsId: 101,
+            variantUrl: videoFileUrl(clip, 'hd')
+          }
+        ])
+      ])
+
+    // Two turns: the search, then the selection that asks for approval.
+    const run = await runJob(
+      { script: 'First sentence.' },
+      { requireApprovalBeforeDownload: true, maxAgentIterations: 2 }
+    )
+
+    assert.deepEqual(network.problems, [])
+    assert.equal(run.snapshot.status, 'paused')
+    assert.equal(run.snapshot.statusReason, 'awaiting_approval')
+    assert.equal(
+      run.snapshot.logs.some((entry) => entry.message.includes('maximum iterations')),
+      false
+    )
+    await run.runner.cancel()
+  })
 })

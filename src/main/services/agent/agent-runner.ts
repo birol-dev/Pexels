@@ -1495,7 +1495,11 @@ export class AgentRunner extends EventEmitter {
       await this.writeAgentState()
     }
 
-    if (remainingIterations(this.maxIterations, this.iterationsUsed) === 0) {
+    // A pause for approval on the last turn ends the loop too, but nothing ran out.
+    if (
+      this.status === 'running' &&
+      remainingIterations(this.maxIterations, this.iterationsUsed) === 0
+    ) {
       this.hitIterationLimit = true
       this.log('error', `Agent reached maximum iterations limit (${this.maxIterations})`)
     }
