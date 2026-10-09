@@ -52,7 +52,9 @@ export interface EvalMetrics {
   seconds: number
 }
 
-export const MIN_LONG_EDGE = 1920
+export const MIN_VIDEO_LONG_EDGE = 1920
+/** The large2x variant the app downloads for landscape photos is 1,880 pixels wide. */
+export const MIN_PHOTO_LONG_EDGE = 1880
 export const MIN_CLIP_SECONDS = 3
 export const MAX_CLIP_SECONDS = 30
 
@@ -114,10 +116,14 @@ export function orientationMatch(beats: MetricBeat[], platform: Platform): Share
   return share(matching.length, assets.length)
 }
 
-/** Resolution: completed assets whose long edge is at least 1,920 pixels. */
+/** Resolution: completed videos with a long edge of 1,920 pixels or more, photos 1,880 or more. */
 export function resolution(beats: MetricBeat[]): Share {
   const assets = completedAssets(beats)
-  const sharp = assets.filter((asset) => Math.max(asset.width, asset.height) >= MIN_LONG_EDGE)
+  const sharp = assets.filter(
+    (asset) =>
+      Math.max(asset.width, asset.height) >=
+      (asset.type === 'photo' ? MIN_PHOTO_LONG_EDGE : MIN_VIDEO_LONG_EDGE)
+  )
   return share(sharp.length, assets.length)
 }
 

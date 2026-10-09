@@ -141,7 +141,7 @@ describe('eval metrics: orientation match', () => {
 })
 
 describe('eval metrics: resolution', () => {
-  it('passes completed assets whose long edge is at least 1,920 pixels', () => {
+  it('passes completed videos of 1,920 pixels and photos of 1,880 pixels on the long edge', () => {
     const beats = [
       beat('beat_1', 'a', [
         asset('video_1', { width: 1920, height: 1080 }),
@@ -150,11 +150,21 @@ describe('eval metrics: resolution', () => {
       ]),
       beat('beat_2', 'b', [
         asset('video_4', { width: 1280, height: 720 }),
-        asset('photo_5', { width: 1919, height: 1919 }),
+        asset('photo_5', { width: 1879, height: 1879 }),
         asset('video_6', { width: 3840, height: 2160, status: 'failed' })
       ])
     ]
     assert.deepEqual(resolution(beats), { count: 3, total: 5, ratio: 0.6 })
+  })
+
+  it('counts the large2x photo the app downloads as sharp, but not a video of the same size', () => {
+    const beats = [
+      beat('beat_1', 'a', [
+        asset('photo_1', { width: 1880, height: 1253 }),
+        asset('video_2', { width: 1880, height: 1058 })
+      ])
+    ]
+    assert.deepEqual(resolution(beats), { count: 1, total: 2, ratio: 0.5 })
   })
 })
 

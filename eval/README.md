@@ -91,7 +91,7 @@ The columns of `summary.md`:
 | Coverage                            | Beats with at least one completed asset, divided by beats.                                 |
 | Duplicates                          | Assets picked for more than one beat.                                                      |
 | Orientation                         | Completed assets shaped like the platform: landscape for YouTube, portrait for the others. |
-| Resolution                          | Completed assets with a long edge of at least 1,920 pixels.                                |
+| Resolution                          | Completed videos with a long edge of at least 1,920 pixels, photos at least 1,880.         |
 | Clip length                         | Completed videos that run 3 to 30 seconds.                                                 |
 | LLM calls                           | HTTP requests sent to the provider.                                                        |
 | Input tokens, Cached, Output tokens | Token counts from the provider's answers. Input includes the cached part.                  |

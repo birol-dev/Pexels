@@ -244,7 +244,7 @@ export function renderSummary(run: RunInfo, reports: ScriptReport[]): string {
     '- Coverage: beats with at least one completed asset, out of all beats.',
     '- Duplicates: assets picked for more than one beat.',
     '- Orientation: completed assets shaped like the platform (landscape for YouTube, portrait for Shorts, TikTok and Reels).',
-    '- Resolution: completed assets with a long edge of at least 1,920 pixels.',
+    '- Resolution: completed videos with a long edge of at least 1,920 pixels, photos at least 1,880.',
     '- Clip length: completed videos that run 3 to 30 seconds.',
     '- LLM calls: HTTP requests sent to the provider, failed and retried ones included.',
     '- Input tokens include the cached ones; Cached is the part the provider served from its prompt cache.',
