@@ -61,6 +61,8 @@ export interface FakePexels {
   quota: { limit: number; remaining: number; resetAt: number }
   /** The next search answers with this status instead of results. */
   failNextSearch(status: number): FakePexels
+  /** The next media file request answers with this status instead of the file. */
+  failNextMedia(status: number): FakePexels
 }
 
 export interface FakeNetwork {
@@ -103,6 +105,7 @@ export function installFakeNetwork(): FakeNetwork {
   const photoResults = new Map<string, PexelsPhoto[]>()
   const videoResults = new Map<string, PexelsVideo[]>()
   let failNextSearchStatus: number | null = null
+  let failNextMediaStatus: number | null = null
   let callCounter = 0
 
   const llm: ScriptedLlm = {
@@ -137,6 +140,10 @@ export function installFakeNetwork(): FakeNetwork {
     quota: { limit: 20000, remaining: 19000, resetAt: Math.floor(Date.now() / 1000) + 86400 },
     failNextSearch(status) {
       failNextSearchStatus = status
+      return pexels
+    },
+    failNextMedia(status) {
+      failNextMediaStatus = status
       return pexels
     }
   }
@@ -247,6 +254,11 @@ export function installFakeNetwork(): FakeNetwork {
       return answerPexels(url)
     }
     if (url.hostname === 'images.pexels.com' || url.hostname === 'videos.pexels.com') {
+      if (failNextMediaStatus !== null) {
+        const status = failNextMediaStatus
+        failNextMediaStatus = null
+        return new Response('Not found', { status })
+      }
       return new Response(MEDIA_BODY, {
         status: 200,
         headers: {

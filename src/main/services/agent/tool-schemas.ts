@@ -317,6 +317,9 @@ export function remainingIterations(maxIterations: number, iterationsUsed: numbe
 /** Reason stored on a beat when the user rejects a pending asset in the approval UI. */
 export const USER_REJECTION_REASON = 'Rejected by user'
 
+/** Error stored on an asset record whose file the user deleted in the Media Library. */
+export const DELETED_BY_USER_ERROR = 'Deleted by user'
+
 /** Reason stored when the model rejects an asset without saying why. */
 export const DEFAULT_REJECTION_REASON = 'Not chosen'
 

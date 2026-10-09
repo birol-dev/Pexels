@@ -89,6 +89,7 @@ import {
   countQueuedOrCompleted,
   decideRunFinalize,
   DEFAULT_REJECTION_REASON,
+  DELETED_BY_USER_ERROR,
   describeToolFailure,
   isAssetRejectedByUser,
   releaseDuplicateAssetRecords,
@@ -1028,7 +1029,7 @@ export class AgentRunner extends EventEmitter {
       await moveFileToTrash(record.filePath)
     }
     record.status = 'failed'
-    record.error = 'Deleted by user'
+    record.error = DELETED_BY_USER_ERROR
     record.filePath = undefined
     this.recountAssets()
     await this.persistSnapshot()
@@ -2052,7 +2053,20 @@ export class AgentRunner extends EventEmitter {
 
           const existingRecord = beat.assets.find((a) => a.id === recordId)
 
-          if (!existingRecord) {
+          if (
+            existingRecord?.status === 'failed' &&
+            existingRecord.error === DELETED_BY_USER_ERROR
+          ) {
+            selectionResults.push({
+              pexelsId: sel.pexelsId,
+              status: 'rejected',
+              reason: `The user deleted asset ${sel.pexelsId} from the Media Library. Choose a different asset.`
+            })
+            continue
+          }
+
+          // A failed record is not held: the asset is picked again, and the old record makes way.
+          if (!existingRecord || existingRecord.status === 'failed') {
             const budgetViolation = selectionBudgetViolation({
               beats: this.beats,
               beatId: beat.id,
@@ -2068,6 +2082,7 @@ export class AgentRunner extends EventEmitter {
               continue
             }
 
+            if (existingRecord) beat.assets.splice(beat.assets.indexOf(existingRecord), 1)
             const newAsset = this.createAssetRecord(beat, candidate, variant)
 
             const queued = this.requireApproval ? null : this.queueDownload(newAsset, beat)
