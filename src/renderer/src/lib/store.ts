@@ -65,6 +65,8 @@ export interface JobRuntimeSettings {
   requireApproval: boolean
   /** Jobs saved before the pipeline existed have none, and ran on the loop. */
   engine?: 'loop' | 'pipeline'
+  /** Whether the pipeline's ranking attached thumbnails. Jobs saved before it existed have none: off. */
+  rankWithThumbnails?: boolean
 }
 
 export interface JobSnapshot {
@@ -130,6 +132,8 @@ export interface PublicSettings {
   hideEstimatedCost?: boolean
   /** The engine new jobs run on. Missing means the agent loop. */
   agentEngine?: 'loop' | 'pipeline'
+  /** The pipeline attaches a thumbnail of each candidate when it ranks. Missing means off. */
+  rankWithThumbnails?: boolean
   autoCheckForUpdates?: boolean
 }
 

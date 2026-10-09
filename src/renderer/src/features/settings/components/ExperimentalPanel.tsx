@@ -11,6 +11,7 @@ import type { SettingsForm } from '../hooks/useSettingsForm'
 import { ENGINE_OPTIONS } from '../utils'
 import { SettingsField } from './SettingsField'
 import { SettingsSection } from './SettingsSection'
+import { ToggleRow } from './ToggleRow'
 
 interface ExperimentalPanelProps {
   settings: PublicSettings
@@ -50,6 +51,13 @@ export function ExperimentalPanel({
           </SelectContent>
         </Select>
       </SettingsField>
+      <ToggleRow
+        id="rank-with-thumbnails"
+        label="Use thumbnails when ranking (more tokens)"
+        description="Applies to the pipeline engine only, and to new jobs. Sends a small picture of each candidate, up to 8 per beat, so the model can judge what the footage looks like. Needs a model that accepts images; one that does not is used without them."
+        checked={settings.rankWithThumbnails === true}
+        onCheckedChange={(rankWithThumbnails) => form.updateNow({ rankWithThumbnails })}
+      />
     </SettingsSection>
   )
 }

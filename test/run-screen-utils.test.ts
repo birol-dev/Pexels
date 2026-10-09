@@ -69,6 +69,53 @@ describe('run screen: Resume with current settings', () => {
     assert.equal(pinnedSettingsDiffer(pipelineJob, settings()), true)
   })
 
+  it('is offered when the pipeline ranks with thumbnails in Settings and not in the job, or the other way round', () => {
+    const plain = job({ runtimeSettings: { ...PINNED, engine: 'pipeline' } })
+    const withThumbnails = job({
+      runtimeSettings: { ...PINNED, engine: 'pipeline', rankWithThumbnails: true }
+    })
+    const pipeline = { agentEngine: 'pipeline' } as const
+    assert.equal(pinnedSettingsDiffer(plain, settings({ ...pipeline })), false)
+    assert.equal(
+      pinnedSettingsDiffer(plain, settings({ ...pipeline, rankWithThumbnails: false })),
+      false
+    )
+    assert.equal(
+      pinnedSettingsDiffer(plain, settings({ ...pipeline, rankWithThumbnails: true })),
+      true
+    )
+    assert.equal(pinnedSettingsDiffer(withThumbnails, settings({ ...pipeline })), true)
+    assert.equal(
+      pinnedSettingsDiffer(withThumbnails, settings({ ...pipeline, rankWithThumbnails: true })),
+      false
+    )
+  })
+
+  it('does not count thumbnails when the job runs on the loop, which never sends them', () => {
+    const loopJob = job()
+    assert.equal(pinnedSettingsDiffer(loopJob, settings({ rankWithThumbnails: true })), false)
+    const loopJobPinnedOn = job({ runtimeSettings: { ...PINNED, rankWithThumbnails: true } })
+    assert.equal(pinnedSettingsDiffer(loopJobPinnedOn, settings()), false)
+    assert.equal(
+      pinnedSettingsDiffer(loopJobPinnedOn, settings({ rankWithThumbnails: false })),
+      false
+    )
+  })
+
+  it('reads a thumbnails setting a job or Settings lack as off', () => {
+    const beforeThumbnails: Partial<typeof PINNED> = { ...PINNED, engine: 'pipeline' }
+    delete beforeThumbnails.rankWithThumbnails
+    const oldPipelineJob = job({ runtimeSettings: beforeThumbnails })
+    assert.equal(pinnedSettingsDiffer(oldPipelineJob, settings({ agentEngine: 'pipeline' })), false)
+    assert.equal(
+      pinnedSettingsDiffer(
+        oldPipelineJob,
+        settings({ agentEngine: 'pipeline', rankWithThumbnails: true })
+      ),
+      true
+    )
+  })
+
   it('is not offered when either side is unknown', () => {
     assert.equal(pinnedSettingsDiffer(job({ runtimeSettings: undefined }), settings()), false)
     assert.equal(pinnedSettingsDiffer(job(), null), false)

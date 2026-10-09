@@ -108,7 +108,10 @@ export function pinnedSettingsDiffer(job: JobSnapshot, current: PublicSettings |
     pinned.skipExplicit !== current.skipExplicitQueries ||
     pinned.avoidPeople !== current.avoidPeopleAndFaces ||
     pinned.requireApproval !== current.requireApprovalBeforeDownload ||
-    (pinned.engine ?? 'loop') !== (current.agentEngine ?? 'loop')
+    (pinned.engine ?? 'loop') !== (current.agentEngine ?? 'loop') ||
+    // Thumbnails only matter to the pipeline: the loop never sends them.
+    ((pinned.engine ?? 'loop') === 'pipeline' &&
+      (pinned.rankWithThumbnails ?? false) !== (current.rankWithThumbnails ?? false))
   )
 }
 
