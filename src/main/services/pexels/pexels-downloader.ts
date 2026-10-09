@@ -269,18 +269,24 @@ export class PexelsDownloader {
       const fileName = `${task.type}_${task.assetId}_${task.width}x${task.height}_${slugifiedQuery}${ext}`
       const finalPath = join(targetFolder, fileName)
 
+      // A refused file's body is never read; cancel it so the connection is released now
+      // rather than when the response is garbage collected.
+      const refuse = async (message: string): Promise<never> => {
+        await response.body?.cancel().catch(() => undefined)
+        throw new ApiError(message, 'permanent')
+      }
+
       const contentLength = Number(response.headers.get('content-length') || 0)
       if (contentLength > MAX_DOWNLOAD_BYTES) {
-        throw new ApiError(
-          `Asset is too large to download (${Math.round(contentLength / 1024 ** 2)} MB)`,
-          'permanent'
+        return await refuse(
+          `Asset is too large to download (${Math.round(contentLength / 1024 ** 2)} MB)`
         )
       }
       if (contentLength > 0) {
         // statfs is unsupported on some network shares; a failed probe must not block the download.
         const stats = await fsPromises.statfs(targetFolder).catch(() => null)
         if (stats && stats.bavail * stats.bsize < contentLength + DISK_SPACE_MARGIN_BYTES) {
-          throw new ApiError('Not enough free disk space for this download', 'permanent')
+          return await refuse('Not enough free disk space for this download')
         }
       }
 

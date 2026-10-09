@@ -15,12 +15,22 @@ const BODY = new Uint8Array(64).fill(7)
 describe('PexelsDownloader size and disk limits', () => {
   let downloadDir: string
   let fetchInits: Array<RequestInit | undefined>
+  let cancelledBodies: number
 
   /** Every download answers with BODY and this content-length header. */
   function serveWithContentLength(contentLength: number): void {
     globalThis.fetch = (async (_url: string, init?: RequestInit) => {
       fetchInits.push(init)
-      return new Response(BODY, {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(BODY)
+          controller.close()
+        },
+        cancel() {
+          cancelledBodies++
+        }
+      })
+      return new Response(body, {
         status: 200,
         headers: { 'content-type': 'image/jpeg', 'content-length': String(contentLength) }
       })
@@ -40,6 +50,7 @@ describe('PexelsDownloader size and disk limits', () => {
   beforeEach(async () => {
     downloadDir = await fs.mkdtemp(join(tmpdir(), 'stockfinder-limits-'))
     fetchInits = []
+    cancelledBodies = 0
   })
 
   afterEach(async () => {
@@ -68,6 +79,7 @@ describe('PexelsDownloader size and disk limits', () => {
     assert.equal(task.status, 'failed')
     assert.match(task.error || '', /too large to download \(5120 MB\)/)
     assert.equal(fetchInits.length, 1)
+    assert.equal(cancelledBodies, 1, 'the unread body is cancelled so the socket is released')
     assert.deepEqual(await savedFiles(), [], 'nothing was written')
   })
 
@@ -81,6 +93,7 @@ describe('PexelsDownloader size and disk limits', () => {
     assert.equal(task.status, 'failed')
     assert.match(task.error || '', /Not enough free disk space/)
     assert.equal(fetchInits.length, 1)
+    assert.equal(cancelledBodies, 1, 'the unread body is cancelled so the socket is released')
     assert.deepEqual(await savedFiles(), [], 'nothing was written')
   })
 
