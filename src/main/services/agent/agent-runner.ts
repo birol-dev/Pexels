@@ -641,6 +641,9 @@ export class AgentRunner extends EventEmitter {
     const saved = await readSavedAgentState(this.projectDir)
     this.status = 'paused'
     this.statusReason = savedStatusReason('paused', saved.statusReason) ?? 'restored'
+    // What jobs:get shows for a paused job with no runner. A resume that is refused leaves
+    // this runner behind, and the screen should not then say the job is starting.
+    this.currentStep = 'Stopped'
     // The job goes on with what it was started with. One from before settings were pinned keeps
     // the provider and model its manifest names, and takes the rest from the current settings.
     this.pin = resolveRuntimeSettings(

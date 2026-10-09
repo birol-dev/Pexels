@@ -3,7 +3,11 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, before, beforeEach, describe, it } from 'node:test'
 import { registerJobsHandlers } from '../../src/main/ipc/jobs.ipc.ts'
-import { AgentRunner, type StartJobInput } from '../../src/main/services/agent/agent-runner.ts'
+import {
+  AgentRunner,
+  type JobSnapshot,
+  type StartJobInput
+} from '../../src/main/services/agent/agent-runner.ts'
 import { ProjectStore } from '../../src/main/services/storage/project-store.ts'
 import { SecureSecrets } from '../../src/main/services/storage/secure-secrets.ts'
 import { SettingsStore } from '../../src/main/services/storage/settings-store.ts'
@@ -333,6 +337,10 @@ describe('runner: settings pinned to a job', () => {
 
       assert.equal((await ProjectStore.get(saved.jobId))?.status, 'paused')
       assert.equal(network.llmRequests().length, 0)
+      // The refusal left a runner behind. The screen must still read as it did before it.
+      const refused = (await invokeIpc('jobs:get', saved.jobId)) as JobSnapshot
+      assert.equal(refused.status, 'paused')
+      assert.equal(refused.currentStep, 'Stopped')
 
       // The other way out works: the current provider (OpenAI) has a key.
       await invokeIpc('jobs:resume', saved.jobId, { useCurrentSettings: true })
