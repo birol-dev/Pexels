@@ -51,7 +51,7 @@ The runner loads the app's services with the `electron` stub from `test/support`
 
 ### The engine flag
 
-`--pipeline` is written to the `agentEngine` setting, which plan 08 adds together with the pipeline engine. Today's app has no such setting. The settings store keeps the value but nothing reads it, so `--pipeline pipeline` prints a warning, the job runs the loop, and the summary says the request was ignored. Once the app has a default for `agentEngine`, the warning goes away without a change here.
+`--pipeline` is written to the `agentEngine` setting, and the app reads that setting to pick the engine, so `--pipeline pipeline` runs the pipeline engine. If the settings store did not keep the value, the run prints a warning, every job runs the loop, and the summary says the request was ignored.
 
 ## What a run costs
 
@@ -100,7 +100,7 @@ The columns of `summary.md`:
 Things to know when you read the numbers:
 
 - The cost is counted on the wire, not taken from the app. It therefore includes the idea expansion of script 10, which the app's own usage total leaves out, and it counts requests the provider rejected or the app retried. `report.json` has the app's total as `runnerUsage` for comparison.
-- Orientation and Resolution use the width and height in the manifest. Today those are the dimensions of the original file on Pexels, not of the variant that was downloaded, so both columns can look better than the files are. Plan 04 fixes the manifest.
+- Orientation and Resolution use the width and height in the manifest. Those are the dimensions of the variant that was downloaded, so both columns describe the files.
 - In idea mode, Fidelity compares the beats with the script the model wrote from the idea.
 - The app's module-level state (search cache, circuit breakers, learned model quirks) is cleared before each script, so a script's numbers do not depend on what ran before it. The Pexels quota tracker is not cleared.
 - Apart from provider, model, download folder, "Avoid people & faces" and the engine, every job runs with the app's default settings.

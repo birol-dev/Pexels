@@ -13,8 +13,7 @@ import { ProjectStore } from '../../src/main/services/storage/project-store.ts'
 import { SecureSecrets } from '../../src/main/services/storage/secure-secrets.ts'
 import {
   getDefaultSettings,
-  SettingsStore,
-  type PublicSettings
+  SettingsStore
 } from '../../src/main/services/storage/settings-store.ts'
 import { DEFAULT_MODEL_IDS, type LlmProviderId } from '../../src/shared/llm-defaults.ts'
 import { renderContactSheet } from './contact-sheet.ts'
@@ -103,26 +102,13 @@ function errorMessage(error: unknown): string {
 }
 
 /**
- * The engine as a settings update. `agentEngine` is the settings key plan 08 adds;
- * today's PublicSettings does not have it, hence the wider type.
- */
-function engineSetting(engine: EvalEngine): Partial<PublicSettings> {
-  const update: Partial<PublicSettings> & { agentEngine: EvalEngine } = { agentEngine: engine }
-  return update
-}
-
-/**
  * Hands the requested engine to the app and reports what will run. The engine counts
- * as honoured only when the app knows the setting (it has a default for it) and the
- * settings store kept the value. Until plan 08 lands the store keeps the key but
- * nothing reads it, so every job runs the loop.
+ * as honoured only when the settings store kept the value; otherwise the jobs run the
+ * app's default, the loop.
  */
 export async function resolveEngine(requested: EvalEngine): Promise<EngineOutcome> {
-  const stored = (await SettingsStore.updateSettings(
-    engineSetting(requested)
-  )) as PublicSettings & { agentEngine?: unknown }
-  const known = 'agentEngine' in getDefaultSettings()
-  return { requested, effective: known && stored.agentEngine === requested ? requested : 'loop' }
+  const stored = await SettingsStore.updateSettings({ agentEngine: requested })
+  return { requested, effective: stored.agentEngine === requested ? requested : 'loop' }
 }
 
 /** Awaits a run and cancels it when it has not ended in time. Returns whether it was cancelled. */
@@ -206,7 +192,7 @@ async function runJob(
   // The app's defaults, plus what the evaluation needs to differ.
   await SettingsStore.updateSettings({
     ...getDefaultSettings(),
-    ...engineSetting(context.engine.requested),
+    agentEngine: context.engine.requested,
     llmProvider: context.provider,
     modelId: context.model,
     downloadFolder: scriptDir,
@@ -382,7 +368,7 @@ export async function runEval(options: EvalOptions): Promise<EvalResult> {
     engine = await resolveEngine(options.engine)
     if (engine.requested !== engine.effective) {
       warn(
-        `--pipeline ${engine.requested} was requested, but this build of the app has no agentEngine setting, so the engine is ignored and every job runs the ${engine.effective} engine. The flag takes effect once plan 08 lands.`
+        `--pipeline ${engine.requested} was requested, but the settings store did not keep it, so the engine is ignored and every job runs the ${engine.effective} engine.`
       )
     }
     if (noDownload) {

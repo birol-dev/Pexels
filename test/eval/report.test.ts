@@ -183,14 +183,14 @@ describe('eval summary', () => {
       engine: { requested: 'pipeline', effective: 'loop' },
       noDownload: true,
       commit: null,
-      warnings: ['The engine is ignored until plan 08 lands.']
+      warnings: ['The settings store did not keep the engine.']
     }
     const text = renderSummary(run, [first])
 
     assert.match(text, /^- Engine: loop \(pipeline was requested and ignored\)$/m)
     assert.match(text, /^- Commit: unknown$/m)
     assert.match(text, /^- Media requests: 2 \(answered with placeholders: --no-download\)$/m)
-    assert.match(text, /^## Warnings\n\n- The engine is ignored until plan 08 lands\.$/m)
+    assert.match(text, /^## Warnings\n\n- The settings store did not keep the engine.$/m)
     assert.doesNotMatch(text, /## Errors/)
   })
 

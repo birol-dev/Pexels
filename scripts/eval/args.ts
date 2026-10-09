@@ -38,7 +38,7 @@ and writes the results to eval-results/<timestamp>/.
 Options:
   --provider <name>    openai, openrouter or gemini (default: ${DEFAULT_LLM_PROVIDER})
   --model <id>         model id (default: the app's default model for the provider)
-  --pipeline <engine>  loop or pipeline (default: loop; pipeline needs plan 08)
+  --pipeline <engine>  loop or pipeline (default: loop)
   --only <script>      run one script: its number (3), id (03-five-facts) or file name;
                        repeat the flag or separate names with commas
   --no-download        do not fetch media files; write small placeholders instead

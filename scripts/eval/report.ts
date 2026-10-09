@@ -11,7 +11,7 @@ export type EvalEngine = 'loop' | 'pipeline'
 export interface EngineOutcome {
   /** What `--pipeline` asked for. */
   requested: EvalEngine
-  /** What the app ran. The loop, until plan 08 adds the pipeline engine. */
+  /** What the app ran: loop or pipeline. */
   effective: EvalEngine
 }
 

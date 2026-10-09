@@ -9,11 +9,7 @@ import { parseEvalScript, type EvalScript } from '../../scripts/eval/eval-script
 import type { ScriptReport } from '../../scripts/eval/report.ts'
 import { runEval, type EvalOptions, type EvalResult } from '../../scripts/eval/run-eval.ts'
 import { SecureSecrets } from '../../src/main/services/storage/secure-secrets.ts'
-import {
-  getDefaultSettings,
-  SettingsStore,
-  type PublicSettings
-} from '../../src/main/services/storage/settings-store.ts'
+import { SettingsStore } from '../../src/main/services/storage/settings-store.ts'
 import { installFakeNetwork, type FakeNetwork } from '../support/fake-network.ts'
 import { photo, video, videoFileUrl } from '../support/pexels-fixtures.ts'
 import {
@@ -345,25 +341,11 @@ describe('eval: a dry run on the fake network', () => {
   it('passes --pipeline through to the agentEngine setting', async () => {
     const result = await dryRun([], { engine: 'pipeline' })
 
-    const settings = (await SettingsStore.getSettings()) as PublicSettings & {
-      agentEngine?: unknown
-    }
+    const settings = await SettingsStore.getSettings()
     assert.equal(settings.agentEngine, 'pipeline', 'the settings store was handed the engine')
     assert.equal(result.run.engine.requested, 'pipeline')
-
-    const summary = await readFile(result.files.summary, 'utf8')
-    if ('agentEngine' in getDefaultSettings()) {
-      // Plan 08 has landed: the app knows the setting, so the request is honoured.
-      assert.equal(result.run.engine.effective, 'pipeline')
-      assert.deepEqual(result.run.warnings, [])
-    } else {
-      // Until then the store keeps the key, nothing reads it, and the run says so.
-      assert.equal(result.run.engine.effective, 'loop')
-      assert.equal(result.run.warnings.length, 1)
-      assert.match(result.run.warnings[0], /ignored .* plan 08/)
-      assert.match(summary, /^- Engine: loop \(pipeline was requested and ignored\)$/m)
-      assert.match(summary, /## Warnings/)
-    }
+    assert.equal(result.run.engine.effective, 'pipeline')
+    assert.deepEqual(result.run.warnings, [])
   })
 
   it('does not warn about the engine when the loop is asked for', async () => {
