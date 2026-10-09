@@ -8,6 +8,7 @@ import {
   type NormalizedToolDefinition
 } from '../src/main/services/llm/llm-provider.ts'
 import { resetLlmCircuit } from '../src/main/services/llm/llm-fetch.ts'
+import { MAX_PROMPT_IMAGE_BYTES } from '../src/main/services/llm/prompt-images.ts'
 
 const originalFetch = globalThis.fetch
 
@@ -205,5 +206,203 @@ describe('images in a user message: OpenAI Responses API', () => {
     const request = await responsesTurn([{ role: 'user', content: 'Rank these.' }])
 
     assert.deepEqual(request.payload.input, [{ role: 'user', content: 'Rank these.' }])
+  })
+})
+
+describe('images in a user message: Gemini', () => {
+  const gemini = LlmProviderFactory.getProvider('gemini')
+  const BYTES_A = Uint8Array.from([1, 2, 3, 4, 5])
+  const BYTES_B = Uint8Array.from([9, 8, 7])
+  const base64 = (bytes: Uint8Array): string => Buffer.from(bytes).toString('base64')
+
+  const imageResponse = (
+    bytes: Uint8Array,
+    type = 'image/jpeg',
+    headers: Record<string, string> = {}
+  ): Response => new Response(bytes, { status: 200, headers: { 'content-type': type, ...headers } })
+
+  const geminiOk = (): Response =>
+    new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'ok' }] } }] }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' }
+    })
+
+  type GeminiContents = Array<{ role: string; parts: unknown[] }>
+
+  /** Answers image requests from `images` (404 for any other) and the model call with `geminiOk`. */
+  function fakeGemini(images: Record<string, () => Response>): {
+    fetched: string[]
+    contents(): GeminiContents
+    requests(): number
+  } {
+    const fetched: string[] = []
+    const calls: Array<{ contents: GeminiContents }> = []
+    globalThis.fetch = (async (url: string, init?: RequestInit) => {
+      if (url.startsWith('https://generativelanguage.googleapis.com/')) {
+        calls.push(JSON.parse(init?.body as string) as { contents: GeminiContents })
+        return geminiOk()
+      }
+      fetched.push(url)
+      return images[url]?.() ?? new Response('gone', { status: 404 })
+    }) as typeof globalThis.fetch
+    return { fetched, contents: () => calls[0].contents, requests: () => calls.length }
+  }
+
+  const turn = (
+    messages: AgentMessage[],
+    abortSignal?: AbortSignal
+  ): ReturnType<typeof gemini.createToolTurn> =>
+    gemini.createToolTurn(
+      {
+        model: 'gemini-3-flash',
+        systemPrompt: 'Rank the clips.',
+        messages,
+        tools: [RANK_TOOL],
+        toolChoice: { name: 'submit_rankings' },
+        temperature: 0.2,
+        maxOutputTokens: 1000,
+        abortSignal
+      },
+      { apiKey: 'test-key' }
+    )
+
+  it('sends each fetched image as inlineData after the text, numbered by its place in the list', async () => {
+    const network = fakeGemini({
+      [THUMB_A]: () => imageResponse(BYTES_A),
+      [THUMB_B]: () => imageResponse(BYTES_B, 'image/png')
+    })
+
+    await turn([
+      { role: 'user', content: 'Rank these.', images: [{ url: THUMB_A }, { url: THUMB_B }] }
+    ])
+
+    assert.deepEqual([...network.fetched].sort(), [THUMB_A, THUMB_B])
+    assert.deepEqual(network.contents(), [
+      {
+        role: 'user',
+        parts: [
+          { text: 'Rank these.' },
+          { text: 'Thumbnail 1:' },
+          { inlineData: { mimeType: 'image/jpeg', data: base64(BYTES_A) } },
+          { text: 'Thumbnail 2:' },
+          { inlineData: { mimeType: 'image/png', data: base64(BYTES_B) } }
+        ]
+      }
+    ])
+  })
+
+  it('skips an image that cannot be fetched and keeps the others under their own numbers', async () => {
+    const network = fakeGemini({ [THUMB_B]: () => imageResponse(BYTES_B) })
+
+    await turn([
+      { role: 'user', content: 'Rank these.', images: [{ url: THUMB_A }, { url: THUMB_B }] }
+    ])
+
+    assert.equal(network.requests(), 1, 'the request went on')
+    assert.deepEqual(network.contents()[0].parts, [
+      { text: 'Rank these.' },
+      { text: 'Thumbnail 2:' },
+      { inlineData: { mimeType: 'image/jpeg', data: base64(BYTES_B) } }
+    ])
+  })
+
+  it('skips an image that is too large, whether the response says so or not', async () => {
+    const atTheCap = new Uint8Array(MAX_PROMPT_IMAGE_BYTES).fill(1)
+    const overTheCap = new Uint8Array(MAX_PROMPT_IMAGE_BYTES + 1).fill(1)
+    const urls = [1, 2, 3].map((n) => `https://images.pexels.com/photos/${n}/p.jpeg`)
+    const network = fakeGemini({
+      [urls[0]]: () => imageResponse(atTheCap),
+      [urls[1]]: () => imageResponse(overTheCap),
+      [urls[2]]: () =>
+        imageResponse(BYTES_A, 'image/jpeg', {
+          'content-length': String(MAX_PROMPT_IMAGE_BYTES + 1)
+        })
+    })
+
+    await turn([{ role: 'user', content: 'Rank these.', images: urls.map((url) => ({ url })) }])
+
+    const parts = network.contents()[0].parts
+    assert.equal(
+      parts.filter((part) => 'inlineData' in (part as object)).length,
+      1,
+      'only the image at the cap was sent'
+    )
+    assert.deepEqual(parts[1], { text: 'Thumbnail 1:' })
+  })
+
+  it('skips a response that is not an image Gemini takes', async () => {
+    const network = fakeGemini({
+      [THUMB_A]: () => imageResponse(BYTES_A, 'text/html; charset=utf-8'),
+      [THUMB_B]: () => imageResponse(BYTES_B, 'image/jpeg; charset=binary')
+    })
+
+    await turn([
+      { role: 'user', content: 'Rank these.', images: [{ url: THUMB_A }, { url: THUMB_B }] }
+    ])
+
+    assert.deepEqual(network.contents()[0].parts, [
+      { text: 'Rank these.' },
+      { text: 'Thumbnail 2:' },
+      { inlineData: { mimeType: 'image/jpeg', data: base64(BYTES_B) } }
+    ])
+  })
+
+  it('never fetches a URL that is not on images.pexels.com over https', async () => {
+    const refused = [
+      'https://example.com/thumb.jpg',
+      'http://images.pexels.com/photos/1/p.jpeg',
+      'https://videos.pexels.com/video-files/1/clip.mp4',
+      'https://images.pexels.com.evil.example/photos/1/p.jpeg',
+      'https://192.168.0.1/photo.jpg',
+      'file:///C:/photo.jpg',
+      'not a url'
+    ]
+    const network = fakeGemini({ [THUMB_A]: () => imageResponse(BYTES_A) })
+
+    await turn([
+      {
+        role: 'user',
+        content: 'Rank these.',
+        images: [...refused, THUMB_A].map((url) => ({ url }))
+      }
+    ])
+
+    assert.deepEqual(network.fetched, [THUMB_A])
+    assert.equal(network.requests(), 1)
+    assert.deepEqual(network.contents()[0].parts[1], { text: 'Thumbnail 8:' })
+  })
+
+  it('stops with the job instead of sending the request when it is aborted during the images', async () => {
+    const controller = new AbortController()
+    let generated = 0
+    globalThis.fetch = (async (url: string, init?: RequestInit) => {
+      if (url.startsWith('https://generativelanguage.googleapis.com/')) {
+        generated++
+        return geminiOk()
+      }
+      controller.abort(new Error('paused'))
+      if (init?.signal?.aborted) throw new DOMException('This operation was aborted', 'AbortError')
+      return imageResponse(BYTES_A)
+    }) as typeof globalThis.fetch
+
+    await assert.rejects(
+      turn(
+        [{ role: 'user', content: 'Rank these.', images: [{ url: THUMB_A }] }],
+        controller.signal
+      )
+    )
+    assert.equal(generated, 0, 'no request went to the model')
+  })
+
+  it('sends a message without images exactly as before and fetches nothing', async () => {
+    const network = fakeGemini({})
+
+    await turn([{ role: 'user', content: 'Rank these.' }])
+    assert.deepEqual(network.fetched, [])
+    assert.deepEqual(network.contents(), [{ role: 'user', parts: [{ text: 'Rank these.' }] }])
+
+    await turn([{ role: 'user', content: 'Rank these.', images: [] }])
+    assert.deepEqual(network.fetched, [])
+    assert.equal(network.requests(), 2)
   })
 })

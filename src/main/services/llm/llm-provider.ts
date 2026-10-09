@@ -96,6 +96,7 @@ export interface ProviderTestResult {
 
 import { llmFetch } from './llm-fetch.ts'
 import { applyOpenRouterPromptCache } from './openrouter-cache.ts'
+import { fetchPromptImage } from './prompt-images.ts'
 import {
   buildResponsesPayload,
   parseResponsesResult,
@@ -757,7 +758,18 @@ interface GeminiFunctionResponsePart {
   }
 }
 
-type GeminiPart = GeminiTextPart | GeminiFunctionCallPart | GeminiFunctionResponsePart
+interface GeminiInlineDataPart {
+  inlineData: {
+    mimeType: string
+    data: string
+  }
+}
+
+type GeminiPart =
+  | GeminiTextPart
+  | GeminiInlineDataPart
+  | GeminiFunctionCallPart
+  | GeminiFunctionResponsePart
 
 interface GeminiContent {
   role: 'user' | 'model'
@@ -795,7 +807,40 @@ function geminiGenerateContentUrl(model: string): string {
 class GeminiProvider implements LlmProvider {
   public id = 'gemini' as const
 
-  private toGeminiContents(messages: AgentMessage[]): GeminiContent[] {
+  /**
+   * Gemini takes an image as bytes, so each user message's images are fetched here. An image that
+   * cannot be used is left out, and the ones after it keep their numbers: the text before each one
+   * says which it is, so the message can name its images by number.
+   */
+  private async fetchImageParts(
+    messages: AgentMessage[],
+    signal?: AbortSignal
+  ): Promise<Map<AgentMessage, GeminiPart[]>> {
+    const imageParts = new Map<AgentMessage, GeminiPart[]>()
+    for (const msg of messages) {
+      if (msg.role !== 'user' || !msg.images?.length) continue
+      const fetched = await Promise.all(
+        msg.images.map((image) => fetchPromptImage(image.url, signal))
+      )
+      imageParts.set(
+        msg,
+        fetched.flatMap((image, index): GeminiPart[] =>
+          image
+            ? [
+                { text: `Thumbnail ${index + 1}:` },
+                { inlineData: { mimeType: image.mimeType, data: image.data } }
+              ]
+            : []
+        )
+      )
+    }
+    return imageParts
+  }
+
+  private toGeminiContents(
+    messages: AgentMessage[],
+    imageParts?: Map<AgentMessage, GeminiPart[]>
+  ): GeminiContent[] {
     const contents: GeminiContent[] = []
 
     for (const msg of messages) {
@@ -807,7 +852,7 @@ class GeminiProvider implements LlmProvider {
       const parts: GeminiPart[] = []
 
       if (msg.role === 'user') {
-        parts.push({ text: msg.content || '' })
+        parts.push({ text: msg.content || '' }, ...(imageParts?.get(msg) ?? []))
       } else if (msg.role === 'assistant') {
         if (msg.rawParts && Array.isArray(msg.rawParts) && msg.rawParts.length > 0) {
           parts.push(...(msg.rawParts as GeminiPart[]))
@@ -889,7 +934,11 @@ class GeminiProvider implements LlmProvider {
       'x-goog-api-key': trimmedKey
     }
 
-    const contents = this.toGeminiContents(input.messages)
+    const hasImages = input.messages.some((m) => m.role === 'user' && m.images?.length)
+    const contents = this.toGeminiContents(
+      input.messages,
+      hasImages ? await this.fetchImageParts(input.messages, input.abortSignal) : undefined
+    )
 
     // generationConfig is filled in per attempt by sendWithLearnedQuirks below.
     const payload: Record<string, unknown> = { contents }
