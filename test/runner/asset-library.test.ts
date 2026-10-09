@@ -157,6 +157,12 @@ describe('the library of a job that has a runner', () => {
       assert.equal(deleted.filePath, undefined)
       assert.equal((await readJob(job.jobId)).summary.assetCount, 0)
       assert.equal(job.runner.getSnapshot().downloadedCount, 0)
+      assert.equal(
+        job.runner.getSnapshot().beats[0].status,
+        'failed',
+        'a beat with no footage left'
+      )
+      assert.equal((await readJob(job.jobId)).manifest.beats[0].status, 'failed')
       assert.ok(
         job.events.some((event) => event.type === 'beats'),
         'the open screen is told'
@@ -272,7 +278,13 @@ describe('the library of a job that has a runner', () => {
       assert.equal(listed[0].filePath, undefined)
       assert.equal(job.runner.getSnapshot().beats[0].assets[0].status, 'failed')
       assert.equal(job.runner.getSnapshot().downloadedCount, 0)
+      assert.equal(
+        job.runner.getSnapshot().beats[0].status,
+        'failed',
+        'a beat with no footage left'
+      )
       assert.equal((await manifestAsset(job.jobId, job.assetId)).status, 'failed')
+      assert.equal((await readJob(job.jobId)).manifest.beats[0].status, 'failed')
 
       await job.finish()
 

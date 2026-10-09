@@ -349,6 +349,38 @@ export class AgentRunner extends EventEmitter {
     return found
   }
 
+  /** Sets the beat's status from the state of its assets. */
+  private refreshBeatStatus(beat: VisualBeat): void {
+    const allDone = beat.assets.every((a) => a.status === 'completed')
+    const anyFailed = beat.assets.some((a) => a.status === 'failed')
+    const anyDownloading = beat.assets.some(
+      (a) => a.status === 'downloading' || a.status === 'pending'
+    )
+    const anyCompleted = beat.assets.some((a) => a.status === 'completed')
+    const allTerminal = beat.assets.every((a) => a.status === 'completed' || a.status === 'failed')
+
+    if (allDone && beat.status !== 'completed') {
+      beat.status = 'completed'
+      this.log(
+        'info',
+        `[Beat Complete] All selected assets downloaded for ${beat.id.replace('_', ' ')}.`
+      )
+    } else if (anyDownloading) {
+      beat.status = 'downloading'
+    } else if (allTerminal && anyCompleted) {
+      // At least one asset landed — don't fail the beat because a sibling failed.
+      beat.status = 'completed'
+    } else if (anyFailed) {
+      beat.status = 'failed'
+    }
+  }
+
+  /** Same, for the beat that holds this record. */
+  private refreshBeatStatusOf(record: AssetRecord): void {
+    const beat = this.beats.find((b) => b.assets?.includes(record))
+    if (beat) this.refreshBeatStatus(beat)
+  }
+
   private rebuildAssetLookup(): void {
     this.assetLookup.clear()
     for (const b of this.beats) {
@@ -1007,6 +1039,7 @@ export class AgentRunner extends EventEmitter {
         record.status = 'failed'
         record.error = 'File not found on disk'
         record.filePath = undefined
+        this.refreshBeatStatusOf(record)
         changed = true
       }
     }
@@ -1033,6 +1066,7 @@ export class AgentRunner extends EventEmitter {
     record.status = 'failed'
     record.error = DELETED_BY_USER_ERROR
     record.filePath = undefined
+    this.refreshBeatStatusOf(record)
     this.recountAssets()
     await this.persistSnapshot()
     this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
@@ -2459,32 +2493,7 @@ export class AgentRunner extends EventEmitter {
 
     // Reevaluate beat status on state change or task finish
     if (statusChanged) {
-      const allDone = parentBeat.assets.every((a) => a.status === 'completed')
-      const anyFailed = parentBeat.assets.some((a) => a.status === 'failed')
-      const anyDownloading = parentBeat.assets.some(
-        (a) => a.status === 'downloading' || a.status === 'pending'
-      )
-
-      const anyCompleted = parentBeat.assets.some((a) => a.status === 'completed')
-      const allTerminal = parentBeat.assets.every(
-        (a) => a.status === 'completed' || a.status === 'failed'
-      )
-
-      if (allDone && parentBeat.status !== 'completed') {
-        parentBeat.status = 'completed'
-        this.log(
-          'info',
-          `[Beat Complete] All selected assets downloaded for ${parentBeat.id.replace('_', ' ')}.`
-        )
-      } else if (anyDownloading) {
-        parentBeat.status = 'downloading'
-      } else if (allTerminal && anyCompleted) {
-        // At least one asset landed — don't fail the beat because a sibling failed.
-        parentBeat.status = 'completed'
-      } else if (anyFailed) {
-        parentBeat.status = 'failed'
-      }
-
+      this.refreshBeatStatus(parentBeat)
       this.recountAssets()
 
       // Whether the job is finished is decided when the loop ends (finalizeRun), never here:
