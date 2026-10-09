@@ -53,20 +53,47 @@ export const SUBMIT_BEAT_PLAN_TOOL: NormalizedToolDefinition = {
   }
 }
 
+/** A bare list number such as "1." or "2)". */
+const LIST_MARKER = /^\d+[.)]$/
+/** A sentence with no spaces to cut at, such as unpunctuated Chinese, is cut past this length. */
+const MAX_UNSPACED_CHARS = 200
+const CHUNK_CHARS = 60
+
 /** Sentences of the script, in order. Very long sentences are cut into chunks so a beat stays short. */
 export function splitScriptSentences(script: string, maxWords = 40, chunkWords = 15): string[] {
   const segmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' })
-  const sentences = [...segmenter.segment(script)]
+  const pieces = [...segmenter.segment(script)]
     .map((s) => s.segment.replace(/\s+/g, ' ').trim())
     .filter(Boolean)
+  // The segmenter ends "1." as a sentence of its own; the marker belongs with the text after it.
+  const sentences: string[] = []
+  let marker = ''
+  for (const piece of pieces) {
+    if (LIST_MARKER.test(piece)) {
+      marker = marker ? `${marker} ${piece}` : piece
+      continue
+    }
+    sentences.push(marker ? `${marker} ${piece}` : piece)
+    marker = ''
+  }
+  if (marker) sentences.push(marker)
+
   return sentences.flatMap((sentence) => {
     const words = sentence.split(' ')
-    if (words.length <= maxWords) return [sentence]
-    const chunks: string[] = []
-    for (let i = 0; i < words.length; i += chunkWords)
-      chunks.push(words.slice(i, i + chunkWords).join(' '))
-    return chunks
+    if (words.length > maxWords) return chunked(words, chunkWords, ' ')
+    // Counted in code points, so a chunk never ends in half of a character.
+    const characters = [...sentence]
+    if (words.length === 1 && characters.length > MAX_UNSPACED_CHARS) {
+      return chunked(characters, CHUNK_CHARS, '')
+    }
+    return [sentence]
   })
+}
+
+function chunked(items: string[], size: number, glue: string): string[] {
+  const chunks: string[] = []
+  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size).join(glue))
+  return chunks
 }
 
 /** The user message of the beat split: one numbered sentence per line. */

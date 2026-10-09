@@ -158,6 +158,58 @@ describe('splitScriptSentences', () => {
     ])
   })
 
+  it('keeps a list marker with the sentence after it', () => {
+    assert.deepEqual(splitScriptSentences('1. Intro. 2. Waves. 10. The end.'), [
+      '1. Intro.',
+      '2. Waves.',
+      '10. The end.'
+    ])
+    assert.deepEqual(splitScriptSentences('1. Intro\n2. Waves\n3. End'), [
+      '1. Intro',
+      '2. Waves',
+      '3. End'
+    ])
+    assert.deepEqual(splitScriptSentences('1) Intro. 2) Waves.'), ['1) Intro.', '2) Waves.'])
+  })
+
+  it('leaves a marker with nothing after it as a sentence of its own', () => {
+    assert.deepEqual(splitScriptSentences('The end. 3.'), ['The end.', '3.'])
+  })
+
+  it('cuts a long sentence with no spaces into chunks of 60 characters', () => {
+    const unbroken = 'x'.repeat(250)
+    const chunks = splitScriptSentences(unbroken)
+    assert.deepEqual(
+      chunks.map((chunk) => chunk.length),
+      [60, 60, 60, 60, 10]
+    )
+    assert.equal(chunks.join(''), unbroken)
+  })
+
+  it('keeps a sentence with no spaces whole up to 200 characters, and counts a character as a code point', () => {
+    assert.deepEqual(splitScriptSentences('x'.repeat(200)), ['x'.repeat(200)])
+    const rare = '\u{20000}'.repeat(201)
+    const chunks = splitScriptSentences(rare)
+    assert.deepEqual(
+      chunks.map((chunk) => [...chunk].length),
+      [60, 60, 60, 21]
+    )
+    assert.equal(chunks.join(''), rare)
+  })
+
+  it('ends a sentence at the full-width marks of Chinese and Japanese', () => {
+    assert.deepEqual(splitScriptSentences('这是第一句。这是第二句！第三句？'), [
+      '这是第一句。',
+      '这是第二句！',
+      '第三句？'
+    ])
+    assert.deepEqual(splitScriptSentences('今日は晴れです！明日は雨ですか？はい。'), [
+      '今日は晴れです！',
+      '明日は雨ですか？',
+      'はい。'
+    ])
+  })
+
   it('may split after an abbreviation, and the words still come out in order', () => {
     const script = 'Dr. Smith went home. He slept at 3 p.m. and woke up.'
     assert.equal(splitScriptSentences(script).join(' '), script)
