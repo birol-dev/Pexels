@@ -94,11 +94,14 @@ export function buildRankingUserContent(
 
 /**
  * Reads the model's rankings. A key the beat was not offered is dropped, repeats are dropped, and
- * each list is cut to MAX_RANKED_PER_BEAT. A beat the answer leaves out is not in the result.
+ * each list is cut to MAX_RANKED_PER_BEAT. A beat the answer leaves out is not in the result, and
+ * neither is one whose keys were all dropped: its id goes into `unrecognised` instead, because
+ * keys the model got wrong say nothing about whether a candidate fits. An empty list stays empty.
  */
 export function parseRankings(
   argumentsJson: string,
-  offered: Map<string, Set<string>>
+  offered: Map<string, Set<string>>,
+  unrecognised: Set<string> = new Set()
 ): Map<string, string[]> {
   let parsed: unknown
   try {
@@ -123,6 +126,10 @@ export function parseRankings(
     for (const key of keys) {
       if (typeof key === 'string' && allowed.has(key) && !kept.includes(key)) kept.push(key)
     }
+    if (keys.length > 0 && kept.length === 0) {
+      unrecognised.add(beatId)
+      continue
+    }
     rankings.set(beatId, kept.slice(0, MAX_RANKED_PER_BEAT))
   }
   return rankings
@@ -141,8 +148,8 @@ function chunk<T>(items: T[], size: number): T[][] {
  * part-way keeps the batches that are done.
  *
  * A batch the model could not answer (no tool call, bad arguments, a failed request) falls back
- * to Pexels' own order for its beats, and a beat the answer left out gets the same. An empty
- * list the model wrote on purpose stays empty. A pause or cancel stops the step instead.
+ * to Pexels' own order for its beats, and so does a beat the answer left out or gave only keys it
+ * was not offered. An empty list the model wrote on purpose stays empty. A pause or cancel stops the step instead.
  */
 export async function rankBeats(
   ctx: PipelineContext,
@@ -176,11 +183,12 @@ export async function rankBeats(
         const offered = new Map(
           entries.map((entry) => [entry.beat.id, new Set(entry.candidates.map((c) => c.key))])
         )
+        const unrecognised = new Set<string>()
         const request: StructuredRequest<Map<string, string[]>> = {
           tool: SUBMIT_RANKINGS_TOOL,
           systemPrompt,
           userContent: buildRankingUserContent(entries),
-          parse: (argumentsJson) => parseRankings(argumentsJson, offered),
+          parse: (argumentsJson) => parseRankings(argumentsJson, offered, unrecognised),
           label: `Ranking batch ${index + 1} of ${batches.length}`
         }
 
@@ -205,7 +213,9 @@ export async function rankBeats(
           if (answer)
             ctx.log(
               'info',
-              `[${entry.beat.id}] The ranking left this beat out. It keeps the order Pexels gave.`
+              unrecognised.has(entry.beat.id)
+                ? `[${entry.beat.id}] The ranking's keys for this beat were not recognised. It keeps the order Pexels gave.`
+                : `[${entry.beat.id}] The ranking left this beat out. It keeps the order Pexels gave.`
             )
           rankings[entry.beat.id] = entry.candidates.slice(0, MAX_RANKED_PER_BEAT).map((c) => c.key)
         }

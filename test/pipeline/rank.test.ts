@@ -70,6 +70,20 @@ describe('parseRankings', () => {
     assert.deepEqual(parseRankings(json, offered).get('beat_1'), [])
   })
 
+  it('leaves out a beat whose keys were all unrecognised, and names it, but keeps an empty list', () => {
+    const json = JSON.stringify({
+      beats: [
+        { beatId: 'beat_1', ranked: ['1', '2', 3] },
+        { beatId: 'beat_2', ranked: [] }
+      ]
+    })
+    const unrecognised = new Set<string>()
+    const result = parseRankings(json, offered, unrecognised)
+    assert.equal(result.has('beat_1'), false)
+    assert.deepEqual(result.get('beat_2'), [])
+    assert.deepEqual([...unrecognised], ['beat_1'])
+  })
+
   it('treats a missing or wrong-typed list as empty', () => {
     const json = JSON.stringify({
       beats: [{ beatId: 'beat_1' }, { beatId: 'beat_2', ranked: 'video_4' }]
@@ -233,6 +247,22 @@ describe('rankBeats', () => {
     const { rankings } = await rank(fake, candidatesByBeat)
     assert.deepEqual(rankings.beat_1, [])
     assert.deepEqual(rankings.beat_2, ['video_101'])
+  })
+
+  it('gives a beat whose keys were all unrecognised the order Pexels gave, and says so once', async () => {
+    const { fake, candidatesByBeat } = setup(2, 3, () => ({
+      beats: [
+        { beatId: 'beat_1', ranked: ['1', '2'] },
+        { beatId: 'beat_2', ranked: [] }
+      ]
+    }))
+    const { rankings } = await rank(fake, candidatesByBeat)
+    assert.deepEqual(rankings.beat_1, ['video_1', 'video_2', 'video_3'])
+    assert.deepEqual(rankings.beat_2, [], 'an empty list on purpose still says none fit')
+    const about = fake.logs.filter((l) => l.message.includes('[beat_1]'))
+    assert.equal(about.length, 1)
+    assert.match(about[0].message, /keys for this beat were not recognised/)
+    assert.ok(!fake.logs.some((l) => l.message.includes('[beat_2]')))
   })
 
   it('gives a beat the answer left out the order Pexels gave', async () => {
