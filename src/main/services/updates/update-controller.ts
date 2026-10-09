@@ -23,6 +23,8 @@ export interface UpdaterLike {
   checkForUpdates(): Promise<{
     isUpdateAvailable: boolean
     updateInfo: { version: string }
+    /** The background download, present when `autoDownload` is on. It rejects if the download fails. */
+    downloadPromise?: Promise<unknown> | null
   } | null>
   quitAndInstall(): void
 }
@@ -78,6 +80,9 @@ export function createUpdateController(deps: UpdateControllerDeps): UpdateContro
       if (!result?.isUpdateAvailable) {
         return { status: 'up-to-date', message: 'You are on the latest version.' }
       }
+      // A failed download also reaches the 'error' listener, which logs it. Nothing awaits
+      // the promise, so without this catch the rejection would go unhandled.
+      result.downloadPromise?.catch(() => undefined)
       const version = result.updateInfo.version
       return {
         status: 'downloading',

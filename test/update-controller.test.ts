@@ -335,6 +335,29 @@ describe('Auto-update controller', () => {
   })
 
   describe('updater errors', () => {
+    it('leave no unhandled rejection when the background download fails', async () => {
+      const { controller, updater } = harness()
+      // electron-updater rejects the download promise after it emits 'error'; the
+      // controller hears about the failure through that event, so nobody awaits the promise.
+      updater.nextCheck = async () => ({
+        isUpdateAvailable: true,
+        updateInfo: { version: '1.4.0' },
+        downloadPromise: Promise.reject(new Error('download interrupted'))
+      })
+      const unhandled: unknown[] = []
+      const onUnhandled = (reason: unknown): void => void unhandled.push(reason)
+      process.on('unhandledRejection', onUnhandled)
+      try {
+        const result = await controller.checkNow()
+        await settle()
+
+        assert.equal(result.status, 'downloading')
+        assert.deepEqual(unhandled, [])
+      } finally {
+        process.off('unhandledRejection', onUnhandled)
+      }
+    })
+
     it('are logged instead of thrown, because the updater throws on an unhandled error event', () => {
       const { controller, updater, logged } = harness()
       controller.start()
