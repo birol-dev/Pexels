@@ -113,13 +113,20 @@ function withArticle(label: string): string {
   return `${/^[aeiou]/i.test(label) ? 'an' : 'a'} ${label}`
 }
 
-/** Resume cannot start: the provider the job was started with has no key any more. */
-export function missingPinnedKeyMessage(pinned: JobRuntimeSettings): string {
-  return (
-    `This job was started with ${describeProviderAndModel(pinned)}. ` +
-    `Add ${withArticle(providerLabel(pinned.providerId))} key in Settings, ` +
-    'or choose Resume with current settings.'
-  )
+/**
+ * Resume cannot start: the provider the job was started with has no key any more. Approving
+ * leaves out the second way out: that button is hidden while assets wait for approval, and
+ * resuming with current settings would approve them unreviewed.
+ */
+export function missingPinnedKeyMessage(
+  pinned: JobRuntimeSettings,
+  options: { offerCurrentSettings?: boolean } = {}
+): string {
+  const addKey = `Add ${withArticle(providerLabel(pinned.providerId))} key in Settings`
+  const message = `This job was started with ${describeProviderAndModel(pinned)}. ${addKey}`
+  return options.offerCurrentSettings === false
+    ? `${message}.`
+    : `${message}, or choose Resume with current settings.`
 }
 
 /** Resume with current settings cannot start: the current provider has no key. */

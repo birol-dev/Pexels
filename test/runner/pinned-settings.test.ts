@@ -292,8 +292,12 @@ describe('runner: settings pinned to a job', () => {
       assert.equal(AgentRunner.getActive(runner.getSnapshot().jobId), runner)
       assert.equal(network.llmRequests().length, requestsBefore)
 
-      // The same for approving, which also starts the run again.
-      await assert.rejects(runner.approveAndResume({}), /Add an OpenAI key in Settings/)
+      // The same for approving, which also starts the run again. The screen hides Resume with
+      // current settings while assets wait for approval, so the message does not offer it.
+      await assert.rejects(
+        runner.approveAndResume({}),
+        new Error('This job was started with OpenAI (gpt-4o). Add an OpenAI key in Settings.')
+      )
       assert.equal(runner.getSnapshot().status, 'paused')
 
       // Adding the key is one way out.

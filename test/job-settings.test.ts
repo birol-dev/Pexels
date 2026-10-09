@@ -173,6 +173,16 @@ describe('job settings', () => {
       )
     })
 
+    it('can leave out the way out that approving cannot take', () => {
+      assert.equal(
+        missingPinnedKeyMessage(
+          { ...SAVED, providerId: 'openrouter', modelId: 'deepseek/deepseek-v4.1-flash' },
+          { offerCurrentSettings: false }
+        ),
+        'This job was started with OpenRouter (deepseek/deepseek-v4.1-flash). Add an OpenRouter key in Settings.'
+      )
+    })
+
     it('uses "a" or "an" as the provider name asks for', () => {
       assert.match(missingPinnedKeyMessage({ ...SAVED, providerId: 'openai' }), /Add an OpenAI key/)
       assert.match(

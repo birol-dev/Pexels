@@ -2298,7 +2298,12 @@ export class AgentRunner extends EventEmitter {
 
   public async approveAndResume(decision: ApprovalDecision = {}): Promise<void> {
     if (this.status !== 'paused') return
-    if (this.pin) await this.requireProviderKey(this.pin, missingPinnedKeyMessage(this.pin))
+    if (this.pin) {
+      await this.requireProviderKey(
+        this.pin,
+        missingPinnedKeyMessage(this.pin, { offerCurrentSettings: false })
+      )
+    }
 
     if (this.activePromise) {
       try {
