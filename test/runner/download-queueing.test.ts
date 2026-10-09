@@ -52,6 +52,10 @@ describe('runner: selecting an asset starts its download', () => {
     assert.equal(network.mediaRequests().length, 1)
     const [selected] = toolResults(run, 'select_assets_for_download')
     assert.deepEqual(selected.selections, [{ pexelsId: 101, status: 'queued' }])
+    const started = run.snapshot.logs.filter((entry) =>
+      entry.message.startsWith('[Download] Started downloading video 101')
+    )
+    assert.equal(started.length, 1, 'the start of the download is logged once')
   })
 
   it('queues nothing while the user has to approve first', async () => {

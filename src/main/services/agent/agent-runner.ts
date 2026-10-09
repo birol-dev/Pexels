@@ -303,6 +303,8 @@ export class AgentRunner extends EventEmitter {
   private persistAgentStateEnabled = true
 
   private assetLookup = new Map<string, { asset: AssetRecord; beat: VisualBeat }>()
+  /** Download tasks whose start is logged; a task is updated many times while it runs. */
+  private startedDownloads = new Set<string>()
 
   // Download progress ticks once per percent per file. Coalesce the full-beats
   // broadcast and manifest rebuild they trigger instead of doing both every tick.
@@ -2419,8 +2421,9 @@ export class AgentRunner extends EventEmitter {
 
     const statusChanged = assetRecord.status !== prevStatus
 
-    // Log download transitions
-    if (prevStatus === 'pending' && task.status === 'downloading') {
+    // The record is already "downloading" when the task starts, so the task says when it begins.
+    if (task.status === 'downloading' && !this.startedDownloads.has(task.id)) {
+      this.startedDownloads.add(task.id)
       this.log(
         'info',
         `[Download] Started downloading ${task.type} ${task.assetId} for ${parentBeat.id.replace('_', ' ')}...`

@@ -98,6 +98,10 @@ describe('runner: the model selects an asset its beat already holds', () => {
       [{ pexelsId: 102, status: 'queued' }]
     ])
     assert.equal(network.mediaRequests().length, 3, 'the failed file was requested a second time')
+    const started = runner
+      .getSnapshot()
+      .logs.filter((entry) => entry.message.startsWith('[Download] Started downloading video 101'))
+    assert.equal(started.length, 2, 'each of the two downloads logs its start')
     const { assets } = runner.getSnapshot().beats[0]
     assert.equal(assets.length, 1)
     assert.equal(assets[0].status, 'completed')
