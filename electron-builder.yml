@@ -31,6 +31,9 @@ nsis:
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:
+  # The zip has no target section of its own; without this it is named from productName
+  # and misses the stockfinder-ai-* glob in build-mac.yml. The dmg keeps its own name below.
+  artifactName: ${name}-${version}-mac.${ext}
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.

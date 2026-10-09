@@ -2,11 +2,11 @@
 
 This project publishes releases from git tags. Pushing a tag matching `v*` triggers three parallel GitHub Actions workflows that build installers for every platform. On a tag build, electron-builder (`--publish always`) uploads them to one **draft** GitHub Release, together with the metadata an updater needs to find and verify the files. You publish the draft by hand.
 
-| Workflow                                             | Runner           | Files uploaded to the draft release                                                                   |
-| ---------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------- |
-| [build-win.yml](.github/workflows/build-win.yml)     | `windows-latest` | `stockfinder-ai-<version>-setup.exe`, its `.exe.blockmap`, `latest.yml`                               |
-| [build-mac.yml](.github/workflows/build-mac.yml)     | `macos-latest`   | `stockfinder-ai-<version>.dmg`, the `.zip`, a `.blockmap` for each, `latest-mac.yml`                  |
-| [build-linux.yml](.github/workflows/build-linux.yml) | `ubuntu-latest`  | `stockfinder-ai-<version>.AppImage`, `stockfinder-ai-<version>.deb`, `latest-linux.yml`, `SHA256SUMS` |
+| Workflow                                             | Runner           | Files uploaded to the draft release                                                                          |
+| ---------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------ |
+| [build-win.yml](.github/workflows/build-win.yml)     | `windows-latest` | `stockfinder-ai-<version>-setup.exe`, its `.exe.blockmap`, `latest.yml`                                      |
+| [build-mac.yml](.github/workflows/build-mac.yml)     | `macos-latest`   | `stockfinder-ai-<version>.dmg`, `stockfinder-ai-<version>-mac.zip`, a `.blockmap` for each, `latest-mac.yml` |
+| [build-linux.yml](.github/workflows/build-linux.yml) | `ubuntu-latest`  | `stockfinder-ai-<version>.AppImage`, `stockfinder-ai-<version>.deb`, `latest-linux.yml`, `SHA256SUMS`        |
 
 `latest.yml`, `latest-mac.yml` and `latest-linux.yml` name the newest version and carry the size and SHA-512 of each installer. The `.blockmap` files let an updater download only the parts that changed. Don't delete or rename any of them in the draft.
 
@@ -93,7 +93,7 @@ git push origin v1.2.9
   - **Build Linux Packages**
 - Open **GitHub → Releases** and confirm there is exactly one draft for the tag, containing:
   - Windows: `stockfinder-ai-<version>-setup.exe`, `stockfinder-ai-<version>-setup.exe.blockmap`, `latest.yml`
-  - macOS: the `.dmg`, the `.zip`, their `.blockmap` files, `latest-mac.yml`
+  - macOS: `stockfinder-ai-<version>.dmg`, `stockfinder-ai-<version>-mac.zip`, their `.blockmap` files, `latest-mac.yml`
   - Linux: the `.AppImage`, the `.deb`, `latest-linux.yml`, `SHA256SUMS`
 
 The first workflow to reach its upload creates the draft. The others find it by its tag name and add their files. Each one looks for the draft and creates it when there is none, without a lock, so two workflows that get there at the same moment can each create a draft. If you see two, delete the one with fewer files and re-run the workflows whose files it held.
