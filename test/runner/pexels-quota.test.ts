@@ -76,3 +76,32 @@ describe('runner: the Pexels quota is exhausted', () => {
     assert.equal(network.pexelsRequests().length, 1)
   })
 })
+
+describe('runner: Pexels refuses the key during a search', () => {
+  let network: FakeNetwork
+
+  beforeEach(() => {
+    resetNetworkState()
+    network = installFakeNetwork()
+  })
+
+  afterEach(() => {
+    network.restore()
+  })
+
+  it('fails the job with the Pexels error instead of handing it back to the model', async () => {
+    network.pexels.failNextSearch(401)
+    network.llm
+      .tools([submitBeats([ONE_BEAT_SCRIPT])])
+      .tools([searchVideos('beat_1', 'city street')])
+
+    const run = await runJob({ script: ONE_BEAT_SCRIPT })
+
+    assert.deepEqual(network.problems, [])
+    assert.equal(run.snapshot.status, 'failed')
+    assert.equal(run.snapshot.statusReason, 'error')
+    assert.equal(network.llmRequests().length, 2, 'the model was not asked to try again')
+    const logged = run.snapshot.logs.map((entry) => entry.message).join('\n')
+    assert.match(logged, /Agent stopped because of an error: Pexels.*HTTP 401/)
+  })
+})

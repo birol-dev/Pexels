@@ -7,6 +7,7 @@ import {
 } from '../agent/tool-results.ts'
 import type { BeatAssetType } from '../llm/beat-parse-tool.ts'
 import { photoCandidate, videoCandidate, type PexelsCandidate } from '../pexels/candidates.ts'
+import { isUnrecoverablePexelsError } from '../pexels/pexels-errors.ts'
 import type { PipelineBeat, PipelineContext, PipelineSettings } from './context.ts'
 import { DEFAULT_FILTER_LIMITS, filterCandidates, type FilterRules } from './filter.ts'
 import { createPool, firstFailure } from './pool.ts'
@@ -90,8 +91,9 @@ async function searchOne(
       }))
     })
   } catch (error) {
-    // A pause, a cancel or a quota pause stops the whole step. Any other failure costs one query.
-    if (ctx.signal.aborted) throw error
+    // A pause, a cancel or a quota pause stops the whole step, and so does a failure every
+    // other query would meet. Any other failure costs one query.
+    if (ctx.signal.aborted || isUnrecoverablePexelsError(error)) throw error
     ctx.log(
       'error',
       `[${beat.id}] Search for "${query}" failed: ${error instanceof Error ? error.message : String(error)}`

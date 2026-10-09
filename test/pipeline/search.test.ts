@@ -8,6 +8,8 @@ import {
   searchBeats,
   typesToSearch
 } from '../../src/main/services/pipeline/search.ts'
+import { ApiError } from '../../src/main/services/http/api-errors.ts'
+import { PEXELS_KEY_MISSING_MESSAGE } from '../../src/main/services/pexels/pexels-errors.ts'
 import type { PipelineBeat } from '../../src/main/services/pipeline/context.ts'
 import type { PexelsPhoto, PexelsVideo } from '../../src/main/services/pexels/pexels-types.ts'
 import { photo, video } from '../support/pexels-fixtures.ts'
@@ -267,6 +269,50 @@ describe('searchBeats', () => {
           l.type === 'error' && l.message.includes('Search for "ocean" failed: Pexels returned 500')
       )
     )
+  })
+
+  it('stops with the error when Pexels refuses the key, instead of trying the other queries', async () => {
+    for (const status of [401, 403]) {
+      const beat = pipelineBeat('beat_1', { queries: ['ocean', 'sea'] })
+      const fake = fakeContext({
+        beats: [beat],
+        videos: { sea: videosFrom(1, 6) },
+        onSearch: () => {
+          throw new ApiError(`Pexels API failed: HTTP ${status}`, 'permanent', status)
+        }
+      })
+      await assert.rejects(searchBeats(fake.ctx, [beat], 'focused'), /HTTP 40[13]/)
+      assert.equal(fake.searches.length, 1, `HTTP ${status} ended the search`)
+    }
+  })
+
+  it('stops with the error when the Pexels key is missing', async () => {
+    const beat = pipelineBeat('beat_1', { queries: ['ocean'] })
+    const fake = fakeContext({
+      beats: [beat],
+      onSearch: () => {
+        throw new ApiError(PEXELS_KEY_MISSING_MESSAGE, 'permanent')
+      }
+    })
+    await assert.rejects(searchBeats(fake.ctx, [beat], 'focused'), /Key is missing/)
+  })
+
+  it('still goes on after other Pexels failures, a missing page or a server error', async () => {
+    for (const status of [404, 500]) {
+      const beat = pipelineBeat('beat_1', { queries: ['ocean', 'sea'] })
+      const { fake, found } = await search(
+        {
+          beats: [beat],
+          videos: { sea: videosFrom(1, 6) },
+          onSearch: (_type, query) => {
+            if (query === 'ocean') throw new ApiError('Pexels API failed', 'permanent', status)
+          }
+        },
+        [beat]
+      )
+      assert.equal(found.get('beat_1')?.length, 6)
+      assert.ok(fake.logs.some((l) => l.message.includes('Search for "ocean" failed')))
+    }
   })
 
   it('gives a beat with nothing found an empty list and says what was tried', async () => {

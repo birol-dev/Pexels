@@ -445,6 +445,30 @@ describe('runner: the pipeline engine', () => {
     })
   })
 
+  describe('Pexels refuses the key during the searches', () => {
+    it('fails the job with the Pexels error, without a broader round or a ranking call', async () => {
+      network.llm.tools([submitBeats(sentences(1))])
+      network.pexels.failNextSearch(401)
+
+      const run = await runJob({ script: scriptOf(1) }, PIPELINE)
+
+      assert.deepEqual(network.problems, [])
+      assert.equal(run.snapshot.status, 'failed')
+      assert.equal(run.snapshot.statusReason, 'error')
+      const errors = run.snapshot.logs.filter((entry) => entry.type === 'error')
+      assert.ok(
+        errors.some((entry) => /Pexels.*HTTP 401/.test(entry.message)),
+        'the log names Pexels and the status'
+      )
+      assert.ok(
+        !errors.some((entry) => /tool calling/.test(entry.message)),
+        'the failure is not put down to the model'
+      )
+      assert.deepEqual(toolsRequested(network), ['submit_beat_plan'])
+      assert.equal(network.pexelsRequests().length, 1, 'no other query was sent')
+    })
+  })
+
   describe('a beat that finds nothing usable', () => {
     it('gets one request for broader queries, then its own search, ranking and pick', async () => {
       const texts = sentences(3)

@@ -12,6 +12,7 @@ import {
   LLM_STRUCTURED_REASONING
 } from '../llm/llm-provider.ts'
 import { PexelsClient } from '../pexels/pexels-client.ts'
+import { isUnrecoverablePexelsError } from '../pexels/pexels-errors.ts'
 import { PexelsDownloader, type DownloadTask } from '../pexels/pexels-downloader.ts'
 import { validateDownloadUrl } from '../pexels/download-url-validation.ts'
 import { chooseVariant, type Variant } from '../pexels/choose-variant.ts'
@@ -1848,6 +1849,7 @@ export class AgentRunner extends EventEmitter {
   private async executeToolCall(tc: NormalizedToolCall): Promise<void> {
     this.log('tool_call', `Executing tool call: ${tc.name}`, tc.arguments)
     let result: unknown = {}
+    let unrecoverable: unknown
 
     try {
       let rawArgs: unknown
@@ -2226,6 +2228,7 @@ export class AgentRunner extends EventEmitter {
       }
       result = failure.result
       this.pauseIfPexelsQuotaExhausted(error)
+      if (!failure.interrupted && isUnrecoverablePexelsError(error)) unrecoverable = error
     }
 
     this.log('tool_result', `Result for ${tc.name}`, summarizeToolResultForLog(tc.name, result))
@@ -2235,6 +2238,8 @@ export class AgentRunner extends EventEmitter {
       name: tc.name,
       content: JSON.stringify(result)
     })
+    // The model cannot fix a key Pexels refuses, so the run ends here with the real cause.
+    if (unrecoverable) throw unrecoverable
   }
 
   /**

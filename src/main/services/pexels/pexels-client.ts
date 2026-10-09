@@ -16,6 +16,7 @@ import {
 import { type PexelsQuotaSnapshot, PexelsRateLimitTracker } from './pexels-rate-limit.ts'
 import { PexelsSearchCache } from './pexels-search-cache.ts'
 import { PEXELS_VIDEO_SEARCH_URL, pexelsVideoByIdUrl } from './pexels-api-urls.ts'
+import { PEXELS_KEY_MISSING_MESSAGE } from './pexels-errors.ts'
 
 const pexelsCircuit = new ApiCircuitBreaker(5, 60_000)
 
@@ -36,7 +37,7 @@ export class PexelsClient {
   private static async getHeaders(): Promise<HeadersInit> {
     const key = await SecureSecrets.getSecret('pexelsKey')
     if (!key || !key.trim()) {
-      throw new ApiError('Pexels API Key is missing. Please set it in Settings.', 'permanent')
+      throw new ApiError(PEXELS_KEY_MISSING_MESSAGE, 'permanent')
     }
     return {
       Authorization: key.trim()
