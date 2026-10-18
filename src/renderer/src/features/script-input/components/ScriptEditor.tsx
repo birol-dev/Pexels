@@ -10,20 +10,20 @@ export function ScriptEditor({ form, update }: FormSectionProps): React.JSX.Elem
     <div className="space-y-3 animate-fade-in-up">
       <div className="mb-2 flex items-baseline justify-between">
         <FieldLabel htmlFor="video-script" className="mb-0">
-          Video Script
+          Video script
         </FieldLabel>
         <div className="flex items-center gap-3">
           {form.script.trim() && <ScriptStats script={form.script} />}
-          <span className="font-label-sm text-xs text-outline">Markdown Supported</span>
+          <span className="text-[13px] text-outline">Markdown works</span>
         </div>
       </div>
       <Textarea
         id="video-script"
         rows={7}
-        placeholder="Paste your complete video script narrative here. The AI will segment this script into visual beats and find matching Pexels stock assets..."
+        placeholder="Paste the whole narration. StockFinder splits it into beats and finds Pexels footage for each one."
         value={form.script}
         onChange={(e) => update({ script: e.target.value })}
-        className="min-h-40 resize-y px-4 py-3"
+        className="min-h-44 resize-y"
         required
       />
     </div>

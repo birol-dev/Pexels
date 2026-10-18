@@ -7,17 +7,17 @@ export function SubmitBar({ form }: Pick<FormSectionProps, 'form'>): React.JSX.E
   const loading = useAppStore((s) => s.loading)
   const generatesScript = form.inputMode === 'idea' && !form.script.trim()
   const label = loading
-    ? 'Starting Pipeline…'
+    ? 'Starting…'
     : generatesScript
-      ? 'Generate Script & Fetch Assets'
-      : 'Analyze & Fetch Assets'
+      ? 'Write the script and find footage'
+      : 'Find footage'
 
   return (
-    <div className="mt-section-gap flex justify-end border-t-2 border-dashed border-edge pt-8">
+    <div className="flex items-center justify-end border-t border-border pt-7">
       <LiquidMetalButton
         type="submit"
         label={label}
-        width={280}
+        width={generatesScript ? 300 : 180}
         disabled={loading || !!form.isExpandingIdea}
       />
     </div>

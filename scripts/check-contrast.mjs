@@ -10,7 +10,9 @@ function block(selector) {
   const open = css.indexOf('{', start)
   const close = css.indexOf('\n}', open)
   const tokens = {}
-  for (const [, name, value] of css.slice(open, close).matchAll(/--color-([a-z-]+):\s*(#[0-9a-fA-F]{6})/g)) {
+  for (const [, name, value] of css
+    .slice(open, close)
+    .matchAll(/--color-([a-z-]+):\s*(#[0-9a-fA-F]{6})/g)) {
     tokens[name] = value
   }
   return tokens
@@ -30,6 +32,8 @@ const ratio = (a, b) => {
 }
 
 const SURFACES = [
+  'frame',
+  'frame-selected',
   'background',
   'surface-container-lowest',
   'surface-container-low',
@@ -40,9 +44,15 @@ const SURFACES = [
 
 // [foreground, background, minimum ratio]. 4.5 = AA text, 3 = AA UI / large text.
 const PAIRS = [
-  ...['on-surface', 'on-surface-variant', 'outline', 'primary', 'secondary', 'tertiary', 'error'].flatMap(
-    (fg) => SURFACES.map((bg) => [fg, bg, 4.5])
-  ),
+  ...[
+    'on-surface',
+    'on-surface-variant',
+    'outline',
+    'primary',
+    'secondary',
+    'tertiary',
+    'error'
+  ].flatMap((fg) => SURFACES.map((bg) => [fg, bg, 4.5])),
   ['on-primary', 'primary', 4.5],
   ['on-primary-container', 'primary-container', 4.5],
   ['on-secondary', 'secondary', 4.5],
@@ -56,9 +66,13 @@ const PAIRS = [
   ['muted-foreground', 'muted', 4.5],
   ['ink-black', 'background', 3],
   ['ink-black', 'surface-container-low', 3],
-  ['secondary-container', 'background', 3],
+  // secondary-container is a tinted pill: its label (on-secondary-container, above) identifies it
   ['ring', 'background', 3],
-  ...['background', 'surface-container-lowest', 'surface-container-low', 'surface-container'].map((bg) => ['control', bg, 3])
+  ['primary-container', 'background', 3],
+  ['primary-container', 'surface-container-low', 3],
+  ...['background', 'surface-container-lowest', 'surface-container-low', 'surface-container'].map(
+    (bg) => ['control', bg, 3]
+  )
 ]
 
 let failures = 0

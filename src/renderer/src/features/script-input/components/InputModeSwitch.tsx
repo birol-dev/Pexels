@@ -16,7 +16,7 @@ const MODE_OPTIONS: { value: InputMode; label: React.ReactNode }[] = [
     label: (
       <>
         <FileTextIcon size={18} />
-        <span>Full Script Mode</span>
+        <span>I have a script</span>
       </>
     )
   },
@@ -25,9 +25,9 @@ const MODE_OPTIONS: { value: InputMode; label: React.ReactNode }[] = [
     label: (
       <>
         <LightbulbIcon size={18} />
-        <span>Idea / Concept Mode</span>
-        <Badge className="bg-black px-1.5 font-mono text-[11px] font-bold tracking-tight text-cyber-lime">
-          AI WRITER
+        <span>Start from an idea</span>
+        <Badge className="h-5 bg-on-surface/8 px-2 text-[11px] text-current in-data-[state=on]:bg-on-primary-container/15">
+          AI writes it
         </Badge>
       </>
     )
@@ -37,15 +37,13 @@ const MODE_OPTIONS: { value: InputMode; label: React.ReactNode }[] = [
 export function InputModeSwitch({ value, onChange }: InputModeSwitchProps): React.JSX.Element {
   return (
     <div>
-      <FieldLabel id="input-mode-label">Input Mode</FieldLabel>
+      <FieldLabel id="input-mode-label">Input</FieldLabel>
       <SegmentedControl
         value={value}
         onValueChange={onChange}
         options={MODE_OPTIONS}
         ariaLabel="Input Mode"
-        className="gap-2 p-1.5 border-2"
-        itemClassName="h-12 rounded-lg font-title-md text-xs font-bold uppercase tracking-wider"
-        activeItemClassName="data-[state=on]:bg-cyber-lime data-[state=on]:text-on-primary-container"
+        itemClassName="h-10 gap-2 text-sm"
       />
     </div>
   )

@@ -10,10 +10,10 @@ export function ProjectTitleField({ form, update }: FormSectionProps): React.JSX
     <div>
       <FieldLabel htmlFor="project-title">
         <span>
-          Project Title{' '}
+          Project title{' '}
           {isIdeaMode && (
-            <span className="font-normal lowercase text-outline">
-              (optional — AI will generate one if blank)
+            <span className="font-normal text-outline">
+              (optional, AI names it if you leave it blank)
             </span>
           )}
         </span>
@@ -28,7 +28,7 @@ export function ProjectTitleField({ form, update }: FormSectionProps): React.JSX
         }
         value={form.title}
         onChange={(e) => update({ title: e.target.value })}
-        className="h-12 px-4"
+        className="h-11"
         required={!isIdeaMode}
       />
     </div>

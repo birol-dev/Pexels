@@ -5,169 +5,171 @@
 /*
  * Design tokens. See docs/design-system.md.
  *
+ * - A monochrome gallery frame: the photos and videos supply the colour, the chrome stays
+ *   white, mist and charcoal. Separation comes from space first, then a background tint.
  * - Light is the default (:root). `.theme-flat-black` (set on <html>) overrides every
  *   themed colour with a literal value, so there are no cross-references to go stale.
  * - Every text/surface pair is verified by `npm run check:contrast` (WCAG AA).
  * - Semantic roles: surface-* (backgrounds), on-* (text on that fill), outline (muted
- *   text + control borders), border (dividers), primary-container (lime: selected / main
- *   action), secondary(-container) (violet: AI actions), error(-container), ink-black
- *   (strong brutalist edge), hard-shadow (offset shadow colour), edge (container borders:
- *   strong in light, subtle in dark), control (form-control borders, >= 3:1).
+ *   text), border (hairlines), primary-container (ink: selected / main action),
+ *   secondary-container (tinted pill: secondary actions), error(-container), ink-black
+ *   (strongest text and marks), edge (hairline around raised pieces), control
+ *   (form-control borders, >= 3:1).
  */
 @theme static {
-  --color-background: #fafafb;
-  --color-on-background: #121214;
-  --color-foreground: #121214;
-  --color-surface: #fafafb;
+  --font-sans: 'Satoshi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+
+  /* The window frame around the canvas (sidebar, gutters) and a selected item on it. */
+  --color-frame: #f4f4f4;
+  --color-frame-selected: #ffffff;
+  --color-background: #ffffff;
+  --color-on-background: #141414;
+  --color-foreground: #141414;
+  --color-surface: #ffffff;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f4f4f6;
-  --color-surface-container: #ececf0;
-  --color-surface-container-high: #e2e2e8;
-  --color-surface-container-highest: #d6d6de;
-  --color-surface-variant: #e2e2e8;
-  --color-on-surface: #121214;
-  --color-on-surface-variant: #3f3f49;
-  --color-outline: #585865;
-  --color-outline-variant: #c9c9d3;
-  --color-border: #c9c9d3;
+  --color-surface-container-low: #f7f7f6;
+  --color-surface-container: #f2f2f1;
+  --color-surface-container-high: #eaeae8;
+  --color-surface-container-highest: #e0e0dd;
+  --color-surface-variant: #eaeae8;
+  --color-on-surface: #141414;
+  --color-on-surface-variant: #474747;
+  --color-outline: #5c5c5c;
+  --color-outline-variant: #e5e5e2;
+  --color-border: #e5e5e2;
   --color-input: #ffffff;
-  --color-ring: #7c3aed;
-  --color-primary: #465800;
+  --color-ring: #141414;
+  --color-primary: #141414;
   --color-on-primary: #ffffff;
-  --color-primary-container: #ccff00;
-  --color-on-primary-container: #182000;
-  --color-secondary: #6d1fc0;
+  --color-primary-container: #141414;
+  --color-on-primary-container: #ffffff;
+  --color-secondary: #474747;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #7c3aed;
-  --color-on-secondary-container: #ffffff;
-  --color-tertiary: #2f5170;
+  --color-secondary-container: #eaeae8;
+  --color-on-secondary-container: #141414;
+  --color-tertiary: #474747;
   --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #d6e8f7;
-  --color-on-tertiary-container: #0e2a40;
-  --color-error: #b00f14;
+  --color-tertiary-container: #f2f2f1;
+  --color-on-tertiary-container: #141414;
+  --color-error: #b3261e;
   --color-on-error: #ffffff;
-  --color-error-container: #ffdad6;
-  --color-on-error-container: #7a0008;
-  --color-ink-black: #18181b;
-  --color-paper-white: #ffffff;
-  --color-hard-shadow: #18181b;
-  --color-edge: #18181b;
-  --color-control: #85859a;
-  --color-card: #f4f4f6;
-  --color-card-foreground: #121214;
+  --color-error-container: #fbe9e7;
+  --color-on-error-container: #8c1d18;
+  --color-ink-black: #141414;
+  --color-edge: #e5e5e2;
+  --color-control: #888885;
+  --color-card: #f2f2f1;
+  --color-card-foreground: #141414;
   --color-popover: #ffffff;
-  --color-popover-foreground: #121214;
+  --color-popover-foreground: #141414;
   --color-primary-foreground: #ffffff;
-  --color-secondary-foreground: #ffffff;
-  --color-muted: #ececf0;
-  --color-muted-foreground: #585865;
-  --color-accent: #e2e2e8;
-  --color-accent-foreground: #121214;
-  --color-destructive: #b00f14;
-  --color-steel-secondary: #585865;
-  --color-risograph-gray: #585865;
+  --color-secondary-foreground: #141414;
+  --color-muted: #f2f2f1;
+  --color-muted-foreground: #5c5c5c;
+  --color-accent: #eaeae8;
+  --color-accent-foreground: #141414;
+  --color-destructive: #b3261e;
+  /* Mid-grey for faded secondary words in display-size headlines only (too light for body text). */
+  --color-fade: #b6b6b6;
 
-  /* Brand constants (identical in both themes) */
-  --color-cyber-lime: #ccff00;
-  --color-electric-purple: #a855f7;
+  /* Shadows: the frame is flat. Only floating layers (menus, dialogs, popovers, sheets,
+     toasts) and the odd mock card cast a soft shadow, through shadow-lg. */
+  --shadow-ink: 20 20 20;
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+  --shadow-md:
+    0 1px 2px rgb(var(--shadow-ink) / 0.04), 0 8px 24px -12px rgb(var(--shadow-ink) / 0.12);
+  --shadow-lg:
+    0 1px 2px rgb(var(--shadow-ink) / 0.06), 0 18px 48px -12px rgb(var(--shadow-ink) / 0.22);
 
-  /* Elevation scale: soft, layered, neutral shadows (a tight contact shadow plus a
-     wide ambient one). xs = small chips/thumbs, sm = buttons and small tiles,
-     md = cards, lg = floating layers (dialogs, menus, popovers, sheets). */
-  --shadow-ink: 24 24 27;
-  --shadow-xs: 0 1px 2px rgb(var(--shadow-ink) / 0.08);
-  --shadow-sm: 0 1px 2px rgb(var(--shadow-ink) / 0.08), 0 2px 6px rgb(var(--shadow-ink) / 0.06);
-  --shadow-md: 0 1px 2px rgb(var(--shadow-ink) / 0.06), 0 4px 12px rgb(var(--shadow-ink) / 0.08),
-    0 12px 24px -8px rgb(var(--shadow-ink) / 0.08);
-  --shadow-lg: 0 2px 4px rgb(var(--shadow-ink) / 0.06), 0 8px 24px rgb(var(--shadow-ink) / 0.12),
-    0 24px 48px -12px rgb(var(--shadow-ink) / 0.16);
+  --spacing-grid-margin: 2.5rem;
+  --spacing-component-padding: 1.75rem;
+  --spacing-gutter: 1.25rem;
+  --spacing-section-gap: 4.5rem;
 
-  --spacing-grid-margin: 2rem;
-  --spacing-component-padding: 1.5rem;
-  --spacing-gutter: 1.5rem;
-  --spacing-section-gap: 4rem;
-
-  /* Two-tier radius scale. Controls (buttons, inputs, badges, tabs) use md (8px);
-     containers (cards, dialogs, popovers) use xl (12px). Use sm (6px) for small
-     tiles nested inside a control. Only true circles (status dots, radio) are
-     rounded-full; nothing else is a pill. */
-  --radius: 0.5rem;
-  --radius-xs: 0.25rem;
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 0.75rem;
-  --radius-2xl: 1rem;
-  --radius-3xl: 1rem;
+  /* Very round. Controls (buttons, inputs, selects, tabs, badges) are pills and say so in
+     their own classes (rounded-full). Inner pieces (thumbnails, tiles, wells) use md/lg
+     (12–16px). Panels and cards use xl–3xl (24–32px). */
+  --radius: 0.75rem;
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 1.75rem;
+  --radius-3xl: 2rem;
 }
 
 .theme-flat-black {
-  --color-background: #0b0b0d;
-  --color-on-background: #f4f4f5;
-  --color-foreground: #f4f4f5;
-  --color-surface: #0b0b0d;
-  --color-surface-container-lowest: #060607;
-  --color-surface-container-low: #111114;
-  --color-surface-container: #18181c;
-  --color-surface-container-high: #212126;
-  --color-surface-container-highest: #2b2b32;
-  --color-surface-variant: #212126;
-  --color-on-surface: #f4f4f5;
-  --color-on-surface-variant: #c3c3cc;
-  --color-outline: #9d9da9;
-  --color-outline-variant: #34343d;
-  --color-border: #34343d;
-  --color-input: #060607;
-  --color-ring: #7c3aed;
-  --color-primary: #c3f400;
-  --color-on-primary: #182000;
-  --color-primary-container: #ccff00;
-  --color-on-primary-container: #182000;
-  --color-secondary: #c9a8ff;
-  --color-on-secondary: #2a0a55;
-  --color-secondary-container: #7c3aed;
-  --color-on-secondary-container: #ffffff;
-  --color-tertiary: #9cc7e8;
-  --color-on-tertiary: #0e2a40;
-  --color-tertiary-container: #1d3347;
-  --color-on-tertiary-container: #d6e8f7;
-  --color-error: #ff9a90;
+  --color-frame: #181818;
+  --color-frame-selected: #2c2c2c;
+  --color-background: #232323;
+  --color-on-background: #f4f4f4;
+  --color-foreground: #f4f4f4;
+  --color-surface: #232323;
+  --color-surface-container-lowest: #1a1a1a;
+  --color-surface-container-low: #1d1d1d;
+  --color-surface-container: #2b2b2b;
+  --color-surface-container-high: #333333;
+  --color-surface-container-highest: #3d3d3d;
+  --color-surface-variant: #333333;
+  --color-on-surface: #f4f4f4;
+  --color-on-surface-variant: #cfcfcf;
+  --color-outline: #ababab;
+  --color-outline-variant: #363636;
+  --color-border: #363636;
+  --color-input: #1d1d1d;
+  --color-ring: #f4f4f4;
+  --color-primary: #f4f4f4;
+  --color-on-primary: #141414;
+  --color-primary-container: #f4f4f4;
+  --color-on-primary-container: #141414;
+  --color-secondary: #d4d4d4;
+  --color-on-secondary: #141414;
+  --color-secondary-container: #383838;
+  --color-on-secondary-container: #f4f4f4;
+  --color-tertiary: #cfcfcf;
+  --color-on-tertiary: #141414;
+  --color-tertiary-container: #2b2b2b;
+  --color-on-tertiary-container: #f4f4f4;
+  --color-error: #ff8a80;
   --color-on-error: #3a0003;
-  --color-error-container: #5c0a10;
+  --color-error-container: #4a1512;
   --color-on-error-container: #ffdad6;
-  --color-ink-black: #f4f4f5;
-  --color-paper-white: #060607;
-  --color-hard-shadow: #ccff00;
-  /* Dark surfaces swallow soft shadows, so use pure black at higher alpha and add a
-     faint top highlight to the raised layers. */
+  --color-ink-black: #f4f4f4;
+  --color-fade: #7d7d7d;
+  /* Dark surfaces swallow soft shadows, so floating layers get pure black at higher alpha
+     and a faint top highlight. */
   --shadow-ink: 0 0 0;
-  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.5);
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5), 0 2px 8px rgb(0 0 0 / 0.35);
-  --shadow-md: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 1px 2px rgb(0 0 0 / 0.5),
-    0 6px 16px rgb(0 0 0 / 0.45), 0 16px 32px -8px rgb(0 0 0 / 0.5);
-  --shadow-lg: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 2px 4px rgb(0 0 0 / 0.5),
-    0 12px 32px rgb(0 0 0 / 0.6), 0 32px 64px -12px rgb(0 0 0 / 0.7);
-  --color-edge: #3b3b45;
-  --color-control: #70707d;
-  --color-card: #111114;
-  --color-card-foreground: #f4f4f5;
-  --color-popover: #212126;
-  --color-popover-foreground: #f4f4f5;
-  --color-primary-foreground: #182000;
-  --color-secondary-foreground: #2a0a55;
-  --color-muted: #18181c;
-  --color-muted-foreground: #9d9da9;
-  --color-accent: #212126;
-  --color-accent-foreground: #f4f4f5;
-  --color-destructive: #ff9a90;
-  --color-steel-secondary: #9d9da9;
-  --color-risograph-gray: #9d9da9;
+  --shadow-md: inset 0 1px 0 rgb(255 255 255 / 0.03), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --shadow-lg:
+    inset 0 1px 0 rgb(255 255 255 / 0.05), 0 2px 4px rgb(0 0 0 / 0.4),
+    0 24px 56px -12px rgb(0 0 0 / 0.75);
+  --color-edge: #383838;
+  --color-control: #7a7a7a;
+  --color-card: #2b2b2b;
+  --color-card-foreground: #f4f4f4;
+  --color-popover: #2f2f2f;
+  --color-popover-foreground: #f4f4f4;
+  --color-primary-foreground: #141414;
+  --color-secondary-foreground: #f4f4f4;
+  --color-muted: #2b2b2b;
+  --color-muted-foreground: #ababab;
+  --color-accent: #333333;
+  --color-accent-foreground: #f4f4f4;
+  --color-destructive: #ff8a80;
 }
 
 @layer base {
+  html {
+    font-size: 15px;
+  }
   body {
-    @apply bg-background text-on-surface antialiased selection:bg-secondary-container/30 selection:text-on-surface;
+    @apply bg-frame text-on-surface antialiased selection:bg-on-surface selection:text-background;
     font-family: var(--font-sans);
+    font-feature-settings: 'ss01';
   }
   /* Visible keyboard focus everywhere; components opt out with their own ring. */
   :focus-visible {
@@ -184,13 +186,13 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: color-mix(in oklab, var(--color-on-surface) 22%, transparent);
-  border-radius: 6px;
-  border: 2px solid transparent;
+  background: color-mix(in oklab, var(--color-on-surface) 18%, transparent);
+  border-radius: 999px;
+  border: 3px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in oklab, var(--color-on-surface) 40%, transparent);
+  background: color-mix(in oklab, var(--color-on-surface) 34%, transparent);
   background-clip: content-box;
 }
 
@@ -237,84 +239,92 @@
   animation: fadeInUp 0.5s ease-out forwards;
 }
 
-/* Redesign Fonts Utilities */
-.font-display-xl {
-  font-family: 'Cabinet Grotesk', sans-serif;
+/* A failed connection test nudges once, sideways. */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-shake {
+    animation: shake 0.3s ease-in-out 2;
+  }
+}
+
+/*
+ * Type. Size over weight: page titles are large, thin Newsreader; everything a person
+ * reads or scans in a panel is Satoshi. Secondary words in a display title fade to
+ * --color-fade instead of getting bolder (`.text-fade`), one word may be italic (<em>).
+ */
+.font-display-xl,
+.font-headline-lg {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
 }
 .text-display-xl {
-  font-size: 64px;
-  line-height: 1.1;
-  letter-spacing: -0.04em;
-  font-weight: 900;
-}
-.font-headline-lg {
-  font-family: 'Cabinet Grotesk', sans-serif;
+  font-size: 56px;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  font-weight: 300;
 }
 .text-headline-lg {
-  font-size: 48px;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-  font-weight: 800;
+  font-size: 44px;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  font-weight: 300;
+}
+.text-display-xl em,
+.text-headline-lg em {
+  font-style: italic;
+  font-weight: 300;
 }
 .font-title-md {
-  font-family: 'Cabinet Grotesk', sans-serif;
+  font-family: var(--font-sans);
 }
 .text-title-md {
-  font-size: 24px;
+  font-size: 17px;
   line-height: 1.3;
-  font-weight: 700;
+  letter-spacing: -0.005em;
+  font-weight: 600;
 }
-.font-body-lg {
-  font-family: 'Satoshi', sans-serif;
+.font-body-lg,
+.font-body-md,
+.font-label-sm {
+  font-family: var(--font-sans);
 }
 .text-body-lg {
-  font-size: 18px;
-  line-height: 1.6;
-  font-weight: 400;
-}
-.font-body-md {
-  font-family: 'Satoshi', sans-serif;
-}
-.text-body-md {
   font-size: 16px;
   line-height: 1.6;
   font-weight: 400;
 }
-.font-label-sm {
-  font-family: 'Satoshi', sans-serif;
+.text-body-md {
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 400;
 }
 .text-label-sm {
-  font-size: 14px;
-  line-height: 1.25;
-  letter-spacing: 0.05em;
-  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 500;
+}
+.text-fade {
+  color: var(--color-fade);
 }
 
-/* Brutalist utilities */
-.brutal-border {
-  border: 2px solid var(--color-ink-black) !important;
-}
-.brutal-shadow {
-  box-shadow: var(--shadow-md);
-}
-
-/* Dark text on lime fills in both themes */
-.text-on-lime {
-  color: var(--color-on-primary-container);
-}
-
-/* Stroke effect on light backgrounds */
+/* The brand mark is drawn in ink, like the rest of the frame (the PNG itself is lime). */
 .brand-logo-stroke {
-  filter: drop-shadow(1px 0 0 rgba(0, 0, 0, 0.4)) drop-shadow(-1px 0 0 rgba(0, 0, 0, 0.4))
-    drop-shadow(0 1px 0 rgba(0, 0, 0, 0.4)) drop-shadow(0 -1px 0 rgba(0, 0, 0, 0.4))
-    drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
-  transition: filter 0.2s ease;
+  filter: grayscale(1) brightness(0);
 }
-
-/* In dark mode, remove the stroke */
-.dark .brand-logo-stroke,
 .theme-flat-black .brand-logo-stroke {
-  filter: none;
+  filter: grayscale(1) brightness(0) invert(0.96);
 }
 
 /* Liquid metal button (components/ui/liquid-metal-button.tsx) */

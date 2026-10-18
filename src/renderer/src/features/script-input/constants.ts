@@ -76,11 +76,11 @@ export const MIX_OPTIONS: { value: AssetMix; label: string }[] = [
 ]
 
 export const SEARCH_MODE_OPTIONS: { value: SearchMode; label: string; hint: string }[] = [
-  { value: 'focused', label: 'Focused search', hint: 'Focused search — tighter match to the beat' },
+  { value: 'focused', label: 'Focused', hint: 'A tighter match to each beat.' },
   {
     value: 'broad',
-    label: 'Broad search',
-    hint: 'Broad search — more angles, better chance of usable stock'
+    label: 'Broad',
+    hint: 'More angles, and a better chance of usable stock.'
   }
 ]
 
@@ -100,4 +100,11 @@ export const DEFAULT_FORM_STATE: InputFormState = {
   maxAssetsPerBeat: 1,
   maxTotalDownloads: 15,
   searchMode: 'focused'
+}
+
+/** Fills an empty form so a first-time user can see a run without writing anything. */
+export const SAMPLE_SCRIPT = {
+  title: 'A Saturday, slowly',
+  script:
+    'It starts before the alarm, with sun coming through the curtains. Coffee for two, no phones. The dog decides the route. The market is barely awake. Lunch turns into three hours. Someone always laughs first. Then the city, on two wheels. And then the light goes gold.'
 }

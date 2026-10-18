@@ -1,4 +1,4 @@
-import { FolderIcon, FolderOpenIcon, FolderPlusIcon, InfoIcon } from '@phosphor-icons/react'
+import { FolderIcon } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
 import { Label } from '@renderer/components/ui/label'
 import type { OnboardingController } from '../hooks/useOnboarding'
@@ -21,43 +21,35 @@ export function StorageStep({
   return (
     <StepCard>
       <StepHeader
-        step={4}
-        icon={FolderOpenIcon}
-        title="Choose asset directory"
-        description="Configure the local storage folder where StockFinder AI will download photos, videos, and project manifests."
+        title={
+          <>
+            Where <span className="text-fade">should packs</span> <em>live</em>?
+          </>
+        }
+        description="Each pack gets its own folder here, with its photos, clips and a manifest of credits."
       />
 
-      <FormPanel className="gap-3 text-left">
-        <Label
-          htmlFor="onboarding-folder-path"
-          className="pl-0.5 font-mono text-xs tracking-wider text-on-surface-variant uppercase"
-        >
-          Default Storage Path
+      <FormPanel className="gap-2.5">
+        <Label htmlFor="onboarding-folder-path" className="text-[13px] font-medium text-on-surface">
+          Download folder
         </Label>
-        <div className="flex w-full flex-col items-stretch gap-4 sm:flex-row">
+        <div className="flex items-center gap-3 rounded-2xl bg-surface-container py-2 pr-2 pl-4">
+          <FolderIcon size={20} className="shrink-0 text-outline" aria-hidden />
+          <span className="min-w-0 flex-1 truncate font-mono text-[13px] text-on-surface">
+            {downloadFolder || 'No folder chosen yet'}
+          </span>
           <Button
             id="onboarding-folder-path"
             type="button"
-            variant="outline"
+            size="sm"
+            variant="secondary"
+            className="bg-background hover:bg-background/70"
             onClick={chooseFolder}
-            className="h-auto grow justify-start gap-3 bg-input p-3 font-normal"
           >
-            <FolderIcon size={20} className="text-outline" />
-            <span className="truncate font-mono text-xs text-on-surface">
-              {downloadFolder || 'Select a path...'}
-            </span>
-          </Button>
-
-          <Button type="button" variant="secondary" onClick={chooseFolder} className="h-auto">
-            <FolderPlusIcon />
-            Choose Folder
+            {downloadFolder ? 'Change' : 'Choose'}
           </Button>
         </div>
-
-        <div className="mt-1 flex items-center gap-2 pl-1 text-outline">
-          <InfoIcon size={16} />
-          <span className="text-xs">Approximately 2.4GB of free space is recommended.</span>
-        </div>
+        <p className="text-[13px] text-outline">A few gigabytes of free space is plenty.</p>
       </FormPanel>
 
       <StepNav onBack={onBack} onNext={onNext} />

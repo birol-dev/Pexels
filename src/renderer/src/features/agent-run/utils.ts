@@ -22,44 +22,61 @@ export function getLogColor(type: AgentLogEvent['type']): string {
     case 'thought':
       return 'text-on-surface-variant italic'
     case 'tool_call':
-      return 'text-primary font-bold'
+      return 'text-on-surface font-medium'
     case 'tool_result':
-      return 'text-secondary font-semibold'
+      return 'text-on-surface-variant'
     case 'error':
-      return 'text-error font-bold'
+      return 'text-error font-medium'
     default:
       return 'text-on-surface'
   }
 }
 
+/** "Tool call" for tool_call: log types read as words, not constants. */
+export function getLogLabel(type: AgentLogEvent['type']): string {
+  const label = type.replace(/_/g, ' ')
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
+/** Done is ink, work in progress a tint, failure the one colour. */
 export function getBeatIconBg(status: VisualBeat['status']): string {
   switch (status) {
     case 'completed':
-      return 'bg-cyber-lime text-ink-black'
+      return 'bg-primary-container text-on-primary-container'
     case 'searching':
     case 'selecting':
     case 'downloading':
-      return 'bg-primary-container text-on-primary-container'
-    case 'failed':
-      return 'bg-error text-white'
-    default:
-      return 'bg-surface-container-high text-outline'
-  }
-}
-
-export function getStatusBadgeClass(status: JobSnapshot['status']): string {
-  switch (status) {
-    case 'completed':
-      return 'bg-cyber-lime text-on-lime'
-    case 'running':
-      return 'bg-primary-container text-on-primary-container animate-pulse'
-    case 'paused':
-      return 'bg-tertiary-container text-on-tertiary-container'
+      return 'bg-surface-container-highest text-on-surface'
     case 'failed':
       return 'bg-error-container text-on-error-container'
     default:
-      return 'bg-surface-container-high text-outline'
+      return 'bg-surface-container text-outline'
   }
+}
+
+export const BEAT_STATUS_LABEL: Record<VisualBeat['status'], string> = {
+  pending: 'Waiting',
+  searching: 'Searching',
+  selecting: 'Picking',
+  downloading: 'Downloading',
+  completed: 'Done',
+  failed: 'Failed'
+}
+
+/** How a run's status reads: a label, the faded words after the title, and its dot. */
+export const RUN_STATUS: Record<
+  JobSnapshot['status'],
+  { label: string; fade: string; dot: string }
+> = {
+  running: {
+    label: 'Running',
+    fade: 'in progress',
+    dot: 'bg-on-surface motion-safe:animate-pulse'
+  },
+  paused: { label: 'Paused', fade: 'paused', dot: 'border-2 border-on-surface' },
+  completed: { label: 'Done', fade: 'done', dot: 'bg-on-surface' },
+  failed: { label: 'Failed', fade: 'stopped', dot: 'bg-error' },
+  cancelled: { label: 'Cancelled', fade: 'cancelled', dot: 'bg-outline' }
 }
 
 export function formatTokens(count: number): string {

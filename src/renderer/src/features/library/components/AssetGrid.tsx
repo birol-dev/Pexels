@@ -1,6 +1,6 @@
 import React from 'react'
 import { CircleNotchIcon } from '@phosphor-icons/react'
-import { Card } from '@renderer/components/ui/card'
+import { EmptyState } from '@renderer/components/common/EmptyState'
 import type { FlatAsset } from '../types'
 import { AssetCard } from './AssetCard'
 
@@ -12,7 +12,7 @@ interface AssetGridProps {
 
 export function AssetGrid({ assets, selectedId, onSelect }: AssetGridProps): React.JSX.Element {
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+    <div className="grid grid-cols-1 gap-x-4 gap-y-7 sm:grid-cols-2 xl:grid-cols-3">
       {assets.map((asset) => (
         <AssetCard
           key={asset.id}
@@ -28,15 +28,11 @@ export function AssetGrid({ assets, selectedId, onSelect }: AssetGridProps): Rea
 export function LibrarySpinner(): React.JSX.Element {
   return (
     <div className="flex h-[300px] items-center justify-center">
-      <CircleNotchIcon size={48} className="animate-spin text-primary" />
+      <CircleNotchIcon size={36} className="animate-spin text-outline" aria-label="Loading" />
     </div>
   )
 }
 
 export function LibraryEmptyState({ message }: { message: string }): React.JSX.Element {
-  return (
-    <Card className="items-center p-12 text-center font-body-md text-muted-foreground">
-      {message}
-    </Card>
-  )
+  return <EmptyState title="Nothing matches" description={message} />
 }

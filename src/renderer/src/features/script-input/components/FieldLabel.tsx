@@ -8,15 +8,12 @@ export function FieldLabel({
 }: React.ComponentProps<typeof Label>): React.JSX.Element {
   return (
     <Label
-      className={cn(
-        'mb-2 block font-title-md text-xs uppercase tracking-wide text-on-surface',
-        className
-      )}
+      className={cn('mb-2.5 block text-[13px] leading-snug font-medium text-on-surface', className)}
       {...props}
     />
   )
 }
 
 export function FieldHint({ children }: { children: React.ReactNode }): React.JSX.Element {
-  return <p className="font-label-sm text-xs text-outline mt-1.5">{children}</p>
+  return <p className="mt-2 text-[13px] text-outline">{children}</p>
 }

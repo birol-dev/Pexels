@@ -1,56 +1,66 @@
 import React from 'react'
 import { cn } from '@renderer/lib/utils'
-import brandLogoFull from '@renderer/assets/brand/stockfinder-logo.png'
 import brandIconSquare from '@renderer/assets/brand/stockfinder-icon.png'
 
 type BrandLogoSize = 'sm' | 'md' | 'lg' | 'xl'
 
 type BrandLogoProps = {
-  variant?: 'icon' | 'lockup' | 'fullsize'
+  variant?: 'icon' | 'lockup'
   size?: BrandLogoSize
   className?: string
   alt?: string
 }
 
-const fullSizeClass: Record<BrandLogoSize, string> = {
-  sm: 'h-8 w-auto max-w-[140px]',
-  md: 'h-10 w-auto max-w-[170px]',
-  lg: 'h-12 w-auto max-w-[200px]',
-  xl: 'h-16 w-auto max-w-[260px]'
-}
-
 const iconSizeClass: Record<BrandLogoSize, string> = {
-  sm: 'h-8 w-8',
-  md: 'h-10 w-10',
-  lg: 'h-12 w-12',
-  xl: 'h-14 w-14'
+  sm: 'size-6',
+  md: 'size-7',
+  lg: 'size-9',
+  xl: 'size-12'
 }
 
+const wordmarkSizeClass: Record<BrandLogoSize, string> = {
+  sm: 'text-[15px]',
+  md: 'text-base',
+  lg: 'text-lg',
+  xl: 'text-2xl'
+}
+
+/** The mark in ink (see .brand-logo-stroke), and for the lockup the wordmark beside it. */
 export function BrandLogo({
   variant = 'lockup',
   size = 'md',
   className,
   alt = 'StockFinder AI'
 }: BrandLogoProps): React.JSX.Element {
+  const mark = (
+    <img
+      src={brandIconSquare}
+      alt={variant === 'icon' ? alt : ''}
+      className={cn(iconSizeClass[size], 'shrink-0 object-contain brand-logo-stroke')}
+      draggable={false}
+    />
+  )
+
   if (variant === 'icon') {
-    return (
-      <img
-        src={brandIconSquare}
-        alt={alt}
-        className={cn(iconSizeClass[size], 'shrink-0 object-contain brand-logo-stroke', className)}
-        draggable={false}
-      />
-    )
+    return <span className={cn('inline-flex shrink-0', className)}>{mark}</span>
   }
 
   return (
-    <div className={cn('flex items-center shrink-0', className)}>
-      <img
-        src={brandLogoFull}
-        alt={alt}
-        className={cn(fullSizeClass[size], 'shrink-0 object-contain brand-logo-stroke')}
-        draggable={false}
-      />
-    </div>
+    <span
+      className={cn('inline-flex shrink-0 items-center gap-2.5', className)}
+      role="img"
+      aria-label={alt}
+    >
+      {mark}
+      <span
+        className={cn(
+          'font-medium leading-none tracking-[-0.01em] whitespace-nowrap text-on-surface',
+          wordmarkSizeClass[size]
+        )}
+        aria-hidden
+      >
+        StockFinder <span className="text-outline">AI</span>
+      </span>
+    </span>
   )
 }

@@ -51,7 +51,7 @@ export default function AgentRunView(): React.JSX.Element {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-8">
       <RunHeader
         job={activeJob}
         hideTokenUsage={settings?.hideEstimatedCost}
@@ -85,14 +85,14 @@ export default function AgentRunView(): React.JSX.Element {
         />
       )}
 
-      <div className="mt-8 grid grid-cols-12 items-start gap-gutter">
+      <div className="grid grid-cols-12 items-start gap-x-10 gap-y-8">
         <BeatsList
           job={activeJob}
           selection={approval.selection}
           onApprove={approval.approve}
           onReject={approval.reject}
         />
-        <AgentConsole logs={activeJob.logs} />
+        <AgentConsole logs={activeJob.logs} live={activeJob.status === 'running'} />
       </div>
     </div>
   )

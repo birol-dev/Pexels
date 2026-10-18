@@ -1,41 +1,40 @@
 import React from 'react'
 import { LightbulbIcon } from '@phosphor-icons/react'
-import { Badge } from '@renderer/components/ui/badge'
-import { Card } from '@renderer/components/ui/card'
 import type { JobSnapshot } from '@renderer/lib/store'
 
+/** The idea the script came from and the visual strategy, in one tinted panel. */
 export function ConceptCard({ job }: { job: JobSnapshot }): React.JSX.Element {
   return (
-    <Card variant="raised" className="animate-fade-in-up gap-2.5 p-4">
-      <div className="flex items-center justify-between">
-        <span className="font-title-md text-xs uppercase tracking-wider text-on-surface font-bold flex items-center gap-1.5">
-          <LightbulbIcon
-            size={16}
-            weight="fill"
-            className="rounded-sm bg-black p-0.5 text-cyber-lime"
-          />
-          Concept & Visual Strategy
-        </span>
+    <section className="animate-fade-in-up rounded-3xl bg-surface-container-low p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="flex items-center gap-3 text-[15px] font-semibold text-on-surface">
+          <span className="flex size-8 items-center justify-center rounded-full bg-background">
+            <LightbulbIcon size={16} />
+          </span>
+          Concept and visual strategy
+        </h2>
         {job.inputMode === 'idea' && (
-          <Badge className="border-edge bg-cyber-lime font-mono text-[11px] font-bold text-on-primary-container">
-            AI EXPANDED
-          </Badge>
+          <span className="flex h-7 items-center rounded-full bg-background px-3 text-[12px] text-on-surface-variant">
+            Written from your idea
+          </span>
         )}
       </div>
       {job.idea && (
-        <div className="text-xs text-outline">
-          <strong className="text-on-surface">Origin Idea:</strong> &ldquo;
-          {job.idea}&rdquo;
+        <div className="mt-5">
+          <span className="text-[12px] text-outline">The idea</span>
+          <p className="mt-1 font-headline-lg text-[22px] leading-snug font-light text-on-surface">
+            &ldquo;{job.idea}&rdquo;
+          </p>
         </div>
       )}
       {job.visualConcept && (
-        <Card variant="sunken" className="gap-0 rounded-md p-2.5 text-xs font-medium">
-          <span className="font-mono text-[11px] text-primary font-bold block mb-0.5">
-            Visual Strategy:
-          </span>
-          {job.visualConcept}
-        </Card>
+        <div className="mt-5">
+          <span className="text-[12px] text-outline">Visual strategy</span>
+          <p className="mt-1 text-[14px] leading-relaxed text-on-surface-variant">
+            {job.visualConcept}
+          </p>
+        </div>
       )}
-    </Card>
+    </section>
   )
 }

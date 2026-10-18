@@ -1,4 +1,4 @@
-import { BrainIcon, PlugsConnectedIcon } from '@phosphor-icons/react'
+import { PlugsConnectedIcon } from '@phosphor-icons/react'
 import { Input } from '@renderer/components/ui/input'
 import type { OnboardingController } from '../hooks/useOnboarding'
 import { ConnectionTestRow } from './ConnectionTestRow'
@@ -8,6 +8,7 @@ import { ProviderPicker } from './ProviderPicker'
 import { StepCard } from './StepCard'
 import { StepHeader } from './StepHeader'
 import { StepNav } from './StepNav'
+import { PROVIDER_OPTIONS } from '../utils'
 
 type AiProviderStepProps = Pick<
   OnboardingController,
@@ -31,44 +32,49 @@ export function AiProviderStep({
   onBack,
   onNext
 }: AiProviderStepProps): React.JSX.Element {
+  const providerLabel =
+    PROVIDER_OPTIONS.find((option) => option.id === llmProvider)?.label ?? llmProvider
+
   return (
     <StepCard>
       <StepHeader
-        step={2}
-        icon={BrainIcon}
-        title="Connect your AI brain"
-        description="Select the Large Language Model provider that will power your script analysis and visual prompt generation."
+        title={
+          <>
+            Connect <span className="text-fade">the</span> <em>AI</em>
+          </>
+        }
+        description="It reads your script, splits it into beats and picks the shots. Use a key from any of the three."
       />
 
       <ProviderPicker value={llmProvider} onChange={selectProvider} />
 
       <FormPanel>
-        <Field label={`API Key for ${llmProvider.toUpperCase()}`} htmlFor="onboarding-llm-key">
+        <Field label={`${providerLabel} API key`} htmlFor="onboarding-llm-key">
           <Input
             id="onboarding-llm-key"
             type="password"
             value={activeKey}
             onChange={(e) => setActiveKey(e.target.value)}
-            className="font-mono text-xs"
-            placeholder={`Enter your ${llmProvider} API key`}
+            className="font-mono tracking-widest placeholder:font-sans placeholder:tracking-normal"
+            placeholder="Paste your key"
           />
         </Field>
 
-        <Field label="Model ID" htmlFor="onboarding-model-id">
+        <Field label="Model" htmlFor="onboarding-model-id">
           <Input
             id="onboarding-model-id"
             type="text"
             value={modelId}
             onChange={(e) => setModelId(e.target.value)}
-            className="font-mono text-xs"
+            className="font-mono text-[13px]"
           />
         </Field>
 
         <ConnectionTestRow
-          idleLabel="Test Connection"
+          idleLabel="Test connection"
           idleIcon={PlugsConnectedIcon}
-          successText="Connected Successfully"
-          failureText="Connection Failed"
+          successText="Connected"
+          failureText="Could not connect"
           testing={llmTest.testing}
           result={llmTest.result}
           onTest={llmTest.run}

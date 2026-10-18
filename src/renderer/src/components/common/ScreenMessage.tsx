@@ -21,14 +21,14 @@ export function ScreenMessage({
   children
 }: ScreenMessageProps): React.JSX.Element {
   return (
-    <div className="flex h-screen items-center justify-center bg-black px-6">
+    <div className="flex h-screen items-center justify-center bg-background px-6">
       <div className="flex max-w-md flex-col items-center gap-3 text-center">
         <IconComponent
-          size={56}
-          className={cn(tone === 'error' ? 'text-error' : 'text-primary', spin && 'animate-spin')}
+          size={40}
+          className={cn(tone === 'error' ? 'text-error' : 'text-outline', spin && 'animate-spin')}
         />
-        <span className="text-sm font-medium text-outline">{title}</span>
-        {description && <span className="text-xs text-outline/80">{description}</span>}
+        <span className="text-base font-semibold text-on-surface">{title}</span>
+        {description && <span className="text-sm text-outline">{description}</span>}
         {children}
       </div>
     </div>

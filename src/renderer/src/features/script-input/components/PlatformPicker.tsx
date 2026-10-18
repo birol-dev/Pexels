@@ -30,9 +30,9 @@ interface PlatformPickerProps {
 export function PlatformPicker({ value, onChange }: PlatformPickerProps): React.JSX.Element {
   return (
     <div>
-      <FieldLabel htmlFor="platform-layout">Platform Layout</FieldLabel>
+      <FieldLabel htmlFor="platform-layout">Platform</FieldLabel>
       <Select value={value} onValueChange={(next) => onChange(next as PlatformType)}>
-        <SelectTrigger id="platform-layout" className="h-12 w-full px-4">
+        <SelectTrigger id="platform-layout" className="w-full data-[size=default]:h-11">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

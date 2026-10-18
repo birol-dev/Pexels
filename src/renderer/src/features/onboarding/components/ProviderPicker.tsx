@@ -11,7 +11,7 @@ interface ProviderPickerProps {
 
 export function ProviderPicker({ value, onChange }: ProviderPickerProps): React.JSX.Element {
   return (
-    <div role="radiogroup" aria-label="LLM provider" className="mt-2 grid grid-cols-3 gap-4">
+    <div role="radiogroup" aria-label="LLM provider" className="grid grid-cols-3 gap-2.5">
       {PROVIDER_OPTIONS.map(({ id, label }) => {
         const selected = value === id
         return (
@@ -22,19 +22,21 @@ export function ProviderPicker({ value, onChange }: ProviderPickerProps): React.
             aria-checked={selected}
             onClick={() => onChange(id)}
             className={cn(
-              'relative flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 p-4 transition-all outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+              'relative flex cursor-pointer flex-col items-start gap-6 rounded-2xl p-4 text-left transition-[box-shadow,background-color] outline-none',
               selected
-                ? 'border-primary bg-primary/10'
-                : 'border-border bg-muted/40 hover:bg-accent'
+                ? 'bg-background ring-2 ring-on-surface'
+                : 'bg-surface-container hover:bg-surface-container-high focus-visible:ring-2 focus-visible:ring-control'
             )}
           >
-            <ProviderLogo provider={id} />
-            <span className="text-xs font-semibold text-on-surface">{label}</span>
+            <span className="flex size-9 items-center justify-center rounded-xl bg-background [&_svg]:size-5">
+              <ProviderLogo provider={id} />
+            </span>
+            <span className="text-sm font-semibold text-on-surface">{label}</span>
             {selected && (
               <CheckCircleIcon
-                size={16}
+                size={18}
                 weight="fill"
-                className="absolute top-2 right-2 text-primary"
+                className="absolute top-3 right-3 text-on-surface"
               />
             )}
           </button>

@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue
 } from '@renderer/components/ui/select'
-import { cn } from '@renderer/lib/utils'
 import { DURATION_OPTIONS, TONE_OPTIONS } from '../constants'
 import type { FormSectionProps } from '../types'
 import { FieldHint, FieldLabel } from './FieldLabel'
@@ -16,9 +15,9 @@ import { FieldHint, FieldLabel } from './FieldLabel'
 /** Target duration and narrative tone controls for the AI scriptwriter. */
 export function IdeaOptions({ form, update }: FormSectionProps): React.JSX.Element {
   return (
-    <Card variant="sunken" className="grid grid-cols-1 gap-gutter p-5 shadow-sm md:grid-cols-2">
+    <Card variant="sunken" className="grid grid-cols-1 gap-x-8 gap-y-6 p-6 md:grid-cols-2">
       <div>
-        <FieldLabel id="target-duration-label">Target Video Duration</FieldLabel>
+        <FieldLabel id="target-duration-label">Length</FieldLabel>
         <div
           role="radiogroup"
           aria-labelledby="target-duration-label"
@@ -34,11 +33,11 @@ export function IdeaOptions({ form, update }: FormSectionProps): React.JSX.Eleme
                 aria-checked={selected}
                 variant={selected ? 'default' : 'secondary'}
                 onClick={() => update({ targetDuration: opt.value })}
-                className={cn('h-auto flex-col gap-0.5 p-2.5 text-center', selected && 'font-bold')}
+                className="h-auto flex-col gap-0.5 rounded-2xl p-3 text-center"
               >
                 <opt.icon size={18} />
-                <span className="text-xs font-bold leading-tight">{opt.label}</span>
-                <span className="font-mono text-[11px] ">{opt.words}</span>
+                <span className="text-[13px] leading-tight font-semibold">{opt.label}</span>
+                <span className="text-[11px] opacity-75">{opt.words}</span>
               </Button>
             )
           })}
@@ -46,9 +45,9 @@ export function IdeaOptions({ form, update }: FormSectionProps): React.JSX.Eleme
       </div>
 
       <div>
-        <FieldLabel htmlFor="narrative-tone">Narrative Tone & Hook Style</FieldLabel>
+        <FieldLabel htmlFor="narrative-tone">Tone and hook</FieldLabel>
         <Select value={form.tone} onValueChange={(tone) => update({ tone })}>
-          <SelectTrigger id="narrative-tone" className="h-12 w-full px-4">
+          <SelectTrigger id="narrative-tone" className="w-full data-[size=default]:h-11">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -59,7 +58,7 @@ export function IdeaOptions({ form, update }: FormSectionProps): React.JSX.Eleme
             ))}
           </SelectContent>
         </Select>
-        <FieldHint>Defines pacing, vocabulary, and visual storytelling hooks.</FieldHint>
+        <FieldHint>Sets the pacing, the vocabulary and how each beat opens.</FieldHint>
       </div>
     </Card>
   )

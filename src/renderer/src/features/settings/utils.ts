@@ -37,8 +37,8 @@ export const PROVIDER_OPTIONS: { value: LlmProvider; label: string }[] = [
 ]
 
 export const THEME_OPTIONS: { value: PublicSettings['theme']; label: string }[] = [
-  { value: 'flat-white', label: 'Light Mode (Industrial)' },
-  { value: 'flat-black', label: 'Dark Mode (Cyber)' }
+  { value: 'flat-white', label: 'Light' },
+  { value: 'flat-black', label: 'Dark' }
 ]
 
 export const ENGINE_OPTIONS: {

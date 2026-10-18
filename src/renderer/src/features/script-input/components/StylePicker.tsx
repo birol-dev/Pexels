@@ -17,7 +17,7 @@ export function StylePicker({ form, update }: FormSectionProps): React.JSX.Eleme
 
   return (
     <div>
-      <FieldLabel htmlFor="visual-mood">Visual Mood</FieldLabel>
+      <FieldLabel htmlFor="visual-mood">Visual mood</FieldLabel>
       <Select
         value={isPreset ? form.style : CUSTOM_STYLE_VALUE}
         onValueChange={(val) =>
@@ -26,7 +26,7 @@ export function StylePicker({ form, update }: FormSectionProps): React.JSX.Eleme
           })
         }
       >
-        <SelectTrigger id="visual-mood" className="mb-2 h-12 w-full px-4">
+        <SelectTrigger id="visual-mood" className="mb-2 w-full data-[size=default]:h-11">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -35,7 +35,7 @@ export function StylePicker({ form, update }: FormSectionProps): React.JSX.Eleme
               {preset.label}
             </SelectItem>
           ))}
-          <SelectItem value={CUSTOM_STYLE_VALUE}>Custom Style...</SelectItem>
+          <SelectItem value={CUSTOM_STYLE_VALUE}>Custom style…</SelectItem>
         </SelectContent>
       </Select>
       {!isPreset && (
@@ -50,7 +50,7 @@ export function StylePicker({ form, update }: FormSectionProps): React.JSX.Eleme
               style: e.target.value || 'custom style'
             })
           }
-          className="animate-fade-in-up text-xs font-semibold"
+          className="animate-fade-in-up"
           required
         />
       )}

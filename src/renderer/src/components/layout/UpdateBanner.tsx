@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { ArrowCircleUpIcon } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { Button } from '@renderer/components/ui/button'
-import { Card } from '@renderer/components/ui/card'
 import { useUpdateState } from '@renderer/hooks/use-update-state'
 import { api } from '@renderer/lib/api-client'
 import { shouldShowUpdateBanner, updateReadyMessage } from '../../../../shared/update-policy'
@@ -26,25 +25,17 @@ export function UpdateBanner(): React.JSX.Element | null {
   }
 
   return (
-    <Card
-      variant="accent"
+    <div
       role="status"
-      className="mx-grid-margin mt-4 gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+      className="mx-4 mt-3 flex flex-col gap-3 rounded-2xl bg-surface-container py-2.5 pr-2.5 pl-5 sm:flex-row sm:items-center sm:justify-between"
     >
-      <div className="flex items-center gap-3 text-sm font-bold text-on-surface">
-        <ArrowCircleUpIcon size={20} weight="bold" className="shrink-0" aria-hidden />
+      <div className="flex items-center gap-3 text-sm font-medium text-on-surface">
+        <ArrowCircleUpIcon size={20} className="shrink-0" aria-hidden />
         {updateReadyMessage(update.readyVersion)}
       </div>
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        className="shrink-0"
-        onClick={restart}
-        disabled={restarting}
-      >
+      <Button type="button" size="sm" className="shrink-0" onClick={restart} disabled={restarting}>
         {restarting ? 'Restarting...' : 'Restart to update'}
       </Button>
-    </Card>
+    </div>
   )
 }

@@ -1,53 +1,41 @@
-import type { Icon } from '@phosphor-icons/react'
-import { Card, CardContent } from '@renderer/components/ui/card'
 import { cn } from '@renderer/lib/utils'
+import type { SettingsSectionId } from '../sections'
 
 interface SettingsSectionProps {
+  id: SettingsSectionId
   title: string
-  icon: Icon
-  iconClassName?: string
-  /** Compact sections use a smaller muted heading (sidebar-style tiles). */
-  compact?: boolean
+  /** One line under the title: what the section is for. */
+  description?: React.ReactNode
   action?: React.ReactNode
   className?: string
   children: React.ReactNode
 }
 
+/** A titled block of the Settings form, opened by a hairline. The menu scrolls to its id. */
 export function SettingsSection({
+  id,
   title,
-  icon: IconComponent,
-  iconClassName,
-  compact = false,
+  description,
   action,
   className,
   children
 }: SettingsSectionProps): React.JSX.Element {
   return (
-    <Card
-      variant="raised"
-      className={cn('gap-5 py-0', className)}
+    <section
+      id={id}
+      aria-labelledby={`${id}-title`}
+      className={cn('scroll-mt-8 border-t border-border pt-6', className)}
     >
-      <CardContent className={cn('flex flex-1 flex-col gap-5', compact ? 'p-5' : 'p-6')}>
-        <div className="flex items-center justify-between gap-2 border-b-2 border-edge pb-4">
-          <h3
-            className={cn(
-              'flex items-center gap-2 uppercase',
-              'font-title-md text-foreground',
-              compact ? 'text-base' : 'text-title-md'
-            )}
-          >
-            <IconComponent
-              size={compact ? 20 : 22}
-              weight="bold"
-              className={cn(iconClassName)}
-              aria-hidden
-            />
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 id={`${id}-title`} className="text-title-md font-title-md text-on-surface">
             {title}
-          </h3>
-          {action}
+          </h2>
+          {description && <p className="mt-1 text-sm text-outline">{description}</p>}
         </div>
-        {children}
-      </CardContent>
-    </Card>
+        {action}
+      </div>
+      <div className="mt-6 flex flex-col gap-6">{children}</div>
+    </section>
   )
 }

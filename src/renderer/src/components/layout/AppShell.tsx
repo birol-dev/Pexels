@@ -16,15 +16,16 @@ export function AppShell({ children }: { children: React.ReactNode }): React.JSX
   }, [currentRoute, activeTabId])
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-background font-body-md text-on-background selection:bg-primary-container selection:text-on-primary-container">
+    <div className="relative flex h-screen overflow-hidden bg-frame font-body-md text-on-background selection:bg-primary-container selection:text-on-primary-container">
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
-      <main className="relative z-10 flex min-w-0 flex-1 flex-col bg-background">
+      {/* The canvas: one white (charcoal in dark) sheet inset in the frame. */}
+      <main className="relative z-10 my-2 mr-2 flex min-w-0 flex-1 flex-col overflow-hidden rounded-[22px] bg-background">
         <TabBar />
         <UpdateBanner />
         <div ref={scrollRef} className="min-h-0 grow overflow-y-auto [scrollbar-gutter:stable]">
           <div
             key={`${currentRoute}:${activeTabId}`}
-            className="mx-auto w-full max-w-[1280px] animate-page-in px-grid-margin py-8"
+            className="mx-auto w-full max-w-[1200px] animate-page-in px-grid-margin pt-8 pb-16"
           >
             {children}
           </div>

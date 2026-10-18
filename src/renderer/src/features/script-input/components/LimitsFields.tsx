@@ -36,7 +36,7 @@ function LimitSlider({
         <FieldLabel id={`${id}-label`} className="mb-0">
           {label}
         </FieldLabel>
-        <span className="font-mono text-sm font-bold text-primary">{value}</span>
+        <span className="text-sm font-semibold tabular-nums text-on-surface">{value}</span>
       </div>
       <Slider
         id={id}
@@ -46,7 +46,7 @@ function LimitSlider({
         step={1}
         value={[value]}
         onValueChange={([next]) => onChange(next)}
-        className="py-3"
+        className="py-2.5"
       />
       <FieldHint>{hint}</FieldHint>
       {children}
@@ -64,14 +64,14 @@ function ShotCountNote({ form, update }: FormSectionProps): React.JSX.Element | 
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-      <p className="text-xs text-on-surface-variant">
+      <p className="text-[13px] text-on-surface-variant">
         About {shots} shots for this script.
         {cap < shots && ` Your cap of ${cap} leaves some sentences without footage.`}
       </p>
       {cap < suggestedCap && (
         <Button
           type="button"
-          variant="secondary"
+          variant="outline"
           size="xs"
           onClick={() => update({ maxTotalDownloads: suggestedCap })}
         >
@@ -84,11 +84,11 @@ function ShotCountNote({ form, update }: FormSectionProps): React.JSX.Element | 
 
 export function LimitsFields({ form, update }: FormSectionProps): React.JSX.Element {
   return (
-    <div className="grid grid-cols-1 gap-gutter border-t-2 border-dashed border-border pt-8 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-2">
       <LimitSlider
         id="max-assets"
-        label="Options per Beat"
-        hint="Alternatives downloaded for each script segment. The total cap can lower this."
+        label="Options per beat"
+        hint="Alternatives for each beat. The total cap can lower this."
         min={1}
         max={5}
         value={form.maxAssetsPerBeat}
@@ -96,8 +96,8 @@ export function LimitsFields({ form, update }: FormSectionProps): React.JSX.Elem
       />
       <LimitSlider
         id="max-total"
-        label="Max Total Downloads"
-        hint="Safety threshold to conserve API request limits."
+        label="Max downloads in total"
+        hint="A ceiling that keeps your Pexels requests in check."
         min={1}
         max={MAX_TOTAL_DOWNLOADS}
         value={form.maxTotalDownloads}

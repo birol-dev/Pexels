@@ -18,7 +18,7 @@ export function CreatePackForm(): React.JSX.Element {
   const handleSubmit = useStartJob(form)
 
   return (
-    <Card className="max-w-5xl gap-0 p-component-padding">
+    <Card className="gap-0 p-8">
       <form onSubmit={handleSubmit} className="space-y-8">
         <InputModeSwitch value={form.inputMode} onChange={(inputMode) => update({ inputMode })} />
         <ProjectTitleField form={form} update={update} />
@@ -29,7 +29,7 @@ export function CreatePackForm(): React.JSX.Element {
           <IdeaPanel form={form} update={update} />
         )}
 
-        <div className="grid grid-cols-1 gap-gutter pt-2 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-3">
           <PlatformPicker value={form.platform} onChange={(platform) => update({ platform })} />
           <StylePicker form={form} update={update} />
           <AssetMixPicker value={form.mix} onChange={(mix) => update({ mix })} />

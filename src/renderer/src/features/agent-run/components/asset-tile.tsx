@@ -1,5 +1,5 @@
 import React from 'react'
-import { ArrowsClockwiseIcon } from '@phosphor-icons/react'
+import { PlayIcon } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
 import { Progress } from '@renderer/components/ui/progress'
 import { cn } from '@renderer/lib/utils'
@@ -13,6 +13,20 @@ interface AssetTileProps {
   onReject: () => void
 }
 
+function statusText(asset: AssetRecord, reviewing: boolean): { text: string; className: string } {
+  switch (asset.status) {
+    case 'completed':
+      return { text: 'Saved', className: 'text-on-surface' }
+    case 'downloading':
+      return { text: `${asset.progress || 0}%`, className: 'text-on-surface tabular-nums' }
+    case 'failed':
+      return { text: 'Failed', className: 'text-error' }
+    default:
+      return { text: reviewing ? 'To review' : 'Queued', className: 'text-outline' }
+  }
+}
+
+/** The photo as it is, its credit and state underneath, review buttons below that. */
 export function AssetTile({
   asset,
   reviewing,
@@ -20,67 +34,63 @@ export function AssetTile({
   onApprove,
   onReject
 }: AssetTileProps): React.JSX.Element {
+  const status = statusText(asset, reviewing)
+  const inReview = reviewing && asset.status === 'pending'
   return (
-    <div className="relative w-48 aspect-video shrink-0 rounded-md bg-black brutal-border overflow-hidden group">
-      <img
-        src={asset.imageUrl}
-        className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-        alt="Stock Thumbnail"
-      />
-
-      {asset.status === 'pending' && (
-        <div className="absolute inset-0 bg-paper-white/80 dark:bg-surface-container-lowest/80 backdrop-blur-[1px] flex flex-col items-center justify-center p-2">
-          <ArrowsClockwiseIcon size={18} className="text-primary animate-spin mb-1" />
-          <span className="text-[11px] text-primary font-mono font-bold">Queued</span>
-        </div>
-      )}
-
-      {asset.status === 'downloading' && (
-        <div className="absolute inset-0 bg-paper-white/90 dark:bg-surface-container-lowest/90 flex flex-col items-center justify-center p-2">
-          <span className="text-[11px] text-primary font-extrabold font-mono mb-1">
-            {asset.progress || 0}%
+    <figure className="w-52 shrink-0">
+      <div className="relative aspect-video overflow-hidden rounded-xl bg-surface-container">
+        <img
+          src={asset.imageUrl}
+          className={cn(
+            'size-full object-cover transition-[opacity,filter] duration-300',
+            inReview && rejected && 'opacity-35 grayscale'
+          )}
+          alt="Stock Thumbnail"
+        />
+        {asset.type === 'video' && (
+          <span className="absolute top-2 left-2 flex size-6 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm">
+            <PlayIcon size={11} weight="fill" />
+            <span className="sr-only">Video</span>
           </span>
-          <Progress
-            value={asset.progress || 0}
-            aria-label="Download progress"
-            className="h-1 max-w-[50px] bg-surface-container-high [&>div]:bg-primary"
-          />
-        </div>
-      )}
-
-      <div className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 via-black/40 to-transparent p-1.5 flex flex-col justify-end text-[11px]">
-        <span className="text-white font-bold capitalize leading-none mb-0.5">{asset.type}</span>
-        <div className="flex justify-between items-center text-neutral-300 font-mono text-[11px] leading-none mt-0.5">
-          <span className="truncate max-w-[60px]">By {asset.photographer}</span>
-          {asset.status === 'completed' && <span className="text-cyber-lime font-bold">Ready</span>}
-          {asset.status === 'failed' && <span className="text-error font-bold">Failed</span>}
-        </div>
+        )}
       </div>
 
-      {reviewing && asset.status === 'pending' && (
-        <div className="absolute inset-x-1 top-1.5 flex gap-1.5 z-20">
+      {asset.status === 'downloading' && (
+        <Progress value={asset.progress || 0} aria-label="Download progress" className="mt-2 h-1" />
+      )}
+
+      <figcaption className="mt-2 flex items-baseline justify-between gap-2 text-[12px]">
+        <span className="truncate text-on-surface-variant">{asset.photographer}</span>
+        <span className={cn('shrink-0', status.className)}>{status.text}</span>
+      </figcaption>
+
+      {inReview && (
+        <div className="mt-2 flex gap-1.5">
           <Button
             type="button"
             size="xs"
+            variant={rejected ? 'secondary' : 'default'}
             onClick={onApprove}
-            className={cn(
-              'flex-1 text-[11px]',
-              rejected && 'bg-paper-white text-outline hover:bg-paper-white'
-            )}
+            aria-pressed={!rejected}
+            className="flex-1"
           >
             Approve
           </Button>
           <Button
             type="button"
             size="xs"
-            variant={rejected ? 'destructive' : 'secondary'}
+            variant="secondary"
             onClick={onReject}
-            className={cn('flex-1 text-[11px]', !rejected && 'bg-paper-white text-outline')}
+            aria-pressed={rejected}
+            className={cn(
+              'flex-1',
+              rejected && 'bg-error-container text-on-error-container hover:bg-error-container/80'
+            )}
           >
             Reject
           </Button>
         </div>
       )}
-    </div>
+    </figure>
   )
 }

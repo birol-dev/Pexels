@@ -1,70 +1,70 @@
 import React from 'react'
-import { Badge } from '@renderer/components/ui/badge'
-import { Card } from '@renderer/components/ui/card'
 import type { VisualBeat } from '@renderer/lib/store'
-import type { ApprovalSelection } from '../utils'
+import { BEAT_STATUS_LABEL, type ApprovalSelection } from '../utils'
 import { AssetTile } from './asset-tile'
 import { BeatStatusIcon } from './beat-status-icon'
 import { RejectedAssets } from './rejected-assets'
 
 interface BeatCardProps {
   beat: VisualBeat
+  index: number
   reviewing: boolean
   selection: ApprovalSelection
   onApprove: (assetId: string) => void
   onReject: (assetId: string) => void
 }
 
+/** One beat as a row: its line, the direction and searches in a tint, then what it found. */
 export function BeatCard({
   beat,
+  index,
   reviewing,
   selection,
   onApprove,
   onReject
 }: BeatCardProps): React.JSX.Element {
   return (
-    <Card variant="raised" className="relative gap-0 p-6">
+    <li className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-5 py-8">
       <BeatStatusIcon status={beat.status} />
 
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <span className="font-label-sm text-label-sm text-outline tracking-widest uppercase">
-            {beat.id.replace('_', ' ')}
+      <div className="flex min-w-0 flex-col">
+        <p className="flex items-center gap-2 text-[13px] text-outline">
+          <span className="tabular-nums">{String(index + 1).padStart(2, '0')}</span>
+          <span aria-hidden>·</span>
+          <span className={beat.status === 'failed' ? 'text-error' : undefined}>
+            {BEAT_STATUS_LABEL[beat.status] ?? beat.status}
           </span>
-          <Badge
-            variant="outline"
-            className="border-2 border-edge bg-surface-variant px-2.5 py-1 font-label-sm text-xs font-bold uppercase tracking-wider text-on-surface dark:bg-surface-container-lowest"
-          >
-            {beat.status}
-          </Badge>
-        </div>
-
-        <p className="font-body-lg text-body-lg text-on-surface leading-relaxed pl-4 border-l-4 border-ink-black dark:border-primary-container">
-          &ldquo;{beat.text}&rdquo;
         </p>
 
-        <Card variant="sunken" className="gap-0 rounded-md p-4">
-          <span className="font-mono text-[11px] text-primary uppercase font-bold block mb-1.5">
-            Visual Direction:
-          </span>
-          <p className="text-xs text-outline leading-relaxed select-all">
-            &ldquo;{beat.visualPrompt}&rdquo;
-          </p>
-          <div className="flex flex-wrap gap-2 mt-3">
-            {beat.searchQueries.map((query) => (
-              <Badge
-                key={query}
-                variant="outline"
-                className="border-2 border-edge bg-paper-white px-3 py-1 font-label-sm text-[12px] uppercase tracking-wider text-on-surface dark:bg-surface-container-lowest"
-              >
-                {query}
-              </Badge>
-            ))}
+        <p className="mt-2 text-[17px] leading-relaxed text-on-surface">{beat.text}</p>
+
+        {(beat.visualPrompt || beat.searchQueries.length > 0) && (
+          <div className="mt-4 rounded-2xl bg-surface-container-low p-4">
+            {beat.visualPrompt && (
+              <>
+                <span className="text-[12px] text-outline">Visual direction</span>
+                <p className="mt-1 text-[13px] leading-relaxed text-on-surface-variant select-all">
+                  {beat.visualPrompt}
+                </p>
+              </>
+            )}
+            {beat.searchQueries.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {beat.searchQueries.map((query) => (
+                  <span
+                    key={query}
+                    className="flex h-7 items-center rounded-full bg-background px-3 text-[12px] text-on-surface"
+                  >
+                    {query}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
-        </Card>
+        )}
 
         {beat.assets && beat.assets.length > 0 && (
-          <div className="mt-4 pt-4 border-t-2 border-edge border-dashed flex gap-4 overflow-x-auto pb-2 scrollbar">
+          <div className="scrollbar -mx-1 mt-5 flex gap-3 overflow-x-auto px-1 pb-2">
             {beat.assets.map((asset) => (
               <AssetTile
                 key={asset.id}
@@ -82,6 +82,6 @@ export function BeatCard({
           <RejectedAssets items={beat.rejectedAssets} />
         )}
       </div>
-    </Card>
+    </li>
   )
 }

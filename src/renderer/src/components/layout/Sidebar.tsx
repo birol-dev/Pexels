@@ -1,10 +1,9 @@
 import React from 'react'
-import { CaretLeftIcon, CaretRightIcon, PlusIcon } from '@phosphor-icons/react'
+import { PlusIcon, SidebarSimpleIcon } from '@phosphor-icons/react'
 import { BrandLogo } from '@renderer/components/common/BrandLogo'
-import { Button } from '@renderer/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { cn } from '@renderer/lib/utils'
-import { useAppStore } from '@renderer/lib/store'
+import { useAppStore, type JobSummary } from '@renderer/lib/store'
 import { NAV_ITEMS, type AppRoute } from './nav'
 
 interface SidebarProps {
@@ -12,9 +11,29 @@ interface SidebarProps {
   onToggle: () => void
 }
 
-const NAV_ACTIVE = 'border-ink-black bg-primary-container text-on-primary-container shadow-md'
-const NAV_IDLE =
-  'border-transparent text-outline hover:bg-surface-variant hover:text-on-surface'
+const ITEM =
+  'flex h-10 w-full cursor-pointer items-center rounded-xl px-[14px] text-sm font-medium transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/20 focus-visible:outline-none'
+const ITEM_ACTIVE = 'bg-frame-selected text-on-surface'
+const ITEM_IDLE = 'text-on-surface-variant hover:bg-surface-container-high/60 hover:text-on-surface'
+
+/** How many recent packs the sidebar lists. The Create page shows the rest. */
+const RECENT_COUNT = 5
+
+const STATUS_DOT: Record<JobSummary['status'], string> = {
+  running: 'bg-on-surface animate-pulse',
+  paused: 'border-[1.5px] border-on-surface',
+  completed: 'bg-outline',
+  failed: 'bg-error',
+  cancelled: 'border-[1.5px] border-outline'
+}
+
+const STATUS_LABEL: Record<JobSummary['status'], string> = {
+  running: 'Running',
+  paused: 'Paused',
+  completed: 'Completed',
+  failed: 'Failed',
+  cancelled: 'Cancelled'
+}
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps): React.JSX.Element {
   const currentRoute = useAppStore((s) => s.currentRoute)
@@ -31,115 +50,162 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps): React.JSX.Elemen
     navigate(route)
   }
 
+  const openJob = (jobId: string): void => {
+    setActiveJobId(jobId)
+    navigate('run')
+  }
+
+  const recent = jobs.slice(0, RECENT_COUNT)
+
   return (
     <aside
       className={cn(
-        'relative z-20 flex shrink-0 select-none flex-col justify-between overflow-hidden border-r-2 border-border bg-surface-container-low shadow-[inset_6px_6px_12px_rgba(0,0,0,0.1)] transition-[width] duration-300 ease-in-out dark:shadow-[inset_6px_6px_12px_rgba(0,0,0,0.5)]',
-        collapsed ? 'w-20' : 'w-[280px]'
+        'relative z-20 flex shrink-0 select-none flex-col overflow-hidden transition-[width] duration-300 ease-in-out',
+        collapsed ? 'w-[76px]' : 'w-[256px]'
       )}
     >
-      <div className="p-4">
-        {/* Both header layouts stay mounted and cross-fade, so nothing reflows mid-animation. */}
-        <div className="mb-8 grid border-b-2 border-border pb-6">
-          <div
-            className={cn(
-              'col-start-1 row-start-1 flex items-start justify-between gap-2 pl-2 transition-opacity duration-200',
-              collapsed && 'pointer-events-none opacity-0'
-            )}
-            aria-hidden={collapsed}
-          >
-            <div className="flex min-w-0 flex-col gap-2">
-              <BrandLogo variant="lockup" size="lg" />
-              <p className="whitespace-nowrap font-label-sm text-label-sm text-outline">
-                AI Video Asset Engine
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="text-outline"
-              onClick={onToggle}
-              tabIndex={collapsed ? -1 : 0}
-              aria-label="Collapse sidebar"
-            >
-              <CaretLeftIcon size={20} />
-            </Button>
-          </div>
-          <div
-            className={cn(
-              'col-start-1 row-start-1 flex flex-col items-center gap-4 transition-opacity duration-200',
-              !collapsed && 'pointer-events-none opacity-0'
-            )}
-            style={{ width: 48 }}
-            aria-hidden={!collapsed}
-          >
-            <BrandLogo variant="icon" size="lg" className="rounded-lg" />
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="text-outline"
-              onClick={onToggle}
-              tabIndex={collapsed ? 0 : -1}
-              aria-label="Expand sidebar"
-            >
-              <CaretRightIcon size={20} />
-            </Button>
-          </div>
+      <div className="flex h-16 shrink-0 items-center px-3">
+        <div className="flex items-center pl-[12px]">
+          <BrandLogo variant="icon" size="sm" />
+          <CollapsibleLabel collapsed={collapsed} className="pl-2.5">
+            <span className="text-[15px] font-medium tracking-[-0.01em] text-on-surface">
+              StockFinder <span className="text-outline">AI</span>
+            </span>
+          </CollapsibleLabel>
         </div>
-
-        <nav className="space-y-2.5">
-          {NAV_ITEMS.map(({ route, label, icon: NavIcon }) => {
-            const active = currentRoute === route
-            return (
-              <Tooltip key={route}>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={() => go(route)}
-                    aria-label={label}
-                    className={cn(
-                      'flex w-full cursor-pointer items-center rounded-md border-2 px-3 py-3 font-label-sm text-label-sm transition-colors',
-                      active ? NAV_ACTIVE : NAV_IDLE
-                    )}
-                  >
-                    <NavIcon size={24} weight={active ? 'fill' : 'regular'} className="shrink-0" />
-                    <CollapsibleLabel collapsed={collapsed}>{label}</CollapsibleLabel>
-                  </button>
-                </TooltipTrigger>
-                {collapsed && <TooltipContent side="right">{label}</TooltipContent>}
-              </Tooltip>
-            )
-          })}
-        </nav>
       </div>
 
-      <div className="border-t-2 border-border bg-surface-container p-4">
-        <Button
-          variant="secondary"
-          size="lg"
-          className="w-full justify-start gap-0 px-3"
-          onClick={() => openTab('input', undefined, true)}
-        >
-          <PlusIcon size={20} weight="bold" className="shrink-0" />
-          <CollapsibleLabel collapsed={collapsed}>New Project</CollapsibleLabel>
-        </Button>
-        <p
-          className="mt-3 select-text text-center font-label-sm text-xs text-outline"
-          title="StockFinder AI version"
-        >
-          v{__APP_VERSION__}
-        </p>
+      <div className="px-3 pt-1">
+        <SidebarTooltip label="New pack" collapsed={collapsed}>
+          <button
+            type="button"
+            onClick={() => openTab('input', undefined, true)}
+            aria-label="New pack"
+            className={cn(
+              ITEM,
+              'bg-primary-container text-on-primary-container hover:bg-primary-container/85'
+            )}
+          >
+            <PlusIcon size={20} weight="bold" className="shrink-0" />
+            <CollapsibleLabel collapsed={collapsed}>New pack</CollapsibleLabel>
+          </button>
+        </SidebarTooltip>
+      </div>
+
+      <nav className="mt-5 space-y-0.5 px-3" aria-label="Main">
+        {NAV_ITEMS.map(({ route, label, icon: NavIcon }) => {
+          const active = currentRoute === route
+          return (
+            <SidebarTooltip key={route} label={label} collapsed={collapsed}>
+              <button
+                type="button"
+                onClick={() => go(route)}
+                aria-label={label}
+                aria-current={active ? 'page' : undefined}
+                className={cn(ITEM, active ? ITEM_ACTIVE : ITEM_IDLE)}
+              >
+                <NavIcon size={20} weight={active ? 'fill' : 'regular'} className="shrink-0" />
+                <CollapsibleLabel collapsed={collapsed}>{label}</CollapsibleLabel>
+              </button>
+            </SidebarTooltip>
+          )
+        })}
+      </nav>
+
+      <div
+        className={cn(
+          'mt-7 min-h-0 flex-1 overflow-y-auto px-3 transition-opacity duration-200',
+          collapsed && 'pointer-events-none opacity-0'
+        )}
+        aria-hidden={collapsed}
+      >
+        {recent.length > 0 && (
+          <>
+            <p className="px-[14px] pb-2 text-xs font-medium whitespace-nowrap text-outline">
+              Recent packs
+            </p>
+            <ul className="space-y-0.5">
+              {recent.map((job) => {
+                const active = currentRoute === 'run' && activeJobId === job.jobId
+                return (
+                  <li key={job.jobId}>
+                    <button
+                      type="button"
+                      onClick={() => openJob(job.jobId)}
+                      tabIndex={collapsed ? -1 : 0}
+                      title={`${job.title} · ${STATUS_LABEL[job.status]}`}
+                      className={cn(
+                        ITEM,
+                        'h-9 gap-3 text-[13px]',
+                        active ? ITEM_ACTIVE : ITEM_IDLE
+                      )}
+                    >
+                      <span
+                        className={cn('size-2 shrink-0 rounded-full', STATUS_DOT[job.status])}
+                        aria-hidden
+                      />
+                      <span className="truncate">{job.title}</span>
+                      <span className="sr-only">, {STATUS_LABEL[job.status]}</span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </>
+        )}
+      </div>
+
+      <div className="flex h-14 shrink-0 items-center justify-between px-3">
+        <CollapsibleLabel collapsed={collapsed} className="pl-[14px]">
+          <span className="select-text text-xs text-outline" title="StockFinder AI version">
+            v{__APP_VERSION__}
+          </span>
+        </CollapsibleLabel>
+        <SidebarTooltip label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} collapsed>
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={cn(
+              ITEM,
+              ITEM_IDLE,
+              collapsed ? 'w-full' : 'w-10 shrink-0 justify-center px-0'
+            )}
+          >
+            <SidebarSimpleIcon size={20} className="shrink-0" />
+          </button>
+        </SidebarTooltip>
       </div>
     </aside>
+  )
+}
+
+/** Names an icon-only item while the sidebar is collapsed. */
+function SidebarTooltip({
+  label,
+  collapsed,
+  children
+}: {
+  label: string
+  collapsed: boolean
+  children: React.ReactElement
+}): React.JSX.Element {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      {collapsed && <TooltipContent side="right">{label}</TooltipContent>}
+    </Tooltip>
   )
 }
 
 /** Text that slides and fades away with the sidebar width instead of popping in and out. */
 function CollapsibleLabel({
   collapsed,
+  className = 'pl-3',
   children
 }: {
   collapsed: boolean
+  className?: string
   children: React.ReactNode
 }): React.JSX.Element {
   return (
@@ -150,7 +216,7 @@ function CollapsibleLabel({
       )}
       aria-hidden={collapsed}
     >
-      <span className="block pl-4">{children}</span>
+      <span className={cn('block', className)}>{children}</span>
     </span>
   )
 }
