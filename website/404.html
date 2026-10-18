@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,28 +9,68 @@
       content="That page is missing. Head back to StockFinder AI, the free AI b-roll finder for YouTube scripts."
     />
     <meta name="robots" content="noindex, follow" />
-    <meta name="theme-color" content="#ccff00" />
+    <meta name="theme-color" content="#f4f4f4" />
+    <meta name="color-scheme" content="light" />
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+    <link
+      href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="icon" type="image/png" sizes="32x32" href="/logos/icon-32.png" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main id="main-content">
-      <section class="cta-band">
-        <div class="container">
-          <span class="eyebrow">404</span>
-          <h1 class="display-lg">This page is not in the folder.</h1>
-          <p class="lead">
-            The URL may have changed. The homepage, b-roll guide, and downloads still work.
-          </p>
-          <div class="cta-buttons">
-            <a href="/" class="btn btn-primary">Go to homepage</a>
-            <a href="/how-to-find-b-roll/" class="btn btn-secondary">How to find b-roll</a>
-            <a href="https://github.com/birol-dev/Pexels/releases" class="btn btn-secondary"
-              >Download</a
-            >
-          </div>
+    <div class="empty-page">
+      <header class="empty-top">
+        <a href="/" class="brand" aria-label="StockFinder AI home">
+          <img
+            src="/logos/stockfinder-icon.png"
+            alt="StockFinder AI logo — AI b-roll finder"
+            class="brand-mark"
+            width="24"
+            height="24"
+          />
+          <span class="brand-wordmark">StockFinder <span class="brand-accent">AI</span></span>
+        </a>
+        <a href="https://github.com/birol-dev/Pexels/releases" class="btn btn-secondary btn-sm"
+          >Download</a
+        >
+      </header>
+
+      <main id="main-content" class="empty">
+        <!-- a grey picture that previews what belongs here: a folder of clips, one missing -->
+        <svg class="empty-art" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+          <rect x="10" y="26" width="100" height="74" rx="14" fill="#e6e6e3" />
+          <path d="M10 40a14 14 0 0 1 14-14h22l8 8h42a14 14 0 0 1 14 14" fill="#dcdcd8" />
+          <rect x="22" y="50" width="34" height="20" rx="5" fill="#cfcfcb" />
+          <rect x="64" y="50" width="34" height="20" rx="5" fill="#cfcfcb" />
+          <rect x="22" y="76" width="34" height="14" rx="5" fill="#cfcfcb" />
+          <rect
+            x="64.75"
+            y="76.75"
+            width="32.5"
+            height="12.5"
+            rx="4.25"
+            stroke="#b6b6b6"
+            stroke-width="1.5"
+            stroke-dasharray="3 3"
+          />
+        </svg>
+        <h1>This page is not in the folder</h1>
+        <p>
+          The link may be old or mistyped. The homepage, the b-roll guide and the downloads all
+          still work.
+        </p>
+        <div class="empty-actions">
+          <a href="/" class="btn btn-primary">Go to the homepage</a>
+          <a href="/how-to-find-b-roll/" class="text-link">Read the b-roll guide</a>
         </div>
-      </section>
-    </main>
+      </main>
+
+      <footer class="empty-top micro">
+        <span>StockFinder AI — free &amp; open source</span>
+        <a href="/docs/" class="text-link">Documentation</a>
+      </footer>
+    </div>
   </body>
 </html>
