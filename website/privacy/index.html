@@ -204,8 +204,8 @@
           <span class="eyebrow">Trust</span>
           <h1 class="display-lg">Privacy</h1>
           <p class="lead">
-            StockFinder AI is a local desktop app. There is no StockFinder account and no
-            StockFinder backend. This page covers the app and this marketing site.
+            A local desktop app with no account and no backend. This page covers the app and this
+            site.
           </p>
           <p class="updated-meta">Last updated August 17, 2026</p>
         </div>
@@ -215,30 +215,28 @@
         <div class="container prose">
           <h2>The desktop app</h2>
           <p>
-            The app runs on your computer. Scripts, manifests, downloads, and API keys stay on disk
-            unless you send them somewhere yourself.
+            Scripts, manifests, downloads and API keys stay on your computer unless you send them
+            somewhere.
           </p>
           <ul>
             <li>
-              <strong>No StockFinder servers.</strong> The project does not operate an account
-              system, cloud sync, or telemetry endpoint for the app.
+              <strong>No StockFinder servers.</strong> No accounts, cloud sync or telemetry.
             </li>
             <li>
-              <strong>LLM providers.</strong> Your script is sent to whichever provider you
-              configure (OpenAI, Google Gemini, or OpenRouter) so the agent can map visual beats.
-              Their privacy policies apply to that traffic.
+              <strong>LLM providers.</strong> Your script goes to the provider you pick (OpenAI,
+              Google Gemini or OpenRouter), under their privacy policy.
             </li>
             <li>
-              <strong>Pexels API.</strong> Search and download requests use your Pexels API key.
-              Pexels processes those requests under their terms.
+              <strong>Pexels API.</strong> Searches and downloads use your key, under Pexels'
+              terms.
             </li>
             <li>
-              <strong>API keys.</strong> Keys are stored with Electron <code>safeStorage</code> in
-              your OS keychain. They are not written into <code>manifest.json</code> or agent logs.
+              <strong>API keys.</strong> Stored with Electron <code>safeStorage</code> in your OS
+              keychain, never in <code>manifest.json</code> or logs.
             </li>
           </ul>
           <p>
-            You can read the implementation on
+            The code is on
             <a href="https://github.com/birol-dev/Pexels" target="_blank" rel="noreferrer">GitHub</a
             >.
           </p>
@@ -252,22 +250,19 @@
             It uses
             <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noreferrer"
               >Cloudflare Web Analytics</a
-            >, which is designed to measure visits without cookies or client-side fingerprinting. It
-            is used to understand whether pages load and get traffic, not to build advertising
-            profiles.
+            > to count visits without cookies or fingerprinting, not to build ad profiles.
           </p>
           <p>
-            GitHub, as the host, may process connection data (IP address, user agent) in server logs
-            according to GitHub’s own policies.
+            The host, GitHub, may log connection data (IP address, user agent) under its own
+            policies.
           </p>
 
           <h2>Contact</h2>
           <p>
-            Questions and privacy reports belong in
+            Send questions and privacy reports to
             <a href="https://github.com/birol-dev/Pexels/issues" target="_blank" rel="noreferrer"
               >GitHub issues</a
-            >
-            on the public repository.
+            >.
           </p>
         </div>
       </section>
