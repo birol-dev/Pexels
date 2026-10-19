@@ -1,4 +1,3 @@
-import { FlaskIcon } from '@phosphor-icons/react'
 import {
   Select,
   SelectContent,
@@ -25,7 +24,12 @@ export function ExperimentalPanel({
   className
 }: ExperimentalPanelProps): React.JSX.Element {
   return (
-    <SettingsSection title="Experimental" icon={FlaskIcon} compact className={className}>
+    <SettingsSection
+      id="settings-experimental"
+      title="Experimental"
+      description="New ways to run a search. They may change."
+      className={className}
+    >
       <SettingsField
         label="Search engine"
         htmlFor="agent-engine"

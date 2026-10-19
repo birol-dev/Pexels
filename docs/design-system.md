@@ -1,42 +1,61 @@
 # Design system
 
-Tokens live in `src/renderer/src/assets/main.css`. Light is the default (`@theme static`); dark is `.theme-flat-black`, applied together with `.dark` on `<html>` by `hooks/use-theme-class.ts`. Every token has a literal value per theme. There is no opacity-based colour mixing for text.
+Tokens live in `src/renderer/src/assets/main.css`. Light is the base (`@theme static`); dark is `.theme-flat-black`, applied together with `.dark` on `<html>` by `hooks/use-theme-class.ts`. Every token has a literal value per theme. There is no opacity-based colour mixing for text.
 
-## Principles
+## The idea
 
-1. **Semantic tokens only.** Components use roles (`text-on-surface`, `bg-surface-container`), never raw hex or Tailwind palette colours.
-2. **Contrast is enforced.** `npm run check:contrast` checks 61 foreground/background pairs in both themes (4.5:1 for text, 3:1 for UI edges and large text). Add a pair there whenever you add a token.
-3. **No opacity on text.** `opacity-*` on text or icons lowers contrast below the checked values. Pick a different token instead.
-4. **Brutalist, hard-edged.** Borders are 2px, shadows are hard offsets with no blur.
+The app is a gallery frame. Photos and videos from Pexels supply all the colour; the chrome stays white, mist and charcoal so it never competes with them.
+
+1. **Monochrome frame.** Three greys carry the layout: the window frame (`frame`, #F4F4F4 / #181818), the canvas (`background`, white / #232323) and tinted panels (`surface-container-low`). Ink (`primary-container`) marks the one main action and selected states. Red (`error`) is the only hue, and only for failures.
+2. **Space, then tint.** No borders around cards and no drop shadows on things that sit in the page. Group with whitespace first; if that is not enough, put the group on a tint. Tints go one level deep: a tinted panel may hold `bg-background` wells and pills, never another tinted panel.
+3. **Very round.** Controls (buttons, inputs, selects, tabs, badges, chips) are pills (`rounded-full`). Inner pieces (thumbnails, wells, tiles) are 12–16px (`rounded-xl`, `rounded-2xl`). Panels are 24–32px (`rounded-3xl`).
+4. **Shadows only float.** `shadow-lg` is for layers above the page: menus, popovers, dialogs, sheets, toasts, and the floating callout in the onboarding preview. `shadow-sm` and `shadow-xs` resolve to nothing.
+5. **Hairlines, not boxes.** Lists and sections are separated by 1px `border-border` lines (#E5E5E2), like a Swiss grid. Form controls get `border-control`, which is strong enough (≥3:1) to find.
+6. **Photos as they are.** No overlays, gradients, dimming or text on top of a photo. Captions, credits and status go underneath. The one exception is a small glyph badge (the play mark on a video), and dimming a thumbnail the user has rejected.
+
+## Type
+
+Size over weight. Page titles are large, thin Newsreader (serif); everything a person reads or scans in a panel is Satoshi (sans). Geist Mono is only for keys, paths and raw JSON.
+
+| Class | Size | Use |
+| --- | --- | --- |
+| `font-display-xl text-display-xl` | 56px / 300 | The onboarding welcome headline |
+| `font-headline-lg text-headline-lg` | 44px / 300 | One page title per screen |
+| `text-title-md font-title-md` | 17px / 600 | Section headings |
+| `text-body-lg` | 16px | Lead paragraphs under a title |
+| `text-body-md` | 14px | Body text |
+| `text-label-sm` | 13px / 500 | Field labels |
+
+Page titles follow one pattern: the subject in ink, secondary words faded with `.text-fade`, and at most one italic word (`<em>`). For example `A new <em>pack</em>, <span class="text-fade">from a script or an idea</span>`, or a run's title followed by `, in progress` faded. `fade` is too light for body text; use it only at display sizes.
+
+No uppercase micro labels and no letter-spaced captions. Labels are sentence case, 12–13px, in `text-outline`. Floor: sentence text is at least 12px, micro labels (version strings) at least 11px.
 
 ## Roles
 
 | Role | Tokens | Use |
 | --- | --- | --- |
-| Surfaces | `background`, `surface-container-lowest` … `-highest` | Page, cards, panels, raised areas |
+| Frame | `frame`, `frame-selected` | The window around the canvas (sidebar, tab strip) and a selected item on it |
+| Surfaces | `background`, `surface-container-low` … `-highest` | Canvas, tinted panels, then wells and hover fills inside them |
 | Text | `on-surface`, `on-surface-variant`, `outline` | Primary, secondary and tertiary text. `outline` is the weakest text colour and still passes AA |
-| Primary | `primary`, `on-primary`, `primary-container`, `on-primary-container` | `primary` is lime-as-text on a surface. `primary-container` is the lime fill, always paired with `on-primary-container` |
-| Secondary | `secondary`, `secondary-container` (violet) | Secondary actions and accents |
-| Tertiary | `tertiary`, `tertiary-container` | Informational accents |
-| Error | `error`, `error-container`, `destructive` | Failures and destructive actions |
-| Structure | `border`, `input`, `ring`, `edge`, `control` | `border` is for dividers. `edge` is the strong outline on brutal cards and buttons. `control` is the outline on form controls (≥3:1 on every surface) |
-| Shadows | `shadow-hard`, `shadow-hard-sm`, `shadow-hard-xs` | Hard offset shadows. They use `hard-shadow`, which is ink in light and lime in dark |
+| Ink | `primary-container`, `on-primary-container` | The main action on a screen, selected toggles and tabs, done states |
+| Tinted pill | `secondary-container`, `on-secondary-container` | Secondary actions |
+| Error | `error`, `error-container`, `on-error-container`, `destructive` | Failures, and the hover of destructive actions |
+| Structure | `border`, `edge`, `control`, `ring` | `border` for hairline dividers, `edge` for the 1px rim of floating layers, `control` for form-control outlines, `ring` for focus |
+| Fade | `fade` | Faded words in display titles only |
 
-## Rules of thumb
+## Patterns
 
-- Text on a lime fill uses `text-on-primary-container` or `.text-on-lime`, never white.
-- Selected toggles and active tabs use `primary-container`. They do not use `primary` as a background.
-- Form controls get `border-control`. Decorative dividers get `border-border`.
-- Dark mode `paper-white` is deliberately near-black (`#060607`), so legacy `bg-paper-white dark:bg-surface-container-lowest` pairs still resolve.
+- **One ink button per screen.** The thing the screen is for (Find footage, Approve selected, Open in library) is a `Button` with the default variant. Everything else is `secondary`, `ghost` or `link`. Destructive actions are quiet (`ghost` with an `error-container` hover) and always confirm.
+- **Empty states** use `components/common/EmptyState.tsx`: a grey picture (~120px), a specific bold title ("No packs yet", not "Nothing here"), one line on why or what next, a primary button and an optional link.
+- **Status** reads as words, not badges: a small dot plus a sentence-case label ("Running", "Paused", "Done"), with failures in `text-error`.
+- **Setup progress** is a tinted tray ("Finish your setup 3/4") with a step per missing piece and a link to fix it.
+- **Settings** have a big title, a left menu and a form; below `lg` the menu becomes a horizontal tab row and field pairs stack.
+- **Onboarding** is two columns: a ~470px form on the left and a live preview of the app running off the right and bottom edges.
 
-## Type scale
+## Contrast
 
-Classes: `text-display-xl`, `text-headline-lg`, `text-title-md`, `text-body-lg`, `text-body-md`, `text-label-sm`. Floor: sentence text is at least 12px, micro labels (badges, version strings) at least 11px.
-
-## Spacing
-
-Use Tailwind spacing steps. For panel padding use `p-component-padding`. Prefer `gap-*` over margins between siblings. Section headers in settings go through `SettingsSection`.
+`npm run check:contrast` checks every text/surface pair in both themes (4.5:1 for text, 3:1 for UI edges and large text). Add a pair there whenever you add a token. Do not put `opacity-*` on text or icons; pick a weaker token instead.
 
 ## Components
 
-shadcn/ui primitives in `components/ui` carry the token styling. Use them instead of hand-rolled markup. `LiquidMetalButton` (`components/ui/liquid-metal-button.tsx`) is a hero call-to-action built on `@paper-design/shaders`, used on onboarding and the submit bar. It respects `prefers-reduced-motion`.
+shadcn/ui primitives in `components/ui` carry the token styling; use them instead of hand-rolled markup. `LiquidMetalButton` (`components/ui/liquid-metal-button.tsx`, built on `@paper-design/shaders`) is kept for exactly one place, the Find footage button on the Create screen. It respects `prefers-reduced-motion`.

@@ -1,10 +1,8 @@
 import React from 'react'
-import { InfoIcon } from '@phosphor-icons/react'
-import { Badge } from '@renderer/components/ui/badge'
-import { Card } from '@renderer/components/ui/card'
+import { PlayIcon } from '@phosphor-icons/react'
 import { cn } from '@renderer/lib/utils'
 import type { FlatAsset } from '../types'
-import { assetFilename, buildCreditLine, formatDuration, pexelsAssetPageUrl } from '../utils'
+import { assetFilename, formatDuration } from '../utils'
 
 interface AssetCardProps {
   asset: FlatAsset
@@ -12,88 +10,56 @@ interface AssetCardProps {
   onSelect: (asset: FlatAsset) => void
 }
 
-function StatusBadge({ status }: { status: FlatAsset['status'] }): React.JSX.Element {
-  if (status === 'completed') {
-    return (
-      <Badge className="border-2 border-foreground bg-primary text-[11px] font-bold tracking-widest text-primary-foreground uppercase shadow-sm">
-        Ready
-      </Badge>
-    )
-  }
-  if (status === 'failed') {
-    return (
-      <Badge className="border-2 border-foreground bg-error-container text-[11px] font-bold tracking-widest text-on-error-container uppercase shadow-sm">
-        Failed
-      </Badge>
-    )
-  }
-  return (
-    <Badge className="animate-pulse border-2 border-foreground bg-muted text-[11px] font-bold tracking-widest text-foreground uppercase shadow-sm">
-      Active
-    </Badge>
-  )
+const STATUS: Record<FlatAsset['status'], { label: string; className: string } | null> = {
+  completed: null,
+  failed: { label: 'Failed', className: 'text-error' },
+  downloading: { label: 'Downloading', className: 'animate-pulse text-on-surface' },
+  pending: { label: 'Waiting', className: 'text-on-surface' }
 }
 
+/** The photo first, uncropped colour and no text on it; the facts sit underneath in grey. */
 export function AssetCard({ asset, selected, onSelect }: AssetCardProps): React.JSX.Element {
   const filename = assetFilename(asset)
   const durationStr = formatDuration(asset.duration)
+  const status = STATUS[asset.status]
 
   return (
-    <Card
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       onClick={() => onSelect(asset)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onSelect(asset)
-        }
-      }}
-      className={cn(
-        'group relative h-[320px] cursor-pointer gap-0 overflow-hidden border-border p-0 transition-all duration-300 hover:scale-[1.01] hover:shadow-md',
-        selected && 'ring-4 ring-secondary'
-      )}
+      aria-pressed={selected}
+      className="group/asset block w-full cursor-pointer text-left focus-visible:outline-none"
     >
-      <div className="absolute top-3 left-3 z-10">
-        <StatusBadge status={asset.status} />
-      </div>
-
-      <div className="relative h-48 w-full overflow-hidden border-b-2 border-border bg-black">
+      <div
+        className={cn(
+          'relative aspect-[4/3] overflow-hidden rounded-2xl bg-surface-container ring-offset-2 ring-offset-background transition-shadow group-focus-visible/asset:ring-2 group-focus-visible/asset:ring-control',
+          selected && 'ring-2 ring-on-surface group-focus-visible/asset:ring-on-surface'
+        )}
+      >
         <img
-          className="h-full w-full object-cover opacity-90 mix-blend-luminosity transition-transform duration-500 group-hover:scale-105 group-hover:opacity-100 hover:mix-blend-normal"
+          className="size-full object-cover transition-transform duration-500 group-hover/asset:scale-[1.03]"
           src={asset.imageUrl}
           alt={filename}
+          loading="lazy"
         />
-        <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
-        {durationStr && (
-          <span className="absolute right-2 bottom-2 rounded-sm border border-white/20 bg-black/80 px-2 py-0.5 font-label-sm text-[11px] text-white">
-            {durationStr}
+        {asset.type === 'video' && (
+          <span className="absolute right-2.5 bottom-2.5 flex h-6 items-center gap-1 rounded-full bg-black/55 px-2 text-[11px] font-medium text-white tabular-nums backdrop-blur-sm">
+            <PlayIcon size={10} weight="fill" aria-hidden />
+            {durationStr || 'Video'}
           </span>
         )}
       </div>
-
-      <div className="flex flex-1 flex-col justify-between p-4">
-        <div>
-          <h3 className="truncate font-title-md text-[16px] leading-tight font-bold text-card-foreground">
-            {filename}
-          </h3>
-          <p className="mt-1 font-body-md text-[12px] text-muted-foreground">
-            {asset.width}x{asset.height} • {asset.type.toUpperCase()}
-          </p>
-        </div>
-        <div className="mt-3 flex items-center justify-between gap-2 border-t-2 border-dashed border-border pt-3">
-          <a
-            href={asset.photographerUrl || pexelsAssetPageUrl(asset.type, asset.pexelsId)}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="truncate font-label-sm text-[11px] tracking-wider text-muted-foreground uppercase hover:text-secondary hover:underline"
-          >
-            {buildCreditLine(asset)}
-          </a>
-          <InfoIcon size={16} className="shrink-0 text-foreground" />
-        </div>
+      <div className="mt-2.5 min-w-0 px-0.5">
+        <h3 className="truncate text-sm font-semibold text-on-surface">{filename}</h3>
+        <p className="mt-0.5 truncate text-[13px] text-outline">
+          {status && <span className={status.className}>{status.label} · </span>}
+          {asset.photographer}
+          <span className="tabular-nums">
+            {' '}
+            · {asset.width}×{asset.height}
+          </span>
+        </p>
       </div>
-    </Card>
+    </button>
   )
 }

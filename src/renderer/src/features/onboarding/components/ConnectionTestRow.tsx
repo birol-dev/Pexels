@@ -27,10 +27,10 @@ export function ConnectionTestRow({
   shakeOnFailure
 }: ConnectionTestRowProps): React.JSX.Element {
   return (
-    <div className="flex items-start justify-between gap-4 pt-2">
+    <div className="flex items-center justify-between gap-4">
       <Button
         type="button"
-        variant="secondary"
+        variant="outline"
         size="sm"
         onClick={onTest}
         disabled={testing}
@@ -44,8 +44,8 @@ export function ConnectionTestRow({
         <span
           role="status"
           className={cn(
-            'flex min-w-0 items-start gap-1.5 text-right text-xs font-semibold',
-            result.success ? 'text-secondary' : cn('text-error', shakeOnFailure && 'animate-shake')
+            'flex min-w-0 items-start gap-1.5 text-right text-[13px] font-medium',
+            result.success ? 'text-on-surface' : cn('text-error', shakeOnFailure && 'animate-shake')
           )}
         >
           {result.success ? (

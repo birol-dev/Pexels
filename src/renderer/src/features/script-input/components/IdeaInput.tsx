@@ -12,11 +12,9 @@ export function IdeaInput({ form, update }: FormSectionProps): React.JSX.Element
     <div>
       <div className="mb-2 flex items-baseline justify-between">
         <FieldLabel htmlFor="video-idea" className="mb-0">
-          Video Idea / Topic / Hook
+          Your idea
         </FieldLabel>
-        <span className="font-label-sm text-xs text-outline">
-          Short premise, bullet points, or topic
-        </span>
+        <span className="text-[13px] text-outline">A premise, a topic or a few bullet points</span>
       </div>
       <Textarea
         id="video-idea"
@@ -24,21 +22,22 @@ export function IdeaInput({ form, update }: FormSectionProps): React.JSX.Element
         placeholder="e.g. 5 mind-blowing psychological facts that explain why we procrastinate, with dramatic hooks and everyday examples..."
         value={form.idea}
         onChange={(e) => update({ idea: e.target.value })}
-        className="min-h-24 resize-y px-4 py-3"
+        className="min-h-28 resize-y"
         required={!form.script.trim()}
       />
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="mr-1 flex items-center gap-1 font-mono text-[11px] font-bold uppercase text-outline">
+        <span className="mr-1 flex items-center gap-1.5 text-[13px] text-outline">
           <SparkleIcon size={14} />
-          Inspirations:
+          Try
         </span>
         {QUICK_IDEA_STARTERS.map((starter) => (
           <Button
             key={starter.label}
             type="button"
-            variant="secondary"
+            variant="outline"
             size="xs"
+            className="border-transparent bg-background hover:border-control hover:bg-background"
             onClick={() =>
               update({
                 idea: starter.prompt,

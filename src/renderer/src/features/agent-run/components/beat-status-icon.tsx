@@ -3,6 +3,7 @@ import {
   ArrowsClockwiseIcon,
   CheckIcon,
   ClockIcon,
+  DownloadSimpleIcon,
   HourglassIcon,
   XIcon
 } from '@phosphor-icons/react'
@@ -13,24 +14,26 @@ import { getBeatIconBg } from '../utils'
 function StatusGlyph({ status }: { status: VisualBeat['status'] }): React.JSX.Element {
   switch (status) {
     case 'completed':
-      return <CheckIcon size={20} weight="bold" />
+      return <CheckIcon size={16} weight="bold" />
     case 'searching':
-      return <ArrowsClockwiseIcon size={20} weight="bold" />
+      return <ArrowsClockwiseIcon size={16} className="motion-safe:animate-spin" />
     case 'selecting':
+      return <HourglassIcon size={16} />
     case 'downloading':
-      return <HourglassIcon size={20} weight="bold" />
+      return <DownloadSimpleIcon size={16} />
     case 'failed':
-      return <XIcon size={20} weight="bold" />
+      return <XIcon size={16} weight="bold" />
     default:
-      return <ClockIcon size={20} weight="bold" />
+      return <ClockIcon size={16} />
   }
 }
 
 export function BeatStatusIcon({ status }: { status: VisualBeat['status'] }): React.JSX.Element {
   return (
     <div
+      aria-hidden
       className={cn(
-        'absolute -left-4 -top-4 w-10 h-10 rounded-sm brutal-border flex items-center justify-center z-10 shadow-sm',
+        'flex size-9 items-center justify-center rounded-full transition-colors',
         getBeatIconBg(status)
       )}
     >

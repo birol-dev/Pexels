@@ -1,4 +1,3 @@
-import { ShieldCheckIcon } from '@phosphor-icons/react'
 import type { PublicSettings } from '@renderer/lib/store'
 import type { SettingsForm } from '../hooks/useSettingsForm'
 import { SettingsSection } from './SettingsSection'
@@ -13,8 +12,12 @@ export function SafetyPanel({ settings, form }: SafetyPanelProps): React.JSX.Ele
   const { updateNow } = form
 
   return (
-    <SettingsSection title="Safety Controls" icon={ShieldCheckIcon} compact className="flex-1">
-      <div className="mt-2 flex flex-col gap-4">
+    <SettingsSection
+      id="settings-safety"
+      title="Safety"
+      description="What a run may search for, and when it stops to ask you."
+    >
+      <div className="flex flex-col gap-5">
         <ToggleRow
           id="skip-explicit"
           label="Skip explicit content"
@@ -24,7 +27,7 @@ export function SafetyPanel({ settings, form }: SafetyPanelProps): React.JSX.Ele
         />
         <ToggleRow
           id="avoid-people"
-          label="Avoid people & faces"
+          label="Avoid people and faces"
           description="Hides results whose description mentions people. Best effort: videos are judged by their title only."
           checked={settings.avoidPeopleAndFaces}
           onCheckedChange={(avoidPeopleAndFaces) => updateNow({ avoidPeopleAndFaces })}
@@ -32,7 +35,7 @@ export function SafetyPanel({ settings, form }: SafetyPanelProps): React.JSX.Ele
         <ToggleRow
           id="require-approval"
           label="Require approval before download"
-          description="Pause before downloads"
+          description="The run pauses so you can pick the shots before anything downloads."
           checked={settings.requireApprovalBeforeDownload}
           onCheckedChange={(requireApprovalBeforeDownload) =>
             updateNow({ requireApprovalBeforeDownload })
@@ -41,7 +44,7 @@ export function SafetyPanel({ settings, form }: SafetyPanelProps): React.JSX.Ele
         <ToggleRow
           id="hide-cost"
           label="Hide token usage"
-          description="Do not show token counts on the Run screen"
+          description="Leaves the token counts off the Run screen."
           checked={settings.hideEstimatedCost || false}
           onCheckedChange={(hideEstimatedCost) => updateNow({ hideEstimatedCost })}
         />

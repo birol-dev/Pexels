@@ -9,12 +9,9 @@ interface FieldProps {
 
 export function Field({ label, htmlFor, action, children }: FieldProps): React.JSX.Element {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2.5">
       <div className="flex items-center justify-between">
-        <Label
-          htmlFor={htmlFor}
-          className="pl-0.5 font-mono text-[11px] tracking-wider text-on-surface-variant uppercase"
-        >
+        <Label htmlFor={htmlFor} className="text-[13px] font-medium text-on-surface">
           {label}
         </Label>
         {action}

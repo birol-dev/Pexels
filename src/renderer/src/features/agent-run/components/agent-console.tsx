@@ -1,37 +1,50 @@
 import React from 'react'
-import { TerminalWindowIcon } from '@phosphor-icons/react'
-import { Card } from '@renderer/components/ui/card'
 import type { AgentLogEvent } from '@renderer/lib/store'
+import { cn } from '@renderer/lib/utils'
 import { LogEntry } from './log-entry'
 
-export function AgentConsole({ logs }: { logs: AgentLogEvent[] }): React.JSX.Element {
+/** The agent's log as a tinted side panel; a pulsing dot while the run is live. */
+export function AgentConsole({
+  logs,
+  live
+}: {
+  logs: AgentLogEvent[]
+  live: boolean
+}): React.JSX.Element {
   return (
-    <div className="col-span-12 xl:col-span-4 flex flex-col">
-      <Card variant="raised" className="max-h-[750px] gap-0 overflow-hidden py-0">
-        <div className="px-5 py-4 border-b-2 border-edge bg-surface-container-lowest flex justify-between items-center">
-          <h3 className="font-title-md text-title-md text-on-surface flex items-center gap-2">
-            <TerminalWindowIcon size={20} className="text-primary" />
-            Agent Console
-          </h3>
-          <span className="font-mono text-[11px] text-outline flex items-center gap-1.5 font-bold">
-            <span className="relative flex h-2 w-2">
-              <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-lime opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyber-lime"></span>
-            </span>
-            Live Feed
+    <aside
+      aria-label="Agent log"
+      className="col-span-12 flex max-h-[760px] flex-col overflow-hidden rounded-3xl bg-surface-container-low xl:sticky xl:top-0 xl:col-span-4"
+    >
+      <div className="flex items-center justify-between px-6 pt-5 pb-4">
+        <h2 className="text-[15px] font-semibold text-on-surface">Agent log</h2>
+        <span className="flex items-center gap-2 text-[12px] text-outline">
+          <span className="relative flex size-2">
+            {live && (
+              <span className="absolute inline-flex size-full rounded-full bg-on-surface opacity-60 motion-safe:animate-ping" />
+            )}
+            <span
+              className={cn(
+                'relative inline-flex size-2 rounded-full',
+                live ? 'bg-on-surface' : 'bg-outline/50'
+              )}
+            />
           </span>
-        </div>
+          {live ? 'Live' : `${logs.length} entries`}
+        </span>
+      </div>
 
-        <div className="grow p-5 overflow-y-auto log-scroll bg-surface-container-low dark:bg-surface-container-lowest font-mono text-xs flex flex-col gap-4">
-          {logs.map((log, index) => (
-            <LogEntry key={index} log={log} />
-          ))}
-        </div>
+      <div className="log-scroll flex grow flex-col gap-5 overflow-y-auto px-6 pb-6">
+        {logs.length === 0 ? (
+          <p className="text-[13px] text-outline">The agent’s steps show up here as it works.</p>
+        ) : (
+          logs.map((log, index) => <LogEntry key={index} log={log} />)
+        )}
+      </div>
 
-        <p className="px-5 py-3 border-t-2 border-edge bg-surface-container-lowest font-body-md text-xs text-outline">
-          Full search results are saved in agent-state.json in the project folder.
-        </p>
-      </Card>
-    </div>
+      <p className="border-t border-border px-6 py-3.5 text-[12px] leading-snug text-outline">
+        Full search results are saved in agent-state.json in the project folder.
+      </p>
+    </aside>
   )
 }

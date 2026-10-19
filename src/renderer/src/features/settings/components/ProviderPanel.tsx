@@ -1,5 +1,4 @@
-import { ArrowsLeftRightIcon, CircleNotchIcon, CpuIcon, TrashIcon } from '@phosphor-icons/react'
-import { Badge } from '@renderer/components/ui/badge'
+import { ArrowsLeftRightIcon, CircleNotchIcon, TrashIcon } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import {
@@ -63,17 +62,12 @@ export function ProviderPanel({
 
   return (
     <SettingsSection
-      title="AI Provider Configuration"
-      icon={CpuIcon}
-      iconClassName="text-secondary"
+      id="settings-ai"
+      title="AI provider"
+      description="Reads your script, plans the beats and picks the shots."
       className={className}
-      action={
-        <Badge className="border-2 border-edge bg-secondary-container font-label-sm text-label-sm uppercase text-on-secondary-container">
-          Active
-        </Badge>
-      }
     >
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-2">
         <SettingsField label="Provider" htmlFor="llm-provider">
           <Select value={settings.llmProvider} onValueChange={handleProviderChange}>
             <SelectTrigger id="llm-provider" className="w-full">
@@ -89,59 +83,59 @@ export function ProviderPanel({
           </Select>
         </SettingsField>
 
-        <SettingsField label="Model ID" htmlFor="llm-model-id">
+        <SettingsField label="Model" htmlFor="llm-model-id">
           <Input
             id="llm-model-id"
             type="text"
             placeholder="Enter model ID"
             value={settings.modelId}
             onChange={(e) => update({ modelId: e.target.value })}
-            className="font-mono"
+            className="font-mono text-[13px]"
           />
         </SettingsField>
       </div>
 
       <SettingsField
-        label="API Key"
+        label={`${providerLabel} API key`}
         htmlFor="llm-api-key"
         hint="Saved when you press Enter or leave the field."
       >
-        <div className="flex gap-4">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Input
             id="llm-api-key"
             type="password"
-            placeholder={hasStoredKey ? '••••••••••••••••' : 'Enter provider key...'}
+            placeholder={hasStoredKey ? '••••••••••••••••' : 'Paste your key'}
             value={keys[keyField]}
             onChange={(e) => setKey(keyField, e.target.value)}
             onBlur={(e) => commitKey(keyField, e.currentTarget.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') commitKey(keyField, e.currentTarget.value)
             }}
-            className="flex-1 font-mono tracking-widest"
+            className="flex-1 font-mono tracking-widest placeholder:font-sans placeholder:tracking-normal"
           />
-          <Button type="button" variant="secondary" disabled={testing} onClick={run}>
+          <Button type="button" variant="outline" disabled={testing} onClick={run}>
             {testing ? (
               <CircleNotchIcon size={18} className="animate-spin" aria-hidden />
             ) : (
               <ArrowsLeftRightIcon size={18} aria-hidden />
             )}
-            <span className="font-label-sm text-label-sm uppercase">Test Key</span>
+            Test key
           </Button>
           {hasStoredKey && !keys[keyField] && (
             <Button
               type="button"
-              variant="secondary"
-              className="hover:border-error hover:bg-error-container hover:text-on-error-container"
+              variant="ghost"
+              className="text-outline hover:bg-error-container hover:text-on-error-container"
               onClick={() => removeKey(keyField, providerLabel)}
             >
               <TrashIcon size={18} aria-hidden />
-              <span className="font-label-sm text-label-sm uppercase">Remove key</span>
+              Remove key
             </Button>
           )}
         </div>
       </SettingsField>
 
-      <TestResult title="LLM Connection Test" result={result} />
+      <TestResult title="Connection test" result={result} />
     </SettingsSection>
   )
 }

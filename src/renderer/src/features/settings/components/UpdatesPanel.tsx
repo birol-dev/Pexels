@@ -46,47 +46,39 @@ export function UpdatesPanel({ settings, form, className }: UpdatesPanelProps): 
   }
 
   return (
-    <SettingsSection title="Updates" icon={ArrowsClockwiseIcon} compact className={className}>
-      <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-10">
-        <div className="md:max-w-lg md:flex-1">
-          <ToggleRow
-            id="auto-update"
-            label="Check for updates automatically"
-            description="Asks GitHub Releases for a newer version every six hours."
-            checked={settings.autoCheckForUpdates !== false}
-            onCheckedChange={(autoCheckForUpdates) => form.updateNow({ autoCheckForUpdates })}
-          />
+    <SettingsSection id="settings-updates" title="Updates" className={className}>
+      <ToggleRow
+        id="auto-update"
+        label="Check for updates automatically"
+        description="Asks GitHub Releases for a newer version every six hours."
+        checked={settings.autoCheckForUpdates !== false}
+        onCheckedChange={(autoCheckForUpdates) => form.updateNow({ autoCheckForUpdates })}
+      />
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-4 rounded-2xl bg-surface-container py-2 pr-2 pl-4">
+          <span className="text-sm text-on-surface">
+            You have version <span className="font-semibold tabular-nums">{__APP_VERSION__}</span>
+          </span>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="bg-background hover:bg-background/70"
+            onClick={checkNow}
+            disabled={checking || Boolean(unavailable)}
+          >
+            {checking ? <CircleNotchIcon className="animate-spin" /> : <ArrowsClockwiseIcon />}
+            {checking ? 'Checking...' : 'Check now'}
+          </Button>
         </div>
-
-        <div className="flex flex-col gap-2 md:items-end">
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-xs text-on-surface-variant">
-              Version {__APP_VERSION__}
-            </span>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={checkNow}
-              disabled={checking || Boolean(unavailable)}
-            >
-              {checking ? <CircleNotchIcon className="animate-spin" /> : <ArrowsClockwiseIcon />}
-              {checking ? 'Checking...' : 'Check now'}
-            </Button>
-          </div>
-          {message && (
-            <p
-              role="status"
-              className={
-                failed
-                  ? 'max-w-sm text-xs font-semibold text-error md:text-right'
-                  : 'max-w-sm text-xs text-on-surface-variant md:text-right'
-              }
-            >
-              {message}
-            </p>
-          )}
-        </div>
+        {message && (
+          <p
+            role="status"
+            className={failed ? 'text-[13px] font-medium text-error' : 'text-[13px] text-outline'}
+          >
+            {message}
+          </p>
+        )}
       </div>
     </SettingsSection>
   )

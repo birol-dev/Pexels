@@ -1,6 +1,7 @@
 import { useOnboarding } from '@renderer/features/onboarding/hooks/useOnboarding'
 import { AiProviderStep } from '@renderer/features/onboarding/components/AiProviderStep'
 import { FinishStep } from '@renderer/features/onboarding/components/FinishStep'
+import { OnboardingPreview } from '@renderer/features/onboarding/components/OnboardingPreview'
 import { PexelsStep } from '@renderer/features/onboarding/components/PexelsStep'
 import { StorageStep } from '@renderer/features/onboarding/components/StorageStep'
 import { WelcomeStep } from '@renderer/features/onboarding/components/WelcomeStep'
@@ -11,7 +12,7 @@ export default function OnboardingView(): React.JSX.Element {
   const { step, goTo } = ob
 
   return (
-    <WizardLayout step={step}>
+    <WizardLayout step={step} preview={<OnboardingPreview {...ob} />}>
       {step === 1 && <WelcomeStep onStart={() => goTo(2)} />}
       {step === 2 && <AiProviderStep {...ob} onBack={() => goTo(1)} onNext={() => goTo(3)} />}
       {step === 3 && <PexelsStep {...ob} onBack={() => goTo(2)} onNext={() => goTo(4)} />}

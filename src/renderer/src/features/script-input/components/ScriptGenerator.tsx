@@ -15,19 +15,17 @@ export function ScriptGenerator({ form, update }: FormSectionProps): React.JSX.E
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <span className="block font-title-md text-xs font-bold uppercase tracking-wide text-on-surface">
-            AI Scriptwriter
-          </span>
-          <span className="text-xs text-outline">
-            Preview and edit the AI-generated script, or proceed directly to pack generation.
+          <span className="block text-sm font-semibold text-on-surface">AI scriptwriter</span>
+          <span className="text-[13px] text-outline">
+            Write the script first to read and edit it, or skip straight to the pack.
           </span>
         </div>
         <Button
           type="button"
-          variant="violet"
+          variant="secondary"
           onClick={expandIdea}
           disabled={isExpanding || !form.idea.trim()}
-          className="uppercase tracking-wider"
+          className="bg-background hover:bg-background/70"
         >
           {isExpanding ? (
             <CircleNotchIcon size={18} className="animate-spin" />
@@ -36,10 +34,10 @@ export function ScriptGenerator({ form, update }: FormSectionProps): React.JSX.E
           )}
           <span>
             {isExpanding
-              ? 'Expanding Idea…'
+              ? 'Writing the script…'
               : hasScript
-                ? 'Regenerate Script'
-                : 'Generate Script from Idea'}
+                ? 'Write it again'
+                : 'Write the script'}
           </span>
         </Button>
       </div>

@@ -24,19 +24,20 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   render(): React.ReactNode {
     if (this.state.hasError) {
       return (
-        <div className="flex h-screen items-center justify-center bg-black p-8">
-          <div className="flex max-w-md flex-col items-center gap-4 text-center">
-            <WarningCircleIcon size={64} className="text-error" />
-            <h1 className="font-headline-lg text-headline-lg uppercase text-white">
-              Something went wrong
+        <div className="flex h-screen items-center justify-center bg-frame p-8">
+          <div className="flex max-w-md flex-col items-center rounded-3xl bg-background px-10 py-12 text-center">
+            <span className="flex size-14 items-center justify-center rounded-full bg-error-container text-on-error-container">
+              <WarningCircleIcon size={28} />
+            </span>
+            <h1 className="mt-6 font-headline-lg text-[40px] leading-tight font-light text-on-surface">
+              Something <em>went</em> wrong
             </h1>
-            <p className="font-body-md text-body-md text-risograph-gray">
+            <p className="mt-3 text-sm text-outline">
               {this.state.error?.message || 'An unexpected error occurred.'}
             </p>
             <Button
-              variant="secondary"
               size="lg"
-              className="mt-4 uppercase"
+              className="mt-7"
               onClick={() => this.setState({ hasError: false, error: undefined })}
             >
               Try again

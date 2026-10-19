@@ -10,7 +10,7 @@ export function ScriptStats({
 }): React.JSX.Element {
   const words = countWords(script)
   return (
-    <span className="font-mono text-xs font-bold text-primary">
+    <span className="text-[13px] font-medium tabular-nums text-on-surface">
       {words} words (~{estimateReadSeconds(words)}s{suffix})
     </span>
   )

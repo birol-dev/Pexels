@@ -1,4 +1,4 @@
-import { CheckCircleIcon, CircleNotchIcon, ImagesIcon, TrashIcon } from '@phosphor-icons/react'
+import { CheckCircleIcon, CircleNotchIcon, TrashIcon } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { api } from '@renderer/lib/api-client'
@@ -27,57 +27,51 @@ export function PexelsPanel({ settings, form, className }: PexelsPanelProps): Re
 
   return (
     <SettingsSection
-      title="Pexels API"
-      icon={ImagesIcon}
-      iconClassName="text-primary"
+      id="settings-pexels"
+      title="Pexels"
+      description="Where the footage comes from. The key is free at pexels.com/api."
       className={className}
     >
-      <p className="font-body-md text-sm text-muted-foreground">
-        Required for pulling high-res stock footage.
-      </p>
-      <SettingsField label="Access Token" htmlFor="pexels-key" className="mt-auto">
-        <Input
-          id="pexels-key"
-          type="password"
-          placeholder={hasStoredKey ? '••••••••••••••••' : 'Enter Pexels key...'}
-          value={keys.pexelsKey}
-          onChange={(e) => setKey('pexelsKey', e.target.value)}
-          onBlur={(e) => commitKey('pexelsKey', e.currentTarget.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') commitKey('pexelsKey', e.currentTarget.value)
-          }}
-          className="font-mono"
-        />
-        <p className="select-none text-xs text-muted-foreground">
-          Saved when you press Enter or leave the field.
-        </p>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={testing}
-          onClick={run}
-          className="mt-2 w-full"
-        >
-          {testing ? (
-            <CircleNotchIcon size={18} className="animate-spin" aria-hidden />
-          ) : (
-            <CheckCircleIcon size={18} aria-hidden />
-          )}
-          <span className="font-label-sm text-label-sm uppercase">Verify Connection</span>
-        </Button>
-        {hasStoredKey && !keys.pexelsKey && (
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full hover:border-error hover:bg-error-container hover:text-on-error-container"
-            onClick={() => removeKey('pexelsKey', 'Pexels')}
-          >
-            <TrashIcon size={18} aria-hidden />
-            <span className="font-label-sm text-label-sm uppercase">Remove key</span>
+      <SettingsField
+        label="Pexels API key"
+        htmlFor="pexels-key"
+        hint="Saved when you press Enter or leave the field."
+      >
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            id="pexels-key"
+            type="password"
+            placeholder={hasStoredKey ? '••••••••••••••••' : 'Paste your key'}
+            value={keys.pexelsKey}
+            onChange={(e) => setKey('pexelsKey', e.target.value)}
+            onBlur={(e) => commitKey('pexelsKey', e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitKey('pexelsKey', e.currentTarget.value)
+            }}
+            className="flex-1 font-mono tracking-widest placeholder:font-sans placeholder:tracking-normal"
+          />
+          <Button type="button" variant="outline" disabled={testing} onClick={run}>
+            {testing ? (
+              <CircleNotchIcon size={18} className="animate-spin" aria-hidden />
+            ) : (
+              <CheckCircleIcon size={18} aria-hidden />
+            )}
+            Test key
           </Button>
-        )}
+          {hasStoredKey && !keys.pexelsKey && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-outline hover:bg-error-container hover:text-on-error-container"
+              onClick={() => removeKey('pexelsKey', 'Pexels')}
+            >
+              <TrashIcon size={18} aria-hidden />
+              Remove key
+            </Button>
+          )}
+        </div>
       </SettingsField>
-      <TestResult title="Pexels Connection Test" result={result} />
+      <TestResult title="Connection test" result={result} />
     </SettingsSection>
   )
 }

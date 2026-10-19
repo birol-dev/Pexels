@@ -1,4 +1,3 @@
-import { GaugeIcon } from '@phosphor-icons/react'
 import type { PublicSettings } from '@renderer/lib/store'
 import type { SettingsForm } from '../hooks/useSettingsForm'
 import { SettingsSection } from './SettingsSection'
@@ -19,11 +18,16 @@ export function PerformancePanel({
   const rpm = settings.requestsPerMinute ?? 0
 
   return (
-    <SettingsSection title="Performance Tuning" icon={GaugeIcon} className={className}>
+    <SettingsSection
+      id="settings-performance"
+      title="Performance"
+      description="How hard StockFinder works at once, and how long it waits."
+      className={className}
+    >
       <div className="flex flex-col gap-8">
         <SliderField
           id="max-concurrent-downloads"
-          label="Max Concurrent Downloads"
+          label="Downloads at once"
           value={settings.maxConcurrentDownloads}
           min={1}
           max={10}
@@ -31,7 +35,7 @@ export function PerformancePanel({
         />
         <SliderField
           id="max-agent-iterations"
-          label="Max Agent Loop Turns"
+          label="Agent loop turns, at most"
           value={settings.maxAgentIterations}
           min={5}
           max={50}
@@ -40,9 +44,10 @@ export function PerformancePanel({
         />
         <SliderField
           id="request-timeout"
-          label="Pexels and Download Timeout (Secs)"
+          label="Pexels and download timeout"
           hint="Applies to Pexels searches and downloads. LLM requests can take up to 10 minutes on long scripts."
           value={settings.requestTimeoutSeconds}
+          displayValue={`${settings.requestTimeoutSeconds}s`}
           min={10}
           max={600}
           step={5}
@@ -50,10 +55,10 @@ export function PerformancePanel({
         />
         <SliderField
           id="requests-per-minute"
-          label="Rate Limit (Requests / Min)"
-          hint="Throttle LLM calls to prevent 429 errors (0 = Unlimited)"
+          label="LLM requests per minute"
+          hint="Slows LLM calls down to avoid 429 errors. 0 means no limit."
           value={rpm}
-          displayValue={rpm > 0 ? `${rpm} RPM` : 'Unlimited (0)'}
+          displayValue={rpm > 0 ? `${rpm} / min` : 'No limit'}
           min={0}
           max={120}
           step={5}

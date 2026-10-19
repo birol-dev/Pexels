@@ -1,6 +1,5 @@
-import { FolderIcon, PencilSimpleIcon } from '@phosphor-icons/react'
+import { FolderIcon } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
-import { Card } from '@renderer/components/ui/card'
 import { api } from '@renderer/lib/api-client'
 import type { PublicSettings } from '@renderer/lib/store'
 import type { SettingsForm } from '../hooks/useSettingsForm'
@@ -18,24 +17,30 @@ export function StoragePanel({ settings, form }: StoragePanelProps): React.JSX.E
   }
 
   return (
-    <SettingsSection title="Storage Path" icon={FolderIcon} compact>
-      <Card variant="sunken" className="flex-row items-center gap-3 rounded-md p-2">
+    <SettingsSection
+      id="settings-storage"
+      title="Storage"
+      description="Each pack gets its own folder in here."
+    >
+      <div className="flex items-center gap-3 rounded-2xl bg-surface-container py-2 pr-2 pl-4">
+        <FolderIcon size={20} className="shrink-0 text-outline" aria-hidden />
         <p
-          className="flex-1 truncate px-2 font-mono text-sm text-foreground"
+          className="min-w-0 flex-1 truncate font-mono text-[13px] text-on-surface"
           title={settings.downloadFolder}
         >
-          {settings.downloadFolder}
+          {settings.downloadFolder || 'No folder chosen yet'}
         </p>
         <Button
           type="button"
-          size="icon-sm"
+          size="sm"
           variant="secondary"
+          className="bg-background hover:bg-background/70"
           onClick={handleChooseFolder}
           aria-label="Choose Folder"
         >
-          <PencilSimpleIcon size={16} weight="bold" aria-hidden />
+          Change
         </Button>
-      </Card>
+      </div>
     </SettingsSection>
   )
 }

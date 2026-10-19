@@ -1,7 +1,14 @@
 import React from 'react'
-import { EyeIcon, PauseIcon, SlidersHorizontalIcon, XIcon } from '@phosphor-icons/react'
+import {
+  ArrowCounterClockwiseIcon,
+  CheckIcon,
+  ImagesIcon,
+  PauseIcon,
+  PlayIcon,
+  SlidersHorizontalIcon,
+  XIcon
+} from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
-import { LiquidMetalButton } from '@renderer/components/ui/liquid-metal-button'
 import { useAppStore, type JobSnapshot } from '@renderer/lib/store'
 
 interface RunActionsProps {
@@ -18,6 +25,7 @@ interface RunActionsProps {
   onInspect: () => void
 }
 
+/** One ink pill for what the run needs next; everything else tinted or quiet. */
 export function RunActions({
   job,
   hasPendingAssets,
@@ -44,18 +52,12 @@ export function RunActions({
   }
 
   return (
-    <div className="flex gap-4 shrink-0">
-      {status === 'running' && (
-        <Button variant="secondary" size="lg" onClick={onPause}>
-          <PauseIcon weight="fill" /> Pause Run
-        </Button>
-      )}
+    <div className="flex shrink-0 flex-wrap items-center gap-2">
       {status === 'paused' && (
-        <LiquidMetalButton
-          label={hasPendingAssets ? 'Approve Selected' : 'Resume Run'}
-          width={hasPendingAssets ? 190 : 150}
-          onClick={onResumeOrApprove}
-        />
+        <Button size="lg" onClick={onResumeOrApprove}>
+          {hasPendingAssets ? <CheckIcon weight="bold" /> : <PlayIcon weight="fill" />}
+          {hasPendingAssets ? 'Approve selected' : 'Resume'}
+        </Button>
       )}
       {status === 'paused' && !hasPendingAssets && canResumeWithCurrentSettings && (
         <Button
@@ -64,21 +66,38 @@ export function RunActions({
           onClick={onResumeWithCurrentSettings}
           title="Use the model and limits from Settings. The earlier conversation is dropped."
         >
-          <SlidersHorizontalIcon weight="bold" /> Resume with current settings
+          <SlidersHorizontalIcon /> Resume with current settings
         </Button>
       )}
-      {(status === 'running' || status === 'paused') && (
-        <Button variant="destructive" size="lg" onClick={handleCancel}>
-          <XIcon weight="bold" /> Cancel Run
+      {status === 'running' && (
+        <Button variant="secondary" size="lg" onClick={onPause}>
+          <PauseIcon weight="fill" /> Pause
+        </Button>
+      )}
+      {status === 'completed' && (
+        <Button size="lg" onClick={onInspect}>
+          <ImagesIcon />
+          Open in library
         </Button>
       )}
       {(status === 'completed' || status === 'failed' || status === 'cancelled') && (
-        <LiquidMetalButton label="Rerun Agent" width={160} onClick={onRerun} disabled={loading} />
+        <Button
+          variant={status === 'completed' ? 'secondary' : 'default'}
+          size="lg"
+          onClick={onRerun}
+          disabled={loading}
+        >
+          <ArrowCounterClockwiseIcon /> Run again
+        </Button>
       )}
-      {status === 'completed' && (
-        <Button variant="secondary" size="lg" onClick={onInspect}>
-          <EyeIcon />
-          Inspect Assets
+      {(status === 'running' || status === 'paused') && (
+        <Button
+          variant="ghost"
+          size="lg"
+          onClick={handleCancel}
+          className="text-outline hover:bg-error-container hover:text-on-error-container"
+        >
+          <XIcon /> Cancel run
         </Button>
       )}
     </div>

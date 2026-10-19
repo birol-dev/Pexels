@@ -85,7 +85,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
     <div className="relative z-10 flex flex-col gap-8">
       <LibraryHeader
         activeJobId={activeJobId}
-        title={activeJobId ? activeJob?.title || 'test' : 'Media Library'}
+        title={activeJobId ? activeJob?.title || 'This project' : 'Media Library'}
         searchQuery={searchQuery}
         onSearchChange={filters.setSearchQuery}
         onOpenFolder={actions.openProjectFolder}
@@ -100,7 +100,7 @@ export default function DownloadedStuffView(): React.JSX.Element {
         showStatus={!!activeJobId}
       />
       <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
-        <div className="flex flex-col gap-6 lg:col-span-8">{renderContent()}</div>
+        <div className="flex flex-col gap-10 lg:col-span-8">{renderContent()}</div>
         <AssetInspector
           asset={selectedAsset}
           onReveal={actions.openAssetFolder}

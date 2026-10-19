@@ -11,13 +11,13 @@ interface AssetMixPickerProps {
 export function AssetMixPicker({ value, onChange }: AssetMixPickerProps): React.JSX.Element {
   return (
     <div>
-      <FieldLabel id="asset-mix-label">Asset Mix</FieldLabel>
+      <FieldLabel id="asset-mix-label">Asset mix</FieldLabel>
       <SegmentedControl
         value={value}
         onValueChange={onChange}
         options={MIX_OPTIONS}
         ariaLabel="Asset Mix"
-        className="h-12"
+        className="h-11"
         itemClassName="h-full"
       />
     </div>

@@ -17,12 +17,12 @@ export function SettingsField({
   children
 }: SettingsFieldProps): React.JSX.Element {
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
-      <Label htmlFor={htmlFor} className="font-label-sm text-label-sm uppercase text-foreground">
+    <div className={cn('flex flex-col gap-2.5', className)}>
+      <Label htmlFor={htmlFor} className="text-[13px] font-medium text-on-surface">
         {label}
       </Label>
       {children}
-      {hint && <p className="select-none text-xs text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-[13px] leading-snug text-outline select-none">{hint}</p>}
     </div>
   )
 }

@@ -1,5 +1,4 @@
 import { CheckIcon, WarningIcon } from '@phosphor-icons/react'
-import { Badge } from '@renderer/components/ui/badge'
 import { cn } from '@renderer/lib/utils'
 
 interface SummaryCardProps {
@@ -25,38 +24,31 @@ export function SummaryCard({
   return (
     <div
       className={cn(
-        'flex items-start gap-3 rounded-xl border border-border bg-card p-4 text-card-foreground',
+        'flex items-center gap-3.5 rounded-2xl bg-surface-container p-3.5 pr-4',
         className
       )}
     >
       <div
         className={cn(
-          'flex size-9 shrink-0 items-center justify-center rounded-sm border [&_svg]:size-5',
-          ok
-            ? 'border-secondary/20 bg-secondary/10 text-secondary'
-            : 'border-edge bg-error-container text-on-error-container'
+          'flex size-10 shrink-0 items-center justify-center rounded-xl [&_svg]:size-5',
+          ok ? 'bg-background text-on-surface' : 'bg-error-container text-on-error-container'
         )}
       >
         {icon}
       </div>
       <div className="min-w-0 grow">
-        <h4 className="mb-0.5 text-xs font-semibold text-on-surface">{title}</h4>
-        <p className={cn('truncate text-xs text-on-surface-variant', mono && 'font-mono')}>
-          {value}
-        </p>
-        <Badge
-          variant="outline"
-          className={cn(
-            'mt-1.5 gap-1 font-mono text-[11px] uppercase',
-            ok
-              ? 'border-secondary/20 bg-secondary/10 text-secondary'
-              : 'border-edge bg-error-container text-on-error-container'
-          )}
-        >
-          {ok ? <CheckIcon size={10} weight="bold" /> : <WarningIcon size={10} weight="bold" />}
-          {status}
-        </Badge>
+        <h4 className="text-sm font-semibold text-on-surface">{title}</h4>
+        <p className={cn('truncate text-[13px] text-outline', mono && 'font-mono')}>{value}</p>
       </div>
+      <span
+        className={cn(
+          'flex shrink-0 items-center gap-1 text-[13px] font-medium',
+          ok ? 'text-on-surface-variant' : 'text-error'
+        )}
+      >
+        {ok ? <CheckIcon size={14} weight="bold" /> : <WarningIcon size={14} weight="bold" />}
+        {status}
+      </span>
     </div>
   )
 }

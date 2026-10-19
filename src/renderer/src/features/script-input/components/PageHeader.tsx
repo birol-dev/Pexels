@@ -1,30 +1,15 @@
 import React from 'react'
-import { QuestionIcon } from '@phosphor-icons/react'
-import { Button } from '@renderer/components/ui/button'
-import { useAppStore } from '@renderer/lib/store'
 
 export function PageHeader(): React.JSX.Element {
-  const navigate = useAppStore((s) => s.navigate)
-
   return (
-    <header className="mb-section-gap flex items-end justify-between">
-      <div>
-        <h2 className="font-headline-lg text-headline-lg text-on-surface">Create New Pack</h2>
-        <p className="font-body-lg text-body-lg text-outline mt-2">
-          Paste a full script or enter a raw idea — AI will write the narrative and curate matching
-          b-roll.
-        </p>
-      </div>
-      <Button
-        variant="secondary"
-        size="icon-lg"
-        className="rounded-sm"
-        onClick={() => navigate('settings')}
-        aria-label="Help & Settings"
-        title="Help & Settings"
-      >
-        <QuestionIcon size={20} weight="bold" />
-      </Button>
+    <header>
+      <h1 className="font-headline-lg text-headline-lg text-on-surface">
+        A new <em>pack</em>, <span className="text-fade">from a script or an idea</span>
+      </h1>
+      <p className="mt-4 max-w-xl text-body-lg text-outline">
+        Paste a script and StockFinder finds Pexels footage for every beat. Or start from an idea
+        and let AI write the script first.
+      </p>
     </header>
   )
 }

@@ -26,7 +26,7 @@ function TabTitleEditor({
       onBlur={() => onDone(value)}
       onClick={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
-      className="h-5 w-24 rounded-none border-0 border-b border-primary bg-transparent px-1 py-0 text-xs shadow-none focus-visible:shadow-none dark:focus-visible:shadow-none"
+      className="h-5 w-28 rounded-none border-0 border-b border-on-surface bg-transparent px-0.5 py-0 text-[13px] shadow-none focus-visible:ring-0"
     />
   )
 }
@@ -49,7 +49,7 @@ export function TabBar(): React.JSX.Element | null {
   }
 
   return (
-    <div className="scrollbar-none flex shrink-0 select-none items-center gap-3 overflow-x-auto overflow-y-hidden border-b-2 border-border bg-surface-container px-6 py-2.5">
+    <div className="scrollbar-none flex shrink-0 select-none items-center gap-1 overflow-x-auto overflow-y-hidden border-b border-border px-4 py-2.5">
       {tabs.map((tab) => {
         const active = tab.id === activeTabId
         const TabIcon = TAB_ICONS[tab.type]
@@ -63,17 +63,17 @@ export function TabBar(): React.JSX.Element | null {
               if (tab.type === 'input') setEditingTabId(tab.id)
             }}
             className={cn(
-              'flex cursor-pointer items-center gap-2 rounded-md border-2 px-3 py-1.5 font-label-sm text-xs transition-all',
+              'group/tab flex h-8 shrink-0 cursor-pointer items-center gap-2 rounded-full pr-1.5 pl-3 text-[13px] font-medium transition-colors',
               active
-                ? 'border-ink-black bg-primary-container text-on-primary-container shadow-sm'
-                : 'border-border bg-paper-white text-outline hover:bg-surface-variant hover:text-on-surface dark:bg-surface-container-lowest'
+                ? 'bg-surface-container text-on-surface dark:bg-surface-container-high'
+                : 'text-outline hover:bg-surface-container/70 hover:text-on-surface'
             )}
           >
-            <TabIcon size={16} weight={active ? 'fill' : 'regular'} />
+            <TabIcon size={16} weight={active ? 'fill' : 'regular'} className="shrink-0" />
             {editingTabId === tab.id ? (
               <TabTitleEditor tab={tab} onDone={(title) => saveTitle(tab.id, title)} />
             ) : (
-              <span className="max-w-[120px] truncate">{tab.title}</span>
+              <span className="max-w-[160px] truncate">{tab.title}</span>
             )}
             <button
               type="button"
@@ -82,7 +82,10 @@ export function TabBar(): React.JSX.Element | null {
                 e.stopPropagation()
                 closeTab(tab.id)
               }}
-              className="flex size-4 cursor-pointer items-center justify-center rounded-sm text-outline transition-colors hover:bg-foreground/10 hover:text-error"
+              className={cn(
+                'flex size-5 cursor-pointer items-center justify-center rounded-full text-outline transition-[opacity,color,background-color] hover:bg-foreground/10 hover:text-on-surface focus-visible:opacity-100',
+                active ? 'opacity-100' : 'opacity-0 group-hover/tab:opacity-100'
+              )}
             >
               <XIcon size={12} weight="bold" />
             </button>
@@ -91,9 +94,9 @@ export function TabBar(): React.JSX.Element | null {
       })}
 
       <Button
-        variant="secondary"
-        size="icon-xs"
-        className="shrink-0"
+        variant="ghost"
+        size="icon-sm"
+        className="ml-1 shrink-0 text-outline"
         aria-label="New Create Pack tab"
         onClick={() => openTab('input', undefined, true)}
       >

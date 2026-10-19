@@ -1,10 +1,9 @@
 import React from 'react'
-import { ArrowLeftIcon, ClockIcon } from '@phosphor-icons/react'
-import { Badge } from '@renderer/components/ui/badge'
+import { ArrowLeftIcon } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
 import { cn } from '@renderer/lib/utils'
 import type { JobSnapshot } from '@renderer/lib/store'
-import { getPauseReasonText, getStatusBadgeClass, getTokenUsageText } from '../utils'
+import { RUN_STATUS, getPauseReasonText, getTokenUsageText } from '../utils'
 
 interface RunHeaderProps {
   job: JobSnapshot
@@ -14,42 +13,59 @@ interface RunHeaderProps {
   actions: React.ReactNode
 }
 
+/** The pack's name large, its status as faded words after it, and the run's actions. */
 export function RunHeader({
   job,
   hideTokenUsage,
   onBack,
   actions
 }: RunHeaderProps): React.JSX.Element {
+  const status = RUN_STATUS[job.status] ?? RUN_STATUS.cancelled
   const pauseReason = getPauseReasonText(job)
   const tokenUsage = hideTokenUsage ? null : getTokenUsageText(job)
+  // A paused run says why; otherwise the step, unless it only repeats the status.
+  const detail =
+    pauseReason && pauseReason !== 'Paused'
+      ? pauseReason
+      : job.currentStep && job.currentStep.toLowerCase() !== status.label.toLowerCase()
+        ? job.currentStep
+        : null
   return (
-    <header className="relative z-10 flex items-end justify-between border-b-2 border-edge pb-8">
-      <div className="flex flex-col gap-2">
-        <Button variant="link" size="xs" onClick={onBack} className="self-start px-0 text-outline">
-          <ArrowLeftIcon weight="bold" />
-          Back to project setup
-        </Button>
-        <div className="flex items-center gap-4">
-          <h2 className="font-display-xl text-display-xl text-on-surface">{job.title}</h2>
-          <Badge
-            className={cn(
-              'px-3 py-1 border-2 border-ink-black dark:border-primary-container font-label-sm text-label-sm tracking-widest uppercase inline-block brutal-shadow translate-y-[-2px]',
-              getStatusBadgeClass(job.status)
+    <header className="flex flex-col gap-5">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onBack}
+        className="-ml-3 self-start text-outline hover:text-on-surface"
+      >
+        <ArrowLeftIcon />
+        Project setup
+      </Button>
+
+      <div className="flex flex-col justify-between gap-x-8 gap-y-6 xl:flex-row xl:items-end">
+        <div className="min-w-0">
+          <h1 className="font-headline-lg text-headline-lg text-on-surface">
+            {job.title}
+            <span className="text-fade">, {status.fade}</span>
+          </h1>
+          <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] text-outline">
+            <span className="flex items-center gap-2 font-medium text-on-surface">
+              <span aria-hidden className={cn('size-2 rounded-full', status.dot)} />
+              {status.label}
+            </span>
+            {detail && (
+              <>
+                <span aria-hidden>·</span>
+                <span>{detail}</span>
+              </>
             )}
-          >
-            {job.status}
-          </Badge>
+          </p>
+          {tokenUsage && (
+            <p className="mt-1.5 text-[13px] text-outline tabular-nums">{tokenUsage}</p>
+          )}
         </div>
-        {pauseReason && (
-          <p className="font-body-md text-body-md text-on-surface-variant">{pauseReason}</p>
-        )}
-        <p className="font-body-md text-body-md text-outline flex items-center gap-2">
-          <ClockIcon size={18} />
-          Status: {job.currentStep}
-        </p>
-        {tokenUsage && <p className="font-body-md text-body-md text-outline">{tokenUsage}</p>}
+        {actions}
       </div>
-      {actions}
     </header>
   )
 }

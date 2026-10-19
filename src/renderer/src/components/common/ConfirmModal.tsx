@@ -25,29 +25,25 @@ export function ConfirmModal(): React.JSX.Element {
           <div className="flex items-center gap-3">
             <div
               className={cn(
-                'flex size-8 items-center justify-center rounded-lg border',
-                modal.isConfirm
-                  ? 'border-primary/20 bg-primary/10 text-primary'
-                  : 'border-tertiary/20 bg-tertiary/10 text-tertiary'
+                'flex size-9 items-center justify-center rounded-xl text-on-surface',
+                modal.isConfirm ? 'bg-surface-container-high' : 'bg-surface-container'
               )}
             >
-              <Icon size={20} weight="bold" />
+              <Icon size={20} />
             </div>
             <AlertDialogTitle>{modal.title}</AlertDialogTitle>
           </div>
-          <AlertDialogDescription className="text-xs font-semibold leading-relaxed">
+          <AlertDialogDescription className="text-sm leading-relaxed whitespace-pre-line">
             {modal.message}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           {modal.isConfirm && (
-            <Button variant="secondary" size="sm" onClick={() => closeModal(false)}>
+            <Button variant="secondary" onClick={() => closeModal(false)}>
               {modal.cancelText}
             </Button>
           )}
-          <Button size="sm" onClick={() => closeModal(true)}>
-            {modal.confirmText}
-          </Button>
+          <Button onClick={() => closeModal(true)}>{modal.confirmText}</Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -1,7 +1,6 @@
 import React from 'react'
 import { XIcon } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
-import { Card } from '@renderer/components/ui/card'
 
 interface AttributionBannerProps {
   onDismiss: () => void
@@ -9,33 +8,30 @@ interface AttributionBannerProps {
 
 export function AttributionBanner({ onDismiss }: AttributionBannerProps): React.JSX.Element {
   return (
-    <Card variant="accent" className="gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="text-sm text-on-surface">
-        <span className="font-bold">Attribution required.</span> Credit photographers and link back
-        to{' '}
+    <div className="flex flex-col gap-3 rounded-2xl bg-surface-container py-3 pr-3 pl-5 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-on-surface-variant">
+        <span className="font-semibold text-on-surface">Credit the photographers.</span> When you
+        publish, name them and link back to{' '}
         <a
           href="https://www.pexels.com"
           target="_blank"
           rel="noreferrer"
-          className="font-semibold underline hover:text-secondary"
+          className="font-medium text-on-surface underline underline-offset-2"
         >
           Pexels
-        </a>{' '}
-        when you publish or export these assets.
-      </div>
-      <div className="flex shrink-0 items-center gap-3">
-        <a
-          href="https://www.pexels.com/api/documentation/"
-          target="_blank"
-          rel="noreferrer"
-          className="font-label-sm text-xs tracking-wide text-on-surface uppercase underline hover:text-secondary"
-        >
-          Pexels API guidelines
         </a>
+        .
+      </p>
+      <div className="flex shrink-0 items-center gap-1">
+        <Button asChild variant="link" size="sm" className="text-on-surface-variant">
+          <a href="https://www.pexels.com/api/documentation/" target="_blank" rel="noreferrer">
+            Pexels guidelines
+          </a>
+        </Button>
         <Button
           type="button"
           variant="ghost"
-          size="icon-xs"
+          size="icon-sm"
           onClick={onDismiss}
           title="Dismiss reminder"
           aria-label="Dismiss attribution reminder"
@@ -43,6 +39,6 @@ export function AttributionBanner({ onDismiss }: AttributionBannerProps): React.
           <XIcon size={16} />
         </Button>
       </div>
-    </Card>
+    </div>
   )
 }

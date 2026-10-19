@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,8 +15,8 @@
     <meta name="google-site-verification" content="zZ6Sy1zeW7PBjEKTaSsA5ATKeM9rL7q1hvDoGTvQ48c" />
     <meta name="author" content="StockFinder AI" />
     <meta name="application-name" content="StockFinder AI" />
-    <meta name="theme-color" content="#ccff00" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#f4f4f4" />
+    <meta name="color-scheme" content="light" />
     <link rel="canonical" href="https://stockfinderai.birol.tech/" />
     <link
       rel="sitemap"
@@ -67,16 +67,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://api.fontshare.com" crossorigin />
+    <link rel="preconnect" href="https://images.pexels.com" />
+    <link rel="preconnect" href="https://videos.pexels.com" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..500;1,6..72,200..500&family=Geist+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
     <link
-      href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,900,700&f[]=satoshi@700,400,500&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+      href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap"
       rel="stylesheet"
     />
     <link rel="icon" type="image/png" sizes="32x32" href="logos/icon-32.png" />
@@ -311,7 +309,69 @@
   </head>
   <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
-    <div class="grain" aria-hidden="true"></div>
+
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+      <defs>
+        <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </symbol>
+        <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 4v12M6.5 10.5 12 16l5.5-5.5M5 20h14" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m5 12.5 4.5 4.5L19 7.5" />
+        </symbol>
+        <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <path d="m7 7 10 10M17 7 7 17" />
+        </symbol>
+        <symbol id="i-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m15 18-6-6 6-6" />
+        </symbol>
+        <symbol id="i-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m9 18 6-6-6-6" />
+        </symbol>
+        <symbol id="i-spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <path d="M12 3c.6 4.6 3.4 7.4 8 8-4.6.6-7.4 3.4-8 8-.6-4.6-3.4-7.4-8-8 4.6-.6 7.4-3.4 8-8Z" />
+        </symbol>
+        <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <rect x="3" y="7" width="18" height="13" rx="3" />
+          <circle cx="12" cy="13.5" r="3.5" />
+          <path d="m8.5 7 1.5-3h4l1.5 3" />
+        </symbol>
+        <symbol id="i-timeline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="14" rx="3" />
+          <path d="M3 11h18M9 11v8M15 11v8" />
+        </symbol>
+        <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <rect x="3" y="5" width="18" height="14" rx="4" />
+          <path d="M10 9.5v5l4.5-2.5-4.5-2.5Z" fill="currentColor" />
+        </symbol>
+        <symbol id="i-desktop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="12" rx="2.5" />
+          <path d="M8.5 20h7M12 16v4" />
+        </symbol>
+        <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <path d="m4 11 8-7 8 7v8a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1v-8Z" />
+        </symbol>
+        <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="4" y="4" width="7" height="7" rx="2" />
+          <rect x="13" y="4" width="7" height="7" rx="2" />
+          <rect x="4" y="13" width="7" height="7" rx="2" />
+          <rect x="13" y="13" width="7" height="7" rx="2" />
+        </symbol>
+        <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <path d="M3 7.5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7.5Z" />
+        </symbol>
+        <symbol id="i-console" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="3" />
+          <path d="m7.5 9.5 3 2.5-3 2.5M13 15h4" />
+        </symbol>
+        <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <circle cx="12" cy="12" r="3.2" />
+          <path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8" />
+        </symbol>
+      </defs>
+    </svg>
 
     <!-- Navigation -->
     <header class="site-nav">
@@ -330,8 +390,8 @@
         </a>
         <nav class="site-nav-menu" id="site-nav-menu" aria-label="Main navigation">
           <ul class="nav-links">
-            <li><a href="#pain">Problem</a></li>
-            <li><a href="#how">How</a></li>
+            <li><a href="#how">How it works</a></li>
+            <li><a href="#work">Examples</a></li>
             <li><a href="#features">Features</a></li>
             <li><a href="/how-to-find-b-roll/">Guide</a></li>
             <li><a href="/docs/">Docs</a></li>
@@ -346,7 +406,6 @@
                 rel="noreferrer"
               >
                 Star on GitHub
-                <span class="material-symbols-outlined" style="font-size: 1rem">star</span>
               </a>
             </li>
           </ul>
@@ -365,7 +424,7 @@
             class="btn btn-primary nav-download-btn"
           >
             <span class="nav-download-label">Download</span>
-            <span class="material-symbols-outlined" style="font-size: 1rem">download</span>
+            <svg class="icon nav-download-icon" aria-hidden="true"><use href="#i-down" /></svg>
           </a>
           <button
             type="button"
@@ -384,454 +443,862 @@
     </header>
 
     <main id="main-content">
-      <!-- HERO -->
+      <!-- HERO: full-bleed loop, manifesto bottom-left -->
       <section class="hero" aria-labelledby="hero-heading">
-        <div class="container hero-grid">
-          <div class="hero-copy">
-            <span class="eyebrow">Free &amp; open source · Desktop app for YouTube creators</span>
-            <h1 class="display-xl" id="hero-heading">
-              Paste your YouTube script.<br />
-              Get matching <span class="highlight-lime">Pexels b-roll</span>.
-            </h1>
-            <p class="lead">
-              StockFinder AI is a free, open-source desktop app. Paste your script, and it breaks
-              your narration into visual beats, searches Pexels with intent, and downloads an
-              organized asset pack to your machine — while you make coffee. No subscription. No
-              vendor lock-in. Read the code on GitHub.
-            </p>
-            <div class="hero-ctas">
-              <a href="https://github.com/birol-dev/Pexels/releases" class="btn btn-primary">
-                Download free
-                <span class="material-symbols-outlined" style="font-size: 1rem">download</span>
-              </a>
-              <a href="/docs/#step-by-step" class="btn btn-secondary">
-                How to use
-                <span class="material-symbols-outlined" style="font-size: 1rem">menu_book</span>
-              </a>
+        <video
+          class="hero-video"
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="auto"
+          poster="https://images.pexels.com/videos/8503117/pexels-photo-8503117.jpeg?auto=compress&cs=tinysrgb&w=1600"
+          aria-hidden="true"
+          tabindex="-1"
+        >
+          <source
+            src="https://videos.pexels.com/video-files/8503117/8503117-sd_960_540_24fps.mp4"
+            type="video/mp4"
+            media="(max-width: 767px)"
+          />
+          <source
+            src="https://videos.pexels.com/video-files/8503117/8503117-hd_1920_1080_24fps.mp4"
+            type="video/mp4"
+          />
+        </video>
+        <div class="wrap hero-inner">
+          <h1 class="display-xxl hero-title" id="hero-heading">
+            Paste your YouTube script. <span class="fade">Get matching</span> Pexels
+            <em>b-roll</em>.
+          </h1>
+          <div class="hero-aside">
+            <button type="button" class="hero-toggle" data-video-toggle>Pause video</button>
+            <p class="hero-credit">
+              Video by
               <a
-                href="https://github.com/birol-dev/Pexels"
-                class="btn btn-ghost"
+                href="https://www.pexels.com/video/friends-having-a-toast-in-an-outdoor-area-8503117/"
                 target="_blank"
                 rel="noreferrer"
+                >Anastasia Shuraeva</a
               >
-                View GitHub
-                <span class="material-symbols-outlined" style="font-size: 1rem">code</span>
-              </a>
-            </div>
-            <div class="oss-strip" aria-label="Open source highlights">
-              <a
-                href="https://github.com/birol-dev/Pexels"
-                class="oss-strip-badge"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <span class="material-symbols-outlined">verified</span>
-                Open source on GitHub
-              </a>
-              <span class="oss-strip-item">No account required</span>
-              <span class="oss-strip-item">Runs 100% locally</span>
-              <span class="oss-strip-item">Fork it. Audit it. Own it.</span>
-            </div>
-            <div class="hero-proof">
-              <div class="proof-item">
-                <span class="proof-value">$0</span>
-                <span class="proof-label">App license — forever</span>
-              </div>
-              <div class="proof-item">
-                <span class="proof-value">Paste</span>
-                <span class="proof-label">Your full script</span>
-              </div>
-              <div class="proof-item">
-                <span class="proof-value">Folder</span>
-                <span class="proof-label">Ready for your editor</span>
-              </div>
-            </div>
+              on Pexels
+            </p>
           </div>
+        </div>
+      </section>
 
-          <div class="hero-visual">
-            <div class="mock-window">
-              <div class="mock-titlebar">
-                <span class="mock-dot"></span>
-                <span class="mock-dot"></span>
-                <span class="mock-dot"></span>
-                <span class="mock-title">StockFinder AI — Run Progress</span>
-              </div>
-              <div class="mock-body">
-                <div class="mock-beat">
-                  <div class="mock-beat-label">Beat 3 of 7</div>
-                  <div class="mock-beat-text">
-                    "For decades, scientists believed the deep ocean was a lifeless void..."
-                  </div>
-                  <div class="mock-thumbs">
-                    <div class="mock-thumb">
-                      <img
-                        src="https://images.pexels.com/photos/847393/pexels-photo-847393.jpeg?auto=compress&cs=tinysrgb&w=200"
-                        alt="Deep ocean stock footage thumbnail"
-                        width="200"
-                        height="113"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      <span class="mock-thumb-badge">video</span>
-                    </div>
-                    <div class="mock-thumb">
-                      <img
-                        src="https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=200"
-                        alt="Underwater research stock photo thumbnail"
-                        width="200"
-                        height="113"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      <span class="mock-thumb-badge">photo</span>
-                    </div>
-                    <div class="mock-thumb">
-                      <img
-                        src="https://images.pexels.com/photos/335406/pexels-photo-335406.jpeg?auto=compress&cs=tinysrgb&w=200"
-                        alt="Marine biology stock footage thumbnail"
-                        width="200"
-                        height="113"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      <span class="mock-thumb-badge">video</span>
-                    </div>
-                  </div>
-                  <div class="mock-progress">
-                    <div class="mock-progress-bar"></div>
-                  </div>
-                </div>
-                <div class="mock-beat" style="opacity: 0.55">
-                  <div class="mock-beat-label">Beat 4 — searching</div>
-                  <div class="mock-beat-text">
-                    "Until a single expedition changed everything we thought we knew."
-                  </div>
-                </div>
+      <!-- INTRO: label | promise | actions -->
+      <section class="sec tone-mist intro" id="about" aria-labelledby="about-heading">
+        <div class="wrap">
+          <div class="g4 lines intro-grid">
+            <div class="cell intro-label">
+              <h2 class="label-title" id="about-heading">What is StockFinder AI?</h2>
+              <p class="micro">
+                Free &amp; open source<br />
+                Version 1.3.2 · MIT<br />
+                Windows · macOS · Linux
+              </p>
+            </div>
+            <div class="cell span-2 intro-copy">
+              <p class="statement">
+                StockFinder AI is a free, open-source desktop app for YouTube creators and video
+                editors. It reads your narration script, splits it into visual beats, finds matching
+                Pexels photos and videos, and downloads an organized asset pack to your machine —
+                with <code>manifest.json</code> and photographer credits included.
+              </p>
+              <p class="micro intro-links">
+                Last updated September 20, 2026 ·
+                <a href="/docs/#step-by-step">Step-by-step guide</a> ·
+                <a href="/docs/">Documentation</a> · <a href="/about/">About</a> ·
+                <a href="/pricing/">Pricing</a> · <a href="/privacy/">Privacy</a>
+              </p>
+            </div>
+            <div class="cell intro-cta">
+              <figure class="float-photo float-photo--portrait">
+                <img
+                  src="https://images.pexels.com/photos/32741797/pexels-photo-32741797.jpeg?auto=compress&cs=tinysrgb&w=420"
+                  alt="A border collie running through a sunny field"
+                  width="420"
+                  height="560"
+                  decoding="async"
+                />
+              </figure>
+              <figure class="float-photo float-photo--landscape">
+                <img
+                  src="https://images.pexels.com/photos/8230975/pexels-photo-8230975.jpeg?auto=compress&cs=tinysrgb&w=520"
+                  alt="A couple dancing next to a blue campervan in the sun"
+                  width="520"
+                  height="390"
+                  decoding="async"
+                />
+              </figure>
+              <div class="cta-stack">
+                <a href="https://github.com/birol-dev/Pexels/releases" class="btn btn-primary">
+                  Download free
+                  <svg class="icon" aria-hidden="true"><use href="#i-down" /></svg>
+                </a>
+                <a href="/docs/#step-by-step" class="btn btn-secondary">
+                  How to use
+                  <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+                </a>
+                <a
+                  href="https://github.com/birol-dev/Pexels"
+                  class="btn btn-ghost"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  View on GitHub
+                  <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+                </a>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- HOW IT WORKS (TOP OF PAGE) -->
-      <section class="section section-alt" id="how">
-        <div class="container">
-          <div class="section-header centered reveal">
-            <span class="eyebrow">How it works</span>
-            <h2 class="display-lg">Four steps. Zero stock-site spelunking.</h2>
-            <p class="lead">
-              Turn any narration script into a curated, editor-ready Pexels b-roll pack.
-            </p>
-          </div>
-
-          <div class="steps-grid">
-            <article class="step-card reveal">
-              <div class="step-num">01</div>
-              <h3>Paste your script</h3>
-              <p>
-                Drop in your full YouTube narration, title the project, and choose your target
-                platform and visual mood — cinematic, documentary, tech, nature, and more.
-              </p>
-            </article>
-            <article class="step-card reveal">
-              <div class="step-num">02</div>
-              <h3>Agent maps visual beats</h3>
-              <p>
-                Your LLM breaks the script into beats, each with a visual direction and targeted
-                search queries — not generic one-word guesses.
-              </p>
-            </article>
-            <article class="step-card reveal">
-              <div class="step-num">03</div>
-              <h3>Pexels search and select</h3>
-              <p>
-                The agent searches photos and videos, rejects off-topic results, and queues
-                downloads. Enable human approval if you want to review before anything saves.
-              </p>
-            </article>
-            <article class="step-card reveal">
-              <div class="step-num">04</div>
-              <h3>Edit from a real folder</h3>
-              <p>
-                Open your project folder: photos/, videos/, thumbnails/, manifest.json, and full
-                Pexels attribution. Drag into Premiere, DaVinci, or CapCut and go.
-              </p>
-            </article>
-          </div>
-
-          <div
-            class="reveal"
-            style="
-              margin-top: 2.25rem;
-              display: flex;
-              justify-content: center;
-              gap: 1rem;
-              flex-wrap: wrap;
-            "
-          >
-            <a href="/docs/#step-by-step" class="btn btn-primary">
-              Read step-by-step user guide
-              <span class="material-symbols-outlined" style="font-size: 1rem">arrow_forward</span>
-            </a>
-            <a href="/docs/" class="btn btn-secondary">
-              Browse full documentation
-              <span class="material-symbols-outlined" style="font-size: 1rem">menu_book</span>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <!-- DEFINITION (AI-extractable) -->
-      <section class="section definition-section" id="about" aria-labelledby="about-heading">
-        <div class="container">
-          <div class="definition-block reveal">
-            <h2 class="display-md" id="about-heading">What is StockFinder AI?</h2>
-            <p>
-              StockFinder AI is a free, open-source desktop application for YouTube creators and
-              video editors. It reads your narration script, splits it into visual beats with
-              AI-driven search queries, finds matching Pexels stock photos and videos, and downloads
-              an organized asset pack to your machine — with manifest.json and photographer
-              attribution included.
-            </p>
-            <p class="body-sm definition-meta">
-              Last updated: September 20, 2026 · Version 1.3.2 ·
-              <a href="/docs/#step-by-step">Step-by-step guide</a> ·
-              <a href="/docs/">Documentation</a> · <a href="/about/">About StockFinder</a> ·
-              <a href="/pricing/">Pricing</a> ·
-              <a href="/privacy/">Privacy</a>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <!-- PAIN MARQUEE -->
-      <div class="marquee-section" aria-hidden="true">
-        <div class="marquee-track">
-          <span class="marquee-item"
-            ><span class="material-symbols-outlined">close</span> 47 open Pexels tabs</span
-          >
-          <span class="marquee-item"
-            ><span class="material-symbols-outlined">close</span> Wrong keywords, wrong mood</span
-          >
-          <span class="marquee-item"
-            ><span class="material-symbols-outlined">close</span> Downloads named
-            IMG_4829_final_v3</span
-          >
-          <span class="marquee-item"
-            ><span class="material-symbols-outlined">close</span> Attribution copied from
-            memory</span
-          >
-          <span class="marquee-item"
-            ><span class="material-symbols-outlined">close</span> 3 hours before you open
-            Premiere</span
-          >
-          <span class="marquee-item"
-            ><span class="material-symbols-outlined">close</span> Script says "triumphant" — stock
-            says "sad office"</span
-          >
-          <span class="marquee-item"
-            ><span class="material-symbols-outlined">close</span> Re-searching the same concepts
-            every video</span
-          >
-          <span class="marquee-item"
-            ><span class="material-symbols-outlined">close</span> 47 open Pexels tabs</span
-          >
-          <span class="marquee-item"
-            ><span class="material-symbols-outlined">close</span> Wrong keywords, wrong mood</span
-          >
-          <span class="marquee-item"
-            ><span class="material-symbols-outlined">close</span> Downloads named
-            IMG_4829_final_v3</span
-          >
-          <span class="marquee-item"
-            ><span class="material-symbols-outlined">close</span> Attribution copied from
-            memory</span
-          >
-          <span class="marquee-item"
-            ><span class="material-symbols-outlined">close</span> 3 hours before you open
-            Premiere</span
-          >
-        </div>
-      </div>
-
-      <!-- PAIN POINTS -->
-      <section class="section" id="pain">
-        <div class="container">
-          <div class="section-header reveal">
-            <span class="eyebrow">The real bottleneck</span>
-            <h2 class="display-lg">
-              You didn't become a creator to become a
-              <span class="highlight-strike">stock librarian</span>.
-            </h2>
-            <p class="lead">
-              Writing the script is the creative part. Hunting b-roll is the part that steals your
-              evening, kills your momentum, and still leaves you with footage that doesn't quite
-              match what you wrote.
-            </p>
-          </div>
-
-          <div class="pain-grid">
-            <article class="pain-card reveal">
-              <div class="pain-card-icon">
-                <span class="material-symbols-outlined">search_off</span>
+      <!-- 01 HOW IT WORKS -->
+      <section class="sec tone-mist" id="how" aria-labelledby="how-heading">
+        <div class="wrap">
+          <p class="index">
+            <span class="index-n">01</span><span class="index-rule" aria-hidden="true"></span
+            ><span>How it works</span>
+          </p>
+          <h2 class="display-lg sec-title" id="how-heading">
+            Four steps. <span class="fade">Zero stock-site</span> <em>spelunking</em>.
+          </h2>
+          <ol class="g4 lines steps">
+            <li class="cell tall step reveal">
+              <span class="step-n">01</span>
+              <div>
+                <h3>Paste your script</h3>
+                <p>
+                  Drop in your full narration, title the project, and choose the platform and
+                  visual mood — cinematic, documentary, tech, nature, and more.
+                </p>
               </div>
-              <h3>The keyword guessing game</h3>
-              <p>
-                Your script says "the economy cracked under pressure." You type "economy" into
-                Pexels and get smiling businessmen shaking hands. Wrong scene. Wrong emotion. Twenty
-                minutes gone.
-              </p>
-            </article>
-
-            <article class="pain-card reveal">
-              <div class="pain-card-icon">
-                <span class="material-symbols-outlined">tab</span>
+            </li>
+            <li class="cell tall step reveal">
+              <span class="step-n">02</span>
+              <div>
+                <h3>The agent maps visual beats</h3>
+                <p>
+                  Your LLM breaks the script into beats, each with a visual direction and targeted
+                  search queries — not one-word guesses.
+                </p>
               </div>
-              <h3>Tab archaeology</h3>
-              <p>
-                Script in one window. Pexels in another. Downloads folder in a third. Notes app with
-                photographer names you'll forget to credit. Every video repeats the same chaotic
-                workflow.
-              </p>
-            </article>
-
-            <article class="pain-card reveal">
-              <div class="pain-card-icon">
-                <span class="material-symbols-outlined">folder_off</span>
+            </li>
+            <li class="cell tall step reveal">
+              <span class="step-n">03</span>
+              <div>
+                <h3>Pexels search and select</h3>
+                <p>
+                  It searches photos and videos, rejects off-topic results, and queues downloads.
+                  Turn on approval to review before anything saves.
+                </p>
               </div>
-              <h3>The folder graveyard</h3>
-              <p>
-                pexels_download(3).mp4. stock_video_new.mp4. final_broll_2.mp4. When you sit down to
-                edit, you can't remember which clip matched which line — or where you saved it.
-              </p>
-            </article>
-
-            <article class="pain-card reveal">
-              <div class="pain-card-icon">
-                <span class="material-symbols-outlined">schedule</span>
+            </li>
+            <li class="cell tall step reveal">
+              <span class="step-n">04</span>
+              <div>
+                <h3>Edit from a real folder</h3>
+                <p>
+                  photos/, videos/, thumbnails/, manifest.json and full Pexels attribution. Drag it
+                  into Premiere, DaVinci or CapCut and go.
+                </p>
               </div>
-              <h3>Deadline math that never works</h3>
-              <p>
-                "Script's done, I'll grab b-roll tonight." Three hours later you're still scrolling.
-                Upload slips. The part viewers never see becomes the part that decides whether you
-                ship on time.
-              </p>
-            </article>
-
-            <article class="pain-card reveal">
-              <div class="pain-card-icon">
-                <span class="material-symbols-outlined">mood_bad</span>
-              </div>
-              <h3>Tone mismatch</h3>
-              <p>
-                Cinematic documentary script. Stock results look like corporate training videos. You
-                settle because you're tired — and the video feels cheaper than your writing
-                deserves.
-              </p>
-            </article>
-
-            <article class="pain-card reveal">
-              <div class="pain-card-icon">
-                <span class="material-symbols-outlined">gavel</span>
-              </div>
-              <h3>Attribution anxiety</h3>
-              <p>
-                Pexels is free to use, but you're still responsible for crediting photographers.
-                Scrambling in the description box at 1 AM is not a workflow — it's a liability
-                waiting to happen.
-              </p>
-            </article>
-
-            <article class="pain-card reveal">
-              <div class="pain-card-icon">
-                <span class="material-symbols-outlined">repeat</span>
-              </div>
-              <h3>Same pain, every upload</h3>
-              <p>
-                Faceless channel. Explainer series. Weekly Shorts. The script changes but the b-roll
-                hunt doesn't get faster — because nothing remembers what worked last time.
-              </p>
-            </article>
-
-            <article class="pain-card reveal">
-              <div class="pain-card-icon">
-                <span class="material-symbols-outlined">psychology_alt</span>
-              </div>
-              <h3>Creative drain before edit</h3>
-              <p>
-                By the time footage is gathered, you're too drained to care about pacing and cuts.
-                The search phase burns the energy you needed for the part that actually makes videos
-                good.
-              </p>
-            </article>
-
-            <article class="pain-card reveal">
-              <div class="pain-card-icon">
-                <span class="material-symbols-outlined">aspect_ratio</span>
-              </div>
-              <h3>Platform whiplash</h3>
-              <p>
-                YouTube wants 16:9. Shorts wants vertical. You find perfect horizontal b-roll, then
-                realize half your script beats need a different orientation — and you start over.
-              </p>
-            </article>
-          </div>
-
-          <div class="pain-quote reveal">
-            <blockquote>
-              "I can write a 12-minute script in an afternoon. Finding stock that actually matches
-              it? That's the part that makes me dread publishing."
-            </blockquote>
-            <cite
-              >A familiar Tuesday for solo YouTube creators still hunting stock at midnight.</cite
+            </li>
+          </ol>
+          <div class="link-row">
+            <a href="/docs/#step-by-step" class="big-link"
+              >Read the step-by-step guide <span class="arrow" aria-hidden="true">→</span></a
+            >
+            <a href="/docs/" class="big-link"
+              >Browse the documentation <span class="arrow" aria-hidden="true">→</span></a
             >
           </div>
+        </div>
+      </section>
 
-          <div class="stats-row reveal">
-            <div class="stat-box">
-              <div class="proof-value">2–4 hrs</div>
-              <div class="proof-label">
-                Typical manual b-roll time per video (creator workflow estimates)
+      <!-- 02 WORK: one script, eight beats -->
+      <section class="sec tone-mist chapter-end" id="work" aria-labelledby="work-heading">
+        <div class="wrap">
+          <p class="index">
+            <span class="index-n">02</span><span class="index-rule" aria-hidden="true"></span
+            ><span>One script, eight beats</span>
+          </p>
+          <div class="g4 sec-head">
+            <h2 class="display-lg span-3" id="work-heading">
+              One script. <span class="fade">Eight beats.</span> Every clip <em>chosen</em> for its
+              line.
+            </h2>
+            <p class="body-sm cell">
+              A sample run on “A Saturday, slowly”, a 90-second vlog script. Each frame is the pick
+              for one line, shown with the query the agent wrote for it.
+            </p>
+          </div>
+
+          <ol class="gallery">
+            <li class="shot reveal">
+              <figure>
+                <img
+                  src="https://images.pexels.com/photos/17371465/pexels-photo-17371465.jpeg?auto=compress&cs=tinysrgb&w=1200"
+                  srcset="
+                    https://images.pexels.com/photos/17371465/pexels-photo-17371465.jpeg?auto=compress&cs=tinysrgb&w=700   700w,
+                    https://images.pexels.com/photos/17371465/pexels-photo-17371465.jpeg?auto=compress&cs=tinysrgb&w=1200 1200w,
+                    https://images.pexels.com/photos/17371465/pexels-photo-17371465.jpeg?auto=compress&cs=tinysrgb&w=1800 1800w
+                  "
+                  sizes="(max-width: 599px) 100vw, 50vw"
+                  alt="A bed in a quiet bedroom with soft morning sun across the sheets"
+                  width="1200"
+                  height="900"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption>
+                  <span class="shot-n">01</span>
+                  <span class="shot-line">“It starts before the alarm.”</span>
+                  <span class="shot-meta"
+                    ><b>morning sun through curtains, waking slowly</b> · Photo by
+                    <a href="https://www.pexels.com/photo/17371465/" target="_blank" rel="noreferrer"
+                      >Chris Alo</a
+                    ></span
+                  >
+                </figcaption>
+              </figure>
+            </li>
+            <li class="shot reveal">
+              <figure>
+                <img
+                  src="https://images.pexels.com/photos/35835482/pexels-photo-35835482.jpeg?auto=compress&cs=tinysrgb&w=700"
+                  srcset="
+                    https://images.pexels.com/photos/35835482/pexels-photo-35835482.jpeg?auto=compress&cs=tinysrgb&w=500   500w,
+                    https://images.pexels.com/photos/35835482/pexels-photo-35835482.jpeg?auto=compress&cs=tinysrgb&w=900   900w
+                  "
+                  sizes="(max-width: 599px) 80vw, 25vw"
+                  alt="Two cups of coffee seen from above on a sunlit table"
+                  width="900"
+                  height="1200"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption>
+                  <span class="shot-n">02</span>
+                  <span class="shot-line">“Coffee for two. No phones.”</span>
+                  <span class="shot-meta"
+                    ><b>two coffee cups, top view, sunlit table</b> · Photo by
+                    <a
+                      href="https://www.pexels.com/photo/35835482/"
+                      target="_blank"
+                      rel="noreferrer"
+                      >Engin Akyurt</a
+                    ></span
+                  >
+                </figcaption>
+              </figure>
+            </li>
+            <li class="shot reveal">
+              <figure>
+                <img
+                  src="https://images.pexels.com/photos/12031035/pexels-photo-12031035.jpeg?auto=compress&cs=tinysrgb&w=700"
+                  srcset="
+                    https://images.pexels.com/photos/12031035/pexels-photo-12031035.jpeg?auto=compress&cs=tinysrgb&w=500   500w,
+                    https://images.pexels.com/photos/12031035/pexels-photo-12031035.jpeg?auto=compress&cs=tinysrgb&w=900   900w
+                  "
+                  sizes="(max-width: 599px) 80vw, 25vw"
+                  alt="A white dog on a leash out for a sunny walk"
+                  width="900"
+                  height="1200"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption>
+                  <span class="shot-n">03</span>
+                  <span class="shot-line">“The dog decides the route.”</span>
+                  <span class="shot-meta"
+                    ><b>dog on a leash, sunny walk</b> · Photo by
+                    <a
+                      href="https://www.pexels.com/photo/12031035/"
+                      target="_blank"
+                      rel="noreferrer"
+                      >Anastasia Ilina-Makarova</a
+                    ></span
+                  >
+                </figcaption>
+              </figure>
+            </li>
+            <li class="shot reveal">
+              <figure>
+                <img
+                  src="https://images.pexels.com/photos/7618446/pexels-photo-7618446.jpeg?auto=compress&cs=tinysrgb&w=1200"
+                  srcset="
+                    https://images.pexels.com/photos/7618446/pexels-photo-7618446.jpeg?auto=compress&cs=tinysrgb&w=700   700w,
+                    https://images.pexels.com/photos/7618446/pexels-photo-7618446.jpeg?auto=compress&cs=tinysrgb&w=1200 1200w,
+                    https://images.pexels.com/photos/7618446/pexels-photo-7618446.jpeg?auto=compress&cs=tinysrgb&w=1800 1800w
+                  "
+                  sizes="(max-width: 599px) 100vw, 50vw"
+                  alt="Fresh fruit piled high on a street market stall"
+                  width="1200"
+                  height="900"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption>
+                  <span class="shot-n">04</span>
+                  <span class="shot-line">“The market is barely awake.”</span>
+                  <span class="shot-meta"
+                    ><b>street market fruit stall, morning light</b> · Photo by
+                    <a href="https://www.pexels.com/photo/7618446/" target="_blank" rel="noreferrer"
+                      >sven chen</a
+                    ></span
+                  >
+                </figcaption>
+              </figure>
+            </li>
+            <li class="shot reveal">
+              <figure>
+                <img
+                  src="https://images.pexels.com/photos/8841463/pexels-photo-8841463.jpeg?auto=compress&cs=tinysrgb&w=1200"
+                  srcset="
+                    https://images.pexels.com/photos/8841463/pexels-photo-8841463.jpeg?auto=compress&cs=tinysrgb&w=700   700w,
+                    https://images.pexels.com/photos/8841463/pexels-photo-8841463.jpeg?auto=compress&cs=tinysrgb&w=1200 1200w,
+                    https://images.pexels.com/photos/8841463/pexels-photo-8841463.jpeg?auto=compress&cs=tinysrgb&w=1800 1800w
+                  "
+                  sizes="(max-width: 599px) 100vw, 50vw"
+                  alt="A family sharing lunch together at a table in the backyard"
+                  width="1200"
+                  height="900"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption>
+                  <span class="shot-n">05</span>
+                  <span class="shot-line">“Lunch turns into three hours.”</span>
+                  <span class="shot-meta"
+                    ><b>family lunch outdoors, long table, candid</b> · Photo by
+                    <a href="https://www.pexels.com/photo/8841463/" target="_blank" rel="noreferrer"
+                      >Julia M Cameron</a
+                    ></span
+                  >
+                </figcaption>
+              </figure>
+            </li>
+            <li class="shot reveal">
+              <figure>
+                <img
+                  src="https://images.pexels.com/photos/9974379/pexels-photo-9974379.jpeg?auto=compress&cs=tinysrgb&w=700"
+                  srcset="
+                    https://images.pexels.com/photos/9974379/pexels-photo-9974379.jpeg?auto=compress&cs=tinysrgb&w=500   500w,
+                    https://images.pexels.com/photos/9974379/pexels-photo-9974379.jpeg?auto=compress&cs=tinysrgb&w=900   900w
+                  "
+                  sizes="(max-width: 599px) 80vw, 25vw"
+                  alt="A man and a woman laughing together outdoors"
+                  width="900"
+                  height="1200"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption>
+                  <span class="shot-n">06</span>
+                  <span class="shot-line">“Someone always laughs first.”</span>
+                  <span class="shot-meta"
+                    ><b>friends laughing, candid, bright daylight</b> · Photo by
+                    <a href="https://www.pexels.com/photo/9974379/" target="_blank" rel="noreferrer"
+                      >Ron Lach</a
+                    ></span
+                  >
+                </figcaption>
+              </figure>
+            </li>
+            <li class="shot reveal">
+              <figure>
+                <img
+                  src="https://images.pexels.com/photos/36109030/pexels-photo-36109030.jpeg?auto=compress&cs=tinysrgb&w=700"
+                  srcset="
+                    https://images.pexels.com/photos/36109030/pexels-photo-36109030.jpeg?auto=compress&cs=tinysrgb&w=500   500w,
+                    https://images.pexels.com/photos/36109030/pexels-photo-36109030.jpeg?auto=compress&cs=tinysrgb&w=900   900w
+                  "
+                  sizes="(max-width: 599px) 80vw, 25vw"
+                  alt="Cyclists riding through a city street on a summer day"
+                  width="900"
+                  height="1200"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption>
+                  <span class="shot-n">07</span>
+                  <span class="shot-line">“The city, on two wheels.”</span>
+                  <span class="shot-meta"
+                    ><b>cyclists, summer street, afternoon light</b> · Photo by
+                    <a
+                      href="https://www.pexels.com/photo/36109030/"
+                      target="_blank"
+                      rel="noreferrer"
+                      >Bráulio jardim</a
+                    ></span
+                  >
+                </figcaption>
+              </figure>
+            </li>
+            <li class="shot reveal">
+              <figure>
+                <img
+                  src="https://images.pexels.com/photos/8696275/pexels-photo-8696275.jpeg?auto=compress&cs=tinysrgb&w=1200"
+                  srcset="
+                    https://images.pexels.com/photos/8696275/pexels-photo-8696275.jpeg?auto=compress&cs=tinysrgb&w=700   700w,
+                    https://images.pexels.com/photos/8696275/pexels-photo-8696275.jpeg?auto=compress&cs=tinysrgb&w=1200 1200w,
+                    https://images.pexels.com/photos/8696275/pexels-photo-8696275.jpeg?auto=compress&cs=tinysrgb&w=1800 1800w
+                  "
+                  sizes="(max-width: 599px) 100vw, 50vw"
+                  alt="Friends with their arms raised on a cliff at sunset"
+                  width="1200"
+                  height="900"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <figcaption>
+                  <span class="shot-n">08</span>
+                  <span class="shot-line">“And then the light goes gold.”</span>
+                  <span class="shot-meta"
+                    ><b>friends on a cliff at sunset, arms up</b> · Photo by
+                    <a href="https://www.pexels.com/photo/8696275/" target="_blank" rel="noreferrer"
+                      >Kirill Lazarev</a
+                    ></span
+                  >
+                </figcaption>
+              </figure>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- 03 THE PROBLEM (charcoal chapter) -->
+      <section class="sec tone-char chapter-start" id="pain" aria-labelledby="pain-heading">
+        <div class="wrap">
+          <p class="index">
+            <span class="index-n">03</span><span class="index-rule" aria-hidden="true"></span
+            ><span>The real bottleneck</span>
+          </p>
+          <h2 class="display-lg sec-title" id="pain-heading">
+            <span class="fade">You didn't become a creator</span> to become a stock
+            <em>librarian</em>.
+          </h2>
+          <p class="lead sec-lead">
+            Writing the script is the creative part. Hunting b-roll is the part that steals your
+            evening, kills your momentum, and still leaves you with footage that doesn't quite match
+            what you wrote.
+          </p>
+
+          <div
+            class="pain-carousel reveal"
+            data-carousel
+            role="region"
+            aria-roledescription="carousel"
+            aria-label="Common b-roll pain points"
+          >
+            <div
+              class="pain-carousel-viewport"
+              data-carousel-viewport
+              tabindex="0"
+              aria-label="Scrollable list of b-roll pain points"
+            >
+              <div class="pain-track">
+                <article class="pain-card">
+                  <figure class="pain-card-media">
+                    <img
+                      src="https://images.pexels.com/photos/4963448/pexels-photo-4963448.jpeg?auto=compress&cs=tinysrgb&w=640"
+                      srcset="https://images.pexels.com/photos/4963448/pexels-photo-4963448.jpeg?auto=compress&cs=tinysrgb&w=420 420w, https://images.pexels.com/photos/4963448/pexels-photo-4963448.jpeg?auto=compress&cs=tinysrgb&w=840 840w"
+                      sizes="(max-width: 599px) 80vw, 400px"
+                      alt="A smiling businessman shaking hands outdoors, the stock result a literal keyword search returns"
+                      width="640"
+                      height="480"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </figure>
+                  <div class="pain-card-body">
+                    <p class="pain-card-meta">
+                      <span class="pain-card-n">01 / 09</span>
+                      <a href="https://www.pexels.com/photo/4963448/" target="_blank" rel="noreferrer"
+                        >Photo by Ketut Subiyanto</a
+                      >
+                    </p>
+                    <div>
+                      <h3>The keyword guessing game</h3>
+                      <p>
+                        Your script says “the economy cracked under pressure.” You type “economy” and
+                        get smiling businessmen shaking hands. Wrong scene. Wrong emotion. Twenty
+                        minutes gone.
+                      </p>
+                    </div>
+                  </div>
+                </article>
+                <article class="pain-card">
+                  <figure class="pain-card-media">
+                    <img
+                      src="https://images.pexels.com/photos/20044358/pexels-photo-20044358.jpeg?auto=compress&cs=tinysrgb&w=640"
+                      srcset="https://images.pexels.com/photos/20044358/pexels-photo-20044358.jpeg?auto=compress&cs=tinysrgb&w=420 420w, https://images.pexels.com/photos/20044358/pexels-photo-20044358.jpeg?auto=compress&cs=tinysrgb&w=840 840w"
+                      sizes="(max-width: 599px) 80vw, 400px"
+                      alt="A woman browsing a grid of images on her laptop"
+                      width="640"
+                      height="480"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </figure>
+                  <div class="pain-card-body">
+                    <p class="pain-card-meta">
+                      <span class="pain-card-n">02 / 09</span>
+                      <a href="https://www.pexels.com/photo/20044358/" target="_blank" rel="noreferrer"
+                        >Photo by Airam Dato-on</a
+                      >
+                    </p>
+                    <div>
+                      <h3>Tab archaeology</h3>
+                      <p>
+                        Script in one window. Pexels in another. Downloads in a third. A notes app
+                        with photographer names you'll forget to credit. Every video repeats it.
+                      </p>
+                    </div>
+                  </div>
+                </article>
+                <article class="pain-card">
+                  <figure class="pain-card-media">
+                    <img
+                      src="https://images.pexels.com/photos/40184126/pexels-photo-40184126.jpeg?auto=compress&cs=tinysrgb&w=640"
+                      srcset="https://images.pexels.com/photos/40184126/pexels-photo-40184126.jpeg?auto=compress&cs=tinysrgb&w=420 420w, https://images.pexels.com/photos/40184126/pexels-photo-40184126.jpeg?auto=compress&cs=tinysrgb&w=840 840w"
+                      sizes="(max-width: 599px) 80vw, 400px"
+                      alt="A laptop surrounded by colorful external hard drives and cables"
+                      width="640"
+                      height="480"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </figure>
+                  <div class="pain-card-body">
+                    <p class="pain-card-meta">
+                      <span class="pain-card-n">03 / 09</span>
+                      <a href="https://www.pexels.com/photo/40184126/" target="_blank" rel="noreferrer"
+                        >Photo by Jakub Zerdzicki</a
+                      >
+                    </p>
+                    <div>
+                      <h3>The folder graveyard</h3>
+                      <p>
+                        pexels_download(3).mp4. stock_video_new.mp4. final_broll_2.mp4. When you sit
+                        down to edit, you can't remember which clip matched which line.
+                      </p>
+                    </div>
+                  </div>
+                </article>
+                <article class="pain-card">
+                  <figure class="pain-card-media">
+                    <img
+                      src="https://images.pexels.com/photos/11208031/pexels-photo-11208031.jpeg?auto=compress&cs=tinysrgb&w=640"
+                      srcset="https://images.pexels.com/photos/11208031/pexels-photo-11208031.jpeg?auto=compress&cs=tinysrgb&w=420 420w, https://images.pexels.com/photos/11208031/pexels-photo-11208031.jpeg?auto=compress&cs=tinysrgb&w=840 840w"
+                      sizes="(max-width: 599px) 80vw, 400px"
+                      alt="A laptop under a warm desk lamp late in the evening"
+                      width="640"
+                      height="480"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </figure>
+                  <div class="pain-card-body">
+                    <p class="pain-card-meta">
+                      <span class="pain-card-n">04 / 09</span>
+                      <a href="https://www.pexels.com/photo/11208031/" target="_blank" rel="noreferrer"
+                        >Photo by Czapp Árpád</a
+                      >
+                    </p>
+                    <div>
+                      <h3>Deadline math that never works</h3>
+                      <p>
+                        “Script's done, I'll grab b-roll tonight.” Three hours later you're still
+                        scrolling. The part viewers never see decides whether you ship on time.
+                      </p>
+                    </div>
+                  </div>
+                </article>
+                <article class="pain-card">
+                  <figure class="pain-card-media">
+                    <img
+                      src="https://images.pexels.com/photos/6285074/pexels-photo-6285074.jpeg?auto=compress&cs=tinysrgb&w=640"
+                      srcset="https://images.pexels.com/photos/6285074/pexels-photo-6285074.jpeg?auto=compress&cs=tinysrgb&w=420 420w, https://images.pexels.com/photos/6285074/pexels-photo-6285074.jpeg?auto=compress&cs=tinysrgb&w=840 840w"
+                      sizes="(max-width: 599px) 80vw, 400px"
+                      alt="A man presenting bar charts in a corporate meeting room"
+                      width="640"
+                      height="480"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </figure>
+                  <div class="pain-card-body">
+                    <p class="pain-card-meta">
+                      <span class="pain-card-n">05 / 09</span>
+                      <a href="https://www.pexels.com/photo/6285074/" target="_blank" rel="noreferrer"
+                        >Photo by Gustavo Fring</a
+                      >
+                    </p>
+                    <div>
+                      <h3>Tone mismatch</h3>
+                      <p>
+                        Cinematic documentary script. Stock results that look like corporate training
+                        videos. You settle because you're tired, and the video feels cheaper than your
+                        writing.
+                      </p>
+                    </div>
+                  </div>
+                </article>
+                <article class="pain-card">
+                  <figure class="pain-card-media">
+                    <img
+                      src="https://images.pexels.com/photos/35790609/pexels-photo-35790609.jpeg?auto=compress&cs=tinysrgb&w=640"
+                      srcset="https://images.pexels.com/photos/35790609/pexels-photo-35790609.jpeg?auto=compress&cs=tinysrgb&w=420 420w, https://images.pexels.com/photos/35790609/pexels-photo-35790609.jpeg?auto=compress&cs=tinysrgb&w=840 840w"
+                      sizes="(max-width: 599px) 80vw, 400px"
+                      alt="A photographer shooting outdoors on a sunny day"
+                      width="640"
+                      height="480"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </figure>
+                  <div class="pain-card-body">
+                    <p class="pain-card-meta">
+                      <span class="pain-card-n">06 / 09</span>
+                      <a href="https://www.pexels.com/photo/35790609/" target="_blank" rel="noreferrer"
+                        >Photo by Sóc Năng Động</a
+                      >
+                    </p>
+                    <div>
+                      <h3>Attribution anxiety</h3>
+                      <p>
+                        Pexels is free to use, but crediting photographers is still on you.
+                        Scrambling in the description box at 1 AM is not a workflow.
+                      </p>
+                    </div>
+                  </div>
+                </article>
+                <article class="pain-card">
+                  <figure class="pain-card-media">
+                    <img
+                      src="https://images.pexels.com/photos/7669547/pexels-photo-7669547.jpeg?auto=compress&cs=tinysrgb&w=640"
+                      srcset="https://images.pexels.com/photos/7669547/pexels-photo-7669547.jpeg?auto=compress&cs=tinysrgb&w=420 420w, https://images.pexels.com/photos/7669547/pexels-photo-7669547.jpeg?auto=compress&cs=tinysrgb&w=840 840w"
+                      sizes="(max-width: 599px) 80vw, 400px"
+                      alt="A creator setting up her phone on a tripod to film a cooking video"
+                      width="640"
+                      height="480"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </figure>
+                  <div class="pain-card-body">
+                    <p class="pain-card-meta">
+                      <span class="pain-card-n">07 / 09</span>
+                      <a href="https://www.pexels.com/photo/7669547/" target="_blank" rel="noreferrer"
+                        >Photo by Polina Tankilevitch</a
+                      >
+                    </p>
+                    <div>
+                      <h3>Same pain, every upload</h3>
+                      <p>
+                        Faceless channel. Explainer series. Weekly Shorts. The script changes but the
+                        b-roll hunt doesn't get faster, because nothing remembers what worked.
+                      </p>
+                    </div>
+                  </div>
+                </article>
+                <article class="pain-card">
+                  <figure class="pain-card-media">
+                    <img
+                      src="https://images.pexels.com/photos/39219753/pexels-photo-39219753.jpeg?auto=compress&cs=tinysrgb&w=640"
+                      srcset="https://images.pexels.com/photos/39219753/pexels-photo-39219753.jpeg?auto=compress&cs=tinysrgb&w=420 420w, https://images.pexels.com/photos/39219753/pexels-photo-39219753.jpeg?auto=compress&cs=tinysrgb&w=840 840w"
+                      sizes="(max-width: 599px) 80vw, 400px"
+                      alt="A tired creator resting her head on her hand at a desk full of sticky notes"
+                      width="640"
+                      height="480"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </figure>
+                  <div class="pain-card-body">
+                    <p class="pain-card-meta">
+                      <span class="pain-card-n">08 / 09</span>
+                      <a href="https://www.pexels.com/photo/39219753/" target="_blank" rel="noreferrer"
+                        >Photo by Vitaly Gariev</a
+                      >
+                    </p>
+                    <div>
+                      <h3>Creative drain before the edit</h3>
+                      <p>
+                        By the time footage is gathered, you're too drained to care about pacing and
+                        cuts — the part that actually makes videos good.
+                      </p>
+                    </div>
+                  </div>
+                </article>
+                <article class="pain-card">
+                  <figure class="pain-card-media">
+                    <img
+                      src="https://images.pexels.com/photos/8359955/pexels-photo-8359955.jpeg?auto=compress&cs=tinysrgb&w=640"
+                      srcset="https://images.pexels.com/photos/8359955/pexels-photo-8359955.jpeg?auto=compress&cs=tinysrgb&w=420 420w, https://images.pexels.com/photos/8359955/pexels-photo-8359955.jpeg?auto=compress&cs=tinysrgb&w=840 840w"
+                      sizes="(max-width: 599px) 80vw, 400px"
+                      alt="A phone on a tripod filming a man in vertical format"
+                      width="640"
+                      height="480"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </figure>
+                  <div class="pain-card-body">
+                    <p class="pain-card-meta">
+                      <span class="pain-card-n">09 / 09</span>
+                      <a href="https://www.pexels.com/photo/8359955/" target="_blank" rel="noreferrer"
+                        >Photo by Ron Lach</a
+                      >
+                    </p>
+                    <div>
+                      <h3>Platform whiplash</h3>
+                      <p>
+                        YouTube wants 16:9. Shorts wants vertical. You find perfect horizontal b-roll,
+                        then realize half your beats need the other orientation.
+                      </p>
+                    </div>
+                  </div>
+                </article>
               </div>
             </div>
-            <div class="stat-box">
-              <div class="proof-value">12+</div>
-              <div class="proof-label">Search queries per script on average</div>
+
+            <div class="pain-carousel-controls">
+              <button
+                type="button"
+                class="carousel-arrow"
+                data-carousel-prev
+                aria-label="Previous pain point"
+              >
+                <svg aria-hidden="true"><use href="#i-left" /></svg>
+              </button>
+              <button
+                type="button"
+                class="carousel-arrow"
+                data-carousel-next
+                aria-label="Next pain point"
+              >
+                <svg aria-hidden="true"><use href="#i-right" /></svg>
+              </button>
+              <div class="carousel-dots" data-carousel-dots></div>
             </div>
-            <div class="stat-box">
-              <div class="proof-value">0</div>
-              <div class="proof-label">Videos where stock search feels "fast"</div>
+          </div>
+
+          <figure class="pain-quote reveal">
+            <blockquote>
+              “I can write a 12-minute script in an afternoon. Finding stock that actually matches
+              it? That's the part that makes me dread publishing.”
+            </blockquote>
+            <figcaption>
+              <cite
+                >A familiar Tuesday for solo YouTube creators still hunting stock at midnight.</cite
+              >
+            </figcaption>
+          </figure>
+
+          <div class="g4 lines stats">
+            <div class="cell tall reveal">
+              <span class="step-n">Time</span>
+              <div>
+                <p class="stat-value">2–4 hrs</p>
+                <p class="stat-label">
+                  Typical manual b-roll time per video (creator workflow estimates)
+                </p>
+              </div>
             </div>
-            <div class="stat-box">
-              <div class="proof-value">100%</div>
-              <div class="proof-label">Of time you could spend editing instead</div>
+            <div class="cell tall reveal">
+              <span class="step-n">Queries</span>
+              <div>
+                <p class="stat-value">12+</p>
+                <p class="stat-label">Search queries per script on average</p>
+              </div>
+            </div>
+            <div class="cell tall reveal">
+              <span class="step-n">Speed</span>
+              <div>
+                <p class="stat-value">0</p>
+                <p class="stat-label">Videos where stock search feels “fast”</p>
+              </div>
+            </div>
+            <div class="cell tall reveal">
+              <span class="step-n">Upside</span>
+              <div>
+                <p class="stat-value">100%</p>
+                <p class="stat-label">Of that time you could spend editing instead</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- BEFORE / AFTER -->
-      <section class="section section-alt">
-        <div class="container">
-          <div class="section-header centered reveal">
-            <span class="eyebrow">Same script. Different Tuesday night.</span>
-            <h2 class="display-lg">Manual search vs. one agent run</h2>
-            <p class="lead">
-              This isn't about replacing your taste. It's about skipping the hours of mechanical
-              searching so you can reject, refine, and edit with a full folder already on your desk.
-            </p>
+      <!-- 04 WHY SEARCH FAILS -->
+      <section class="sec tone-char" aria-labelledby="translation-heading">
+        <div class="wrap">
+          <p class="index">
+            <span class="index-n">04</span><span class="index-rule" aria-hidden="true"></span
+            ><span>Why “just search Pexels” fails</span>
+          </p>
+          <h2 class="display-lg sec-title" id="translation-heading">
+            The problem isn't stock quality. <span class="fade">It's</span> <em>translation</em>.
+          </h2>
+          <p class="lead sec-lead">
+            Pexels has millions of clips. Your script speaks in story, emotion, and metaphor. The
+            gap between those two languages is where creators lose hours — and settle for footage
+            that weakens the cut.
+          </p>
+          <div class="g3 lines trio">
+            <article class="cell reveal">
+              <h3 class="card-title">Scripts speak in metaphor</h3>
+              <p>
+                “The market froze overnight” isn't a literal ice search. Someone has to translate
+                narrative intent into visual language Pexels can return. That's the hard part.
+              </p>
+            </article>
+            <article class="cell reveal">
+              <h3 class="card-title">Volume without structure</h3>
+              <p>
+                Downloading 30 clips is easy. Knowing which clip supports line 47 — and having it in
+                a folder named for that project — is the work StockFinder automates.
+              </p>
+            </article>
+            <article class="cell reveal">
+              <h3 class="card-title">Context switching kills flow</h3>
+              <p>
+                Creative flow lives in the edit. Every minute in a stock site is a minute not spent
+                on pacing, music, and the cuts that keep viewers watching.
+              </p>
+            </article>
           </div>
+        </div>
+      </section>
+
+      <!-- 05 MANUAL VS AGENT -->
+      <section class="sec tone-char chapter-end" aria-labelledby="compare-heading">
+        <div class="wrap">
+          <p class="index">
+            <span class="index-n">05</span><span class="index-rule" aria-hidden="true"></span
+            ><span>Same script, different Tuesday night</span>
+          </p>
+          <h2 class="display-lg sec-title" id="compare-heading">
+            Manual search <span class="fade">vs.</span> one <em>agent</em> run.
+          </h2>
+          <p class="lead sec-lead">
+            This isn't about replacing your taste. It's about skipping the mechanical searching so
+            you can reject, refine, and edit with a full folder already on your desk.
+          </p>
 
           <div class="compare-grid reveal">
             <div class="compare-col bad">
-              <div class="compare-header">
-                <span class="material-symbols-outlined">sentiment_dissatisfied</span>
-                Manual Pexels workflow
-              </div>
+              <h3 class="compare-header">Manual Pexels workflow</h3>
               <ol class="compare-steps">
                 <li class="compare-step">
                   <span class="step-time">45m</span>
-                  <span>Read script line by line, guess search terms per section</span>
+                  <span>Read the script line by line, guess search terms per section</span>
                 </li>
                 <li class="compare-step">
                   <span class="step-time">60m</span>
@@ -857,35 +1324,27 @@
             </div>
 
             <div class="compare-col good">
-              <div class="compare-header">
-                <span class="material-symbols-outlined">bolt</span>
-                StockFinder AI workflow
-              </div>
+              <h3 class="compare-header">StockFinder AI workflow</h3>
               <ol class="compare-steps">
                 <li class="compare-step">
                   <span class="step-time">30s</span>
-                  <span
-                    >Paste script, pick platform (YouTube, Shorts, TikTok, Reels) and visual
-                    style</span
-                  >
+                  <span>Paste the script, pick a platform (YouTube, Shorts, TikTok, Reels) and style</span>
                 </li>
                 <li class="compare-step">
                   <span class="step-time">Auto</span>
-                  <span>Agent parses script into beats with visual prompts per section</span>
+                  <span>The agent parses the script into beats with visual prompts</span>
                 </li>
                 <li class="compare-step">
                   <span class="step-time">Auto</span>
-                  <span>AI searches Pexels photos and videos, selects candidates per beat</span>
+                  <span>It searches Pexels photos and videos and selects candidates per beat</span>
                 </li>
                 <li class="compare-step">
                   <span class="step-time">Auto</span>
-                  <span>Downloads to organized folders with manifest and attribution built in</span>
+                  <span>Downloads land in organized folders with manifest and attribution</span>
                 </li>
                 <li class="compare-step">
                   <span class="step-time">10m</span>
-                  <span
-                    >Review in Media Library, approve or reject, open folder in your editor</span
-                  >
+                  <span>Review in the Media Library, approve or reject, open the folder</span>
                 </li>
               </ol>
               <div class="compare-total">
@@ -948,182 +1407,589 @@
         </div>
       </section>
 
-      <!-- SOLUTION BRIDGE -->
-      <section class="section">
-        <div class="container">
-          <div class="section-header reveal">
-            <span class="eyebrow">The fix</span>
-            <h2 class="display-lg">
-              Paste a script. Pick a style.<br />
-              <span class="highlight-lime">Get a useful asset pack.</span>
+      <!-- 06 THE FIX (white chapter) -->
+      <section class="sec tone-white chapter-start" id="fix" aria-labelledby="fix-heading">
+        <div class="wrap">
+          <p class="index">
+            <span class="index-n">06</span><span class="index-rule" aria-hidden="true"></span
+            ><span>The fix</span>
+          </p>
+          <div class="g4 sec-head">
+            <h2 class="display-lg span-3" id="fix-heading">
+              Paste a script. Pick a style. <span class="fade">Get a</span> <em>useful</em> asset
+              pack.
             </h2>
-            <p class="lead">
-              StockFinder AI is open source — the full agent, UI, and download pipeline are on
-              GitHub for anyone to inspect, fork, or improve. It runs locally on your machine, reads
-              your narration, queries Pexels with intent, and delivers a project folder your editor
-              can actually use — with paths, metadata, and credits included.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <!-- FEATURES BENTO -->
-      <section class="section" id="features">
-        <div class="container">
-          <div class="section-header reveal">
-            <span class="eyebrow">Built for creators who ship</span>
-            <h2 class="display-lg">Everything the manual workflow forgot to organize</h2>
-            <p class="lead">
-              Not a video editor. Not a cloud subscription. Not a walled garden. A focused,
-              open-source tool that does one job extremely well: get the right stock on your hard
-              drive, fast.
+            <p class="body-sm cell">
+              The full agent, UI, and download pipeline are on
+              <a href="https://github.com/birol-dev/Pexels" target="_blank" rel="noreferrer"
+                >GitHub</a
+              >. It runs on your machine and hands back a folder with paths, metadata, and credits.
             </p>
           </div>
 
-          <div class="bento">
-            <article class="bento-item featured span-6 reveal" id="opensource">
-              <div class="oss-bento-inner">
-                <div class="oss-bento-copy">
-                  <span class="material-symbols-outlined bento-icon">code</span>
-                  <h3>Free and fully open source</h3>
-                  <p>
-                    The entire app lives on GitHub — agent logic, Pexels integration, download
-                    sandbox, and UI. No hidden servers. No telemetry. Star the repo, open an issue,
-                    submit a PR, or fork it for your own workflow. You pay only for the LLM API
-                    calls you choose to make.
-                  </p>
+          <div class="panel shot-panel reveal">
+            <div class="mock app" role="img" aria-label="StockFinder AI home screen: setup progress at 3 of 4 steps and six recent b-roll packs">
+              <div class="app-rail" aria-hidden="true">
+                <img src="logos/stockfinder-icon.png" alt="" width="24" height="24" loading="lazy" />
+                <span class="rail-item is-active"
+                  ><svg aria-hidden="true"><use href="#i-home" /></svg>Home</span
+                >
+                <span class="rail-item"><svg aria-hidden="true"><use href="#i-grid" /></svg>Packs</span>
+                <span class="rail-item"
+                  ><svg aria-hidden="true"><use href="#i-folder" /></svg>Library</span
+                >
+                <span class="rail-item"
+                  ><svg aria-hidden="true"><use href="#i-console" /></svg>Console</span
+                >
+                <span class="rail-item"
+                  ><svg aria-hidden="true"><use href="#i-gear" /></svg>Settings</span
+                >
+              </div>
+              <div class="app-side" aria-hidden="true">
+                <div class="app-side-head">
+                  <span class="mock-title">Create</span>
+                  <span class="mock-pill">New pack</span>
                 </div>
-                <a
-                  href="https://github.com/birol-dev/Pexels"
-                  class="btn btn-secondary oss-bento-cta"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Explore the source
-                  <span class="material-symbols-outlined" style="font-size: 1rem"
-                    >arrow_outward</span
+                <span class="side-item is-active">Home</span>
+                <span class="side-item">Media library</span>
+                <span class="side-item">Agent console</span>
+                <span class="side-item">Settings</span>
+                <p class="side-label">Recents</p>
+                <span class="side-item">A Saturday, slowly</span>
+                <span class="side-item">Market day, vertical</span>
+                <span class="side-item">Van life — episode 4</span>
+                <span class="side-item">Beach week (Shorts)</span>
+              </div>
+              <div class="app-main" aria-hidden="true">
+                <div class="app-top"><span class="mock-pill">Paste a script <span class="btn-dot"></span></span></div>
+                <p class="app-welcome">Welcome back</p>
+                <div class="app-section">
+                  <span class="mock-title">Finish your setup</span>
+                  <span class="mock-muted">3 of 4</span>
+                </div>
+                <div class="setup-tray">
+                  <div class="setup-step">
+                    <span class="check"><svg><use href="#i-check" /></svg></span>
+                    <b>LLM key</b><span>Gemini connected</span>
+                  </div>
+                  <div class="setup-step">
+                    <span class="check"><svg><use href="#i-check" /></svg></span>
+                    <b>Pexels key</b><span>Free API, verified</span>
+                  </div>
+                  <div class="setup-step">
+                    <span class="check"><svg><use href="#i-check" /></svg></span>
+                    <b>Download folder</b><span>D:/Video/Stock</span>
+                  </div>
+                  <div class="setup-step is-current">
+                    <span class="mock-chip mock-chip--ink" style="justify-self: start">Step 4</span>
+                    <b>Run your first pack</b><span>Paste any script</span>
+                  </div>
+                </div>
+                <div class="app-section">
+                  <span class="mock-title">Recent packs</span>
+                  <span class="mock-muted">Open folder</span>
+                </div>
+                <div class="pack-grid" style="margin-top: 0">
+                  <div class="pack">
+                    <img src="https://images.pexels.com/photos/27173521/pexels-photo-27173521.jpeg?auto=compress&cs=tinysrgb&w=420" alt="" width="420" height="262" loading="lazy" />
+                    <b>Market day, vertical</b><span>31 assets · 9:16 · today</span>
+                  </div>
+                  <div class="pack">
+                    <img src="https://images.pexels.com/photos/8231096/pexels-photo-8231096.jpeg?auto=compress&cs=tinysrgb&w=420" alt="" width="420" height="262" loading="lazy" />
+                    <b>Van life — episode 4</b><span>24 assets · 16:9 · yesterday</span>
+                  </div>
+                  <div class="pack">
+                    <img src="https://images.pexels.com/photos/3727558/pexels-photo-3727558.jpeg?auto=compress&cs=tinysrgb&w=420" alt="" width="420" height="262" loading="lazy" />
+                    <b>Beach week</b><span>18 assets · Shorts · 2 days</span>
+                  </div>
+                  <div class="pack">
+                    <img src="https://images.pexels.com/photos/33635057/pexels-photo-33635057.jpeg?auto=compress&cs=tinysrgb&w=420" alt="" width="420" height="262" loading="lazy" />
+                    <b>City by bike</b><span>22 assets · 16:9 · 4 days</span>
+                  </div>
+                  <div class="pack">
+                    <img src="https://images.pexels.com/photos/1066201/pexels-photo-1066201.jpeg?auto=compress&cs=tinysrgb&w=420" alt="" width="420" height="262" loading="lazy" />
+                    <b>Golden hour cuts</b><span>12 assets · Reels · last week</span>
+                  </div>
+                  <div class="pack">
+                    <img src="https://images.pexels.com/photos/8841464/pexels-photo-8841464.jpeg?auto=compress&cs=tinysrgb&w=420" alt="" width="420" height="262" loading="lazy" />
+                    <b>Sunday lunch</b><span>27 assets · 16:9 · last week</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 07 FEATURES -->
+      <section class="sec tone-white" id="features" aria-labelledby="features-heading">
+        <div class="wrap">
+          <p class="index">
+            <span class="index-n">07</span><span class="index-rule" aria-hidden="true"></span
+            ><span>Built for creators who ship</span>
+          </p>
+          <h2 class="display-lg sec-title" id="features-heading">
+            Everything the manual workflow <em>forgot</em> to organize.
+          </h2>
+          <p class="lead sec-lead">
+            Not a video editor. Not a cloud subscription. A focused, open-source tool that does one
+            job well: get the right stock onto your drive, fast.
+          </p>
+
+          <div class="feature-rows">
+            <article class="feature-row">
+              <div class="feature-desc">
+                <span class="feature-n">Human approval mode</span>
+                <h3 class="card-title">You approve. It <em>downloads</em>.</h3>
+                <p>
+                  Pause before downloads, see the candidates for each beat, and approve or skip each
+                  one. Nothing touches your disk without your sign-off.
+                </p>
+              </div>
+              <div class="panel feature-visual reveal">
+                <span
+                  class="panel-glow"
+                  aria-hidden="true"
+                  style="
+                    background-image: url('https://images.pexels.com/photos/9974379/pexels-photo-9974379.jpeg?auto=compress&cs=tinysrgb&w=200');
+                  "
+                ></span>
+                <div class="mock approval" role="img" aria-label="Approval card for beat 6 with two photos approved and one skipped">
+                  <div class="approval-head" aria-hidden="true">
+                    <span class="mock-chip">Beat 06 of 08</span>
+                    <span class="mock-chip">Waiting for you <span class="btn-dot"></span></span>
+                  </div>
+                  <div aria-hidden="true">
+                    <p class="approval-line">“Someone always laughs first.”</p>
+                    <p class="approval-q">friends laughing, candid, bright daylight</p>
+                    <div class="approval-picks">
+                      <figure>
+                        <img src="https://images.pexels.com/photos/9974379/pexels-photo-9974379.jpeg?auto=compress&cs=tinysrgb&w=320" alt="" width="320" height="400" loading="lazy" />
+                        <figcaption><span class="mock-chip mock-chip--ink">Approved</span></figcaption>
+                      </figure>
+                      <figure>
+                        <img src="https://images.pexels.com/photos/9353806/pexels-photo-9353806.jpeg?auto=compress&cs=tinysrgb&w=320" alt="" width="320" height="400" loading="lazy" />
+                        <figcaption><span class="mock-chip mock-chip--ink">Approved</span></figcaption>
+                      </figure>
+                      <figure class="is-skipped">
+                        <img src="https://images.pexels.com/photos/16024741/pexels-photo-16024741.jpeg?auto=compress&cs=tinysrgb&w=320" alt="" width="320" height="400" loading="lazy" />
+                        <figcaption><span class="mock-chip">Skipped</span></figcaption>
+                      </figure>
+                    </div>
+                    <div class="approval-foot">
+                      <span class="mock-pill">Skip beat</span>
+                      <span class="mock-pill mock-pill--ink">Download 2 <span class="btn-dot"></span></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="feature-links">
+                <div class="big-links">
+                  <a href="/docs/#review-mode" class="big-link"
+                    >Review controls <span class="arrow" aria-hidden="true">→</span></a
                   >
+                  <a href="/docs/#agent-loop" class="big-link"
+                    >The agent loop <span class="arrow" aria-hidden="true">→</span></a
+                  >
+                </div>
+              </div>
+            </article>
+
+            <article class="feature-row">
+              <div class="feature-desc">
+                <span class="feature-n">Organized downloads</span>
+                <h3 class="card-title">A folder your editor <em>understands</em>.</h3>
+                <p>
+                  Every run exports photos/, videos/, thumbnails/ and a manifest.json with beats,
+                  queries, file paths, source URLs, and license notes. Hand it to anyone.
+                </p>
+              </div>
+              <div class="panel feature-visual reveal">
+                <span
+                  class="panel-glow"
+                  aria-hidden="true"
+                  style="
+                    background-image: url('https://images.pexels.com/photos/7618446/pexels-photo-7618446.jpeg?auto=compress&cs=tinysrgb&w=200');
+                  "
+                ></span>
+                <div class="mock" role="img" aria-label="Project folder with photos, videos, thumbnails and a manifest.json entry">
+                  <div class="mock-bar" aria-hidden="true"><i></i><i></i><i></i><span>a-saturday-slowly</span></div>
+                  <div class="tree" aria-hidden="true">
+                    <span class="mock-title">a-saturday-slowly/</span>
+                    <ul>
+                      <li><span>photos/</span><span>14 files</span></li>
+                      <li><span>videos/</span><span>9 files</span></li>
+                      <li><span>thumbnails/</span><span>23 files</span></li>
+                      <li><span>manifest.json</span><span>8 beats</span></li>
+                    </ul>
+<pre>{
+  "beat": 6,
+  "line": "Someone always laughs first.",
+  "query": "friends laughing, candid",
+  "file": "photos/06-ron-lach-9974379.jpg",
+  "credit": "Photo by Ron Lach on Pexels"
+}</pre>
+                  </div>
+                </div>
+              </div>
+              <div class="feature-links">
+                <div class="big-links">
+                  <a href="/docs/#manifest-structure" class="big-link"
+                    >Folder and manifest <span class="arrow" aria-hidden="true">→</span></a
+                  >
+                  <a href="/docs/#nle-integration" class="big-link"
+                    >Import into your editor <span class="arrow" aria-hidden="true">→</span></a
+                  >
+                  <a href="/how-to-find-b-roll/#attribution" class="big-link"
+                    >Attribution guide <span class="arrow" aria-hidden="true">→</span></a
+                  >
+                </div>
+              </div>
+            </article>
+
+            <article class="feature-row">
+              <div class="feature-desc">
+                <span class="feature-n">Your LLM, your keys</span>
+                <h3 class="card-title">Your model. Your <em>keys</em>.</h3>
+                <p>
+                  OpenAI, Gemini, or OpenRouter for Claude, Qwen, and more. Keys stay encrypted in
+                  your OS keychain, and there are no StockFinder servers to send them to.
+                </p>
+              </div>
+              <div class="panel feature-visual reveal">
+                <span
+                  class="panel-glow"
+                  aria-hidden="true"
+                  style="
+                    background-image: url('https://images.pexels.com/photos/8696275/pexels-photo-8696275.jpeg?auto=compress&cs=tinysrgb&w=200');
+                  "
+                ></span>
+                <div class="mock settings" role="img" aria-label="Settings screen with the Providers section open: provider, model and API key fields">
+                  <p class="settings-title" aria-hidden="true">Settings</p>
+                  <div class="settings-menu" aria-hidden="true">
+                    <span class="is-active">Providers</span>
+                    <span>Pexels</span>
+                    <span>Downloads</span>
+                    <span>Safety</span>
+                    <span>Appearance</span>
+                  </div>
+                  <div class="settings-form" aria-hidden="true">
+                    <span class="mock-title">Providers</span>
+                    <p class="mock-muted">The model that turns your script into beats.</p>
+                    <div class="mock-field">
+                      <span class="mock-field-head"><span>Provider</span></span>
+                      <span class="mock-input">Google Gemini <span class="mock-muted">▾</span></span>
+                    </div>
+                    <div class="mock-pair">
+                      <div class="mock-field">
+                        <span class="mock-field-head"><span>Model</span></span>
+                        <span class="mock-input">gemini-2.5-flash</span>
+                      </div>
+                      <div class="mock-field">
+                        <span class="mock-field-head"><span>API key</span><span class="mock-muted">Keychain</span></span>
+                        <span class="mock-input">•••••••••••• </span>
+                      </div>
+                    </div>
+                    <div class="mock-actions">
+                      <span class="mock-pill">Test</span>
+                      <span class="mock-pill mock-pill--ink">Update <span class="btn-dot"></span></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="feature-links">
+                <div class="big-links">
+                  <a href="/privacy/" class="big-link"
+                    >Privacy architecture <span class="arrow" aria-hidden="true">→</span></a
+                  >
+                  <a href="/pricing/" class="big-link"
+                    >What it costs <span class="arrow" aria-hidden="true">→</span></a
+                  >
+                  <a href="/docs/#advanced-settings" class="big-link"
+                    >Settings reference <span class="arrow" aria-hidden="true">→</span></a
+                  >
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="g3 lines smallprint">
+            <article class="cell reveal" id="opensource">
+              <span class="step-n">01</span>
+              <h3>Free and fully open source</h3>
+              <p>
+                MIT licensed. Agent logic, Pexels integration, download sandbox, and UI all live on
+                GitHub. No hidden servers, no telemetry. Fork it for your own workflow.
+              </p>
+            </article>
+            <article class="cell reveal">
+              <span class="step-n">02</span>
+              <h3>Pexels-native</h3>
+              <p>
+                Official API integration with rate-limit awareness, search caching, and required
+                photographer attribution in every export.
+              </p>
+            </article>
+            <article class="cell reveal">
+              <span class="step-n">03</span>
+              <h3>Live agent console</h3>
+              <p>
+                Watch beats parse, searches run, and downloads queue in real time, with tool calls,
+                token usage, and cost estimates. No black box.
+              </p>
+            </article>
+            <article class="cell reveal">
+              <span class="step-n">04</span>
+              <h3>Download sandbox</h3>
+              <p>
+                URL validation blocks private networks and unknown hosts. Candidates must match
+                verified Pexels search results.
+              </p>
+            </article>
+            <article class="cell reveal">
+              <span class="step-n">05</span>
+              <h3>Pause, resume, rerun</h3>
+              <p>
+                Pause a run, close the app, pick it up later. State persists across restarts.
+                Safety toggles skip explicit queries or avoid faces.
+              </p>
+            </article>
+            <article class="cell reveal">
+              <span class="step-n">06</span>
+              <h3>Platform and style controls</h3>
+              <p>
+                Target YouTube, Shorts, TikTok, or Reels. Set the visual style, the asset mix, and
+                per-beat download limits.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- 08 TRY IT: a sign-up that previews the product -->
+      <section class="sec tone-white" id="try" aria-labelledby="try-heading">
+        <div class="wrap">
+          <p class="index">
+            <span class="index-n">08</span><span class="index-rule" aria-hidden="true"></span
+            ><span>Try the first step</span>
+          </p>
+          <h2 class="display-lg sec-title" id="try-heading">
+            See your pack <em>before</em> you install.
+          </h2>
+
+          <div class="panel trial" data-trial>
+            <div class="trial-logo">
+              <img src="logos/stockfinder-icon.png" alt="" width="22" height="22" loading="lazy" />
+              StockFinder AI
+            </div>
+
+            <div class="trial-form">
+              <div class="progress">
+                <span class="progress-track" aria-hidden="true"><span></span></span>
+                <span>Step 2 of 3</span>
+              </div>
+              <h3 class="trial-q">What's your video about?</h3>
+              <p class="trial-help">Name it and paste one line. The preview fills in as you type.</p>
+
+              <div class="trial-fields">
+                <label class="field">
+                  <span class="field-label">Project title</span>
+                  <input class="input" type="text" value="A Saturday, slowly" maxlength="60" data-trial-title autocomplete="off" />
+                </label>
+                <label class="field">
+                  <span class="field-label">A line from your script</span>
+                  <textarea class="input" rows="2" maxlength="140" data-trial-line>The dog decides the route.</textarea>
+                </label>
+                <fieldset class="tiles field">
+                  <legend class="field-label">Where will it play?</legend>
+                  <label class="tile">
+                    <input type="radio" name="platform" value="16 / 9" data-label="YouTube · 16:9" checked />
+                    <span class="tile-icon" aria-hidden="true"><i style="--ar: 16 / 9; background-image: url('https://images.pexels.com/photos/8696275/pexels-photo-8696275.jpeg?auto=compress&cs=tinysrgb&w=80')"></i></span>
+                    <span class="tile-text">YouTube<small>16:9</small></span>
+                  </label>
+                  <label class="tile">
+                    <input type="radio" name="platform" value="9 / 16" data-label="Shorts · 9:16" />
+                    <span class="tile-icon" aria-hidden="true"><i style="--ar: 9 / 16; background-image: url('https://images.pexels.com/photos/12031035/pexels-photo-12031035.jpeg?auto=compress&cs=tinysrgb&w=80')"></i></span>
+                    <span class="tile-text">Shorts<small>9:16</small></span>
+                  </label>
+                  <label class="tile">
+                    <input type="radio" name="platform" value="1 / 1" data-label="Square · 1:1" />
+                    <span class="tile-icon" aria-hidden="true"><i style="--ar: 1 / 1; background-image: url('https://images.pexels.com/photos/35835482/pexels-photo-35835482.jpeg?auto=compress&cs=tinysrgb&w=80')"></i></span>
+                    <span class="tile-text">Square<small>1:1</small></span>
+                  </label>
+                  <label class="tile">
+                    <input type="radio" name="platform" value="4 / 5" data-label="Reels · 4:5" />
+                    <span class="tile-icon" aria-hidden="true"><i style="--ar: 4 / 5; background-image: url('https://images.pexels.com/photos/9974379/pexels-photo-9974379.jpeg?auto=compress&cs=tinysrgb&w=80')"></i></span>
+                    <span class="tile-text">Reels<small>4:5</small></span>
+                  </label>
+                </fieldset>
+              </div>
+
+              <div class="trial-go">
+                <a href="https://github.com/birol-dev/Pexels/releases" class="btn btn-primary">
+                  Get my b-roll pack — free
+                  <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
                 </a>
+                <span class="micro">No account. Runs on your machine.</span>
               </div>
-            </article>
+            </div>
 
-            <article class="bento-item featured span-4 reveal">
+            <div class="trial-preview">
+              <div class="mock trial-window" data-trial-window style="--ar: 16 / 9">
+                <div class="mock-bar" aria-hidden="true"><i></i><i></i><i></i><span>Run preview</span></div>
+                <div class="win-head">
+                  <div class="win-head-title">
+                    <span class="win-icon"><img src="logos/stockfinder-icon.png" alt="" width="20" height="20" loading="lazy" /></span>
+                    <span class="mock-title" data-out-title>A Saturday, slowly</span>
+                  </div>
+                  <span class="mock-chip" data-out-meta>YouTube · 16:9</span>
+                </div>
+                <ol class="win-rows" aria-live="polite">
+                  <li class="win-row">
+                    <span class="check"><svg aria-hidden="true"><use href="#i-check" /></svg></span>
+                    <div class="win-row-body">
+                      <p class="win-line" data-out-line>The dog decides the route.</p>
+                      <p class="win-query" data-out-query>query · dog on a leash, sunny walk</p>
+                      <div class="win-thumbs" data-out-thumbs>
+                        <img src="https://images.pexels.com/photos/12031035/pexels-photo-12031035.jpeg?auto=compress&cs=tinysrgb&w=320" alt="" width="320" height="180" />
+                        <img src="https://images.pexels.com/photos/37467772/pexels-photo-37467772.jpeg?auto=compress&cs=tinysrgb&w=320" alt="" width="320" height="180" />
+                        <img src="https://images.pexels.com/photos/13239212/pexels-photo-13239212.jpeg?auto=compress&cs=tinysrgb&w=320" alt="" width="320" height="180" />
+                        <span class="ghost-thumb" aria-hidden="true"></span>
+                        <span class="ghost-thumb" aria-hidden="true"></span>
+                        <span class="ghost-thumb" aria-hidden="true"></span>
+                      </div>
+                    </div>
+                  </li>
+                  <li class="win-row win-row--ghost" aria-hidden="true">
+                    <span class="check check--ghost"><svg><use href="#i-check" /></svg></span>
+                    <div class="win-row-body"><span class="ghost-line" style="width: 62%"></span><span class="ghost-line" style="width: 38%"></span></div>
+                  </li>
+                  <li class="win-row win-row--ghost" aria-hidden="true">
+                    <span class="check check--ghost"><svg><use href="#i-check" /></svg></span>
+                    <div class="win-row-body"><span class="ghost-line" style="width: 48%"></span><span class="ghost-line" style="width: 30%"></span></div>
+                  </li>
+                  <li class="win-row win-row--ghost" aria-hidden="true">
+                    <span class="check check--ghost"><svg><use href="#i-check" /></svg></span>
+                    <div class="win-row-body"><span class="ghost-line" style="width: 70%"></span><span class="ghost-line" style="width: 44%"></span></div>
+                  </li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 09 CONNECTS EVERYWHERE -->
+      <section class="sec tone-white" aria-labelledby="connect-heading">
+        <div class="wrap">
+          <p class="index">
+            <span class="index-n">09</span><span class="index-rule" aria-hidden="true"></span
+            ><span>Works with what you already use</span>
+          </p>
+          <h2 class="display-lg sec-title" id="connect-heading">
+            Bring your model. <span class="fade">Keep your</span> <em>editor</em>.
+          </h2>
+          <div class="logos">
+            <ul class="logo-row" aria-label="Supported AI providers, stock source and platforms">
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-spark" /></svg></span>OpenAI</li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-spark" /></svg></span>Google Gemini</li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-spark" /></svg></span>OpenRouter</li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-spark" /></svg></span>Claude <small>via OpenRouter</small></li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-spark" /></svg></span>Qwen <small>via OpenRouter</small></li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-camera" /></svg></span>Pexels photos &amp; videos</li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-play" /></svg></span>YouTube</li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-play" /></svg></span>Shorts</li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-play" /></svg></span>TikTok</li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-play" /></svg></span>Reels</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-spark" /></svg></span>OpenAI</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-spark" /></svg></span>Google Gemini</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-spark" /></svg></span>OpenRouter</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-spark" /></svg></span>Claude <small>via OpenRouter</small></li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-spark" /></svg></span>Qwen <small>via OpenRouter</small></li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-camera" /></svg></span>Pexels photos &amp; videos</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-play" /></svg></span>YouTube</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-play" /></svg></span>Shorts</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-play" /></svg></span>TikTok</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-play" /></svg></span>Reels</li>
+            </ul>
+            <ul class="logo-row logo-row--rev" aria-label="Supported editors and operating systems">
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-timeline" /></svg></span>Premiere Pro</li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-timeline" /></svg></span>DaVinci Resolve</li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-timeline" /></svg></span>Final Cut Pro</li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-timeline" /></svg></span>CapCut</li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-folder" /></svg></span>Any editor that opens a folder</li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-desktop" /></svg></span>Windows</li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-desktop" /></svg></span>macOS</li>
+              <li class="logo-pill"><span class="logo-glyph"><svg aria-hidden="true"><use href="#i-desktop" /></svg></span>Linux</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-timeline" /></svg></span>Premiere Pro</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-timeline" /></svg></span>DaVinci Resolve</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-timeline" /></svg></span>Final Cut Pro</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-timeline" /></svg></span>CapCut</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-folder" /></svg></span>Any editor that opens a folder</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-desktop" /></svg></span>Windows</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-desktop" /></svg></span>macOS</li>
+              <li class="logo-pill" aria-hidden="true"><span class="logo-glyph"><svg><use href="#i-desktop" /></svg></span>Linux</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10 WHO IT'S FOR -->
+      <section class="sec tone-white" id="creators" aria-labelledby="creators-heading">
+        <div class="wrap">
+          <p class="index">
+            <span class="index-n">10</span><span class="index-rule" aria-hidden="true"></span
+            ><span>Who it's for</span>
+          </p>
+          <h2 class="display-lg sec-title" id="creators-heading">
+            Same pain. <span class="fade">Different</span> <em>channel</em>.
+          </h2>
+          <div class="g3 lines trio">
+            <article class="cell tall persona reveal">
               <div>
-                <span class="material-symbols-outlined bento-icon">smart_toy</span>
-                <h3>Looping AI agent with live progress</h3>
+                <p class="persona-tag">Faceless YouTube</p>
+                <h3>Explainer and documentary channels</h3>
+              </div>
+              <div>
+                <p class="persona-pain">
+                  “Every video is 8–15 minutes of narration. I need 40+ clips that match the story
+                  arc, not random office b-roll.”
+                </p>
                 <p>
-                  Watch beats parse, searches run, and downloads queue in real time. Full agent
-                  console with tool calls, token usage, and cost estimates — no black box.
+                  The agent maps narrative beats to cinematic or documentary searches and downloads
+                  a full pack per video.
                 </p>
               </div>
             </article>
-
-            <article class="bento-item span-2 reveal">
+            <article class="cell tall persona reveal">
               <div>
-                <span class="material-symbols-outlined bento-icon">verified</span>
-                <h3>MIT licensed</h3>
+                <p class="persona-tag">Short-form editor</p>
+                <h3>Shorts, TikTok, Reels</h3>
+              </div>
+              <div>
+                <p class="persona-pain">
+                  “I rewrite hooks weekly but I'm still hunting vertical-friendly clips at midnight
+                  before a batch upload.”
+                </p>
                 <p>
-                  Free forever under the MIT license. Read the code, fork it, or ship your own build
-                  — no strings attached.
+                  Pick Shorts or Reels as the target. Tighter beat limits, faster runs, one folder
+                  per project.
                 </p>
               </div>
             </article>
-
-            <article class="bento-item span-2 reveal">
+            <article class="cell tall persona reveal">
               <div>
-                <span class="material-symbols-outlined bento-icon">photo_library</span>
-                <h3>Pexels-native</h3>
-                <p>
-                  Official API integration with rate-limit awareness, search caching, and required
-                  photographer attribution in exports.
-                </p>
+                <p class="persona-tag">Freelance editor</p>
+                <h3>Client scripts, tight turnarounds</h3>
               </div>
-            </article>
-
-            <article class="bento-item span-2 reveal">
               <div>
-                <span class="material-symbols-outlined bento-icon">psychology</span>
-                <h3>Your LLM, your keys</h3>
-                <p>
-                  OpenAI, Gemini, or OpenRouter. Bring the model you already pay for. Keys stored
-                  locally in your OS keychain.
+                <p class="persona-pain">
+                  “Client sends a script Friday. They want a rough cut Monday. I can't bill three
+                  hours of stock scrolling.”
                 </p>
-              </div>
-            </article>
-
-            <article class="bento-item span-2 reveal">
-              <div>
-                <span class="material-symbols-outlined bento-icon">verified_user</span>
-                <h3>Human approval mode</h3>
                 <p>
-                  Pause before downloads. Approve or reject each asset. Nothing hits your disk
-                  without your sign-off.
-                </p>
-              </div>
-            </article>
-
-            <article class="bento-item span-2 reveal">
-              <div>
-                <span class="material-symbols-outlined bento-icon">shield</span>
-                <h3>Download sandbox</h3>
-                <p>
-                  URL validation blocks private networks and unauthorized hosts. Candidates must
-                  match verified Pexels search results.
-                </p>
-              </div>
-            </article>
-
-            <article class="bento-item span-3 reveal">
-              <div>
-                <span class="material-symbols-outlined bento-icon">tune</span>
-                <h3>Platform and style controls</h3>
-                <p>
-                  Target YouTube, Shorts, TikTok, or Reels. Set visual style, asset mix (video only,
-                  photos only, or both), and per-beat download limits.
-                </p>
-              </div>
-            </article>
-
-            <article class="bento-item span-3 reveal">
-              <div>
-                <span class="material-symbols-outlined bento-icon">folder_open</span>
-                <h3>Manifest you can hand to anyone</h3>
-                <p>
-                  Every run exports manifest.json with script beats, queries, file paths, source
-                  URLs, and license notes. Editor-ready documentation, not chaos.
-                </p>
-              </div>
-            </article>
-
-            <article class="bento-item span-2 reveal">
-              <div>
-                <span class="material-symbols-outlined bento-icon">pause_circle</span>
-                <h3>Pause, resume, rerun</h3>
-                <p>
-                  Life happens. Pause a run, close the app, resume later. State persists across
-                  restarts.
-                </p>
-              </div>
-            </article>
-
-            <article class="bento-item span-2 reveal">
-              <div>
-                <span class="material-symbols-outlined bento-icon">visibility_off</span>
-                <h3>Safety toggles</h3>
-                <p>
-                  Skip explicit queries. Avoid people and faces in results. Control concurrency,
-                  timeouts, and max agent iterations.
-                </p>
-              </div>
-            </article>
-
-            <article class="bento-item span-2 reveal">
-              <div>
-                <span class="material-symbols-outlined bento-icon">laptop</span>
-                <h3>Runs on your machine</h3>
-                <p>
-                  No cloud accounts. No upload of your script to our servers. Your script, your
-                  keys, your files — local by design.
+                  Export the manifest with attribution for client records and hand off folders with
+                  clear beat-to-clip mapping.
                 </p>
               </div>
             </article>
@@ -1131,320 +1997,192 @@
         </div>
       </section>
 
-      <!-- CREATOR PERSONAS -->
-      <section class="section section-alt" id="creators">
-        <div class="container">
-          <div class="section-header centered reveal">
-            <span class="eyebrow">Who it's for</span>
-            <h2 class="display-lg">Same pain. Different channel.</h2>
-            <p class="lead">
-              If your workflow starts with a script and ends with stock footage scattered across
-              your desktop, StockFinder AI was built for you.
-            </p>
-          </div>
-
-          <div class="persona-grid">
-            <article class="persona-card reveal">
-              <div class="persona-tag">Faceless YouTube</div>
-              <h3>Explainer and documentary channels</h3>
-              <p class="persona-pain">
-                "Every video is 8–15 minutes of narration. I need 40+ clips that match the story
-                arc, not random office b-roll."
-              </p>
-              <p class="persona-outcome">
-                <span class="material-symbols-outlined">check_circle</span>
-                <span
-                  >Agent maps narrative beats to cinematic or documentary-style searches, downloads
-                  a full pack per video.</span
-                >
-              </p>
-            </article>
-
-            <article class="persona-card reveal">
-              <div class="persona-tag">Short-form editor</div>
-              <h3>Shorts, TikTok, Reels</h3>
-              <p class="persona-pain">
-                "I rewrite hooks weekly but I'm still manually hunting vertical-friendly clips at
-                midnight before a batch upload."
-              </p>
-              <p class="persona-outcome">
-                <span class="material-symbols-outlined">check_circle</span>
-                <span
-                  >Select Shorts or Reels as target platform. Tighter beat limits, faster runs,
-                  organized folders per project.</span
-                >
-              </p>
-            </article>
-
-            <article class="persona-card reveal">
-              <div class="persona-tag">Freelance editor</div>
-              <h3>Client scripts, tight turnarounds</h3>
-              <p class="persona-pain">
-                "Client sends a script Friday. They want a rough cut Monday. I can't bill 3 hours of
-                stock scrolling."
-              </p>
-              <p class="persona-outcome">
-                <span class="material-symbols-outlined">check_circle</span>
-                <span
-                  >Export manifest with attribution for client records. Hand off folders with clear
-                  beat-to-clip mapping.</span
-                >
-              </p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <!-- DEEP PAIN — SECOND WAVE -->
-      <section class="section">
-        <div class="container">
-          <div class="section-header reveal">
-            <span class="eyebrow">Why "just search Pexels" fails</span>
-            <h2 class="display-lg">The problem isn't stock quality. It's translation.</h2>
-            <p class="lead">
-              Pexels has millions of clips. Your script speaks in story, emotion, and metaphor. The
-              gap between those two languages is where creators lose hours — and settle for footage
-              that weakens the final cut.
-            </p>
-          </div>
-
-          <div class="pain-grid">
-            <article class="pain-card reveal">
-              <div class="pain-card-icon">
-                <span class="material-symbols-outlined">translate</span>
-              </div>
-              <h3>Scripts speak in metaphor</h3>
-              <p>
-                "The market froze overnight" isn't a literal ice search. A human (or AI) has to
-                translate narrative intent into visual language Pexels can return — that's the hard
-                part.
-              </p>
-            </article>
-
-            <article class="pain-card reveal">
-              <div class="pain-card-icon">
-                <span class="material-symbols-outlined">inventory_2</span>
-              </div>
-              <h3>Volume without structure</h3>
-              <p>
-                Downloading 30 clips is easy. Knowing which clip supports line 47 of your script —
-                and having it in a folder named for that project — is the work StockFinder
-                automates.
-              </p>
-            </article>
-
-            <article class="pain-card reveal">
-              <div class="pain-card-icon">
-                <span class="material-symbols-outlined">sync_problem</span>
-              </div>
-              <h3>Context switching kills flow</h3>
-              <p>
-                Creative flow lives in the edit. Every minute in a stock site is a minute not spent
-                on pacing, music, and the cuts that actually retain viewers.
-              </p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <!-- QUERY FAN-OUT: common search intents -->
-      <section class="section section-alt" id="guides" aria-labelledby="guides-heading">
-        <div class="container">
-          <div class="section-header reveal">
-            <span class="eyebrow">Common questions</span>
-            <h2 class="display-lg" id="guides-heading">How creators find b-roll faster</h2>
-            <p class="lead">
-              StockFinder AI addresses the stock-footage problems YouTube editors search for most
-              often — from keyword guessing to attribution and platform-specific crops. Read the
-              full walkthrough in
+      <!-- 11 GUIDES -->
+      <section class="sec tone-white" id="guides" aria-labelledby="guides-heading">
+        <div class="wrap">
+          <p class="index">
+            <span class="index-n">11</span><span class="index-rule" aria-hidden="true"></span
+            ><span>Common questions</span>
+          </p>
+          <div class="g4 sec-head">
+            <h2 class="display-lg span-3" id="guides-heading">
+              How creators find b-roll <em>faster</em>.
+            </h2>
+            <p class="body-sm cell">
+              From keyword guessing to attribution and platform crops. The full walkthrough lives in
               <a href="/how-to-find-b-roll/">How to find b-roll for YouTube videos</a>.
             </p>
           </div>
-
-          <div class="guide-grid">
+          <div class="g2 guide-grid">
             <article class="guide-card reveal">
-              <h3>
-                <a href="/how-to-find-b-roll/">How to find b-roll for YouTube videos</a>
-              </h3>
+              <h3><a href="/how-to-find-b-roll/">How to find b-roll for YouTube videos</a></h3>
               <p>
                 Start from your script, not from generic stock keywords. StockFinder AI parses each
-                narration beat, generates visual search queries that match story intent, and
-                downloads Pexels clips organized by scene — so you edit from a folder that mirrors
-                your timeline structure.
+                narration beat, writes visual search queries that match story intent, and downloads
+                Pexels clips organized by scene, so your folder mirrors your timeline.
               </p>
             </article>
-
             <article class="guide-card reveal">
               <h3>
-                <a href="/how-to-find-b-roll/#workflow"
-                  >Best free stock footage workflow for editors</a
-                >
+                <a href="/how-to-find-b-roll/#workflow">Best free stock footage workflow for editors</a>
               </h3>
               <p>
                 Pexels offers free stock photos and videos, but manual searching costs hours per
-                upload. StockFinder AI automates Pexels API searches locally on your desktop,
-                exports attribution in manifest.json, and keeps assets named and grouped per project
-                — no SaaS subscription required.
+                upload. StockFinder AI automates Pexels API searches on your desktop, exports
+                attribution in manifest.json, and keeps assets named and grouped per project.
               </p>
             </article>
-
             <article class="guide-card reveal">
               <h3>
-                <a href="/how-to-find-b-roll/#ai-tools"
-                  >AI tools for YouTube b-roll (without cloud lock-in)</a
-                >
+                <a href="/how-to-find-b-roll/#ai-tools">AI tools for YouTube b-roll, without cloud lock-in</a>
               </h3>
               <p>
-                Most AI video tools run in the browser and charge monthly fees. StockFinder AI is
-                MIT-licensed open source: bring your own OpenAI, Gemini, or OpenRouter key, keep
-                scripts on your machine, and audit every line of the agent on GitHub.
+                Most AI video tools run in the browser and charge monthly. StockFinder AI is
+                MIT-licensed: bring your own OpenAI, Gemini, or OpenRouter key, keep scripts on your
+                machine, and audit every line of the agent on GitHub.
               </p>
             </article>
-
             <article class="guide-card reveal">
               <h3>
-                <a href="/how-to-find-b-roll/#attribution"
-                  >Pexels attribution for YouTube descriptions</a
-                >
+                <a href="/how-to-find-b-roll/#attribution">Pexels attribution for YouTube descriptions</a>
               </h3>
               <p>
-                Pexels requires crediting photographers and linking back to Pexels. StockFinder
-                includes attribution in the Media Library and exports a complete credits block in
-                manifest.json — so you paste accurate credits into your YouTube description instead
-                of reconstructing them at 1 AM.
+                Pexels asks you to credit photographers and link back. StockFinder includes
+                attribution in the Media Library and exports a complete credits block in
+                manifest.json, ready to paste into your description.
               </p>
             </article>
           </div>
         </div>
       </section>
 
-      <!-- FAQ -->
-      <section class="section" id="faq">
-        <div class="container">
-          <div class="section-header centered reveal">
-            <span class="eyebrow">Questions</span>
-            <h2 class="display-lg">Before you download</h2>
-          </div>
-
-          <div class="faq-list">
-            <details class="faq-item reveal">
-              <summary>Is StockFinder AI a video editor?</summary>
-              <p>
-                No. It finds, downloads, and organizes stock assets. You still edit in Premiere,
-                DaVinci Resolve, Final Cut, CapCut, or whatever you already use. Think of it as the
-                research assistant that runs before your timeline.
-              </p>
-            </details>
-
-            <details class="faq-item reveal">
-              <summary>Do I need a Pexels API key?</summary>
-              <p>
-                Yes. Pexels offers free API access for developers. StockFinder uses your key to
-                search and download on your behalf. The key stays encrypted in your local system
-                keychain — never sent to us.
-              </p>
-            </details>
-
-            <details class="faq-item reveal">
-              <summary>Which AI models are supported?</summary>
-              <p>
-                OpenAI, Google Gemini, and OpenRouter (which unlocks Claude, Qwen, and many others).
-                You provide your own API key and model ID. The agent uses tool calling to search
-                Pexels and manage downloads.
-              </p>
-            </details>
-
-            <details class="faq-item reveal">
-              <summary>Is my script uploaded anywhere?</summary>
-              <p>
-                Your script is sent to whichever LLM provider you configure — that's how the agent
-                analyzes beats. It is not sent to StockFinder servers because there are no
-                StockFinder servers. The app runs entirely on your desktop. See our full
-                <a href="/privacy/">privacy statement</a> for details.
-              </p>
-            </details>
-
-            <details class="faq-item reveal">
-              <summary>Can I review assets before they download?</summary>
-              <p>
-                Yes. Enable "require approval before download" in Settings. The agent pauses, shows
-                candidates per beat, and you approve or reject each one before anything hits your
-                disk. Read our <a href="/how-to-find-b-roll/">workflow guide</a> to learn more.
-              </p>
-            </details>
-
-            <details class="faq-item reveal">
-              <summary>What about Pexels attribution?</summary>
-              <p>
-                Pexels requires crediting photographers and linking back to Pexels. StockFinder
-                includes attribution in the Media Library and exports a full attribution block in
-                manifest.json so you're not reconstructing credits from memory. See the
-                <a href="/how-to-find-b-roll/#attribution">attribution guide</a>.
-              </p>
-            </details>
-
-            <details class="faq-item reveal">
-              <summary>Does it work on Mac and Linux?</summary>
-              <p>
-                Build targets include Windows, macOS, and Linux. Check the GitHub releases page for
-                installers for your platform.
-              </p>
-            </details>
-
-            <details class="faq-item reveal">
-              <summary>How much does it cost?</summary>
-              <p>
-                The app is free and open source — download it, use it, fork it. You pay only for
-                your own LLM API usage (typically cents per script run). Pexels API access is free
-                within their rate limits. No StockFinder subscription. Ever. Full breakdown is on
-                our
-                <a href="/pricing/">pricing page</a>.
-              </p>
-            </details>
-
-            <details class="faq-item reveal">
-              <summary>What does open source mean for me?</summary>
-              <p>
-                Every line of code is public on GitHub. You can verify the app never uploads your
-                script to us (there is no “us” — no StockFinder servers). You can build it yourself,
-                audit the download sandbox, contribute fixes, or fork it if your team needs custom
-                behavior. Releases are published on GitHub for Windows, macOS, and Linux.
-              </p>
-            </details>
+      <!-- 12 FAQ -->
+      <section class="sec tone-white" id="faq" aria-labelledby="faq-heading">
+        <div class="wrap">
+          <p class="index">
+            <span class="index-n">12</span><span class="index-rule" aria-hidden="true"></span
+            ><span>Questions</span>
+          </p>
+          <div class="g4 faq-layout">
+            <h2 class="display-md faq-title cell" id="faq-heading">
+              Before you <em>download</em>.
+            </h2>
+            <div class="faq-list span-3">
+              <details class="faq-item">
+                <summary>Is StockFinder AI a video editor?</summary>
+                <p>
+                  No. It finds, downloads, and organizes stock assets. You still edit in Premiere,
+                  DaVinci Resolve, Final Cut, CapCut, or whatever you already use. Think of it as
+                  the research assistant that runs before your timeline.
+                </p>
+              </details>
+              <details class="faq-item">
+                <summary>Do I need a Pexels API key?</summary>
+                <p>
+                  Yes. Pexels offers free API access for developers. StockFinder uses your key to
+                  search and download on your behalf. The key stays encrypted in your local system
+                  keychain and is never sent to us.
+                </p>
+              </details>
+              <details class="faq-item">
+                <summary>Which AI models are supported?</summary>
+                <p>
+                  OpenAI, Google Gemini, and OpenRouter (which unlocks Claude, Qwen, and many
+                  others). You provide your own API key and model ID. The agent uses tool calling to
+                  search Pexels and manage downloads.
+                </p>
+              </details>
+              <details class="faq-item">
+                <summary>Is my script uploaded anywhere?</summary>
+                <p>
+                  Your script is sent to whichever LLM provider you configure — that's how the agent
+                  analyzes beats. It is not sent to StockFinder servers because there are no
+                  StockFinder servers. The app runs entirely on your desktop. See the full
+                  <a href="/privacy/">privacy statement</a>.
+                </p>
+              </details>
+              <details class="faq-item">
+                <summary>Can I review assets before they download?</summary>
+                <p>
+                  Yes. Turn on “require approval before download” in Settings. The agent pauses,
+                  shows candidates per beat, and you approve or reject each one before anything hits
+                  your disk. The <a href="/how-to-find-b-roll/">workflow guide</a> has more.
+                </p>
+              </details>
+              <details class="faq-item">
+                <summary>What about Pexels attribution?</summary>
+                <p>
+                  Pexels asks you to credit photographers and link back to Pexels. StockFinder
+                  includes attribution in the Media Library and exports a full attribution block in
+                  manifest.json. See the
+                  <a href="/how-to-find-b-roll/#attribution">attribution guide</a>.
+                </p>
+              </details>
+              <details class="faq-item">
+                <summary>Does it work on Mac and Linux?</summary>
+                <p>
+                  Yes. Build targets include Windows, macOS, and Linux. The GitHub releases page has
+                  installers for each platform.
+                </p>
+              </details>
+              <details class="faq-item">
+                <summary>How much does it cost?</summary>
+                <p>
+                  The app is free and open source. You pay only for your own LLM API usage, typically
+                  cents per script run. Pexels API access is free within their rate limits. No
+                  StockFinder subscription, ever. The full breakdown is on the
+                  <a href="/pricing/">pricing page</a>.
+                </p>
+              </details>
+              <details class="faq-item">
+                <summary>What does open source mean for me?</summary>
+                <p>
+                  Every line of code is public on GitHub. You can verify the app never uploads your
+                  script to us (there is no “us” — no StockFinder servers), build it yourself, audit
+                  the download sandbox, contribute fixes, or fork it if your team needs custom
+                  behavior.
+                </p>
+              </details>
+            </div>
           </div>
         </div>
       </section>
 
       <!-- FINAL CTA -->
-      <section class="cta-band">
-        <div class="container reveal">
-          <span class="eyebrow">Free · Open source · Yours to keep</span>
-          <h2 class="display-lg">
-            Your next video deserves b-roll<br />
-            that <span class="highlight-lime">matches the script</span>.
-          </h2>
-          <p class="lead">
-            Download the app for free. Star the repo if it saves you a night of stock scrolling.
-            Paste your script tonight — open a folder tomorrow that's ready for your timeline.
-          </p>
-          <div class="cta-buttons">
-            <a href="https://github.com/birol-dev/Pexels/releases" class="btn btn-primary">
-              Download free
-              <span class="material-symbols-outlined" style="font-size: 1rem">download</span>
-            </a>
-            <a
-              href="https://github.com/birol-dev/Pexels"
-              class="btn btn-secondary"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Star on GitHub
-              <span class="material-symbols-outlined" style="font-size: 1rem">star</span>
-            </a>
+      <section class="sec tone-white chapter-end final" aria-labelledby="final-heading">
+        <div class="wrap">
+          <div class="g4 lines">
+            <div class="cell span-3 tall">
+              <span class="step-n">Free · Open source · Yours to keep</span>
+              <h2 class="display-xl" id="final-heading">
+                Your next video deserves b-roll that <em>matches</em> the script.
+              </h2>
+            </div>
+            <div class="cell tall">
+              <span class="step-n">Windows · macOS · Linux</span>
+              <div>
+                <p class="body-sm">
+                  Paste your script tonight. Open a folder tomorrow that's ready for your timeline.
+                  Star the repo if it saves you a night of scrolling.
+                </p>
+                <div class="cta-stack" style="margin-top: 24px">
+                  <a href="https://github.com/birol-dev/Pexels/releases" class="btn btn-primary">
+                    Start my first pack
+                    <svg class="icon" aria-hidden="true"><use href="#i-down" /></svg>
+                  </a>
+                  <a
+                    href="https://github.com/birol-dev/Pexels"
+                    class="btn btn-secondary"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Star on GitHub
+                    <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
-          <p class="cta-note">
-            Open source on GitHub · Windows, macOS, and Linux · Your keys, your files, your machine
-          </p>
         </div>
       </section>
     </main>
@@ -1477,7 +2215,6 @@
               target="_blank"
               rel="noreferrer"
             >
-              <span class="material-symbols-outlined">code</span>
               github.com/birol-dev/Pexels
             </a>
           </div>
@@ -1521,9 +2258,12 @@
             </ul>
           </div>
         </div>
+        <p class="footer-word" aria-hidden="true">StockFinder <em>AI</em></p>
         <div class="footer-bottom">
-          <span>StockFinder AI v1.3.2 — Free &amp; open source · Last updated September 20, 2026</span>
-          <span>Pexels media used under the Pexels License</span>
+          <span
+            >StockFinder AI v1.3.2 — Free &amp; open source · Last updated September 20, 2026</span
+          >
+          <span>Photos and video from Pexels, used under the Pexels License</span>
         </div>
       </div>
     </footer>

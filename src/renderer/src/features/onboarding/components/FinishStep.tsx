@@ -1,8 +1,10 @@
-import { CheckCircleIcon, FolderIcon, ImagesIcon, WarningCircleIcon } from '@phosphor-icons/react'
-import { LiquidMetalButton } from '@renderer/components/ui/liquid-metal-button'
+import { ArrowRightIcon, FolderIcon, ImagesIcon, WarningCircleIcon } from '@phosphor-icons/react'
+import { Button } from '@renderer/components/ui/button'
 import type { OnboardingController } from '../hooks/useOnboarding'
+import { PROVIDER_OPTIONS } from '../utils'
 import { ProviderLogo } from './ProviderLogo'
 import { StepCard } from './StepCard'
+import { StepHeader } from './StepHeader'
 import { SummaryCard } from './SummaryCard'
 
 type FinishStepProps = Pick<
@@ -28,45 +30,47 @@ export function FinishStep({
   finish
 }: FinishStepProps): React.JSX.Element {
   const ready = hasLlmKey && hasPexelsKey
+  const providerLabel =
+    PROVIDER_OPTIONS.find((option) => option.id === llmProvider)?.label ?? llmProvider
   return (
-    <StepCard centered className="p-8">
-      <div className="relative mb-2 flex size-24 items-center justify-center">
-        <div className="absolute inset-0 animate-pulse rounded-full bg-primary-container opacity-10 blur-xl" />
-        <div className="animate-float relative z-10 flex size-20 items-center justify-center rounded-sm border-2 border-edge bg-card">
-          <CheckCircleIcon size={42} weight="fill" className="text-primary" />
-        </div>
-      </div>
+    <StepCard>
+      <StepHeader
+        title={
+          ready ? (
+            <>
+              You&apos;re <em>all set</em>
+            </>
+          ) : (
+            <>
+              Almost <em>there</em>
+            </>
+          )
+        }
+        description={
+          ready
+            ? 'Here is what StockFinder will use. You can change any of it later in Settings.'
+            : 'You can start now, but a run needs both keys. Add the missing one in Settings.'
+        }
+      />
 
-      <div>
-        <h1 className="mb-2 text-3xl font-extrabold text-on-surface">
-          {ready ? "You're All Set!" : 'Almost There'}
-        </h1>
-        <p className="mx-auto max-w-sm text-xs text-on-surface-variant">
-          {ready
-            ? 'StockFinder AI is configured and ready. Here is a summary of your workspace parameters:'
-            : 'You can start now, but a run needs both keys. Add the missing one in Settings.'}
-        </p>
-      </div>
-
-      <div className="grid w-full max-w-lg grid-cols-1 gap-4 text-left sm:grid-cols-2">
+      <div className="flex flex-col gap-2">
         <SummaryCard
           icon={<ProviderLogo provider={llmProvider} />}
-          title="AI Provider"
-          value={`${llmProvider.toUpperCase()} (${modelId})`}
-          status={hasLlmKey ? 'Configured' : 'No key'}
+          title={providerLabel}
+          value={modelId}
+          status={hasLlmKey ? 'Ready' : 'No key'}
           ok={hasLlmKey}
         />
         <SummaryCard
           icon={<ImagesIcon />}
-          title="Media Source"
-          value="Pexels API Link"
-          status={hasPexelsKey ? 'Configured' : 'No key'}
+          title="Pexels"
+          value="Photos and clips"
+          status={hasPexelsKey ? 'Ready' : 'No key'}
           ok={hasPexelsKey}
         />
         <SummaryCard
-          className="sm:col-span-2"
           icon={<FolderIcon />}
-          title="Local Export Directory"
+          title="Download folder"
           value={downloadFolder || 'System default directory'}
           status="Ready"
           mono
@@ -74,22 +78,17 @@ export function FinishStep({
       </div>
 
       {finishError && (
-        <p
-          role="alert"
-          className="flex max-w-lg items-start gap-1.5 text-left text-xs font-semibold text-error"
-        >
+        <p role="alert" className="flex items-start gap-1.5 text-[13px] font-medium text-error">
           <WarningCircleIcon size={16} className="shrink-0" />
           Could not save your settings: {finishError}
         </p>
       )}
 
-      <div className="mt-2">
-        <LiquidMetalButton
-          label={finishing ? 'Saving...' : 'Start Using StockFinder'}
-          width={230}
-          onClick={finish}
-          disabled={finishing}
-        />
+      <div>
+        <Button size="lg" onClick={finish} disabled={finishing}>
+          {finishing ? 'Saving...' : 'Start using StockFinder'}
+          {!finishing && <ArrowRightIcon />}
+        </Button>
       </div>
     </StepCard>
   )

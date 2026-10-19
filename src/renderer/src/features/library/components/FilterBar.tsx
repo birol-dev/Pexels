@@ -1,5 +1,4 @@
 import React from 'react'
-import { Card } from '@renderer/components/ui/card'
 import { ToggleGroup, ToggleGroupItem } from '@renderer/components/ui/toggle-group'
 import {
   Select,
@@ -32,7 +31,7 @@ export function FilterBar({
   showStatus
 }: FilterBarProps): React.JSX.Element {
   return (
-    <Card variant="sunken" className="flex-row flex-wrap items-center gap-4 px-6 py-4">
+    <div className="flex flex-wrap items-center gap-3">
       <ToggleGroup
         type="single"
         value={typeFilter}
@@ -41,13 +40,13 @@ export function FilterBar({
           if (value) onTypeChange(value as TypeFilter)
         }}
         aria-label="Filter by media type"
-        className="rounded-md border-2 border-border bg-card p-1"
+        className="gap-0.5 rounded-full bg-surface-container p-1"
       >
         {TYPE_OPTIONS.map((option) => (
           <ToggleGroupItem
             key={option.value}
             value={option.value}
-            className="rounded-sm! font-label-sm text-xs uppercase"
+            className="h-8 rounded-full! px-4 text-[13px] text-on-surface-variant data-[state=on]:bg-background data-[state=on]:text-on-surface data-[state=on]:shadow-[0_1px_2px_rgb(0_0_0/0.06)] dark:data-[state=on]:bg-surface-container-highest"
           >
             {option.label}
           </ToggleGroupItem>
@@ -56,16 +55,19 @@ export function FilterBar({
 
       {showStatus && (
         <Select value={statusFilter} onValueChange={(v) => onStatusChange(v as StatusFilter)}>
-          <SelectTrigger className="w-44" aria-label="Filter by status">
+          <SelectTrigger
+            className="w-40 border-transparent bg-surface-container data-[size=default]:h-10"
+            aria-label="Filter by status"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Status: All</SelectItem>
+            <SelectItem value="all">Any status</SelectItem>
             <SelectItem value="completed">Downloaded</SelectItem>
             <SelectItem value="failed">Failed</SelectItem>
           </SelectContent>
         </Select>
       )}
-    </Card>
+    </div>
   )
 }

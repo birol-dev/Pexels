@@ -25,19 +25,21 @@ export function SliderField({
   onChange
 }: SliderFieldProps): React.JSX.Element {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-4">
+    <div className="flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-6">
         <div>
-          <Label htmlFor={id} className="font-label-sm text-label-sm uppercase text-foreground">
+          <Label htmlFor={id} className="text-sm font-semibold text-on-surface">
             {label}
           </Label>
           {hint && (
-            <p className="mt-1 max-w-prose select-none text-xs leading-snug text-muted-foreground">
+            <p className="mt-1 max-w-prose text-[13px] leading-snug text-outline select-none">
               {hint}
             </p>
           )}
         </div>
-        <span className="shrink-0 font-mono font-bold text-secondary">{displayValue ?? value}</span>
+        <span className="shrink-0 text-sm font-semibold text-on-surface tabular-nums">
+          {displayValue ?? value}
+        </span>
       </div>
       <Slider
         id={id}
