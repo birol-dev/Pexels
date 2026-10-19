@@ -8,7 +8,7 @@ StockFinder AI is a free, open-source desktop app for YouTube creators, short-fo
 
 [![Website](https://img.shields.io/badge/website-stockfinderai.birol.tech-05df72)](https://stockfinderai.birol.tech)
 [![Developer](https://img.shields.io/badge/developer-birol.tech-purple)](https://birol.tech)
-[![Version](https://img.shields.io/badge/version-1.3.2-cyber)](https://github.com/birol-dev/Pexels/releases)
+[![Version](https://img.shields.io/badge/version-1.4.0-cyber)](https://github.com/birol-dev/Pexels/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](#download)
 [![License](https://img.shields.io/badge/license-Open%20Source-blue)](https://github.com/birol-dev/Pexels)
 
@@ -211,6 +211,17 @@ StockFinder AI is created and maintained by [Birol](https://birol.tech).
 ---
 
 ## Changelog
+
+### v1.4.0 - Monochrome Redesign, Pipeline Engine & Background Updates (2026-10-19)
+
+- **Monochrome redesign**: The app and the website use one gallery style in light and dark, so the Pexels photos and video supply the colour. Create shows recent packs as photo cards and a "Finish your setup" checklist, Settings has a section menu, and onboarding shows a live preview of a pack.
+- **Pipeline engine (beta)**: Settings → Experimental → Search engine can run new jobs as fixed steps (plan the beats, search Pexels, rank, download, one broader round) instead of the agent loop. Each job keeps the engine it started with, including pause, resume, approval and restart recovery.
+- **Rank with thumbnails**: An Experimental toggle, off by default, sends a small thumbnail of up to 8 candidates per beat with the ranking request. Models that refuse images are detected and asked again without them.
+- **Background updates**: The app checks GitHub Releases every six hours and offers a restart when an update is ready. You can turn this off in Settings.
+- **Runs**: The shot count shows before a run, options per beat default to one, downloads start as soon as an asset is selected, and the Run screen shows input, cached and output tokens. A job keeps the model and limits it was created with, and can resume with current settings.
+- **Safety**: The safety settings now apply to search queries and results.
+- **Fixes**: A missing or refused Pexels key ends the job with the Pexels error; a beat whose only file was deleted shows as failed; deleting a project moves its folder to the trash; Gemini falls back through thinking settings before dropping them; oversized downloads release their connection.
+- **Electron 44**, and Linux releases now include a `SHA256SUMS` file.
 
 ### v1.3.2 - DeepSeek Reasoning Budget (2026-09-20)
 
