@@ -8,7 +8,7 @@ StockFinder AI is a free, open-source desktop app for YouTube creators, short-fo
 
 [![Website](https://img.shields.io/badge/website-stockfinderai.birol.tech-05df72)](https://stockfinderai.birol.tech)
 [![Developer](https://img.shields.io/badge/developer-birol.tech-purple)](https://birol.tech)
-[![Version](https://img.shields.io/badge/version-1.4.0-cyber)](https://github.com/birol-dev/Pexels/releases)
+[![Version](https://img.shields.io/badge/version-1.5.0-cyber)](https://github.com/birol-dev/Pexels/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](#download)
 [![License](https://img.shields.io/badge/license-Open%20Source-blue)](https://github.com/birol-dev/Pexels)
 
@@ -213,6 +213,15 @@ StockFinder AI is created and maintained by [Birol](https://birol.tech).
 ---
 
 ## Changelog
+
+### v1.5.0 - MCP Control & Guided AI Connections (2026-11-03)
+
+- **Use your own AI app**: Control StockFinder through MCP from a local AI client. MCP packs need your free Pexels key, with no AI API key in StockFinder. Existing API runs keep their original mode.
+- **Guided connections**: Choose your AI app, copy its setup prompt or configuration, and verify access with a read-only test. Cursor and VS Code have direct install buttons; the guide covers Codex, Claude Code, Gemini CLI, Cline, Windsurf, Devin Local, OpenCode, and compatibility limits.
+- **Script and idea workflows**: Your AI app can create or continue a pack, write an idea into a script, plan beats, search Pexels, select footage, and finish downloads. Progress and files appear in the desktop app.
+- **Local connection safeguards**: MCP is opt-in, runs on this computer, uses an encrypted private token, and supports token replacement. Desktop download approval and saved pack limits still apply.
+- **Reliability**: Improved pause, resume, cancellation, restart recovery, settings-save errors, and live updates for packs created by an AI client.
+- **Design**: Refreshed app icons and website previews, with guided onboarding and connection screens for both themes.
 
 ### v1.4.0 - Monochrome Redesign, Pipeline Engine & Background Updates (2026-10-19)
 
