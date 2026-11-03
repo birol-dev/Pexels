@@ -297,7 +297,7 @@ if (trial) {
       }
       thumbBox.classList.remove('is-ghost')
     } else {
-      outQuery.textContent = `query · ${fallbackQuery(line) || 'reading your line'} — searching Pexels…`
+      outQuery.textContent = `query · ${fallbackQuery(line) || 'your scene'} — find matches in the desktop app`
       thumbBox.classList.add('is-ghost')
     }
     lastTheme = theme || null

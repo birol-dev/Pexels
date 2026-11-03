@@ -6,18 +6,18 @@
   "scope": "./",
   "id": "/",
   "display": "browser",
-  "background_color": "#0a0a0b",
-  "theme_color": "#ccff00",
+  "background_color": "#f4f4f4",
+  "theme_color": "#f4f4f4",
   "lang": "en-US",
   "icons": [
     {
-      "src": "logos/icon-192.png",
+      "src": "logos/icon-192.png?v=2",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "logos/icon-512.png",
+      "src": "logos/icon-512.png?v=2",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

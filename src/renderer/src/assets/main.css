@@ -319,7 +319,7 @@
   color: var(--color-fade);
 }
 
-/* The brand mark is drawn in ink, like the rest of the frame (the PNG itself is lime). */
+/* The brand mark follows the monochrome frame in both themes. */
 .brand-logo-stroke {
   filter: grayscale(1) brightness(0);
 }
