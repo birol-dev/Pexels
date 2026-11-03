@@ -1,5 +1,5 @@
 import type { PublicSettings } from '@renderer/lib/store'
-import { PRESET_STYLES } from './constants'
+import { PRESET_STYLES } from './constants.ts'
 
 export function isPresetStyle(style: string): boolean {
   return PRESET_STYLES.some((preset) => preset.value === style)
@@ -38,7 +38,7 @@ export type MissingCredentials = 'both' | 'pexels' | 'llm' | null
 
 export function getMissingCredentials(settings: PublicSettings | null): MissingCredentials {
   const hasPexels = !!settings?.pexelsKey
-  const hasLlm = !!getActiveProviderKey(settings)
+  const hasLlm = settings?.agentEngine === 'mcp' || !!getActiveProviderKey(settings)
   if (!hasPexels && !hasLlm) return 'both'
   if (!hasPexels) return 'pexels'
   if (!hasLlm) return 'llm'

@@ -117,6 +117,8 @@ export function getPauseReasonText(job: JobSnapshot): string | null {
 export function pinnedSettingsDiffer(job: JobSnapshot, current: PublicSettings | null): boolean {
   const pinned = job.runtimeSettings
   if (!pinned || !current) return false
+  // External runs keep their controller; resuming must never start a paid API model.
+  if (pinned.engine === 'mcp' || current.agentEngine === 'mcp') return false
   return (
     pinned.providerId !== current.llmProvider ||
     pinned.modelId !== current.modelId ||

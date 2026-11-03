@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { UpdateCheckResult, UpdateState } from '../shared/update-policy'
+import type { McpConnectionInfo } from '../shared/mcp'
 
 // Expose the custom AppApi to the renderer
 const electron = {
@@ -9,6 +10,12 @@ const electron = {
 }
 
 const api = {
+  mcp: {
+    getConnectionInfo: (): Promise<McpConnectionInfo> =>
+      ipcRenderer.invoke('mcp:getConnectionInfo'),
+    retryConnection: (): Promise<McpConnectionInfo> => ipcRenderer.invoke('mcp:retryConnection'),
+    rotateToken: (): Promise<McpConnectionInfo> => ipcRenderer.invoke('mcp:rotateToken')
+  },
   settings: {
     getPublicSettings: (): Promise<Record<string, unknown>> =>
       ipcRenderer.invoke('settings:getPublicSettings'),

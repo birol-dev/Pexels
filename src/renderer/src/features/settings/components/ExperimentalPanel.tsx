@@ -36,10 +36,11 @@ export function ExperimentalPanel({
         hint="Applies to new jobs. A job keeps the engine it started with, even when it is resumed. The pipeline runs fixed steps: plan the beats, search Pexels, rank what it found, download."
       >
         <Select
-          value={settings.agentEngine === 'pipeline' ? 'pipeline' : 'loop'}
+          value={settings.agentEngine ?? 'loop'}
           onValueChange={(agentEngine) =>
             form.updateNow({
-              agentEngine: agentEngine as NonNullable<PublicSettings['agentEngine']>
+              agentEngine: agentEngine as NonNullable<PublicSettings['agentEngine']>,
+              ...(agentEngine === 'mcp' ? { mcpEnabled: true } : {})
             })
           }
         >

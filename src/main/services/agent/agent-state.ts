@@ -123,7 +123,7 @@ export async function persistAgentConversationState(
  */
 export async function readSavedAgentState(
   projectDir: string
-): Promise<{ statusReason?: unknown; runtimeSettings?: JobRuntimeSettings }> {
+): Promise<{ statusReason?: unknown; runtimeSettings?: JobRuntimeSettings; engine?: unknown }> {
   try {
     const parsed: unknown = JSON.parse(
       await fs.readFile(join(projectDir, 'agent-state.json'), 'utf-8')
@@ -131,7 +131,11 @@ export async function readSavedAgentState(
     return isAgentStateFile(parsed)
       ? {
           statusReason: parsed.statusReason,
-          runtimeSettings: parseRuntimeSettings(parsed.runtimeSettings)
+          runtimeSettings: parseRuntimeSettings(parsed.runtimeSettings),
+          engine:
+            parsed.runtimeSettings && typeof parsed.runtimeSettings === 'object'
+              ? (parsed.runtimeSettings as Record<string, unknown>).engine
+              : undefined
         }
       : {}
   } catch {

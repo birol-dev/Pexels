@@ -1,4 +1,4 @@
-import { CheckIcon, FolderIcon, ImagesIcon } from '@phosphor-icons/react'
+import { CheckIcon, FolderIcon, ImagesIcon, PlugsConnectedIcon } from '@phosphor-icons/react'
 import { BrandLogo } from '@renderer/components/common/BrandLogo'
 import { cn } from '@renderer/lib/utils'
 import type { OnboardingController } from '../hooks/useOnboarding'
@@ -7,7 +7,7 @@ import { ProviderLogo } from './ProviderLogo'
 
 type OnboardingPreviewProps = Pick<
   OnboardingController,
-  'step' | 'llmProvider' | 'modelId' | 'hasLlmKey' | 'hasPexelsKey' | 'downloadFolder'
+  'step' | 'llmProvider' | 'modelId' | 'hasLlmKey' | 'hasPexelsKey' | 'downloadFolder' | 'useMcp'
 >
 
 const pexels = (id: number): string =>
@@ -27,6 +27,7 @@ const BEATS: [number, string][] = [
 export function OnboardingPreview({
   step,
   llmProvider,
+  useMcp,
   modelId,
   hasLlmKey,
   hasPexelsKey,
@@ -39,9 +40,9 @@ export function OnboardingPreview({
   const chips = [
     {
       step: 2,
-      label: providerLabel,
-      done: hasLlmKey,
-      icon: <ProviderLogo provider={llmProvider} />
+      label: useMcp ? 'MCP' : providerLabel,
+      done: useMcp || hasLlmKey,
+      icon: useMcp ? <PlugsConnectedIcon /> : <ProviderLogo provider={llmProvider} />
     },
     { step: 3, label: 'Pexels', done: hasPexelsKey, icon: <ImagesIcon /> },
     { step: 4, label: 'Folder', done: Boolean(downloadFolder), icon: <FolderIcon /> }
@@ -107,6 +108,7 @@ export function OnboardingPreview({
           step={step}
           providerLabel={providerLabel}
           llmProvider={llmProvider}
+          useMcp={useMcp}
           modelId={modelId}
           folder={folder}
         />
@@ -120,12 +122,14 @@ function StepCallout({
   step,
   providerLabel,
   llmProvider,
+  useMcp,
   modelId,
   folder
 }: {
   step: number
   providerLabel: string
   llmProvider: OnboardingPreviewProps['llmProvider']
+  useMcp: boolean
   modelId: string
   folder: string
 }): React.JSX.Element {
@@ -136,9 +140,11 @@ function StepCallout({
       body: 'Found and saved in about a minute.'
     },
     2: {
-      icon: <ProviderLogo provider={llmProvider} />,
-      title: `${providerLabel} · ${modelId}`,
-      body: 'Splits the script into beats and writes a search for each one.'
+      icon: useMcp ? <PlugsConnectedIcon /> : <ProviderLogo provider={llmProvider} />,
+      title: useMcp ? 'Your AI app · MCP' : `${providerLabel} · ${modelId}`,
+      body: useMcp
+        ? 'Your connected AI plans the beats and picks footage in StockFinder.'
+        : 'Splits the script into beats and writes a search for each one.'
     },
     3: {
       icon: <ImagesIcon />,
@@ -149,7 +155,9 @@ function StepCallout({
     5: {
       icon: <CheckIcon weight="bold" />,
       title: 'Ready for your first pack',
-      body: 'Paste a script and press Find footage.'
+      body: useMcp
+        ? 'Copy the MCP connection from Settings and connect your AI app.'
+        : 'Paste a script and press Find footage.'
     }
   }
   const { icon, title, body } = content[step] ?? content[1]

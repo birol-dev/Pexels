@@ -20,9 +20,14 @@ export function useLibraryAssets(): LibraryAssets {
   const downloadedCount = useAppStore((s) => s.activeJob?.downloadedCount)
   const failedCount = useAppStore((s) => s.activeJob?.failedCount)
   const loadJobs = useAppStore((s) => s.loadJobs)
+  // A stable key avoids reloading merely because jobs:list returns a fresh array.
+  const libraryVersion = useAppStore((s) =>
+    s.jobs.map((job) => `${job.jobId}:${job.assetCount}:${job.status}`).join('|')
+  )
 
   const [assets, setAssets] = useState<FlatAsset[]>([])
   const [loading, setLoading] = useState(false)
+  const assetRequest = useRef(0)
   const [selectedAsset, setSelectedAsset] = useState<FlatAsset | null>(null)
   const selectedAssetRef = useRef<FlatAsset | null>(null)
   // Keep ref in sync so loadAssets can read latest without being a render dependency
@@ -32,14 +37,19 @@ export function useLibraryAssets(): LibraryAssets {
 
   const [groupedProjects, setGroupedProjects] = useState<GroupedProject[]>([])
   const [groupedLoading, setGroupedLoading] = useState(false)
+  const groupedRequest = useRef(0)
 
   const loadAssets = useCallback(async (): Promise<void> => {
     if (!activeJobId) return
+    const request = ++assetRequest.current
     const requestedJobId = activeJobId
     setLoading(true)
     try {
       const list = (await api.assets.list(requestedJobId)) as unknown as FlatAsset[]
-      if (useAppStore.getState().activeJobId !== requestedJobId) {
+      if (
+        request !== assetRequest.current ||
+        useAppStore.getState().activeJobId !== requestedJobId
+      ) {
         return
       }
       setAssets(list)
@@ -51,13 +61,17 @@ export function useLibraryAssets(): LibraryAssets {
     } catch (err) {
       console.error('Failed to load assets:', err)
     } finally {
-      if (useAppStore.getState().activeJobId === requestedJobId) {
+      if (
+        request === assetRequest.current &&
+        useAppStore.getState().activeJobId === requestedJobId
+      ) {
         setLoading(false)
       }
     }
   }, [activeJobId])
 
   const loadGroupedAssets = useCallback(async (): Promise<void> => {
+    const request = ++groupedRequest.current
     setGroupedLoading(true)
     try {
       await loadJobs()
@@ -86,11 +100,13 @@ export function useLibraryAssets(): LibraryAssets {
         return indexA - indexB
       })
 
-      setGroupedProjects(results)
+      if (request === groupedRequest.current && !useAppStore.getState().activeJobId) {
+        setGroupedProjects(results)
+      }
     } catch (err) {
       console.error('Failed to load grouped assets:', err)
     } finally {
-      setGroupedLoading(false)
+      if (request === groupedRequest.current) setGroupedLoading(false)
     }
   }, [loadJobs])
 
@@ -117,7 +133,7 @@ export function useLibraryAssets(): LibraryAssets {
         loadGroupedAssets()
       })
     }
-  }, [activeJobId, loadGroupedAssets])
+  }, [activeJobId, libraryVersion, loadGroupedAssets])
 
   return {
     assets,

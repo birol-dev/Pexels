@@ -29,13 +29,16 @@ export function SetupTray(): React.JSX.Element | null {
   if (!settings) return null
 
   const provider = PROVIDER_NAMES[getActiveProvider(settings)] ?? 'AI'
+  const isMcp = settings.agentEngine === 'mcp'
   const toSettings = { label: 'Open Settings', onClick: () => navigate('settings') }
   const steps: SetupStep[] = [
     {
       id: 'llm',
-      title: `${provider} key`,
-      detail: 'Reads your script and picks the shots.',
-      done: !!getActiveProviderKey(settings),
+      title: isMcp ? 'MCP connection' : `${provider} key`,
+      detail: isMcp
+        ? 'Connect your AI app from MCP connection in Settings.'
+        : 'Reads your script and picks the shots.',
+      done: isMcp ? settings.mcpEnabled === true : !!getActiveProviderKey(settings),
       action: toSettings
     },
     {
@@ -55,7 +58,9 @@ export function SetupTray(): React.JSX.Element | null {
     {
       id: 'first-pack',
       title: 'First pack',
-      detail: 'Paste a script below and press Find footage.',
+      detail: isMcp
+        ? 'Create a pack below, then ask your AI app to fill it.'
+        : 'Paste a script below and press Find footage.',
       done: jobs.length > 0,
       action: {
         label: 'Go to the script',

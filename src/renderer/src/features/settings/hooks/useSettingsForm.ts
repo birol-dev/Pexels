@@ -15,6 +15,8 @@ export interface SettingsForm {
   /** Plaintext keys typed this session (blank = leave stored key unchanged). */
   keys: SecretKeys
   saving: boolean
+  saveError: string | null
+  retrySave: () => void
   /** Edits the typed key locally. Nothing is saved until `commitKey`. */
   setKey: (field: SecretKeyField, value: string) => void
   /** Saves a typed key. Called on Enter and when the field loses focus. */
@@ -85,7 +87,13 @@ export function useSettingsForm(): SettingsForm {
     [syncStoredKeys]
   )
 
-  const { saving, schedulePersist, persistNow } = usePersistQueue({ updateSettings, onBatchSaved })
+  const {
+    saving,
+    error: saveError,
+    retryPersist: retrySave,
+    schedulePersist,
+    persistNow
+  } = usePersistQueue({ updateSettings, onBatchSaved })
 
   const patchLocal = useCallback((partial: SettingsPatch): void => {
     setSettings((prev) => (prev ? { ...prev, ...partial } : null))
@@ -141,5 +149,16 @@ export function useSettingsForm(): SettingsForm {
     [confirm, updateSettings, syncStoredKeys]
   )
 
-  return { settings, keys, saving, setKey, commitKey, removeKey, update, updateNow }
+  return {
+    settings,
+    keys,
+    saving,
+    saveError,
+    retrySave,
+    setKey,
+    commitKey,
+    removeKey,
+    update,
+    updateNow
+  }
 }

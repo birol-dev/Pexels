@@ -32,7 +32,9 @@ export interface PublicSettings {
    * Which engine a new job runs on: the agent loop (default) or the fixed-step pipeline.
    * Read when a job is created and pinned to it; a job already running keeps its own.
    */
-  agentEngine?: 'loop' | 'pipeline'
+  agentEngine?: 'loop' | 'pipeline' | 'mcp'
+  /** Allow authenticated MCP clients on this computer to control StockFinder. Default off. */
+  mcpEnabled?: boolean
   /**
    * Whether the pipeline engine attaches a small thumbnail of each candidate when the model
    * ranks them (more tokens; only models that accept images can use it). Default off. Read
@@ -85,6 +87,7 @@ export function getDefaultSettings(): PublicSettings {
       theme: 'flat-black',
       hideEstimatedCost: false,
       agentEngine: 'loop',
+      mcpEnabled: false,
       rankWithThumbnails: false,
       autoCheckForUpdates: true
     }

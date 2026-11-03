@@ -13,6 +13,8 @@ import { useConnectionTest, type ConnectionTest } from './useConnectionTest'
 export interface OnboardingController {
   step: number
   goTo: (step: number) => void
+  useMcp: boolean
+  setUseMcp: (value: boolean) => void
   llmProvider: LlmProvider
   selectProvider: (provider: LlmProvider) => void
   activeKey: string
@@ -38,6 +40,7 @@ export function useOnboarding(): OnboardingController {
   const settings = useAppStore((s) => s.settings)
 
   const [step, setStep] = useState(1)
+  const [useMcp, setUseMcp] = useState(settings?.agentEngine === 'mcp')
   const [llmProvider, setLlmProvider] = useState<LlmProvider>('openai')
   const [keys, setKeys] = useState<ProviderKeys>({ openai: '', gemini: '', openrouter: '' })
   const [modelId, setModelId] = useState(DEFAULT_MODEL_IDS.openai)
@@ -93,18 +96,20 @@ export function useOnboarding(): OnboardingController {
     setFinishError(null)
     try {
       await updateSettings(
-        buildSettingsUpdates({ llmProvider, modelId, downloadFolder, keys, pexelsKey })
+        buildSettingsUpdates({ llmProvider, modelId, downloadFolder, keys, pexelsKey, useMcp })
       )
     } catch (err) {
       // For example the OS keychain is unavailable. Without this the button silently does nothing.
       setFinishError(errorMessage(err, 'Unknown error.'))
       setFinishing(false)
     }
-  }, [updateSettings, llmProvider, modelId, downloadFolder, keys, pexelsKey])
+  }, [updateSettings, llmProvider, modelId, downloadFolder, keys, pexelsKey, useMcp])
 
   return {
     step,
     goTo: setStep,
+    useMcp,
+    setUseMcp,
     llmProvider,
     selectProvider,
     activeKey,

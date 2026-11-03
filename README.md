@@ -35,7 +35,7 @@ StockFinder AI automates that loop:
 2. **Let the agent run** — StockFinder AI parses beats, searches Pexels photos and videos, and queues downloads (with optional approval before each batch).
 3. **Open your asset pack** — Clips land in a local project folder with a media library, attribution info, and an exportable manifest for your workflow.
 
-Works with **OpenAI**, **Google Gemini**, or **OpenRouter** for the AI layer, plus a free **Pexels API key** for stock media.
+Works with **OpenAI**, **Google Gemini**, or **OpenRouter** for the AI layer, plus a free **Pexels API key** for stock media. You can also [control StockFinder from an AI app through MCP](docs/mcp.md), without an AI API key in StockFinder.
 
 ---
 
@@ -116,7 +116,7 @@ sha256sum --check --ignore-missing SHA256SUMS
 ### What you need before your first run
 
 1. A [Pexels API key](https://www.pexels.com/api/) (free)
-2. An API key from **OpenAI**, **Gemini**, or **OpenRouter**
+2. An API key from **OpenAI**, **Gemini**, or **OpenRouter**, or an AI app with [local MCP support](docs/mcp.md)
 3. A folder on your machine for downloaded assets
 
 The in-app onboarding wizard walks you through setup.

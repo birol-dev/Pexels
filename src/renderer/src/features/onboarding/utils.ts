@@ -9,7 +9,7 @@ export const PROVIDER_OPTIONS: { id: LlmProvider; label: string }[] = [
   { id: 'openrouter', label: 'OpenRouter' }
 ]
 
-export { DEFAULT_MODEL_IDS } from '../../../../shared/llm-defaults'
+export { DEFAULT_MODEL_IDS } from '../../../../shared/llm-defaults.ts'
 
 /** Sentinel understood by the main process: "test the key already stored on disk". */
 export const CURRENT_KEY_ON_DISK = 'CURRENT_KEY_ON_DISK'
@@ -29,6 +29,7 @@ export interface OnboardingDraft {
   downloadFolder: string
   keys: ProviderKeys
   pexelsKey: string
+  useMcp?: boolean
 }
 
 /** Only non-empty keys are written, so skipped steps never overwrite stored keys. */
@@ -37,6 +38,8 @@ export function buildSettingsUpdates(draft: OnboardingDraft): Partial<PublicSett
     llmProvider: draft.llmProvider,
     modelId: draft.modelId,
     downloadFolder: draft.downloadFolder,
+    agentEngine: draft.useMcp ? 'mcp' : 'loop',
+    ...(draft.useMcp ? { mcpEnabled: true } : {}),
     isOnboarded: true
   }
   if (draft.keys.openai) updates.openaiKey = draft.keys.openai

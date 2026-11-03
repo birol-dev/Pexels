@@ -11,6 +11,7 @@ import { AppProviders } from '@renderer/components/common/AppProviders'
 import { AppShell } from '@renderer/components/layout/AppShell'
 import { ScreenMessage } from '@renderer/components/common/ScreenMessage'
 import { Button } from '@renderer/components/ui/button'
+import { api } from '@renderer/lib/api-client'
 
 const VIEWS = {
   input: ScriptInputView,
@@ -26,6 +27,7 @@ function AppContent(): React.JSX.Element {
   const currentRoute = useAppStore((s) => s.currentRoute)
   const loadSettings = useAppStore((s) => s.loadSettings)
   const loadJobs = useAppStore((s) => s.loadJobs)
+  const handleJobEvent = useAppStore((s) => s.handleJobEvent)
   const [settingsError, setSettingsError] = useState<string | null>(null)
 
   useThemeClass(settings?.theme)
@@ -42,6 +44,9 @@ function AppContent(): React.JSX.Element {
     })
     loadJobs().catch((err) => console.error('Failed to load jobs:', err))
   }, [loadSettings, loadJobs])
+
+  // MCP clients can create or update projects while no run is selected.
+  useEffect(() => api.jobs.onEvent(handleJobEvent), [handleJobEvent])
 
   if (settingsError && !settings) {
     return (

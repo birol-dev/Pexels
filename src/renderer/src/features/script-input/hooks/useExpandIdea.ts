@@ -12,6 +12,13 @@ export function useExpandIdea(form: InputFormState): () => Promise<void> {
   const idea = form.idea
 
   return useCallback(async (): Promise<void> => {
+    if (settings?.agentEngine === 'mcp') {
+      await alert(
+        'Write with your AI app',
+        'Ask your connected AI app to write the script through MCP, then create or fill your pack.'
+      )
+      return
+    }
     if (!idea.trim()) {
       await alert(
         'Idea Required',

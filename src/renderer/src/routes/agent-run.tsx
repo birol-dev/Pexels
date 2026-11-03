@@ -1,4 +1,7 @@
 import React from 'react'
+import { WarningCircleIcon } from '@phosphor-icons/react'
+import { Button } from '@renderer/components/ui/button'
+import { ScreenMessage } from '@renderer/components/common/ScreenMessage'
 import { useAppStore } from '@renderer/lib/store'
 import { AgentConsole } from '@renderer/features/agent-run/components/agent-console'
 import { ApprovalBanner } from '@renderer/features/agent-run/components/approval-banner'
@@ -20,6 +23,8 @@ export default function AgentRunView(): React.JSX.Element {
   const {
     activeJob,
     activeJobId,
+    activeJobError,
+    loadActiveJob,
     pauseJob,
     resumeJob,
     approveAndResumeJob,
@@ -33,6 +38,18 @@ export default function AgentRunView(): React.JSX.Element {
   useAgentRunBootstrap()
 
   if (!activeJobId) return <NoActiveJob onBack={() => navigate('input')} />
+  if (!activeJob && activeJobError) {
+    return (
+      <ScreenMessage
+        icon={WarningCircleIcon}
+        tone="error"
+        title="Could not load this pack"
+        description={activeJobError}
+      >
+        <Button onClick={() => loadActiveJob(activeJobId)}>Retry</Button>
+      </ScreenMessage>
+    )
+  }
   if (!activeJob) return <JobLoading />
 
   const pendingAssets = getPendingAssets(activeJob)

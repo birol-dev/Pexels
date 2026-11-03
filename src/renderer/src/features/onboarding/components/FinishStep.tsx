@@ -1,4 +1,10 @@
-import { ArrowRightIcon, FolderIcon, ImagesIcon, WarningCircleIcon } from '@phosphor-icons/react'
+import {
+  ArrowRightIcon,
+  FolderIcon,
+  ImagesIcon,
+  PlugsConnectedIcon,
+  WarningCircleIcon
+} from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
 import type { OnboardingController } from '../hooks/useOnboarding'
 import { PROVIDER_OPTIONS } from '../utils'
@@ -10,6 +16,7 @@ import { SummaryCard } from './SummaryCard'
 type FinishStepProps = Pick<
   OnboardingController,
   | 'llmProvider'
+  | 'useMcp'
   | 'modelId'
   | 'downloadFolder'
   | 'hasLlmKey'
@@ -21,6 +28,7 @@ type FinishStepProps = Pick<
 
 export function FinishStep({
   llmProvider,
+  useMcp,
   modelId,
   downloadFolder,
   hasLlmKey,
@@ -29,7 +37,7 @@ export function FinishStep({
   finishError,
   finish
 }: FinishStepProps): React.JSX.Element {
-  const ready = hasLlmKey && hasPexelsKey
+  const ready = (useMcp || hasLlmKey) && hasPexelsKey
   const providerLabel =
     PROVIDER_OPTIONS.find((option) => option.id === llmProvider)?.label ?? llmProvider
   return (
@@ -47,19 +55,21 @@ export function FinishStep({
           )
         }
         description={
-          ready
-            ? 'Here is what StockFinder will use. You can change any of it later in Settings.'
-            : 'You can start now, but a run needs both keys. Add the missing one in Settings.'
+          useMcp
+            ? 'Next, connect your AI app from Settings → MCP connection. Your Pexels key is all StockFinder needs for MCP runs.'
+            : ready
+              ? 'Here is what StockFinder will use. You can change any of it later in Settings.'
+              : 'You can start now, but a run needs both keys. Add the missing one in Settings.'
         }
       />
 
       <div className="flex flex-col gap-2">
         <SummaryCard
-          icon={<ProviderLogo provider={llmProvider} />}
-          title={providerLabel}
-          value={modelId}
-          status={hasLlmKey ? 'Ready' : 'No key'}
-          ok={hasLlmKey}
+          icon={useMcp ? <PlugsConnectedIcon /> : <ProviderLogo provider={llmProvider} />}
+          title={useMcp ? 'Your AI app through MCP' : providerLabel}
+          value={useMcp ? 'Connect from Settings after setup' : modelId}
+          status={useMcp ? 'No AI key needed' : hasLlmKey ? 'Ready' : 'No key'}
+          ok={useMcp || hasLlmKey}
         />
         <SummaryCard
           icon={<ImagesIcon />}

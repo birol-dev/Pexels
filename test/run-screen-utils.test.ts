@@ -120,6 +120,12 @@ describe('run screen: Resume with current settings', () => {
     assert.equal(pinnedSettingsDiffer(job({ runtimeSettings: undefined }), settings()), false)
     assert.equal(pinnedSettingsDiffer(job(), null), false)
   })
+
+  it('never converts a resumed MCP run to an API run or an API run to MCP', () => {
+    const external = job({ runtimeSettings: { ...PINNED, engine: 'mcp' } })
+    assert.equal(pinnedSettingsDiffer(external, settings({ modelId: 'another-model' })), false)
+    assert.equal(pinnedSettingsDiffer(job(), settings({ agentEngine: 'mcp' })), false)
+  })
 })
 
 describe('run screen: why a job is paused', () => {

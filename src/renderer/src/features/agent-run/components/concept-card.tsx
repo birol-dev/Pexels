@@ -15,7 +15,7 @@ export function ConceptCard({ job }: { job: JobSnapshot }): React.JSX.Element {
         </h2>
         {job.inputMode === 'idea' && (
           <span className="flex h-7 items-center rounded-full bg-background px-3 text-[12px] text-on-surface-variant">
-            Written from your idea
+            {job.script.trim() ? 'Written from your idea' : 'Waiting for a draft script'}
           </span>
         )}
       </div>
@@ -34,6 +34,14 @@ export function ConceptCard({ job }: { job: JobSnapshot }): React.JSX.Element {
             {job.visualConcept}
           </p>
         </div>
+      )}
+      {job.runtimeSettings?.engine === 'mcp' && job.inputMode === 'idea' && job.script.trim() && (
+        <details className="mt-5 text-[14px] text-on-surface">
+          <summary className="cursor-pointer font-medium">Draft script from your AI app</summary>
+          <p className="mt-3 whitespace-pre-wrap leading-relaxed text-on-surface-variant">
+            {job.script}
+          </p>
+        </details>
       )}
     </section>
   )

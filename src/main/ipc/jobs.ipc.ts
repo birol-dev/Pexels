@@ -7,6 +7,7 @@ import {
 } from '../services/agent/agent-runner.ts'
 import { readSavedAgentState } from '../services/agent/agent-state.ts'
 import { resolveRuntimeSettings, type JobRuntimeSettings } from '../services/agent/job-settings.ts'
+import type { AgentEngine } from '../services/agent/job-settings.ts'
 import { savedStatusReason } from '../services/agent/job-status.ts'
 import { tailLogEntries } from '../services/agent/log-tail.ts'
 import { resolveSearchModeFromSnapshot } from '../services/agent/search-mode.ts'
@@ -25,7 +26,7 @@ function createJobId(): string {
   return `job_${Date.now()}${randomInt(100000, 999999)}`
 }
 
-const StartJobInputSchema = z
+export const StartJobInputSchema = z
   .object({
     title: z.string().min(1),
     script: z.string(),
@@ -62,7 +63,7 @@ const ExpandIdeaInputSchema = z.object({
   title: z.string().optional()
 })
 
-const JobIdSchema = z.string().regex(/^job_\d+$/)
+export const JobIdSchema = z.string().regex(/^job_\d+$/)
 const ApprovalDecisionSchema = z
   .object({
     approvedAssetIds: z.array(z.string()).optional(),
@@ -71,7 +72,7 @@ const ApprovalDecisionSchema = z
   .optional()
 const ResumeOptionsSchema = z.object({ useCurrentSettings: z.boolean().optional() }).optional()
 
-function broadcastJobEvent(event: unknown): void {
+export function broadcastJobEvent(event: unknown): void {
   const windows = BrowserWindow.getAllWindows()
   for (const w of windows) {
     w.webContents.send('jobs:event', event)
@@ -103,7 +104,7 @@ const ManifestSchema = z.object({
   settingsSnapshot: ManifestSettingsSnapshotSchema.optional()
 })
 
-async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInput> {
+export async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInput> {
   const defaultInput: StartJobInput = {
     title: summary.title,
     script: summary.script,
@@ -165,7 +166,9 @@ async function getJobInputFromManifest(summary: JobSummary): Promise<StartJobInp
  */
 async function jobRuntimeSettings(
   saved: JobRuntimeSettings | undefined,
-  snapshot: { provider?: unknown; modelId?: unknown } | undefined
+  snapshot:
+    | { provider?: unknown; modelId?: unknown; engine?: unknown; runtimeSettings?: unknown }
+    | undefined
 ): Promise<JobRuntimeSettings | undefined> {
   try {
     return resolveRuntimeSettings(saved, snapshot, await SettingsStore.getSettings())
@@ -174,24 +177,146 @@ async function jobRuntimeSettings(
   }
 }
 
+/** Shared by the desktop and MCP entry points, so all jobs use the same registry and events. */
+export async function startJob(input: StartJobInput, engine?: AgentEngine): Promise<string> {
+  const jobId = createJobId()
+  const runner = new AgentRunner(jobId, input, engine)
+  runner.on('event', broadcastJobEvent)
+  await runner.ensureRegistered()
+  const summary = await ProjectStore.get(jobId)
+  broadcastJobEvent({ jobId, type: 'created', data: summary })
+  if (runner.getSnapshot().runtimeSettings?.engine === 'mcp') {
+    await runner.start()
+  } else {
+    runner.start().catch((err) => console.error(`Runner ${jobId} failed during execution:`, err))
+  }
+  return jobId
+}
+
+const restoringRunners = new Map<string, Promise<AgentRunner | undefined>>()
+
+/** Restore a paused run once, even when the desktop and MCP client reconnect together. */
+export async function getJobRunner(jobId: string): Promise<AgentRunner | undefined> {
+  const restoring = restoringRunners.get(jobId)
+  if (restoring) return restoring
+  const active = AgentRunner.getActive(jobId)
+  if (active) return active
+  const pending = (async (): Promise<AgentRunner | undefined> => {
+    const summary = await ProjectStore.get(jobId)
+    if (summary?.status !== 'paused') return undefined
+    const runner = new AgentRunner(jobId, await getJobInputFromManifest(summary))
+    runner.on('event', broadcastJobEvent)
+    await runner.initializeAndLoadState()
+    return runner
+  })()
+  restoringRunners.set(jobId, pending)
+  try {
+    return await pending
+  } finally {
+    restoringRunners.delete(jobId)
+  }
+}
+
+export async function getJobSnapshot(jobId: string): Promise<JobSnapshot> {
+  const restoring = restoringRunners.get(jobId)
+  if (restoring) await restoring.catch(() => undefined)
+  const active = AgentRunner.getActive(jobId)
+  if (active) {
+    return active.getSnapshot()
+  }
+
+  const summary = await ProjectStore.get(jobId)
+  if (!summary) throw new Error('Job not found in registry')
+  const saved = await readSavedAgentState(summary.downloadPath)
+
+  try {
+    const manifestPath = join(summary.downloadPath, 'manifest.json')
+    const data = await fs.readFile(manifestPath, 'utf-8')
+    const manifest = JSON.parse(data) as {
+      projectId?: string
+      title?: string
+      script?: string
+      inputMode?: 'script' | 'idea'
+      originalIdea?: string
+      visualConcept?: string
+      settingsSnapshot?: {
+        inputMode?: 'script' | 'idea'
+        provider?: unknown
+        modelId?: unknown
+        engine?: unknown
+        runtimeSettings?: unknown
+      }
+      beats?: unknown[]
+      assets?: unknown[]
+      failures?: unknown[]
+      usage?: unknown
+    }
+
+    let logs: unknown[] = []
+    try {
+      const logsPath = join(summary.downloadPath, 'agent-log.jsonl')
+      // Only the newest entries are parsed, so a log of many megabytes loads quickly.
+      logs = tailLogEntries((await fs.readFile(logsPath, 'utf-8')).split('\n'))
+    } catch {
+      // Logs file may be missing, which is fine
+    }
+
+    const beatAssets = (manifest.beats || []).flatMap(
+      (beat) => (beat as { assets?: Array<{ status?: string }> }).assets || []
+    )
+    // Prefer beat-level asset status — top-level assets/failures arrays can
+    // be empty or partial after resume (fresh downloader task list).
+    const downloadedCount = beatAssets.filter((a) => a.status === 'completed').length
+    const failedCount = beatAssets.filter((a) => a.status === 'failed').length
+
+    // Reads never change a job: the registry's status is returned as it is.
+    const beats = (manifest.beats || []) as JobSnapshot['beats']
+    const status = summary.status
+    return {
+      jobId: manifest.projectId || jobId,
+      title: manifest.title || summary.title,
+      script: manifest.script || summary.script,
+      inputMode: manifest.inputMode || manifest.settingsSnapshot?.inputMode,
+      idea: manifest.originalIdea,
+      visualConcept: manifest.visualConcept,
+      status,
+      statusReason: savedStatusReason(status, saved.statusReason),
+      runtimeSettings: await jobRuntimeSettings(saved.runtimeSettings, {
+        ...manifest.settingsSnapshot,
+        ...(saved.engine === 'mcp' ? { engine: 'mcp' } : {})
+      }),
+      progress: status === 'completed' ? 100 : 0,
+      currentStep: status === 'completed' ? 'Finished' : 'Stopped',
+      beats: beats,
+      logs: logs as JobSnapshot['logs'],
+      downloadedCount,
+      failedCount,
+      usage: parseTokenUsage(manifest.usage)
+    }
+  } catch {
+    return {
+      jobId: summary.jobId,
+      title: summary.title,
+      script: summary.script,
+      status: summary.status,
+      statusReason: savedStatusReason(summary.status, saved.statusReason),
+      runtimeSettings: await jobRuntimeSettings(saved.runtimeSettings, { engine: saved.engine }),
+      progress: summary.status === 'completed' ? 100 : 0,
+      currentStep: summary.status === 'completed' ? 'Finished' : 'Stopped',
+      beats: [],
+      logs: [],
+      downloadedCount: summary.assetCount,
+      failedCount: 0
+    }
+  }
+}
+
 export function registerJobsHandlers(): void {
-  ipcMain.handle('jobs:start', async (_, rawInput): Promise<string> => {
-    const input = StartJobInputSchema.parse(rawInput) as StartJobInput
-    const jobId = createJobId()
-
-    const runner = new AgentRunner(jobId, input)
-    runner.on('event', (evt) => {
-      broadcastJobEvent(evt)
-    })
-
-    // Register before returning so jobs:list cannot miss this job.
-    await runner.ensureRegistered()
-    runner.start().catch((err) => {
-      console.error(`Runner ${jobId} failed during execution:`, err)
-    })
-
-    return jobId
-  })
+  ipcMain.handle(
+    'jobs:start',
+    async (_, rawInput): Promise<string> =>
+      startJob(StartJobInputSchema.parse(rawInput) as StartJobInput)
+  )
 
   ipcMain.handle('jobs:pause', async (_, rawJobId: unknown): Promise<void> => {
     const jobId = JobIdSchema.parse(rawJobId)
@@ -206,20 +331,8 @@ export function registerJobsHandlers(): void {
     async (_, rawJobId: unknown, rawOptions: unknown): Promise<void> => {
       const jobId = JobIdSchema.parse(rawJobId)
       const options = ResumeOptionsSchema.parse(rawOptions) ?? {}
-      const runner = AgentRunner.getActive(jobId)
-      if (runner) {
-        await runner.resume(options)
-      } else {
-        // If not active (e.g. process restarted), restore state then resume
-        const summary = await ProjectStore.get(jobId)
-        if (summary && summary.status === 'paused') {
-          const input = await getJobInputFromManifest(summary)
-          const newRunner = new AgentRunner(jobId, input)
-          newRunner.on('event', (evt) => broadcastJobEvent(evt))
-          await newRunner.initializeAndLoadState()
-          await newRunner.resume(options)
-        }
-      }
+      const runner = await getJobRunner(jobId)
+      if (runner) await runner.resume(options)
     }
   )
 
@@ -228,29 +341,15 @@ export function registerJobsHandlers(): void {
     async (_, rawJobId: unknown, rawDecision): Promise<void> => {
       const jobId = JobIdSchema.parse(rawJobId)
       const decision = ApprovalDecisionSchema.parse(rawDecision) || {}
-      let runner = AgentRunner.getActive(jobId)
-      if (!runner) {
-        const summary = await ProjectStore.get(jobId)
-        // initializeAndLoadState() forces the runner to 'paused', so without this
-        // check a completed or cancelled job would be restarted.
-        if (summary && summary.status === 'paused') {
-          const input = await getJobInputFromManifest(summary)
-          const newRunner = new AgentRunner(jobId, input)
-          newRunner.on('event', (evt) => broadcastJobEvent(evt))
-          await newRunner.initializeAndLoadState()
-          runner = newRunner
-        }
-      }
-
-      if (runner) {
-        await runner.approveAndResume(decision)
-      }
+      const runner = await getJobRunner(jobId)
+      if (runner) await runner.approveAndResume(decision)
     }
   )
 
   ipcMain.handle('jobs:cancel', async (_, rawJobId: unknown): Promise<void> => {
     const jobId = JobIdSchema.parse(rawJobId)
-    const runner = AgentRunner.getActive(jobId)
+    const runner =
+      (await restoringRunners.get(jobId)?.catch(() => undefined)) ?? AgentRunner.getActive(jobId)
     if (runner) {
       await runner.cancel()
     } else {
@@ -272,21 +371,18 @@ export function registerJobsHandlers(): void {
     const summary = await ProjectStore.get(jobId)
     if (!summary) throw new Error('Job not found')
 
-    const newJobId = createJobId()
     const input = await getJobInputFromManifest(summary)
     input.title = `${input.title} (Rerun)`
-
-    const runner = new AgentRunner(newJobId, input)
-    runner.on('event', (evt) => broadcastJobEvent(evt))
-    await runner.ensureRegistered()
-    runner.start().catch((err) => console.error(err))
-
-    return newJobId
+    const previous = await getJobSnapshot(jobId)
+    return startJob(input, previous.runtimeSettings?.engine === 'mcp' ? 'mcp' : undefined)
   })
 
   ipcMain.handle('jobs:expandIdea', async (_, rawInput: unknown): Promise<ExpandedScriptResult> => {
     const input = ExpandIdeaInputSchema.parse(rawInput)
     const settings = await SettingsStore.getSettings()
+    if (settings.agentEngine === 'mcp') {
+      throw new Error('Ask your connected AI app to write the script, then create an MCP pack.')
+    }
     const providerId = settings.llmProvider || DEFAULT_LLM_PROVIDER
     const modelId = settings.modelId || DEFAULT_MODEL_IDS[providerId]
     const providerKey = await SecureSecrets.getSecret(`${providerId}Key`)
@@ -313,99 +409,18 @@ export function registerJobsHandlers(): void {
     })
   })
 
-  ipcMain.handle('jobs:get', async (_, rawJobId: unknown): Promise<JobSnapshot> => {
-    const jobId = JobIdSchema.parse(rawJobId)
-    const active = AgentRunner.getActive(jobId)
-    if (active) {
-      return active.getSnapshot()
-    }
-
-    const summary = await ProjectStore.get(jobId)
-    if (!summary) throw new Error('Job not found in registry')
-
-    try {
-      const manifestPath = join(summary.downloadPath, 'manifest.json')
-      const data = await fs.readFile(manifestPath, 'utf-8')
-      const manifest = JSON.parse(data) as {
-        projectId?: string
-        title?: string
-        script?: string
-        inputMode?: 'script' | 'idea'
-        originalIdea?: string
-        visualConcept?: string
-        settingsSnapshot?: {
-          inputMode?: 'script' | 'idea'
-          provider?: unknown
-          modelId?: unknown
-        }
-        beats?: unknown[]
-        assets?: unknown[]
-        failures?: unknown[]
-        usage?: unknown
-      }
-
-      let logs: unknown[] = []
-      try {
-        const logsPath = join(summary.downloadPath, 'agent-log.jsonl')
-        // Only the newest entries are parsed, so a log of many megabytes loads quickly.
-        logs = tailLogEntries((await fs.readFile(logsPath, 'utf-8')).split('\n'))
-      } catch {
-        // Logs file may be missing, which is fine
-      }
-
-      const beatAssets = (manifest.beats || []).flatMap(
-        (beat) => (beat as { assets?: Array<{ status?: string }> }).assets || []
-      )
-      // Prefer beat-level asset status — top-level assets/failures arrays can
-      // be empty or partial after resume (fresh downloader task list).
-      const downloadedCount = beatAssets.filter((a) => a.status === 'completed').length
-      const failedCount = beatAssets.filter((a) => a.status === 'failed').length
-
-      // Reads never change a job: the registry's status is returned as it is.
-      const beats = (manifest.beats || []) as JobSnapshot['beats']
-      const status = summary.status
-      const saved = await readSavedAgentState(summary.downloadPath)
-
-      return {
-        jobId: manifest.projectId || jobId,
-        title: manifest.title || summary.title,
-        script: manifest.script || summary.script,
-        inputMode: manifest.inputMode || manifest.settingsSnapshot?.inputMode,
-        idea: manifest.originalIdea,
-        visualConcept: manifest.visualConcept,
-        status,
-        statusReason: savedStatusReason(status, saved.statusReason),
-        runtimeSettings: await jobRuntimeSettings(saved.runtimeSettings, manifest.settingsSnapshot),
-        progress: status === 'completed' ? 100 : 0,
-        currentStep: status === 'completed' ? 'Finished' : 'Stopped',
-        beats: beats,
-        logs: logs as JobSnapshot['logs'],
-        downloadedCount,
-        failedCount,
-        usage: parseTokenUsage(manifest.usage)
-      }
-    } catch {
-      return {
-        jobId: summary.jobId,
-        title: summary.title,
-        script: summary.script,
-        status: summary.status,
-        statusReason: savedStatusReason(summary.status, undefined),
-        progress: summary.status === 'completed' ? 100 : 0,
-        currentStep: summary.status === 'completed' ? 'Finished' : 'Stopped',
-        beats: [],
-        logs: [],
-        downloadedCount: summary.assetCount,
-        failedCount: 0
-      }
-    }
-  })
+  ipcMain.handle(
+    'jobs:get',
+    async (_, rawJobId: unknown): Promise<JobSnapshot> =>
+      getJobSnapshot(JobIdSchema.parse(rawJobId))
+  )
 
   ipcMain.handle('jobs:list', async (): Promise<JobSummary[]> => ProjectStore.list())
 
   ipcMain.handle('jobs:delete', async (_, rawJobId: unknown): Promise<void> => {
     const jobId = JobIdSchema.parse(rawJobId)
-    const runner = AgentRunner.getActive(jobId)
+    const runner =
+      (await restoringRunners.get(jobId)?.catch(() => undefined)) ?? AgentRunner.getActive(jobId)
     if (runner) {
       await runner.cancel()
       await runner.waitForShutdown()

@@ -5,6 +5,7 @@ import { LlmProviderFactory } from '../services/llm/llm-provider.ts'
 import { resetLlmCircuit } from '../services/llm/llm-fetch.ts'
 import { PexelsClient } from '../services/pexels/pexels-client.ts'
 import { z } from 'zod'
+import { syncMcpServer } from '../services/mcp/mcp-server.ts'
 
 const SettingsUpdateSchema = z.object({
   llmProvider: z.enum(['openai', 'openrouter', 'gemini']).optional(),
@@ -27,7 +28,8 @@ const SettingsUpdateSchema = z.object({
   isOnboarded: z.boolean().optional(),
   theme: z.enum(['flat-black', 'flat-white']).optional(),
   hideEstimatedCost: z.boolean().optional(),
-  agentEngine: z.enum(['loop', 'pipeline']).optional(),
+  agentEngine: z.enum(['loop', 'pipeline', 'mcp']).optional(),
+  mcpEnabled: z.boolean().optional(),
   rankWithThumbnails: z.boolean().optional(),
   autoCheckForUpdates: z.boolean().optional(),
   // Keys are sent in the update payload but stored securely in Keychain, not in settings.json
@@ -121,11 +123,13 @@ export function registerSettingsHandlers(): void {
         theme: input.theme,
         hideEstimatedCost: input.hideEstimatedCost,
         agentEngine: input.agentEngine,
+        mcpEnabled: input.mcpEnabled,
         rankWithThumbnails: input.rankWithThumbnails,
         autoCheckForUpdates: input.autoCheckForUpdates
       }).filter(([, value]) => value !== undefined)
     )
     await SettingsStore.updateSettings(publicSettings)
+    if (input.mcpEnabled !== undefined) await syncMcpServer()
     return await getPublicSettingsWithSecretStatus()
   })
 

@@ -60,6 +60,11 @@ export function RunHeader({
               </>
             )}
           </p>
+          {job.runtimeSettings?.engine === 'mcp' && (
+            <p className="mt-1.5 text-[13px] text-outline">
+              Controlled through MCP by your connected AI app. Keep StockFinder open to continue.
+            </p>
+          )}
           {tokenUsage && (
             <p className="mt-1.5 text-[13px] text-outline tabular-nums">{tokenUsage}</p>
           )}

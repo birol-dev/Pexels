@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { api } from './api-client'
+import { api } from './api-client.ts'
 import type { LlmProviderId } from '../../../shared/llm-defaults'
 
 export interface AssetRecord {
@@ -64,7 +64,7 @@ export interface JobRuntimeSettings {
   avoidPeople: boolean
   requireApproval: boolean
   /** Jobs saved before the pipeline existed have none, and ran on the loop. */
-  engine?: 'loop' | 'pipeline'
+  engine?: 'loop' | 'pipeline' | 'mcp'
   /** Whether the pipeline's ranking attached thumbnails. Jobs saved before it existed have none: off. */
   rankWithThumbnails?: boolean
 }
@@ -131,7 +131,9 @@ export interface PublicSettings {
    */
   hideEstimatedCost?: boolean
   /** The engine new jobs run on. Missing means the agent loop. */
-  agentEngine?: 'loop' | 'pipeline'
+  agentEngine?: 'loop' | 'pipeline' | 'mcp'
+  /** Whether the local MCP connection is enabled. Missing means off. */
+  mcpEnabled?: boolean
   /** The pipeline attaches a thumbnail of each candidate when it ranks. Missing means off. */
   rankWithThumbnails?: boolean
   autoCheckForUpdates?: boolean
@@ -176,6 +178,7 @@ interface AppStore {
   currentRoute: 'input' | 'run' | 'stuff' | 'settings'
   activeJobId: string | null
   activeJob: JobSnapshot | null
+  activeJobError: string | null
   jobs: JobSummary[]
   settings: PublicSettings | null
   loading: boolean
@@ -205,6 +208,7 @@ interface AppStore {
 
   navigate: (route: 'input' | 'run' | 'stuff' | 'settings') => void
   setActiveJobId: (id: string | null) => void
+  handleJobEvent: (event: Record<string, unknown>) => void
   loadSettings: () => Promise<void>
   updateSettings: (
     updates: Partial<PublicSettings> & { removeSecrets?: SecretKeyField[] }
@@ -264,7 +268,9 @@ const DEFAULT_INPUT_TAB_STATE: InputFormState = {
   searchMode: 'focused'
 }
 
-let eventUnsubscribe: (() => void) | null = null
+let latestJobsRequest = 0
+let latestActiveJobRequest = 0
+let activeJobRead: { jobId: string; request: number } | null = null
 
 /** An error thrown in the main process, without Electron's "Error invoking remote method" lead-in. */
 function ipcErrorMessage(err: unknown): string {
@@ -276,6 +282,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   currentRoute: 'input',
   activeJobId: null,
   activeJob: null,
+  activeJobError: null,
   jobs: [],
   settings: null,
   loading: false,
@@ -494,82 +501,75 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   setActiveJobId: (id) => {
+    latestActiveJobRequest++
+    activeJobRead = null
     // Clear the previous snapshot immediately so events/UI cannot mix jobs
     // while the replacement request is in flight.
-    set({ activeJobId: id, activeJob: null, pendingEvents: [] })
-    if (id) {
-      get().loadActiveJob(id)
+    set({
+      activeJobId: id,
+      activeJob: null,
+      activeJobError: null,
+      loading: Boolean(id),
+      pendingEvents: []
+    })
+    if (id) get().loadActiveJob(id)
+  },
 
-      if (eventUnsubscribe) {
-        eventUnsubscribe()
-        eventUnsubscribe = null
-      }
+  handleJobEvent: (event) => {
+    if (event.type === 'created') {
+      const summary = event.data as JobSummary
+      set((state) => ({
+        jobs: [summary, ...state.jobs.filter((job) => job.jobId !== summary.jobId)].sort((a, b) =>
+          b.createdAt.localeCompare(a.createdAt)
+        )
+      }))
+      return
+    }
 
-      eventUnsubscribe = api.jobs.onEvent((event: Record<string, unknown>) => {
-        if (event.jobId === id && get().activeJobId === id) {
-          const currentActive = get().activeJob
-
-          if (event.type === 'snapshot') {
-            // Snapshot events omit logs (they arrive as 'log' events), so keep ours.
-            const snap = event.data as Omit<JobSnapshot, 'logs'>
-            if (currentActive) {
-              set({ activeJob: { ...snap, logs: currentActive.logs } })
-            } else {
-              set((state) => ({ pendingEvents: [...state.pendingEvents, event] }))
-            }
-            const currentJobs = get().jobs
-            const updatedJobs = currentJobs.map((j) => {
-              if (j.jobId === event.jobId) {
-                return {
-                  ...j,
-                  status: snap.status,
-                  assetCount: snap.downloadedCount,
-                  updatedAt: new Date().toISOString()
-                }
+    if (event.type === 'snapshot') {
+      const snapshot = event.data as Omit<JobSnapshot, 'logs'>
+      // Other jobs can progress through MCP while the user views this one.
+      set((state) => ({
+        jobs: state.jobs.map((job) =>
+          job.jobId === event.jobId &&
+          (job.status !== snapshot.status || job.assetCount !== snapshot.downloadedCount)
+            ? {
+                ...job,
+                status: snapshot.status,
+                assetCount: snapshot.downloadedCount,
+                updatedAt: new Date().toISOString()
               }
-              return j
-            })
-            set({ jobs: updatedJobs })
-            return
-          }
+            : job
+        )
+      }))
+    }
 
-          if (!currentActive) {
-            set((state) => ({ pendingEvents: [...state.pendingEvents, event] }))
-            return
-          }
+    if (!get().activeJobId || event.jobId !== get().activeJobId) return
+    const buffering = activeJobRead?.jobId === event.jobId
+    if (buffering) {
+      set((state) => ({ pendingEvents: [...state.pendingEvents, event] }))
+    }
+    const currentActive = get().activeJob
+    if (!currentActive) {
+      if (!buffering) set((state) => ({ pendingEvents: [...state.pendingEvents, event] }))
+      return
+    }
 
-          if (event.type === 'log') {
-            set({
-              activeJob: {
-                ...currentActive,
-                logs: [...currentActive.logs, event.data as AgentLogEvent]
-              }
-            })
-          } else if (event.type === 'progress') {
-            const data = event.data as { step: string; progress: number }
-            set({
-              activeJob: {
-                ...currentActive,
-                currentStep: data.step,
-                progress: data.progress
-              }
-            })
-          } else if (event.type === 'beats') {
-            set({
-              activeJob: {
-                ...currentActive,
-                beats: event.data as VisualBeat[]
-              }
-            })
-          }
+    if (event.type === 'snapshot') {
+      // Snapshot events omit logs (they arrive as 'log' events), so keep ours.
+      set({ activeJob: { ...(event.data as Omit<JobSnapshot, 'logs'>), logs: currentActive.logs } })
+    } else if (event.type === 'log') {
+      set({
+        activeJob: {
+          ...currentActive,
+          logs: [...currentActive.logs, event.data as AgentLogEvent]
         }
       })
-    } else {
-      set({ activeJob: null })
-      if (eventUnsubscribe) {
-        eventUnsubscribe()
-        eventUnsubscribe = null
-      }
+    } else if (event.type === 'progress') {
+      const data = event.data as { step: string; progress: number }
+      set({ activeJob: { ...currentActive, currentStep: data.step, progress: data.progress } })
+    } else if (event.type === 'beats') {
+      set({ activeJob: { ...currentActive, beats: event.data as VisualBeat[] } })
     }
   },
 
@@ -584,19 +584,27 @@ export const useAppStore = create<AppStore>((set, get) => ({
   },
 
   loadJobs: async () => {
+    const request = ++latestJobsRequest
+    const before = new Map(get().jobs.map((job) => [job.jobId, job]))
     const jobs = await api.jobs.list()
-    const sorted = (jobs as unknown as JobSummary[]).sort((a, b) =>
-      b.createdAt.localeCompare(a.createdAt)
-    )
+    if (request !== latestJobsRequest) return
+    // Preserve creations and progress received while jobs:list was in flight.
+    const merged = new Map((jobs as unknown as JobSummary[]).map((job) => [job.jobId, job]))
+    for (const job of get().jobs) {
+      if (before.get(job.jobId) !== job) merged.set(job.jobId, job)
+    }
+    const sorted = [...merged.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     set({ jobs: sorted })
   },
 
   loadActiveJob: async (id) => {
-    set({ loading: true })
+    const request = ++latestActiveJobRequest
+    activeJobRead = { jobId: id, request }
+    set({ loading: true, activeJobError: null, pendingEvents: [] })
     try {
       const activeJob = await api.jobs.get(id)
       // Ignore stale responses after the user switched jobs.
-      if (get().activeJobId !== id) {
+      if (request !== latestActiveJobRequest || get().activeJobId !== id) {
         return
       }
       const snapshot = activeJob as unknown as JobSnapshot | null
@@ -605,7 +613,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
         for (const event of state.pendingEvents) {
           if (event.jobId === id) {
             if (event.type === 'log') {
-              snapshot.logs = [...snapshot.logs, event.data as AgentLogEvent]
+              const log = event.data as AgentLogEvent
+              if (
+                !snapshot.logs.some((existing) => JSON.stringify(existing) === JSON.stringify(log))
+              ) {
+                snapshot.logs = [...snapshot.logs, log]
+              }
             } else if (event.type === 'progress') {
               const data = event.data as { step: string; progress: number }
               snapshot.currentStep = data.step
@@ -634,8 +647,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
       }
     } catch (err) {
       console.error('Failed to load active job:', err)
+      if (request === latestActiveJobRequest && get().activeJobId === id) {
+        set({ activeJobError: ipcErrorMessage(err), pendingEvents: [] })
+      }
     } finally {
-      if (get().activeJobId === id) {
+      if (activeJobRead?.request === request) activeJobRead = null
+      if (request === latestActiveJobRequest && get().activeJobId === id) {
         set({ loading: false })
       }
     }

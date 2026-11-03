@@ -1,5 +1,5 @@
 import React from 'react'
-import { ArrowsClockwiseIcon } from '@phosphor-icons/react'
+import { ArrowsClockwiseIcon, PlugsConnectedIcon } from '@phosphor-icons/react'
 import type { JobSnapshot } from '@renderer/lib/store'
 import type { ApprovalSelection } from '../utils'
 import { BeatCard } from './beat-card'
@@ -19,6 +19,16 @@ export function BeatsList({
   onReject
 }: BeatsListProps): React.JSX.Element {
   const done = job.beats.filter((beat) => beat.status === 'completed').length
+  const isMcp = job.runtimeSettings?.engine === 'mcp'
+  const waitingMessage = !isMcp
+    ? 'Reading the script and writing a search for each beat…'
+    : job.status === 'failed' || job.status === 'cancelled'
+      ? 'This pack stopped before a beat plan was submitted.'
+      : job.status === 'paused'
+        ? 'Resume this pack, then ask your connected AI app to continue.'
+        : job.script.trim()
+          ? 'Ask your connected AI app to submit the beat plan for this pack.'
+          : 'Ask your connected AI app to write and submit the draft script for this idea.'
   return (
     <div className="col-span-12 flex flex-col gap-8 xl:col-span-8">
       {(job.idea || job.visualConcept) && <ConceptCard job={job} />}
@@ -37,10 +47,12 @@ export function BeatsList({
 
         {job.beats.length === 0 ? (
           <div className="mt-6 flex flex-col items-center gap-3 rounded-3xl bg-surface-container-low px-6 py-14 text-center">
-            <ArrowsClockwiseIcon size={22} className="text-outline motion-safe:animate-spin" />
-            <p className="text-sm text-outline">
-              Reading the script and writing a search for each beat…
-            </p>
+            {isMcp ? (
+              <PlugsConnectedIcon size={22} className="text-outline" />
+            ) : (
+              <ArrowsClockwiseIcon size={22} className="text-outline motion-safe:animate-spin" />
+            )}
+            <p className="text-sm text-outline">{waitingMessage}</p>
           </div>
         ) : (
           <ol className="divide-y divide-border">

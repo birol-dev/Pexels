@@ -46,7 +46,8 @@ export const ENGINE_OPTIONS: {
   label: string
 }[] = [
   { value: 'loop', label: 'Agent loop' },
-  { value: 'pipeline', label: 'Pipeline (beta)' }
+  { value: 'pipeline', label: 'Pipeline (beta)' },
+  { value: 'mcp', label: 'MCP app' }
 ]
 
 export function secretFieldForProvider(provider: LlmProvider): SecretKeyField {

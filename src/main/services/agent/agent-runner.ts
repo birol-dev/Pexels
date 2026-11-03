@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events'
 import { promises as fs } from 'fs'
 import { join } from 'path'
+import { z } from 'zod'
 import {
   LlmProviderFactory,
   type AgentMessage,
@@ -32,7 +33,12 @@ import type {
   PexelsVideoSearchResult
 } from '../pexels/pexels-types.ts'
 import { buildManifestAttribution } from '../pexels/pexels-attribution.ts'
-import type { BeatAssetType } from '../llm/beat-parse-tool.ts'
+import {
+  beatsFromPlan,
+  splitScriptSentences,
+  type BeatAssetType,
+  type BeatPlanItem
+} from '../llm/beat-parse-tool.ts'
 import { expandIdeaToScript } from '../llm/idea-expander.ts'
 import type { StructuredRequest } from '../llm/structured-request.ts'
 import { planBeats } from '../pipeline/plan-beats.ts'
@@ -106,6 +112,7 @@ import { runLoopThenFinalize } from './run-tail.ts'
 import {
   missingCurrentKeyMessage,
   missingPinnedKeyMessage,
+  parseRuntimeSettings,
   pinRuntimeSettings,
   resolveRuntimeSettings,
   type AgentEngine,
@@ -218,6 +225,76 @@ export interface StartJobInput {
   searchMode?: SearchMode
 }
 
+const McpBeatPlanSchema = z
+  .array(
+    z.object({
+      lastSentence: z.number().int().positive(),
+      visualPrompt: z.string().trim().min(1).max(500),
+      queries: z.array(z.string().trim().min(2).max(100)).min(1).max(3),
+      assetType: z.enum(['photo', 'video', 'either'])
+    })
+  )
+  .min(1)
+  .max(100)
+
+// Resuming must keep the complete asset ledger; treating damaged records as an empty pack
+// would reset download limits and forget the user's approval decisions.
+const McpSavedManifestSchema = z.object({
+  projectId: z.string().min(1),
+  title: z.string(),
+  script: z.string(),
+  inputMode: z.enum(['script', 'idea']).optional(),
+  originalIdea: z.string().optional(),
+  visualConcept: z.string().optional(),
+  settingsSnapshot: z.object({
+    maxAssetsPerBeat: z.number().int().min(1).max(10),
+    maxTotalDownloads: z.number().int().min(1).max(100),
+    targetPlatform: z.enum(['YouTube', 'Shorts', 'TikTok', 'Instagram Reels']),
+    visualStyle: z.string(),
+    assetMix: z.enum([
+      'videos_only',
+      'photos_only',
+      'videos_and_photos',
+      'videos only',
+      'photos only',
+      'videos + photos'
+    ]),
+    searchMode: z.enum(['focused', 'broad']).optional(),
+    inputMode: z.enum(['script', 'idea']).optional(),
+    targetDuration: z.string().optional(),
+    tone: z.string().optional()
+  }),
+  beats: z.array(
+    z.object({
+      id: z.string().min(1),
+      text: z.string().min(1),
+      visualPrompt: z.string(),
+      searchQueries: z.array(z.string()),
+      status: z.enum(['pending', 'searching', 'selecting', 'downloading', 'completed', 'failed']),
+      assets: z.array(
+        z.object({
+          id: z.string().min(1),
+          pexelsId: z.number().int().positive(),
+          type: z.enum(['photo', 'video']),
+          downloadUrl: z.string().min(1),
+          width: z.number().positive(),
+          height: z.number().positive(),
+          status: z.enum(['pending', 'downloading', 'completed', 'failed'])
+        })
+      ),
+      rejectedAssets: z
+        .array(
+          z.object({
+            type: z.enum(['photo', 'video']),
+            pexelsId: z.number().int().positive(),
+            reason: z.string()
+          })
+        )
+        .optional()
+    })
+  )
+})
+
 export class AgentRunner extends EventEmitter {
   private static activeRunners = new Map<string, AgentRunner>()
 
@@ -240,7 +317,10 @@ export class AgentRunner extends EventEmitter {
         const timeout = new Promise<void>((resolve) => {
           timer = setTimeout(resolve, timeoutMs)
         })
-        await Promise.race([runner.activePromise?.catch(() => undefined), timeout])
+        await Promise.race([
+          Promise.all([runner.activePromise?.catch(() => undefined), runner.mcpCommandPromise]),
+          timeout
+        ])
         clearTimeout(timer)
         await runner.persistSnapshot()
       })
@@ -269,6 +349,12 @@ export class AgentRunner extends EventEmitter {
   private downloader!: PexelsDownloader
   private abortController: AbortController | null = null
   private activePromise: Promise<void> | null = null
+  private cancellationPromise: Promise<void> | null = null
+  private cancellationError: unknown
+  private terminalPersistencePromise: Promise<JobSnapshot> | null = null
+  private mcpCommandQueue: Promise<void> = Promise.resolve()
+  private mcpCommandPromise: Promise<void> | null = null
+  private initialEngine?: AgentEngine
   private runGeneration = 0
   private projectDir = ''
   private createdAt = new Date().toISOString()
@@ -397,10 +483,11 @@ export class AgentRunner extends EventEmitter {
     }
   }
 
-  constructor(jobId: string, input: StartJobInput) {
+  constructor(jobId: string, input: StartJobInput, engine?: AgentEngine) {
     super()
     this.jobId = jobId
     this.input = input
+    this.initialEngine = engine
   }
 
   private async applyRuntimeSettings(): Promise<
@@ -409,7 +496,10 @@ export class AgentRunner extends EventEmitter {
     const settings = await SettingsStore.getSettings()
     // A new job takes today's settings once. A loaded job already has its own (see
     // initializeAndLoadState). Download concurrency and keys are machine settings, read every time.
-    this.pin ??= pinRuntimeSettings(settings)
+    this.pin ??= {
+      ...pinRuntimeSettings(settings),
+      ...(this.initialEngine ? { engine: this.initialEngine } : {})
+    }
     this.applyPin(this.pin)
     if (!this.downloader) {
       this.downloader = new PexelsDownloader(
@@ -436,7 +526,7 @@ export class AgentRunner extends EventEmitter {
 
   /** The engine the job runs on: fixed when the job was created, like the rest of its settings. */
   private get engine(): AgentEngine {
-    return this.pin?.engine ?? 'loop'
+    return this.pin?.engine ?? this.initialEngine ?? 'loop'
   }
 
   /** A resume the missing key would only fail again is refused, and the job stays paused. */
@@ -468,23 +558,29 @@ export class AgentRunner extends EventEmitter {
         this.finalizeRun()
       }
     } finally {
-      // Only the active generation may clear promise/registry ownership —
-      // a rapid resume can start a newer run before this finally executes.
-      if (generation === this.runGeneration) {
-        this.activePromise = null
-        // Keep paused runners registered so resume uses the same instance
-        // (and does not re-queue in-flight downloads from a reconstructed runner).
-        if (this.status !== 'paused') {
-          AgentRunner.activeRunners.delete(this.jobId)
+      try {
+        // Keep ownership through the final writes so deleting a pack waits for them too.
+        this.progressFlush.cancel()
+        if (this.projectDir) {
+          await ManifestWriter.flushPendingWrites(this.projectDir)
+        }
+        await this.persistSnapshot()
+        this.emitSnapshot()
+      } finally {
+        // Only the active generation may clear promise/registry ownership.
+        if (generation === this.runGeneration) {
+          this.activePromise = null
+          // Keep paused and externally controlled runners available between commands.
+          if (
+            !this.cancellationPromise &&
+            !this.terminalPersistencePromise &&
+            this.status !== 'paused' &&
+            !(this.engine === 'mcp' && this.status === 'running')
+          ) {
+            AgentRunner.activeRunners.delete(this.jobId)
+          }
         }
       }
-      // The snapshot below supersedes any pending progress broadcast.
-      this.progressFlush.cancel()
-      if (this.projectDir) {
-        await ManifestWriter.flushPendingWrites(this.projectDir)
-      }
-      await this.persistSnapshot()
-      this.emitSnapshot()
     }
   }
 
@@ -496,6 +592,13 @@ export class AgentRunner extends EventEmitter {
         // Ignore errors during shutdown await
       }
     }
+    await this.mcpCommandQueue
+    if (this.cancellationPromise) {
+      if (this.terminalPersistencePromise) await this.cancellationPromise.catch(() => undefined)
+      else await this.cancellationPromise
+    }
+    if (this.terminalPersistencePromise) await this.terminalPersistencePromise
+    if (this.cancellationError) throw this.cancellationError
     if (this.downloader) {
       await this.downloader.waitForIdle()
     }
@@ -675,7 +778,6 @@ export class AgentRunner extends EventEmitter {
   }
 
   public async initializeAndLoadState(): Promise<void> {
-    AgentRunner.activeRunners.set(this.jobId, this)
     this.abortController = new AbortController()
     const current = await SettingsStore.getSettings()
     this.projectDir = await this.resolveProjectDirectory(current.downloadFolder)
@@ -699,20 +801,35 @@ export class AgentRunner extends EventEmitter {
     this.currentStep = 'Stopped'
     // The job goes on with what it was started with. One from before settings were pinned keeps
     // the provider and model its manifest names, and takes the rest from the current settings.
+    const manifestSnapshot = await this.readManifestSettingsSnapshot()
     this.pin = resolveRuntimeSettings(
       saved.runtimeSettings,
-      await this.readManifestSettingsSnapshot(),
+      {
+        ...manifestSnapshot,
+        ...(saved.engine === 'mcp' ? { engine: 'mcp' } : {})
+      },
       current
     )
+    if (
+      this.engine === 'mcp' &&
+      saved.runtimeSettings?.engine !== 'mcp' &&
+      parseRuntimeSettings(manifestSnapshot?.runtimeSettings)?.engine !== 'mcp'
+    ) {
+      throw new Error(
+        'The saved MCP safety settings are missing or damaged. Use Rerun to create a new MCP pack; existing files are kept.'
+      )
+    }
     await this.applyRuntimeSettings()
-    await this.loadStateFromManifest()
+    await this.loadStateFromManifest(this.engine === 'mcp')
     if (removedPartials > 0) {
       this.log('info', `Removed ${removedPartials} partial download(s) left by an interrupted run.`)
     }
+    AgentRunner.activeRunners.set(this.jobId, this)
   }
 
   private async readManifestSettingsSnapshot(): Promise<
-    { provider?: unknown; modelId?: unknown } | undefined
+    | { provider?: unknown; modelId?: unknown; engine?: unknown; runtimeSettings?: unknown }
+    | undefined
   > {
     try {
       const manifest = JSON.parse(
@@ -725,15 +842,20 @@ export class AgentRunner extends EventEmitter {
     }
   }
 
-  private async loadStateFromManifest(): Promise<void> {
+  private async loadStateFromManifest(requireMcpLedger = false): Promise<void> {
     if (!this.projectDir) return
     try {
       const manifestPath = join(this.projectDir, 'manifest.json')
       const data = await fs.readFile(manifestPath, 'utf-8')
       const manifest = JSON.parse(data)
+      if (requireMcpLedger) {
+        McpSavedManifestSchema.parse(manifest)
+        if (manifest.projectId !== this.jobId) throw new Error('The saved pack ID does not match.')
+      }
       if (typeof manifest.createdAt === 'string' && manifest.createdAt) {
         this.createdAt = manifest.createdAt
       }
+      if (typeof manifest.script === 'string') this.input.script = manifest.script
       if (manifest.inputMode) {
         this.input.inputMode = manifest.inputMode
       }
@@ -794,6 +916,11 @@ export class AgentRunner extends EventEmitter {
       this.recountAssets()
       this.rebuildAssetLookup()
     } catch {
+      if (requireMcpLedger) {
+        throw new Error(
+          'The saved MCP pack data is missing or damaged, so its download limits cannot be restored safely. Use Rerun to create a new MCP pack; existing files are kept.'
+        )
+      }
       // Manifest doesn't exist yet, which is normal for new runs
     }
   }
@@ -908,6 +1035,26 @@ export class AgentRunner extends EventEmitter {
       this.requeuePendingDownloads()
       await this.saveRegistry()
 
+      if (this.engine === 'mcp') {
+        if (this.input.inputMode === 'idea') {
+          this.input.idea = (this.input.idea || this.input.script).trim()
+          if (this.input.script.trim() === this.input.idea) this.input.script = ''
+        }
+        if (!this.input.script.trim() && !this.input.idea?.trim()) {
+          throw new Error('MCP jobs need a script or an idea to begin.')
+        }
+        this.log('info', 'MCP client controls this job. No AI API key is used.')
+        this.updateProgress(
+          !this.input.script.trim()
+            ? 'Waiting for MCP script'
+            : this.beats.length > 0
+              ? 'Ready for MCP client'
+              : 'Waiting for MCP beat plan',
+          this.beats.length > 0 ? this.progress : 10
+        )
+        return
+      }
+
       await this.expandIdeaIfNeeded()
       await this.parseScriptIntoBeats()
       await this.runLoopAndFinalize()
@@ -915,6 +1062,209 @@ export class AgentRunner extends EventEmitter {
 
     this.activePromise = this.runBackground(task)
     await this.activePromise
+  }
+
+  /** External commands share the runner's validation, persistence and desktop events. */
+  private runMcpCommand<T>(command: () => Promise<T>): Promise<T> {
+    if (this.engine !== 'mcp')
+      return Promise.reject(new Error('This job is not controlled by MCP.'))
+    if (this.status !== 'running') {
+      return Promise.reject(
+        new Error(`MCP job is ${this.status}. Resume it before sending more commands.`)
+      )
+    }
+    if (!this.projectDir || !this.pin) {
+      return Promise.reject(new Error('Start the MCP job before sending commands.'))
+    }
+    const signal = this.abortController?.signal
+    const result = this.mcpCommandQueue.then(async () => {
+      if (this.activePromise) await this.activePromise
+      if (this.engine !== 'mcp') throw new Error('This job is not controlled by MCP.')
+      try {
+        if (this.status !== 'running' || signal?.aborted) {
+          throw new Error(`MCP job is ${this.status}. Resume it before sending more commands.`)
+        }
+        return await command()
+      } finally {
+        await this.persistSnapshot()
+        this.emitSnapshot()
+        if (
+          !this.cancellationPromise &&
+          !this.terminalPersistencePromise &&
+          this.status !== 'running' &&
+          this.status !== 'paused'
+        ) {
+          AgentRunner.activeRunners.delete(this.jobId)
+        }
+      }
+    })
+    const settled = result.then(
+      () => undefined,
+      () => undefined
+    )
+    this.mcpCommandQueue = settled
+    this.mcpCommandPromise = settled
+    void settled.then(() => {
+      if (this.mcpCommandPromise === settled) this.mcpCommandPromise = null
+    })
+    return result
+  }
+
+  public async submitMcpBeatPlan(plan: BeatPlanItem[]): Promise<JobSnapshot> {
+    return this.runMcpCommand(async () => {
+      if (!this.input.script.trim()) {
+        throw new Error('Submit a finished script before planning footage for this idea.')
+      }
+      if (this.beats.length > 0) {
+        throw new Error('This job already has a beat plan. Create another job to change it.')
+      }
+      const parsed = McpBeatPlanSchema.parse(plan)
+      if (parsed.length > this.input.maxTotalDownloads) {
+        throw new Error("The beat count exceeds this job's download limit.")
+      }
+      const { beats, repaired } = beatsFromPlan(splitScriptSentences(this.input.script), parsed)
+      if (repaired) {
+        throw new Error('Beat ends must increase and cover all numbered script sentences exactly.')
+      }
+      this.beats = beats.map((beat, index) => ({
+        ...beat,
+        id: `beat_${index + 1}`,
+        searchQueries: [],
+        assets: [],
+        status: 'pending'
+      }))
+      this.rebuildAssetLookup()
+      this.log('info', `MCP client planned ${this.beats.length} visual beats.`)
+      this.updateProgress('Ready for MCP searches', 20)
+      this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
+      return this.getSnapshot()
+    })
+  }
+
+  public async submitMcpScript(script: string): Promise<JobSnapshot> {
+    return this.runMcpCommand(async () => {
+      if (this.beats.length > 0) {
+        throw new Error(
+          'This job already has a beat plan. Create another job to change its script.'
+        )
+      }
+      this.input.script = z.string().trim().min(1).max(200000).parse(script)
+      this.log('info', 'MCP client supplied the narration script.')
+      this.updateProgress('Waiting for MCP beat plan', 10)
+      return this.getSnapshot()
+    })
+  }
+
+  public async executeMcpTool(name: string, args: unknown): Promise<unknown> {
+    return this.runMcpCommand(async () => {
+      if (this.beats.length === 0)
+        throw new Error('Submit a beat plan before searching for assets.')
+      const encoded = JSON.stringify(args)
+      if (!encoded || encoded.length > 256_000) throw new Error('MCP tool arguments are too large.')
+      let beatIds: string[] = []
+      if (name === 'search_pexels_photos') {
+        beatIds = [SearchPexelsPhotosArgsSchema.parse(args).beatId]
+      } else if (name === 'search_pexels_videos') {
+        beatIds = [SearchPexelsVideosArgsSchema.parse(args).beatId]
+      } else if (name === 'select_assets_for_download') {
+        const parsed = SelectAssetsForDownloadArgsSchema.parse(args)
+        if (parsed.selections.length > 100 || parsed.rejections.length > 100) {
+          throw new Error('At most 100 selections and 100 rejections are allowed per call.')
+        }
+        beatIds = [...parsed.selections, ...parsed.rejections].map((item) => item.beatId)
+      } else if (name === 'download_selected_assets') {
+        if (DownloadSelectedAssetsArgsSchema.parse(args).assetIds.length > 100) {
+          throw new Error('At most 100 assets are allowed per call.')
+        }
+      } else {
+        throw new Error(`Unknown MCP job tool: ${name}`)
+      }
+      for (const beatId of beatIds) {
+        if (!this.beats.some((beat) => beat.id === beatId)) {
+          throw new Error(`Beat ID ${beatId} not found in project beats.`)
+        }
+      }
+      const result = await this.executeToolCall({
+        id: `mcp_${++this.iterationsUsed}`,
+        name,
+        arguments: encoded
+      })
+      if (
+        this.approvalRequested ||
+        (this.requireApproval && hasPendingUnqueuedAssets(this.beats))
+      ) {
+        this.approvalRequested = false
+        await this.holdForApproval()
+      }
+      return result
+    })
+  }
+
+  public async finishMcpJob(summary?: string): Promise<JobSnapshot> {
+    return this.runMcpCommand(async () => {
+      if (this.beats.length === 0) throw new Error('A job without a beat plan cannot be finished.')
+      if (summary !== undefined && (typeof summary !== 'string' || summary.length > 4000)) {
+        throw new Error('The completion summary must be at most 4000 characters.')
+      }
+      if (hasPendingUnqueuedAssets(this.beats)) {
+        throw new Error('Review pending assets in StockFinder before finishing this job.')
+      }
+      await this.waitForDownloadsToSettle()
+      if (this.status !== 'running') throw new Error(`MCP job is ${this.status}.`)
+      if (
+        !areBeatsSatisfiedForLoop(
+          this.beats,
+          this.input.maxTotalDownloads,
+          this.input.maxAssetsPerBeat
+        )
+      ) {
+        throw new Error('Some beats still need assets. Search for and select replacements first.')
+      }
+      this.loopError = null
+      this.hitIterationLimit = false
+      if (summary?.trim()) {
+        this.pipelineSummary = summary.trim()
+        this.log('info', summary.trim())
+      }
+      this.finalizeRun()
+      return this.getSnapshot()
+    })
+  }
+
+  /** A failed terminal write keeps its live runner so the MCP client can retry durably. */
+  public async retryMcpTerminalPersistence(): Promise<JobSnapshot> {
+    if (this.terminalPersistencePromise) return this.terminalPersistencePromise
+    if (this.engine !== 'mcp') throw new Error('This job is not controlled by MCP.')
+    if (this.status === 'running' || this.status === 'paused') {
+      throw new Error('Only a completed, failed or cancelled MCP job can retry its final save.')
+    }
+    if (AgentRunner.getActive(this.jobId) !== this) {
+      throw new Error('This MCP job is no longer active. Read its saved state again.')
+    }
+    const completion = (async (): Promise<JobSnapshot> => {
+      await Promise.all([
+        this.activePromise?.catch(() => undefined),
+        this.mcpCommandQueue,
+        this.cancellationPromise?.catch(() => undefined)
+      ])
+      await this.persistSnapshot()
+      this.cancellationError = undefined
+      this.emitSnapshot()
+      if (AgentRunner.getActive(this.jobId) === this) {
+        AgentRunner.activeRunners.delete(this.jobId)
+      }
+      return this.getSnapshot()
+    })()
+    this.terminalPersistencePromise = completion
+    void completion.then(
+      () => {
+        if (this.terminalPersistencePromise === completion) this.terminalPersistencePromise = null
+      },
+      () => {
+        if (this.terminalPersistencePromise === completion) this.terminalPersistencePromise = null
+      }
+    )
+    return completion
   }
 
   /** Loop + settle downloads + finalize; shared by start() and approveAndResume(). */
@@ -949,7 +1299,7 @@ export class AgentRunner extends EventEmitter {
     if (this.abortController) {
       this.abortController.abort()
     }
-    if (!this.activePromise) {
+    if (!this.activePromise && !this.mcpCommandPromise) {
       await this.saveRegistry()
       await this.writeAgentState()
       await this.writeManifest()
@@ -964,9 +1314,35 @@ export class AgentRunner extends EventEmitter {
    */
   public async resume(options: { useCurrentSettings?: boolean } = {}): Promise<void> {
     if (this.status !== 'paused') return
+    if (this.engine === 'mcp') {
+      if (options.useCurrentSettings) {
+        throw new Error(
+          'MCP jobs keep their saved settings. Create a new job to use other settings.'
+        )
+      }
+      await this.mcpCommandQueue
+      if (this.activePromise) await this.activePromise
+      if (this.status !== 'paused') return
+      if (this.requireApproval && hasPendingUnqueuedAssets(this.beats)) {
+        throw new Error('Review pending assets in StockFinder before resuming this job.')
+      }
+      this.activePromise = this.runBackground(async () => {
+        if (this.status !== 'paused' || !this.setStatus('running', 'resumed')) return
+        this.requeuePendingDownloads()
+        this.updateProgress(
+          this.input.script.trim() ? 'Ready for MCP client' : 'Waiting for MCP script',
+          this.progress
+        )
+      })
+      await this.activePromise
+      return
+    }
     let next: JobRuntimeSettings | null = null
     if (options.useCurrentSettings) {
       next = pinRuntimeSettings(await SettingsStore.getSettings())
+      if (next.engine === 'mcp') {
+        throw new Error('An API job cannot switch to MCP. Create a new MCP job instead.')
+      }
       await this.requireProviderKey(next, missingCurrentKeyMessage(next))
     } else if (this.pin) {
       await this.requireProviderKey(this.pin, missingPinnedKeyMessage(this.pin))
@@ -1026,22 +1402,43 @@ export class AgentRunner extends EventEmitter {
   }
 
   public async cancel(): Promise<void> {
-    // A job that already ended stays as it ended, and a second cancel has nothing left to do.
-    if (this.status === 'cancelled' || !this.setStatus('cancelled', 'user_cancelled')) return
-    this.log('info', 'Agent run cancelled by user')
-    this.downloader?.cancelAll('Job cancelled by user')
-    if (this.abortController) {
-      this.abortController.abort()
+    const alreadyCancelled = this.status === 'cancelled'
+    if (alreadyCancelled) {
+      if (
+        this.cancellationPromise ||
+        this.terminalPersistencePromise ||
+        AgentRunner.getActive(this.jobId) !== this
+      )
+        return
+    } else {
+      if (!this.setStatus('cancelled', 'user_cancelled')) return
+      this.log('info', 'Agent run cancelled by user')
+      this.downloader?.cancelAll('Job cancelled by user')
+      this.abortController?.abort()
     }
-    if (!this.activePromise) {
-      // No run is in flight (paused runner), so runBackground's finally will never
-      // release it — drop it here or jobs:get keeps serving this stale instance.
-      AgentRunner.activeRunners.delete(this.jobId)
-      await this.saveRegistry()
-      await this.writeAgentState()
-      await this.writeManifest()
-    }
+    const hadWork = Boolean(this.activePromise || this.mcpCommandPromise)
+    this.cancellationError = undefined
+    const completion = (async (): Promise<void> => {
+      await Promise.all([this.activePromise?.catch(() => undefined), this.mcpCommandQueue])
+      await this.persistSnapshot()
+      if (!this.terminalPersistencePromise && AgentRunner.getActive(this.jobId) === this) {
+        AgentRunner.activeRunners.delete(this.jobId)
+      }
+      this.emitSnapshot()
+    })()
+    this.cancellationPromise = completion
+    void completion.then(
+      () => {
+        if (this.cancellationPromise === completion) this.cancellationPromise = null
+      },
+      (error) => {
+        if (this.cancellationPromise === completion) this.cancellationPromise = null
+        this.cancellationError = error
+        console.error('Failed to persist cancelled job:', error)
+      }
+    )
     this.emitSnapshot()
+    if (!hadWork) await completion
   }
 
   /**
@@ -1165,6 +1562,8 @@ export class AgentRunner extends EventEmitter {
       settingsSnapshot: {
         provider: this.providerId,
         modelId: this.modelId,
+        engine: this.engine,
+        ...(this.engine === 'mcp' && this.pin ? { runtimeSettings: this.pin } : {}),
         targetPlatform: this.input.platform,
         visualStyle: this.input.style,
         assetMix: mapAssetMix(this.input.mix),
@@ -1905,7 +2304,7 @@ export class AgentRunner extends EventEmitter {
     }
   }
 
-  private async executeToolCall(tc: NormalizedToolCall): Promise<void> {
+  private async executeToolCall(tc: NormalizedToolCall): Promise<unknown> {
     this.log('tool_call', `Executing tool call: ${tc.name}`, tc.arguments)
     let result: unknown = {}
     let unrecoverable: unknown
@@ -1951,6 +2350,7 @@ export class AgentRunner extends EventEmitter {
           page: args.page,
           per_page: args.perPage
         })
+        this.abortController?.signal.throwIfAborted()
 
         // Hidden results are not cached, so the model cannot select them either.
         const photos = applySafetyFilters(
@@ -1997,6 +2397,7 @@ export class AgentRunner extends EventEmitter {
           page: args.page,
           per_page: args.perPage
         })
+        this.abortController?.signal.throwIfAborted()
 
         // Hidden results are not cached, so the model cannot select them either.
         const videos = applySafetyFilters(
@@ -2305,14 +2706,17 @@ export class AgentRunner extends EventEmitter {
     }
 
     this.log('tool_result', `Result for ${tc.name}`, summarizeToolResultForLog(tc.name, result))
-    this.messages.push({
-      role: 'tool',
-      tool_call_id: tc.id,
-      name: tc.name,
-      content: JSON.stringify(result)
-    })
+    if (this.engine !== 'mcp') {
+      this.messages.push({
+        role: 'tool',
+        tool_call_id: tc.id,
+        name: tc.name,
+        content: JSON.stringify(result)
+      })
+    }
     // The model cannot fix a key Pexels refuses, so the run ends here with the real cause.
     if (unrecoverable) throw unrecoverable
+    return result
   }
 
   /**
@@ -2350,7 +2754,11 @@ export class AgentRunner extends EventEmitter {
 
   public async approveAndResume(decision: ApprovalDecision = {}): Promise<void> {
     if (this.status !== 'paused') return
-    if (this.pin) {
+    if (this.engine === 'mcp') {
+      await this.mcpCommandQueue
+      if (this.status !== 'paused') return
+    }
+    if (this.pin && this.engine !== 'mcp') {
       await this.requireProviderKey(
         this.pin,
         missingPinnedKeyMessage(this.pin, { offerCurrentSettings: false })
@@ -2415,7 +2823,7 @@ export class AgentRunner extends EventEmitter {
         if (rejectedSet.size > 0) {
           this.log(
             'info',
-            `User rejected ${rejectedSet.size} pending assets. Resuming ${this.engine === 'pipeline' ? 'the run' : 'agent loop'}.`
+            `User rejected ${rejectedSet.size} pending assets. Resuming ${this.engine === 'mcp' ? 'MCP control' : this.engine === 'pipeline' ? 'the run' : 'agent loop'}.`
           )
           this.emit('event', { jobId: this.jobId, type: 'beats', data: this.beats })
           await this.writeManifest()
@@ -2445,7 +2853,15 @@ export class AgentRunner extends EventEmitter {
         }
       }
 
-      await this.runLoopAndFinalize()
+      if (this.engine === 'mcp') {
+        for (const beat of this.beats) {
+          if (beat.assets.length > 0) this.refreshBeatStatus(beat)
+        }
+        this.recountAssets()
+        this.updateProgress('Ready for MCP client', this.progress)
+      } else {
+        await this.runLoopAndFinalize()
+      }
     }
 
     this.activePromise = this.runBackground(task)

@@ -64,7 +64,11 @@ export function ProviderPanel({
     <SettingsSection
       id="settings-ai"
       title="AI provider"
-      description="Reads your script, plans the beats and picks the shots."
+      description={
+        settings.agentEngine === 'mcp'
+          ? 'Saved for API runs. MCP runs use the AI app connected above.'
+          : 'Reads your script, plans the beats and picks the shots.'
+      }
       className={className}
     >
       <div className="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-2">

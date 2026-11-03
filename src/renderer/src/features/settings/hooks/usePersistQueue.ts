@@ -12,6 +12,8 @@ interface PersistQueueOptions {
 
 interface PersistQueue {
   saving: boolean
+  error: string | null
+  retryPersist: () => void
   schedulePersist: (partial: SettingsPatch) => void
   persistNow: (partial: SettingsPatch) => void
 }
@@ -22,6 +24,7 @@ export function usePersistQueue({
   onBatchSaved
 }: PersistQueueOptions): PersistQueue {
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const pendingRef = useRef<SettingsPatch>({})
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const flushingRef = useRef(false)
@@ -64,17 +67,24 @@ export function usePersistQueue({
           failed = true
           const msg = err instanceof Error ? err.message : String(err)
           if (mountedRef.current) {
+            setError(msg || 'Failed to save settings.')
             toast.error(msg || 'Failed to save settings.', { id: SAVE_TOAST_ID })
           }
           break
         }
 
         onBatchSavedRef.current(batch)
-        if (mountedRef.current) toast.success('Settings saved.', { id: SAVE_TOAST_ID })
+        if (mountedRef.current) {
+          setError(null)
+          toast.success('Settings saved.', { id: SAVE_TOAST_ID })
+        }
       }
     } finally {
       flushingRef.current = false
-      if (mountedRef.current) setSaving(false)
+      if (mountedRef.current) {
+        setSaving(false)
+        if (!failed && Object.keys(pendingRef.current).length === 0) setError(null)
+      }
       // Drain edits that arrived during a successful flush; do not auto-retry failures
       if (!failed && Object.keys(pendingRef.current).length > 0) {
         void flushPersist()
@@ -106,5 +116,13 @@ export function usePersistQueue({
     [flushPersist]
   )
 
-  return { saving, schedulePersist, persistNow }
+  return {
+    saving,
+    error,
+    retryPersist: () => {
+      void flushPersist()
+    },
+    schedulePersist,
+    persistNow
+  }
 }

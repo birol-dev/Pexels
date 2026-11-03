@@ -8,11 +8,26 @@ import { registerSettingsHandlers } from './ipc/settings.ipc'
 import { registerJobsHandlers } from './ipc/jobs.ipc'
 import { registerAssetsHandlers } from './ipc/assets.ipc'
 import { registerUpdatesHandlers } from './ipc/updates.ipc'
+import { registerMcpHandlers } from './ipc/mcp.ipc'
 import { ProjectStore } from './services/storage/project-store'
 import { AgentRunner } from './services/agent/agent-runner'
 import { filePathFromMediaUrl, isPathInside } from './services/files/path-safety'
 import { isAllowedExternalUrl } from './services/files/external-url'
 import { startAutoUpdate } from './services/updates/auto-update'
+import { syncMcpServer, shutdownMcpServer } from './services/mcp/mcp-server'
+
+// One writer owns the project registry and local MCP endpoint for this app profile.
+const hasInstanceLock = app.requestSingleInstanceLock()
+if (!hasInstanceLock) app.quit()
+else {
+  app.on('second-instance', () => {
+    const window = BrowserWindow.getAllWindows()[0]
+    if (!window) return
+    if (window.isMinimized()) window.restore()
+    window.show()
+    window.focus()
+  })
+}
 
 // Register schemes as privileged before app is ready
 // NOTE: bypassCSP is intentionally omitted — the handler restricts paths to
@@ -130,6 +145,7 @@ function createWindow(): void {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
+  if (!hasInstanceLock) return
   // Register media protocol to serve local files securely
   protocol.handle('media', async (request) => {
     try {
@@ -182,6 +198,10 @@ app.whenReady().then(async () => {
   registerJobsHandlers()
   registerAssetsHandlers()
   registerUpdatesHandlers()
+  registerMcpHandlers()
+
+  // Restore job status before accepting commands from an external AI app.
+  await syncMcpServer().catch((err) => console.error('Failed to start MCP:', err))
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -210,7 +230,7 @@ app.on('before-quit', (event) => {
   if (shutdownStarted) return
   shutdownStarted = true
   event.preventDefault()
-  AgentRunner.pauseAll()
+  Promise.all([shutdownMcpServer(), AgentRunner.pauseAll()])
     .catch((err) => console.error('Failed to pause running jobs on quit:', err))
     .finally(() => app.quit())
 })

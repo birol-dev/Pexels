@@ -279,6 +279,7 @@ describe('runner: job status', () => {
       hold.release()
       await withDeadline(runner, run)
       await resuming
+      await runner.waitForShutdown()
 
       const snapshot = runner.getSnapshot()
       assert.equal(snapshot.status, 'cancelled')

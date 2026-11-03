@@ -1,5 +1,6 @@
 import React from 'react'
-import { CheckIcon, CircleNotchIcon } from '@phosphor-icons/react'
+import { CheckIcon, CircleNotchIcon, WarningCircleIcon } from '@phosphor-icons/react'
+import { Button } from '@renderer/components/ui/button'
 import { ActionsBar } from '@renderer/features/settings/components/ActionsBar'
 import { AppearancePanel } from '@renderer/features/settings/components/AppearancePanel'
 import { ExperimentalPanel } from '@renderer/features/settings/components/ExperimentalPanel'
@@ -11,6 +12,7 @@ import { SafetyPanel } from '@renderer/features/settings/components/SafetyPanel'
 import { SettingsMenu } from '@renderer/features/settings/components/SettingsMenu'
 import { StoragePanel } from '@renderer/features/settings/components/StoragePanel'
 import { UpdatesPanel } from '@renderer/features/settings/components/UpdatesPanel'
+import { McpPanel } from '@renderer/features/settings/components/McpPanel'
 import { useSettingsForm } from '@renderer/features/settings/hooks/useSettingsForm'
 
 export default function SettingsView(): React.JSX.Element {
@@ -36,24 +38,45 @@ export default function SettingsView(): React.JSX.Element {
             Keys, where packs are saved, and how a run behaves.
           </p>
         </div>
-        <span
-          role="status"
-          className="flex h-8 items-center gap-2 rounded-full bg-surface-container px-3.5 text-[13px] text-on-surface-variant"
-        >
-          {form.saving ? (
-            <CircleNotchIcon size={14} className="animate-spin" aria-hidden />
-          ) : (
-            <CheckIcon size={14} aria-hidden />
+        <div className="flex items-center gap-3">
+          <span
+            role="status"
+            className="flex h-8 items-center gap-2 rounded-full bg-surface-container px-3.5 text-[13px] text-on-surface-variant"
+          >
+            {form.saving ? (
+              <CircleNotchIcon size={14} className="animate-spin" aria-hidden />
+            ) : form.saveError ? (
+              <WarningCircleIcon size={14} className="text-error" aria-hidden />
+            ) : (
+              <CheckIcon size={14} aria-hidden />
+            )}
+            {form.saving ? 'Saving…' : form.saveError ? 'Changes not saved' : 'All changes saved'}
+          </span>
+          {form.saveError && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={form.saving}
+              onClick={form.retrySave}
+            >
+              Retry saving
+            </Button>
           )}
-          {form.saving ? 'Saving…' : 'All changes saved'}
-        </span>
+        </div>
       </header>
+      {form.saveError && (
+        <p role="alert" className="text-sm text-error">
+          Your changes have not been saved. {form.saveError}
+        </p>
+      )}
 
       <div className="grid grid-cols-1 gap-x-12 gap-y-8 lg:grid-cols-[200px_minmax(0,1fr)]">
         <div className="lg:relative">
           <SettingsMenu />
         </div>
         <div className="flex max-w-[720px] min-w-0 flex-col gap-14">
+          <McpPanel settings={settings} form={form} />
           <ProviderPanel settings={settings} form={form} />
           <PexelsPanel settings={settings} form={form} />
           <StoragePanel settings={settings} form={form} />

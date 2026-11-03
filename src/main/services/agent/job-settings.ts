@@ -26,7 +26,7 @@ export interface JobRuntimeSettings {
   rankWithThumbnails: boolean
 }
 
-export type AgentEngine = 'loop' | 'pipeline'
+export type AgentEngine = 'loop' | 'pipeline' | 'mcp'
 
 const PROVIDER_LABELS: Record<LlmProviderId, string> = {
   openai: 'OpenAI',
@@ -51,7 +51,12 @@ export function pinRuntimeSettings(settings: PublicSettings): JobRuntimeSettings
     skipExplicit: settings.skipExplicitQueries,
     avoidPeople: settings.avoidPeopleAndFaces,
     requireApproval: settings.requireApprovalBeforeDownload,
-    engine: settings.agentEngine === 'pipeline' ? 'pipeline' : 'loop',
+    engine:
+      settings.agentEngine === 'mcp'
+        ? 'mcp'
+        : settings.agentEngine === 'pipeline'
+          ? 'pipeline'
+          : 'loop',
     rankWithThumbnails: settings.rankWithThumbnails === true
   }
 }
@@ -63,7 +68,7 @@ export function parseRuntimeSettings(value: unknown): JobRuntimeSettings | undef
   if (
     !isProviderId(v.providerId) ||
     typeof v.modelId !== 'string' ||
-    !v.modelId.trim() ||
+    (!v.modelId.trim() && v.engine !== 'mcp') ||
     !isPositiveNumber(v.maxIterations) ||
     !isPositiveNumber(v.requestTimeoutSeconds) ||
     typeof v.skipExplicit !== 'boolean' ||
@@ -80,7 +85,7 @@ export function parseRuntimeSettings(value: unknown): JobRuntimeSettings | undef
     skipExplicit: v.skipExplicit,
     avoidPeople: v.avoidPeople,
     requireApproval: v.requireApproval,
-    engine: v.engine === 'pipeline' ? 'pipeline' : 'loop',
+    engine: v.engine === 'mcp' ? 'mcp' : v.engine === 'pipeline' ? 'pipeline' : 'loop',
     rankWithThumbnails: v.rankWithThumbnails === true
   }
 }
@@ -94,9 +99,24 @@ export function parseRuntimeSettings(value: unknown): JobRuntimeSettings | undef
  */
 export function resolveRuntimeSettings(
   saved: JobRuntimeSettings | undefined,
-  manifestSnapshot: { provider?: unknown; modelId?: unknown } | undefined,
+  manifestSnapshot:
+    | { provider?: unknown; modelId?: unknown; engine?: unknown; runtimeSettings?: unknown }
+    | undefined,
   current: PublicSettings
 ): JobRuntimeSettings {
+  const manifestSettings = parseRuntimeSettings(manifestSnapshot?.runtimeSettings)
+  if (saved?.engine === 'mcp') return saved
+  if (manifestSnapshot?.engine === 'mcp') {
+    if (manifestSettings?.engine === 'mcp') return manifestSettings
+    // This is safe to display, but a runner must refuse to restore without a valid saved pin.
+    return {
+      ...pinRuntimeSettings(current),
+      engine: 'mcp',
+      requireApproval: true,
+      skipExplicit: true,
+      avoidPeople: true
+    }
+  }
   if (saved) return saved
   const pinned: JobRuntimeSettings = {
     ...pinRuntimeSettings(current),

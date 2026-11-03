@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
 import type { PexelsManifestAttribution } from '../pexels/pexels-attribution.ts'
+import type { AgentEngine, JobRuntimeSettings } from '../agent/job-settings.ts'
 
 export interface TokenUsage {
   inputTokens: number
@@ -47,6 +48,8 @@ export interface ManifestData {
   settingsSnapshot: {
     provider: 'openai' | 'openrouter' | 'gemini'
     modelId: string
+    engine?: AgentEngine
+    runtimeSettings?: JobRuntimeSettings
     targetPlatform: string
     visualStyle: string
     assetMix: 'videos_only' | 'photos_only' | 'videos_and_photos'
