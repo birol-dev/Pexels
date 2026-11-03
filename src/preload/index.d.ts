@@ -13,6 +13,8 @@ declare global {
         getConnectionInfo(): Promise<McpConnectionInfo>
         retryConnection(): Promise<McpConnectionInfo>
         rotateToken(): Promise<McpConnectionInfo>
+        openClient(client: 'cursor' | 'vscode'): Promise<void>
+        openSetupDocs(client: string): Promise<void>
       }
       settings: {
         getPublicSettings(): Promise<Record<string, unknown>>

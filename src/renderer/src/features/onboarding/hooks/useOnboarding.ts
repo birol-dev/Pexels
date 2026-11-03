@@ -98,6 +98,7 @@ export function useOnboarding(): OnboardingController {
       await updateSettings(
         buildSettingsUpdates({ llmProvider, modelId, downloadFolder, keys, pexelsKey, useMcp })
       )
+      if (useMcp) useAppStore.getState().navigate('settings')
     } catch (err) {
       // For example the OS keychain is unavailable. Without this the button silently does nothing.
       setFinishError(errorMessage(err, 'Unknown error.'))

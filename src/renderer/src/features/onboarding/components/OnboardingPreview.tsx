@@ -41,7 +41,7 @@ export function OnboardingPreview({
     {
       step: 2,
       label: useMcp ? 'MCP' : providerLabel,
-      done: useMcp || hasLlmKey,
+      done: !useMcp && hasLlmKey,
       icon: useMcp ? <PlugsConnectedIcon /> : <ProviderLogo provider={llmProvider} />
     },
     { step: 3, label: 'Pexels', done: hasPexelsKey, icon: <ImagesIcon /> },
@@ -154,9 +154,9 @@ function StepCallout({
     4: { icon: <FolderIcon />, title: 'Saved to', body: folder },
     5: {
       icon: <CheckIcon weight="bold" />,
-      title: 'Ready for your first pack',
+      title: useMcp ? 'Ready to connect your AI app' : 'Ready for your first pack',
       body: useMcp
-        ? 'Copy the MCP connection from Settings and connect your AI app.'
+        ? 'Choose your app and follow the connection guide next.'
         : 'Paste a script and press Find footage.'
     }
   }

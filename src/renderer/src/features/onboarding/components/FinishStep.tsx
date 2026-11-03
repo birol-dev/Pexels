@@ -44,7 +44,11 @@ export function FinishStep({
     <StepCard>
       <StepHeader
         title={
-          ready ? (
+          useMcp ? (
+            <>
+              Ready to <em>connect</em>
+            </>
+          ) : ready ? (
             <>
               You&apos;re <em>all set</em>
             </>
@@ -56,7 +60,7 @@ export function FinishStep({
         }
         description={
           useMcp
-            ? 'Next, connect your AI app from Settings → MCP connection. Your Pexels key is all StockFinder needs for MCP runs.'
+            ? 'Open the connection guide next. Choose your AI app, add StockFinder, then paste a test prompt to check access.'
             : ready
               ? 'Here is what StockFinder will use. You can change any of it later in Settings.'
               : 'You can start now, but a run needs both keys. Add the missing one in Settings.'
@@ -67,8 +71,8 @@ export function FinishStep({
         <SummaryCard
           icon={useMcp ? <PlugsConnectedIcon /> : <ProviderLogo provider={llmProvider} />}
           title={useMcp ? 'Your AI app through MCP' : providerLabel}
-          value={useMcp ? 'Connect from Settings after setup' : modelId}
-          status={useMcp ? 'No AI key needed' : hasLlmKey ? 'Ready' : 'No key'}
+          value={useMcp ? 'Choose your app in the next step' : modelId}
+          status={useMcp ? 'Setup next' : hasLlmKey ? 'Ready' : 'No key'}
           ok={useMcp || hasLlmKey}
         />
         <SummaryCard
@@ -96,7 +100,7 @@ export function FinishStep({
 
       <div>
         <Button size="lg" onClick={finish} disabled={finishing}>
-          {finishing ? 'Saving...' : 'Start using StockFinder'}
+          {finishing ? 'Saving...' : useMcp ? 'Connect my AI app' : 'Start using StockFinder'}
           {!finishing && <ArrowRightIcon />}
         </Button>
       </div>

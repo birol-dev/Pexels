@@ -72,7 +72,7 @@ describe('MCP setup in the renderer', () => {
     )
     assert.equal(
       mcpClientConfig(info, 'claude-code'),
-      'claude mcp add --transport http stockfinder http://127.0.0.1:45678/mcp --header "Authorization: Bearer private-token"'
+      'claude mcp add --transport http --scope user stockfinder http://127.0.0.1:45678/mcp --header "Authorization: Bearer private-token"'
     )
   })
 })

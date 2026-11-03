@@ -4,6 +4,9 @@ export interface McpConnectionInfo {
   running: boolean
   url: string | null
   token: string | null
+  /** Last successful initialization, not a claim that a stateless client is still connected. */
+  lastClientSeenAt?: string
+  clientName?: string
   error?: string
 }
 

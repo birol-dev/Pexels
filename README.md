@@ -37,6 +37,8 @@ StockFinder AI automates that loop:
 
 Works with **OpenAI**, **Google Gemini**, or **OpenRouter** for the AI layer, plus a free **Pexels API key** for stock media. You can also [control StockFinder from an AI app through MCP](docs/mcp.md), without an AI API key in StockFinder.
 
+For MCP, choose your AI app in **Settings → MCP connection**. Add StockFinder directly to Cursor or VS Code, or copy a setup prompt for Codex, Claude Code, Gemini CLI, and other supported local clients. The screen includes a connection test and a starter prompt; [see the client guide and compatibility notes](docs/mcp.md#app-specific-setup).
+
 ---
 
 ## Features

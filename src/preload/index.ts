@@ -14,7 +14,11 @@ const api = {
     getConnectionInfo: (): Promise<McpConnectionInfo> =>
       ipcRenderer.invoke('mcp:getConnectionInfo'),
     retryConnection: (): Promise<McpConnectionInfo> => ipcRenderer.invoke('mcp:retryConnection'),
-    rotateToken: (): Promise<McpConnectionInfo> => ipcRenderer.invoke('mcp:rotateToken')
+    rotateToken: (): Promise<McpConnectionInfo> => ipcRenderer.invoke('mcp:rotateToken'),
+    openClient: (client: 'cursor' | 'vscode'): Promise<void> =>
+      ipcRenderer.invoke('mcp:openClient', client),
+    openSetupDocs: (client: string): Promise<void> =>
+      ipcRenderer.invoke('mcp:openSetupDocs', client)
   },
   settings: {
     getPublicSettings: (): Promise<Record<string, unknown>> =>

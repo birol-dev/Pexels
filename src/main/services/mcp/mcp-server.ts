@@ -10,6 +10,7 @@ import { createMcpProtocolServer } from './mcp-tools.ts'
 /** HTTP is stateless; the existing job registry owns all work across requests and reconnects. */
 export class McpHttpServer {
   public url: string | null = null
+  public clientActivity: Pick<McpConnectionInfo, 'lastClientSeenAt' | 'clientName'> | null = null
   private httpServer: Server | null = null
   private protocols = new Set<McpServer>()
   private token: string
@@ -56,6 +57,7 @@ export class McpHttpServer {
     const http = this.httpServer
     this.httpServer = null
     this.url = null
+    this.clientActivity = null
     if (!http) return
     const closed = new Promise<void>((resolve) => http.close(() => resolve()))
     http.closeAllConnections()
@@ -103,6 +105,7 @@ export class McpHttpServer {
       allowedOrigins: []
     })
     this.protocols.add(server)
+    const servingHttp = this.httpServer
     response.once('close', () => {
       this.protocols.delete(server)
       server.close().catch(() => undefined)
@@ -110,6 +113,14 @@ export class McpHttpServer {
     try {
       await server.connect(transport)
       await transport.handleRequest(request, response)
+      const client = server.server.getClientVersion()
+      // Each HTTP request has its own SDK server. Only a validated initialize sets clientInfo.
+      if (client && response.statusCode === 200 && this.httpServer === servingHttp && this.url) {
+        this.clientActivity = {
+          lastClientSeenAt: new Date().toISOString(),
+          clientName: client.name.replace(/\p{Cc}|\p{Cf}/gu, '').slice(0, 80)
+        }
+      }
     } catch (error) {
       this.protocols.delete(server)
       await server.close().catch(() => undefined)
@@ -180,7 +191,7 @@ export async function syncMcpServer(options: { rotateToken?: boolean } = {}): Pr
 }
 
 export function getMcpConnectionInfo(): McpConnectionInfo {
-  return { ...connection }
+  return { ...connection, ...localServer?.clientActivity }
 }
 
 export async function stopMcpServer(): Promise<void> {

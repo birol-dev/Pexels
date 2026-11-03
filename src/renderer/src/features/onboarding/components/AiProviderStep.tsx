@@ -79,8 +79,8 @@ export function AiProviderStep({
             API key in StockFinder. You will still add a free Pexels key in the next step.
           </p>
           <p className="text-sm leading-relaxed text-outline">
-            After setup, open Settings → MCP connection to copy your connection configuration. Keep
-            StockFinder open and ask your AI app to create a pack from your script.
+            Next, choose your AI app in the connection guide. Copy a setup prompt, or add
+            StockFinder directly to Cursor or VS Code. Keep both apps open while you work.
           </p>
         </FormPanel>
       ) : (
