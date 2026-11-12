@@ -1,5 +1,13 @@
 import { PlugsConnectedIcon } from '@phosphor-icons/react'
 import { Input } from '@renderer/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@renderer/components/ui/select'
+import { MCP_CLIENTS, type McpClientId } from '../../../../../shared/mcp-clients'
 import type { OnboardingController } from '../hooks/useOnboarding'
 import { ConnectionTestRow } from './ConnectionTestRow'
 import { Field } from './Field'
@@ -15,26 +23,33 @@ type AiProviderStepProps = Pick<
   | 'llmProvider'
   | 'useMcp'
   | 'setUseMcp'
+  | 'mcpClientId'
+  | 'setMcpClientId'
   | 'selectProvider'
   | 'activeKey'
   | 'setActiveKey'
   | 'modelId'
   | 'setModelId'
   | 'llmTest'
-> & { onBack: () => void; onNext: () => void }
+  | 'hasLlmKey'
+> & { onBack?: () => void; onNext: () => void; nextLabel?: string }
 
 export function AiProviderStep({
   llmProvider,
   useMcp,
   setUseMcp,
+  mcpClientId,
+  setMcpClientId,
   selectProvider,
   activeKey,
   setActiveKey,
   modelId,
   setModelId,
   llmTest,
+  hasLlmKey,
   onBack,
-  onNext
+  onNext,
+  nextLabel
 }: AiProviderStepProps): React.JSX.Element {
   const providerLabel =
     PROVIDER_OPTIONS.find((option) => option.id === llmProvider)?.label ?? llmProvider
@@ -47,14 +62,14 @@ export function AiProviderStep({
             Connect <span className="text-fade">the</span> <em>AI</em>
           </>
         }
-        description="Choose what plans your beats and picks the shots: an API provider or your own AI app through MCP."
+        description="Choose what helps plan your shots. Use an AI app on this computer or bring an API key."
       />
 
       <fieldset className="grid gap-3 sm:grid-cols-2">
         <legend className="sr-only">How to use AI</legend>
         {[
           { mcp: false, label: 'AI API key' },
-          { mcp: true, label: 'My AI app (MCP)' }
+          { mcp: true, label: 'My AI app' }
         ].map(({ mcp, label }) => (
           <label
             key={label}
@@ -74,13 +89,25 @@ export function AiProviderStep({
 
       {useMcp ? (
         <FormPanel>
-          <p className="text-sm leading-relaxed text-on-surface">
-            Your AI app controls StockFinder through a local MCP connection. You do not need an AI
-            API key in StockFinder. You will still add a free Pexels key in the next step.
-          </p>
-          <p className="text-sm leading-relaxed text-outline">
-            Next, choose your AI app in the connection guide. Copy a setup prompt, or add
-            StockFinder directly to Cursor or VS Code. Keep both apps open while you work.
+          <Field label="Your AI app" htmlFor="onboarding-ai-app">
+            <Select
+              value={mcpClientId}
+              onValueChange={(value) => setMcpClientId(value as McpClientId)}
+            >
+              <SelectTrigger id="onboarding-ai-app" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MCP_CLIENTS.filter((client) => client.supported !== false).map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <p className="text-sm text-outline">
+            We’ll open the setup guide for this app when you finish.
           </p>
         </FormPanel>
       ) : (
@@ -123,7 +150,11 @@ export function AiProviderStep({
         </>
       )}
 
-      <StepNav onBack={onBack} onNext={onNext} />
+      <StepNav
+        onBack={onBack}
+        onNext={onNext}
+        nextLabel={nextLabel ?? (!useMcp && !hasLlmKey ? 'Continue without key' : undefined)}
+      />
     </StepCard>
   )
 }

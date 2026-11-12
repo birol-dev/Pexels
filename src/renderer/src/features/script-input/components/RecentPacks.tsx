@@ -41,11 +41,6 @@ export function RecentPacks(): React.JSX.Element {
         <h2 id="recent-packs-title" className="text-title-md font-title-md text-on-surface">
           Recent packs
         </h2>
-        {jobs.length > 0 && (
-          <span className="text-[13px] text-outline">
-            {jobs.length} {jobs.length === 1 ? 'pack' : 'packs'}, newest first
-          </span>
-        )}
       </div>
 
       {jobs.length === 0 ? (

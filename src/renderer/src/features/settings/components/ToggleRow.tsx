@@ -6,6 +6,7 @@ interface ToggleRowProps {
   label: string
   description: string
   checked: boolean
+  disabled?: boolean
   onCheckedChange: (checked: boolean) => void
 }
 
@@ -14,6 +15,7 @@ export function ToggleRow({
   label,
   description,
   checked,
+  disabled,
   onCheckedChange
 }: ToggleRowProps): React.JSX.Element {
   return (
@@ -22,7 +24,13 @@ export function ToggleRow({
         <span className="text-sm leading-snug font-semibold text-on-surface">{label}</span>
         <span className="text-[13px] leading-snug font-normal text-outline">{description}</span>
       </Label>
-      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} aria-label={label} />
+      <Switch
+        id={id}
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={onCheckedChange}
+        aria-label={label}
+      />
     </div>
   )
 }

@@ -8,7 +8,7 @@ StockFinder AI is a free, open-source desktop app for YouTube creators, short-fo
 
 [![Website](https://img.shields.io/badge/website-stockfinderai.birol.tech-05df72)](https://stockfinderai.birol.tech)
 [![Developer](https://img.shields.io/badge/developer-birol.tech-purple)](https://birol.tech)
-[![Version](https://img.shields.io/badge/version-1.5.0-cyber)](https://github.com/birol-dev/Pexels/releases)
+[![Version](https://img.shields.io/badge/version-1.6.0-cyber)](https://github.com/birol-dev/Pexels/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)](#download)
 [![License](https://img.shields.io/badge/license-Open%20Source-blue)](https://github.com/birol-dev/Pexels)
 
@@ -37,7 +37,7 @@ StockFinder AI automates that loop:
 
 Works with **OpenAI**, **Google Gemini**, or **OpenRouter** for the AI layer, plus a free **Pexels API key** for stock media. You can also [control StockFinder from an AI app through MCP](docs/mcp.md), without an AI API key in StockFinder.
 
-For MCP, choose your AI app in **Settings → MCP connection**. Add StockFinder directly to Cursor or VS Code, or copy a setup prompt for Codex, Claude Code, Gemini CLI, and other supported local clients. The screen includes a connection test and a starter prompt; [see the client guide and compatibility notes](docs/mcp.md#app-specific-setup).
+For MCP, choose your AI app under **Connect your AI** in the sidebar. Add StockFinder directly to Cursor or VS Code, or copy a setup prompt for Codex, Claude Code, Gemini CLI, and other supported local clients. The screen includes a connection test and a starter prompt; [see the client guide and compatibility notes](docs/mcp.md#app-specific-setup).
 
 ---
 
@@ -213,6 +213,12 @@ StockFinder AI is created and maintained by [Birol](https://birol.tech).
 ---
 
 ## Changelog
+
+### v1.6.0 - Simpler Onboarding & AI App Setup (2026-11-12)
+
+- Onboarding has four steps. Choose your AI app during setup, keep the default download folder, and edit missing keys from the review screen.
+- **Connect your AI** has its own sidebar entry, with guided setup, GitHub Copilot support, and copyable connection fields for other local clients.
+- The local connection starts by default alongside AI API packs. Connection details show the last app to connect and include a StockFinder diagnostic check.
 
 ### v1.5.0 - MCP Control & Guided AI Connections (2026-11-03)
 

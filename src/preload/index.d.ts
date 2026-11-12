@@ -1,5 +1,5 @@
 import type { UpdateCheckResult, UpdateState } from '../shared/update-policy'
-import type { McpConnectionInfo } from '../shared/mcp'
+import type { McpConnectionInfo, McpDiagnostics } from '../shared/mcp'
 
 declare global {
   interface Window {
@@ -10,6 +10,7 @@ declare global {
     }
     api: {
       mcp: {
+        testConnection(): Promise<McpDiagnostics>
         getConnectionInfo(): Promise<McpConnectionInfo>
         retryConnection(): Promise<McpConnectionInfo>
         rotateToken(): Promise<McpConnectionInfo>

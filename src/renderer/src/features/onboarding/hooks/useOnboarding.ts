@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react'
 import { useAppStore } from '@renderer/lib/store'
 import { api } from '@renderer/lib/api-client'
+import { preferredMcpClient, saveMcpClient } from '@renderer/lib/mcp-client-preference'
+import type { McpClientId } from '../../../../../shared/mcp-clients'
 import type { LlmProvider, ProviderKeys, TestResult } from '../types'
 import {
   buildSettingsUpdates,
@@ -15,6 +17,8 @@ export interface OnboardingController {
   goTo: (step: number) => void
   useMcp: boolean
   setUseMcp: (value: boolean) => void
+  mcpClientId: McpClientId
+  setMcpClientId: (value: McpClientId) => void
   llmProvider: LlmProvider
   selectProvider: (provider: LlmProvider) => void
   activeKey: string
@@ -41,6 +45,10 @@ export function useOnboarding(): OnboardingController {
 
   const [step, setStep] = useState(1)
   const [useMcp, setUseMcp] = useState(settings?.agentEngine === 'mcp')
+  const [mcpClientId, setMcpClientId] = useState<McpClientId>(() => {
+    const preferred = preferredMcpClient()
+    return preferred === 'claude-desktop' ? 'codex' : preferred
+  })
   const [llmProvider, setLlmProvider] = useState<LlmProvider>('openai')
   const [keys, setKeys] = useState<ProviderKeys>({ openai: '', gemini: '', openrouter: '' })
   const [modelId, setModelId] = useState(DEFAULT_MODEL_IDS.openai)
@@ -98,19 +106,24 @@ export function useOnboarding(): OnboardingController {
       await updateSettings(
         buildSettingsUpdates({ llmProvider, modelId, downloadFolder, keys, pexelsKey, useMcp })
       )
-      if (useMcp) useAppStore.getState().navigate('settings')
+      if (useMcp) {
+        saveMcpClient(mcpClientId)
+        useAppStore.getState().navigate('mcp')
+      }
     } catch (err) {
       // For example the OS keychain is unavailable. Without this the button silently does nothing.
       setFinishError(errorMessage(err, 'Unknown error.'))
       setFinishing(false)
     }
-  }, [updateSettings, llmProvider, modelId, downloadFolder, keys, pexelsKey, useMcp])
+  }, [updateSettings, llmProvider, modelId, downloadFolder, keys, pexelsKey, useMcp, mcpClientId])
 
   return {
     step,
     goTo: setStep,
     useMcp,
     setUseMcp,
+    mcpClientId,
+    setMcpClientId,
     llmProvider,
     selectProvider,
     activeKey,

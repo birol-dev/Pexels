@@ -5,6 +5,7 @@ export type McpClientId =
   | 'claude-code'
   | 'cursor'
   | 'vscode'
+  | 'copilot'
   | 'gemini-cli'
   | 'windsurf'
   | 'devin'
@@ -17,7 +18,6 @@ export type McpClientId =
 export interface McpClientProfile {
   id: McpClientId
   name: string
-  description: string
   configLabel: string
   configPath?: string
   steps: string[]
@@ -27,12 +27,10 @@ export interface McpClientProfile {
   limitation?: string
 }
 
-/** Formats checked against the linked official documentation on 2026-11-03. */
 export const MCP_CLIENTS: readonly McpClientProfile[] = [
   {
     id: 'codex',
     name: 'Codex',
-    description: 'Desktop app, CLI, or IDE extension running locally.',
     configLabel: 'Copy Codex configuration',
     configPath: '~/.codex/config.toml',
     steps: [
@@ -45,7 +43,6 @@ export const MCP_CLIENTS: readonly McpClientProfile[] = [
   {
     id: 'claude-code',
     name: 'Claude Code',
-    description: 'Claude Code running on this computer.',
     configLabel: 'Copy terminal command',
     configPath: 'User scope (personal ~/.claude.json)',
     steps: [
@@ -58,7 +55,6 @@ export const MCP_CLIENTS: readonly McpClientProfile[] = [
   {
     id: 'cursor',
     name: 'Cursor',
-    description: 'Connect directly to a local Cursor agent.',
     configLabel: 'Copy Cursor configuration',
     configPath: '~/.cursor/mcp.json',
     steps: [
@@ -71,22 +67,33 @@ export const MCP_CLIENTS: readonly McpClientProfile[] = [
   },
   {
     id: 'vscode',
-    name: 'VS Code / Copilot',
-    description: 'VS Code desktop with a local agent session.',
+    name: 'VS Code (editor configuration)',
     configLabel: 'Copy VS Code configuration',
     configPath: 'MCP: Open User Configuration → profile mcp.json',
     steps: [
       'Choose Add to VS Code and review the installation, or open MCP: Open User Configuration from the Command Palette.',
-      'Merge the configuration into the profile mcp.json using its servers object. The newer Copilot portable format uses mcpServers instead; use the install button or official guide for that format.',
+      'Merge the configuration into the profile mcp.json using its servers object. For Copilot Global or Copilot CLI, choose GitHub Copilot instead.',
       'Open MCP: List Servers, start StockFinder, then paste the connection test into a local agent chat.'
     ],
-    docsUrl: 'https://code.visualstudio.com/docs/agent-customization/mcp-servers',
+    docsUrl: 'https://code.visualstudio.com/docs/agents/reference/mcp-configuration',
     installTarget: 'vscode'
+  },
+  {
+    id: 'copilot',
+    name: 'GitHub Copilot (VS Code or CLI)',
+    configLabel: 'Copilot configuration',
+    configPath: '~/.copilot/mcp-config.json (or $COPILOT_HOME/mcp-config.json)',
+    steps: [
+      'In VS Code, open Chat: Open Customizations and choose MCP Servers in a local Copilot session. Select Copilot Global for your personal configuration.',
+      'Merge the StockFinder entry into mcpServers in your personal Copilot mcp-config.json. The same file works with Copilot CLI.',
+      'Open MCP: List Servers in VS Code or /mcp in Copilot CLI, then send the connection check from a session on this computer.'
+    ],
+    docsUrl:
+      'https://code.visualstudio.com/docs/agents/reference/mcp-configuration#portable-configuration'
   },
   {
     id: 'gemini-cli',
     name: 'Gemini CLI',
-    description: 'Google’s Gemini CLI running locally.',
     configLabel: 'Copy Gemini configuration',
     configPath: '~/.gemini/settings.json',
     steps: [
@@ -99,7 +106,6 @@ export const MCP_CLIENTS: readonly McpClientProfile[] = [
   {
     id: 'windsurf',
     name: 'Windsurf / Cascade',
-    description: 'Cascade in Windsurf or its editor plugins.',
     configLabel: 'Copy Cascade configuration',
     configPath: 'Cascade → Open MCP config file',
     steps: [
@@ -112,7 +118,6 @@ export const MCP_CLIENTS: readonly McpClientProfile[] = [
   {
     id: 'devin',
     name: 'Devin Local',
-    description: 'The local agent in Devin Desktop or Devin CLI.',
     configLabel: 'Copy Devin configuration',
     configPath: 'Personal devin/mcp_config.json (open from Customize → MCPs)',
     steps: [
@@ -125,7 +130,6 @@ export const MCP_CLIENTS: readonly McpClientProfile[] = [
   {
     id: 'cline',
     name: 'Cline',
-    description: 'Cline’s local editor extension or CLI.',
     configLabel: 'Copy Cline configuration',
     configPath:
       'Editor: Configure MCP Servers; CLI: ~/.cline/data/settings/cline_mcp_settings.json (or CLINE_MCP_SETTINGS_PATH)',
@@ -139,7 +143,6 @@ export const MCP_CLIENTS: readonly McpClientProfile[] = [
   {
     id: 'opencode',
     name: 'OpenCode v1',
-    description: 'OpenCode v1 using the original mcp configuration.',
     configLabel: 'Copy OpenCode v1 configuration',
     configPath: '~/.config/opencode/opencode.json',
     steps: [
@@ -152,7 +155,6 @@ export const MCP_CLIENTS: readonly McpClientProfile[] = [
   {
     id: 'opencode-v2',
     name: 'OpenCode v2',
-    description: 'OpenCode v2 using mcp.servers.',
     configLabel: 'Copy OpenCode v2 configuration',
     configPath: '~/.config/opencode/opencode.json (or opencode.jsonc)',
     steps: [
@@ -165,7 +167,6 @@ export const MCP_CLIENTS: readonly McpClientProfile[] = [
   {
     id: 'claude-desktop',
     name: 'Claude Desktop',
-    description: 'Claude’s chat app needs a desktop extension or local stdio bridge.',
     configLabel: 'Local bridge required',
     steps: [
       'Use Claude Code on this computer with StockFinder’s direct HTTP connection.',
@@ -180,8 +181,7 @@ export const MCP_CLIENTS: readonly McpClientProfile[] = [
   },
   {
     id: 'other',
-    name: 'Other local MCP client',
-    description: 'For an app with local Streamable HTTP and custom header support.',
+    name: 'Another AI app',
     configLabel: 'Copy generic configuration',
     steps: [
       'Check that your client makes MCP requests from this computer and supports Streamable HTTP with an Authorization header.',
@@ -192,13 +192,8 @@ export const MCP_CLIENTS: readonly McpClientProfile[] = [
   }
 ]
 
-export type McpClientConfigFormat = 'json' | McpClientId
-
 /** Local HTTP clients need both the live address and the private connection token. */
-export function mcpClientConfig(
-  info: McpConnectionInfo,
-  format: McpClientConfigFormat = 'json'
-): string | null {
+export function mcpClientConfig(info: McpConnectionInfo, format: McpClientId): string | null {
   if (!info.enabled || !info.running || !info.url || !info.token || format === 'claude-desktop')
     return null
   const headers = { Authorization: `Bearer ${info.token}` }
@@ -220,6 +215,9 @@ export function mcpClientConfig(
       break
     case 'vscode':
       config = { servers: { stockfinder: { type: 'http', ...remote } } }
+      break
+    case 'copilot':
+      config = { mcpServers: { stockfinder: { type: 'http', ...remote, tools: ['*'] } } }
       break
     case 'gemini-cli':
       config = { mcpServers: { stockfinder: { httpUrl: info.url, headers } } }
@@ -243,7 +241,7 @@ export function mcpClientConfig(
     case 'opencode-v2':
       config = { mcp: { servers: { stockfinder: { type: 'remote', ...remote, oauth: false } } } }
       break
-    default:
+    case 'other':
       config = { mcpServers: { stockfinder: { type: 'http', ...remote } } }
   }
   return JSON.stringify(config, null, 2)

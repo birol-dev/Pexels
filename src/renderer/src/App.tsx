@@ -6,6 +6,7 @@ import ScriptInputView from '@renderer/routes/script-input'
 import AgentRunView from '@renderer/routes/agent-run'
 import DownloadedStuffView from '@renderer/routes/downloaded-stuff'
 import SettingsView from '@renderer/routes/settings'
+import McpView from '@renderer/routes/mcp'
 import OnboardingView from '@renderer/routes/onboarding'
 import { AppProviders } from '@renderer/components/common/AppProviders'
 import { AppShell } from '@renderer/components/layout/AppShell'
@@ -17,6 +18,7 @@ const VIEWS = {
   input: ScriptInputView,
   run: AgentRunView,
   stuff: DownloadedStuffView,
+  mcp: McpView,
   settings: SettingsView
 } as const
 

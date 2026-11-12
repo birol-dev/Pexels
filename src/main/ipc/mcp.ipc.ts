@@ -1,8 +1,10 @@
 import { ipcMain, shell } from 'electron'
+import { testMcpConnection } from '../services/mcp/mcp-diagnostics.ts'
 import { mcpClientDocsUrl, mcpClientInstallUrl } from '../services/mcp/mcp-client-actions.ts'
 import { getMcpConnectionInfo, syncMcpServer } from '../services/mcp/mcp-server.ts'
 
 export function registerMcpHandlers(): void {
+  ipcMain.handle('mcp:testConnection', () => testMcpConnection())
   ipcMain.handle('mcp:getConnectionInfo', () => getMcpConnectionInfo())
   ipcMain.handle('mcp:retryConnection', async () => {
     await syncMcpServer()

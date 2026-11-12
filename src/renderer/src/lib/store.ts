@@ -132,7 +132,7 @@ export interface PublicSettings {
   hideEstimatedCost?: boolean
   /** The engine new jobs run on. Missing means the agent loop. */
   agentEngine?: 'loop' | 'pipeline' | 'mcp'
-  /** Whether the local MCP connection is enabled. Missing means off. */
+  /** Whether the local MCP connection is enabled. Enabled by default. */
   mcpEnabled?: boolean
   /** The pipeline attaches a thumbnail of each candidate when it ranks. Missing means off. */
   rankWithThumbnails?: boolean
@@ -151,7 +151,7 @@ export interface ModalState {
 
 export interface TabItem {
   id: string
-  type: 'input' | 'run' | 'stuff' | 'settings'
+  type: 'input' | 'run' | 'stuff' | 'settings' | 'mcp'
   title: string
   jobId?: string
 }
@@ -175,7 +175,7 @@ export interface InputFormState {
 }
 
 interface AppStore {
-  currentRoute: 'input' | 'run' | 'stuff' | 'settings'
+  currentRoute: 'input' | 'run' | 'stuff' | 'settings' | 'mcp'
   activeJobId: string | null
   activeJob: JobSnapshot | null
   activeJobError: string | null
@@ -193,7 +193,7 @@ interface AppStore {
 
   // Tab Actions
   openTab: (
-    type: 'input' | 'run' | 'stuff' | 'settings',
+    type: 'input' | 'run' | 'stuff' | 'settings' | 'mcp',
     jobId?: string,
     createNew?: boolean
   ) => void
@@ -206,7 +206,7 @@ interface AppStore {
     visualConcept: string
   }>
 
-  navigate: (route: 'input' | 'run' | 'stuff' | 'settings') => void
+  navigate: (route: 'input' | 'run' | 'stuff' | 'settings' | 'mcp') => void
   setActiveJobId: (id: string | null) => void
   handleJobEvent: (event: Record<string, unknown>) => void
   loadSettings: () => Promise<void>
@@ -273,7 +273,7 @@ let latestActiveJobRequest = 0
 let activeJobRead: { jobId: string; request: number } | null = null
 
 /** An error thrown in the main process, without Electron's "Error invoking remote method" lead-in. */
-function ipcErrorMessage(err: unknown): string {
+export function ipcErrorMessage(err: unknown): string {
   const message = err instanceof Error ? err.message : String(err)
   return message.replace(/^Error invoking remote method '[^']*': (?:Error: )?/, '')
 }
@@ -350,6 +350,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
           }
         }
       }
+    } else if (type === 'mcp') {
+      title = 'Connect your AI'
     } else if (type === 'settings') {
       title = 'Settings'
     } else if (type === 'run' && !jobId) {

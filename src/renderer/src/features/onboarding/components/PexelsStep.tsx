@@ -9,17 +9,23 @@ import { StepCard } from './StepCard'
 import { StepHeader } from './StepHeader'
 import { StepNav } from './StepNav'
 
-type PexelsStepProps = Pick<OnboardingController, 'pexelsKey' | 'setPexelsKey' | 'pexelsTest'> & {
-  onBack: () => void
+type PexelsStepProps = Pick<
+  OnboardingController,
+  'pexelsKey' | 'setPexelsKey' | 'pexelsTest' | 'hasPexelsKey'
+> & {
+  onBack?: () => void
   onNext: () => void
+  nextLabel?: string
 }
 
 export function PexelsStep({
   pexelsKey,
   setPexelsKey,
   pexelsTest,
+  hasPexelsKey,
   onBack,
-  onNext
+  onNext,
+  nextLabel
 }: PexelsStepProps): React.JSX.Element {
   return (
     <StepCard>
@@ -68,13 +74,16 @@ export function PexelsStep({
         <div className="flex items-start gap-3 rounded-2xl bg-surface-container p-4">
           <LockSimpleIcon size={18} className="mt-px shrink-0 text-outline" />
           <p className="text-[13px] leading-relaxed text-on-surface-variant">
-            Your API key is stored locally in your system&apos;s secure keychain. It is strictly
-            used to fetch footage directly from Pexels and is never sent to external servers.
+            Your key is stored securely on this computer and used to request footage from Pexels.
           </p>
         </div>
       </FormPanel>
 
-      <StepNav onBack={onBack} onNext={onNext} />
+      <StepNav
+        onBack={onBack}
+        onNext={onNext}
+        nextLabel={nextLabel ?? (!hasPexelsKey ? 'Continue without key' : undefined)}
+      />
     </StepCard>
   )
 }

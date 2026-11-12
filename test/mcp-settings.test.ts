@@ -58,8 +58,8 @@ describe('MCP settings and production server lifecycle', { timeout: 30_000 }, ()
     await stopMcpServer()
   })
 
-  it('is opt-in and validates settings at the IPC boundary', async () => {
-    assert.equal(getDefaultSettings().mcpEnabled, false)
+  it('enables MCP by default alongside API packs and respects an explicit off setting', async () => {
+    assert.equal(getDefaultSettings().mcpEnabled, true)
     assert.equal(getDefaultSettings().agentEngine, 'loop')
     assert.equal(getMcpConnectionInfo().enabled, false)
     assert.equal(getMcpConnectionInfo().running, false)
@@ -76,6 +76,24 @@ describe('MCP settings and production server lifecycle', { timeout: 30_000 }, ()
     assert.equal(settings.mcpToken, undefined)
     assert.equal(await SecureSecrets.getSecret('mcpToken'), '')
     await assert.rejects(connectToMcpPort(), { code: 'ECONNREFUSED' })
+  })
+
+  it('tests the real listener without creating packs, leaking credentials or claiming external contact', async () => {
+    await assert.rejects(invokeIpc('mcp:testConnection'), /Start the MCP server first/)
+    await invokeIpc('settings:updateSettings', { mcpEnabled: true })
+    const { token } = getMcpConnectionInfo()
+    const result = await invokeIpc('mcp:testConnection')
+    assert.equal(result.tools.length, 14)
+    assert.ok(result.tools.some((tool) => tool.name === 'stockfinder_status' && tool.readOnly))
+    assert.ok(result.tools.some((tool) => tool.name === 'stockfinder_create_job' && !tool.readOnly))
+    assert.equal(typeof result.hasPexelsKey, 'boolean')
+    assert.ok(Number.isFinite(Date.parse(result.checkedAt)))
+    assert.ok(result.durationMs >= 0)
+    assert.ok(!JSON.stringify(result).includes(token!))
+    assert.equal(getMcpConnectionInfo().lastClientSeenAt, undefined)
+    assert.equal((await SettingsStore.getSettings()).agentEngine, 'loop')
+    await invokeIpc('settings:updateSettings', { mcpEnabled: false })
+    await assert.rejects(invokeIpc('mcp:testConnection'), /Start the MCP server first/)
   })
 
   it('keeps one encrypted token across restarts without exposing it in public settings', async () => {

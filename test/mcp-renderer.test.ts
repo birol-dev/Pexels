@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { getMissingCredentials } from '../src/renderer/src/features/script-input/utils.ts'
 import { buildSettingsUpdates } from '../src/renderer/src/features/onboarding/utils.ts'
-import { mcpClientConfig } from '../src/renderer/src/features/settings/mcp-config.ts'
+import { mcpClientConfig } from '../src/shared/mcp-clients.ts'
 import type { PublicSettings } from '../src/renderer/src/lib/store.ts'
 import type { McpConnectionInfo } from '../src/shared/mcp.ts'
 
@@ -57,15 +57,15 @@ describe('MCP setup in the renderer', () => {
       url: 'http://127.0.0.1:45678/mcp',
       token: 'private-token'
     }
-    const config = JSON.parse(mcpClientConfig(info)!)
+    const config = JSON.parse(mcpClientConfig(info, 'other')!)
     assert.deepEqual(config.mcpServers.stockfinder, {
       type: 'http',
       url: info.url,
       headers: { Authorization: 'Bearer private-token' }
     })
-    assert.equal(mcpClientConfig({ ...info, running: false }), null)
-    assert.equal(mcpClientConfig({ ...info, url: null }), null)
-    assert.equal(mcpClientConfig({ ...info, token: null }), null)
+    assert.equal(mcpClientConfig({ ...info, running: false }, 'other'), null)
+    assert.equal(mcpClientConfig({ ...info, url: null }, 'other'), null)
+    assert.equal(mcpClientConfig({ ...info, token: null }, 'other'), null)
     assert.equal(
       mcpClientConfig(info, 'codex'),
       '[mcp_servers.stockfinder]\nurl = "http://127.0.0.1:45678/mcp"\nhttp_headers = { Authorization = "Bearer private-token" }'

@@ -1,7 +1,7 @@
 import type { PublicSettings } from '@renderer/lib/store'
 import type { LlmProvider, ProviderKeys } from './types'
 
-export const TOTAL_STEPS = 5
+export const TOTAL_STEPS = 4
 
 export const PROVIDER_OPTIONS: { id: LlmProvider; label: string }[] = [
   { id: 'openai', label: 'OpenAI' },
@@ -13,10 +13,6 @@ export { DEFAULT_MODEL_IDS } from '../../../../shared/llm-defaults.ts'
 
 /** Sentinel understood by the main process: "test the key already stored on disk". */
 export const CURRENT_KEY_ON_DISK = 'CURRENT_KEY_ON_DISK'
-
-export function stepProgressPercent(step: number): number {
-  return (step / TOTAL_STEPS) * 100
-}
 
 export function errorMessage(err: unknown, fallback: string): string {
   const msg = err instanceof Error ? err.message : String(err)

@@ -12,7 +12,6 @@ import { SafetyPanel } from '@renderer/features/settings/components/SafetyPanel'
 import { SettingsMenu } from '@renderer/features/settings/components/SettingsMenu'
 import { StoragePanel } from '@renderer/features/settings/components/StoragePanel'
 import { UpdatesPanel } from '@renderer/features/settings/components/UpdatesPanel'
-import { McpPanel } from '@renderer/features/settings/components/McpPanel'
 import { useSettingsForm } from '@renderer/features/settings/hooks/useSettingsForm'
 
 export default function SettingsView(): React.JSX.Element {
@@ -76,7 +75,6 @@ export default function SettingsView(): React.JSX.Element {
           <SettingsMenu />
         </div>
         <div className="flex max-w-[720px] min-w-0 flex-col gap-14">
-          <McpPanel settings={settings} form={form} />
           <ProviderPanel settings={settings} form={form} />
           <PexelsPanel settings={settings} form={form} />
           <StoragePanel settings={settings} form={form} />

@@ -71,10 +71,10 @@ export function SetupTray(): React.JSX.Element | null {
       detail: isMcp
         ? mcpVerified && needsMcp
           ? 'Your AI app has reached StockFinder. Keep both apps open.'
-          : 'Choose your AI app and paste a connection test from Settings.'
+          : 'Choose your AI app and follow the steps in Connect your AI.'
         : 'Reads your script and picks the shots.',
       done: isMcp ? Boolean(needsMcp && mcpVerified) : !!getActiveProviderKey(settings),
-      action: toSettings
+      action: isMcp ? { label: 'Connect your AI', onClick: () => navigate('mcp') } : toSettings
     },
     {
       id: 'pexels',

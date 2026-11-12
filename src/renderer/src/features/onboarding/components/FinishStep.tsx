@@ -7,6 +7,7 @@ import {
 } from '@phosphor-icons/react'
 import { Button } from '@renderer/components/ui/button'
 import type { OnboardingController } from '../hooks/useOnboarding'
+import { MCP_CLIENTS } from '../../../../../shared/mcp-clients'
 import { PROVIDER_OPTIONS } from '../utils'
 import { ProviderLogo } from './ProviderLogo'
 import { StepCard } from './StepCard'
@@ -17,77 +18,101 @@ type FinishStepProps = Pick<
   OnboardingController,
   | 'llmProvider'
   | 'useMcp'
+  | 'mcpClientId'
   | 'modelId'
   | 'downloadFolder'
+  | 'chooseFolder'
   | 'hasLlmKey'
   | 'hasPexelsKey'
   | 'finishing'
   | 'finishError'
   | 'finish'
->
+> & { onEditAI: () => void; onEditPexels: () => void }
 
 export function FinishStep({
   llmProvider,
   useMcp,
+  mcpClientId,
   modelId,
   downloadFolder,
+  chooseFolder,
   hasLlmKey,
   hasPexelsKey,
   finishing,
   finishError,
-  finish
+  finish,
+  onEditAI,
+  onEditPexels
 }: FinishStepProps): React.JSX.Element {
-  const ready = (useMcp || hasLlmKey) && hasPexelsKey
   const providerLabel =
     PROVIDER_OPTIONS.find((option) => option.id === llmProvider)?.label ?? llmProvider
+  const appName = MCP_CLIENTS.find((client) => client.id === mcpClientId)?.name ?? 'Your AI app'
   return (
     <StepCard>
       <StepHeader
         title={
-          useMcp ? (
-            <>
-              Ready to <em>connect</em>
-            </>
-          ) : ready ? (
-            <>
-              You&apos;re <em>all set</em>
-            </>
-          ) : (
-            <>
-              Almost <em>there</em>
-            </>
-          )
+          <>
+            Review your <em>setup</em>
+          </>
         }
         description={
           useMcp
-            ? 'Open the connection guide next. Choose your AI app, add StockFinder, then paste a test prompt to check access.'
-            : ready
-              ? 'Here is what StockFinder will use. You can change any of it later in Settings.'
-              : 'You can start now, but a run needs both keys. Add the missing one in Settings.'
+            ? 'The next screen shows how to connect your AI app. You’ll need a Pexels key to find footage.'
+            : 'You can finish setup now and add any missing keys before your first search.'
         }
       />
 
       <div className="flex flex-col gap-2">
         <SummaryCard
           icon={useMcp ? <PlugsConnectedIcon /> : <ProviderLogo provider={llmProvider} />}
-          title={useMcp ? 'Your AI app through MCP' : providerLabel}
-          value={useMcp ? 'Choose your app in the next step' : modelId}
-          status={useMcp ? 'Setup next' : hasLlmKey ? 'Ready' : 'No key'}
+          title={useMcp ? appName : providerLabel}
+          value={useMcp ? 'Connect after setup' : hasLlmKey ? modelId : 'API key missing'}
           ok={useMcp || hasLlmKey}
+          action={
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={finishing}
+              onClick={onEditAI}
+              aria-label="Edit AI setup"
+            >
+              {useMcp || hasLlmKey ? 'Change' : 'Add key'}
+            </Button>
+          }
         />
         <SummaryCard
           icon={<ImagesIcon />}
           title="Pexels"
-          value="Photos and clips"
-          status={hasPexelsKey ? 'Ready' : 'No key'}
+          value={hasPexelsKey ? 'Key added' : 'Key required to find footage'}
           ok={hasPexelsKey}
+          action={
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={finishing}
+              onClick={onEditPexels}
+              aria-label="Edit Pexels key"
+            >
+              {hasPexelsKey ? 'Change' : 'Add key'}
+            </Button>
+          }
         />
         <SummaryCard
           icon={<FolderIcon />}
           title="Download folder"
           value={downloadFolder || 'System default directory'}
-          status="Ready"
           mono
+          action={
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={finishing}
+              onClick={chooseFolder}
+              aria-label="Change download folder"
+            >
+              Change
+            </Button>
+          }
         />
       </div>
 

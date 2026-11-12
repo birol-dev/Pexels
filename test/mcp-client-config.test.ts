@@ -23,6 +23,9 @@ describe('MCP client setup', () => {
     const expected = {
       cursor: { mcpServers: { stockfinder: { url: info.url, headers } } },
       vscode: { servers: { stockfinder: { type: 'http', url: info.url, headers } } },
+      copilot: {
+        mcpServers: { stockfinder: { type: 'http', url: info.url, headers, tools: ['*'] } }
+      },
       'gemini-cli': { mcpServers: { stockfinder: { httpUrl: info.url, headers } } },
       windsurf: { mcpServers: { stockfinder: { serverUrl: info.url, headers } } },
       devin: { mcpServers: { stockfinder: { url: info.url, headers, transport: 'http' } } },

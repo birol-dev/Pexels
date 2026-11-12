@@ -1,11 +1,10 @@
-import { CheckIcon, WarningIcon } from '@phosphor-icons/react'
 import { cn } from '@renderer/lib/utils'
 
 interface SummaryCardProps {
   icon: React.ReactNode
   title: string
   value: string
-  status: string
+  action?: React.ReactNode
   /** False marks something the user still has to fix. Defaults to true. */
   ok?: boolean
   mono?: boolean
@@ -16,7 +15,7 @@ export function SummaryCard({
   icon,
   title,
   value,
-  status,
+  action,
   ok = true,
   mono,
   className
@@ -37,18 +36,10 @@ export function SummaryCard({
         {icon}
       </div>
       <div className="min-w-0 grow">
-        <h4 className="text-sm font-semibold text-on-surface">{title}</h4>
+        <h2 className="text-sm font-semibold text-on-surface">{title}</h2>
         <p className={cn('truncate text-[13px] text-outline', mono && 'font-mono')}>{value}</p>
       </div>
-      <span
-        className={cn(
-          'flex shrink-0 items-center gap-1 text-[13px] font-medium',
-          ok ? 'text-on-surface-variant' : 'text-error'
-        )}
-      >
-        {ok ? <CheckIcon size={14} weight="bold" /> : <WarningIcon size={14} weight="bold" />}
-        {status}
-      </span>
+      {action}
     </div>
   )
 }

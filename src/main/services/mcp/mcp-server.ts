@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
-import { MCP_PORT, type McpConnectionInfo } from '../../../shared/mcp.ts'
+import { MCP_PORT, MCP_DIAGNOSTIC_CLIENT, type McpConnectionInfo } from '../../../shared/mcp.ts'
 import { SettingsStore } from '../storage/settings-store.ts'
 import { SecureSecrets } from '../storage/secure-secrets.ts'
 import { createMcpProtocolServer } from './mcp-tools.ts'
@@ -115,7 +115,13 @@ export class McpHttpServer {
       await transport.handleRequest(request, response)
       const client = server.server.getClientVersion()
       // Each HTTP request has its own SDK server. Only a validated initialize sets clientInfo.
-      if (client && response.statusCode === 200 && this.httpServer === servingHttp && this.url) {
+      if (
+        client &&
+        client.name !== MCP_DIAGNOSTIC_CLIENT &&
+        response.statusCode === 200 &&
+        this.httpServer === servingHttp &&
+        this.url
+      ) {
         this.clientActivity = {
           lastClientSeenAt: new Date().toISOString(),
           clientName: client.name.replace(/\p{Cc}|\p{Cf}/gu, '').slice(0, 80)

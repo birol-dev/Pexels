@@ -6,7 +6,6 @@ import {
   GaugeIcon,
   ImagesIcon,
   PaletteIcon,
-  PlugsConnectedIcon,
   ShieldCheckIcon,
   WrenchIcon,
   type Icon
@@ -14,7 +13,6 @@ import {
 
 /** The Settings menu, in page order. Each panel renders its section with the matching id. */
 export const SETTINGS_SECTIONS = [
-  { id: 'settings-mcp', label: 'MCP connection', icon: PlugsConnectedIcon },
   { id: 'settings-ai', label: 'AI provider', icon: CpuIcon },
   { id: 'settings-pexels', label: 'Pexels', icon: ImagesIcon },
   { id: 'settings-storage', label: 'Storage', icon: FolderIcon },

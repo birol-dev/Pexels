@@ -35,12 +35,10 @@ export function OnboardingPreview({
 }: OnboardingPreviewProps): React.JSX.Element {
   const providerLabel =
     PROVIDER_OPTIONS.find((option) => option.id === llmProvider)?.label ?? llmProvider
-  const folder = `${(downloadFolder || 'Videos/StockFinder').replace(/[\\/]+$/, '')}/a-saturday-slowly`
-
   const chips = [
     {
       step: 2,
-      label: useMcp ? 'MCP' : providerLabel,
+      label: useMcp ? 'AI app' : providerLabel,
       done: !useMcp && hasLlmKey,
       icon: useMcp ? <PlugsConnectedIcon /> : <ProviderLogo provider={llmProvider} />
     },
@@ -110,7 +108,6 @@ export function OnboardingPreview({
           llmProvider={llmProvider}
           useMcp={useMcp}
           modelId={modelId}
-          folder={folder}
         />
       </div>
     </div>
@@ -123,15 +120,13 @@ function StepCallout({
   providerLabel,
   llmProvider,
   useMcp,
-  modelId,
-  folder
+  modelId
 }: {
   step: number
   providerLabel: string
   llmProvider: OnboardingPreviewProps['llmProvider']
   useMcp: boolean
   modelId: string
-  folder: string
 }): React.JSX.Element {
   const content: Record<number, { icon: React.ReactNode; title: string; body: string }> = {
     1: {
@@ -141,7 +136,7 @@ function StepCallout({
     },
     2: {
       icon: useMcp ? <PlugsConnectedIcon /> : <ProviderLogo provider={llmProvider} />,
-      title: useMcp ? 'Your AI app · MCP' : `${providerLabel} · ${modelId}`,
+      title: useMcp ? 'Your AI app' : `${providerLabel} · ${modelId}`,
       body: useMcp
         ? 'Your connected AI plans the beats and picks footage in StockFinder.'
         : 'Splits the script into beats and writes a search for each one.'
@@ -151,13 +146,12 @@ function StepCallout({
       title: 'Pexels',
       body: '15 photos and 11 clips for “The dog decides the route”.'
     },
-    4: { icon: <FolderIcon />, title: 'Saved to', body: folder },
-    5: {
+    4: {
       icon: <CheckIcon weight="bold" />,
-      title: useMcp ? 'Ready to connect your AI app' : 'Ready for your first pack',
+      title: 'Your first pack',
       body: useMcp
-        ? 'Choose your app and follow the connection guide next.'
-        : 'Paste a script and press Find footage.'
+        ? 'Connect your app, then send it a script or idea.'
+        : 'Add your keys, then paste a script to find footage.'
     }
   }
   const { icon, title, body } = content[step] ?? content[1]
@@ -173,14 +167,7 @@ function StepCallout({
         </span>
         <span className="min-w-0 truncate text-sm font-semibold text-on-surface">{title}</span>
       </div>
-      <p
-        className={cn(
-          'mt-2.5 text-[13px] leading-snug text-outline',
-          step === 4 && 'truncate font-mono'
-        )}
-      >
-        {body}
-      </p>
+      <p className="mt-2.5 text-[13px] leading-snug text-outline">{body}</p>
     </div>
   )
 }

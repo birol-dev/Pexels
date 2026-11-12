@@ -33,7 +33,7 @@ export interface PublicSettings {
    * Read when a job is created and pinned to it; a job already running keeps its own.
    */
   agentEngine?: 'loop' | 'pipeline' | 'mcp'
-  /** Allow authenticated MCP clients on this computer to control StockFinder. Default off. */
+  /** Allow authenticated MCP clients on this computer to control StockFinder. Default on. */
   mcpEnabled?: boolean
   /**
    * Whether the pipeline engine attaches a small thumbnail of each candidate when the model
@@ -87,7 +87,7 @@ export function getDefaultSettings(): PublicSettings {
       theme: 'flat-black',
       hideEstimatedCost: false,
       agentEngine: 'loop',
-      mcpEnabled: false,
+      mcpEnabled: true,
       rankWithThumbnails: false,
       autoCheckForUpdates: true
     }
